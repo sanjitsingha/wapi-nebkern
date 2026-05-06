@@ -102,7 +102,7 @@ export default function SignupPage() {
           </div>
           <CardTitle className="text-xl text-white">Create account</CardTitle>
           <CardDescription className="text-slate-400">
-            Get started with WaCRM
+            Get started with CRM Template for WhatsApp
           </CardDescription>
         </CardHeader>
         <CardContent>

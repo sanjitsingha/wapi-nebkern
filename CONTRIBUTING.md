@@ -1,6 +1,6 @@
-# Using WaCRM
+# Using this template
 
-WaCRM is a **template repository**, not a collaborative product. The
+This is a **template repository**, not a collaborative product. The
 expected flow is:
 
 1. **Fork** it to your own GitHub account or organisation.
@@ -95,9 +95,9 @@ closed — open the issue first to align.
 
 ## If you maintain a public fork
 
-- Rebrand. The WaCRM name, favicon, and `wacrm.tech` URL belong to the
-  upstream project; please swap them for your own before putting your
-  deployment in front of users.
+- Rebrand. The "CRM Template for WhatsApp" name, favicon, and
+  `wacrm.tech` URL belong to the upstream project; please swap them
+  for your own before putting your deployment in front of users.
 - Keep the MIT [`LICENSE`](./LICENSE) file — that's how the template's
   permissions travel with the code. Attribution in a `README` section
   is appreciated but not required.

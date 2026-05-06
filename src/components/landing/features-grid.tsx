@@ -70,7 +70,7 @@ export function FeaturesGrid() {
       <SectionHeader
         eyebrow="Everything you need"
         title="One toolkit for your WhatsApp business"
-        description="Stop stitching together an inbox, a spreadsheet, and a broadcast tool. WaCRM brings them together — and talks to WhatsApp natively."
+        description="Stop stitching together an inbox, a spreadsheet, and a broadcast tool. This CRM template for WhatsApp brings them together — and talks to WhatsApp natively."
       />
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">

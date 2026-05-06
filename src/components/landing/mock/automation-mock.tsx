@@ -47,7 +47,9 @@ export function AutomationMock() {
         <span className="h-2.5 w-2.5 rounded-full bg-slate-700" />
         <span className="h-2.5 w-2.5 rounded-full bg-slate-700" />
         <span className="h-2.5 w-2.5 rounded-full bg-slate-700" />
-        <span className="ml-3 text-[10px] text-slate-500">Automations — WaCRM</span>
+        <span className="ml-3 text-[10px] text-slate-500">
+          Automations — CRM Template for WhatsApp
+        </span>
       </div>
 
       {/* Dotted canvas — matches the real flow builder's background. */}

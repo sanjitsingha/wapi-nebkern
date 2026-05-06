@@ -11,11 +11,11 @@ import { decrypt } from '@/lib/whatsapp/encryption'
  *   template locally, try to broadcast with it, and hit Meta's error
  *   #132001 "Template name does not exist in the translation" — because
  *   Meta had never seen the template, or had it approved under a
- *   different language code than what WaCRM stored.
+ *   different language code than what we stored locally.
  *
  *   This route pulls the source of truth (Meta's approved templates)
  *   and upserts them into the local catalog by (user_id, name, language).
- *   After a sync, every template row in WaCRM is guaranteed to match
+ *   After a sync, every local template row is guaranteed to match
  *   something Meta will actually accept on send.
  *
  * Scope:

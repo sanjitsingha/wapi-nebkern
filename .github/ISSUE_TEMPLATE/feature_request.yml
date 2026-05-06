@@ -8,7 +8,7 @@ body:
       value: |
         Thanks for the idea — but read this first.
 
-        WaCRM is a **template**, not a collaborative product. The
+        This is a **template**, not a collaborative product. The
         upstream scope is intentionally narrow, so most feature
         requests end up as *"build this in your fork"* rather than
         landing here. That's the point of a template.
@@ -29,7 +29,7 @@ body:
     id: problem
     attributes:
       label: What's the problem?
-      description: What are you trying to do today that WaCRM makes harder than it should?
+      description: What are you trying to do today that the template makes harder than it should?
       placeholder: |
         When a broadcast ends I have no way to see which recipients
         didn't reply so I can follow up manually.

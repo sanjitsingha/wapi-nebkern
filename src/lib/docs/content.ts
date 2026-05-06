@@ -22,7 +22,7 @@ const ORDER: Record<string, { order: number; section: string; description: strin
   'getting-started': {
     order: 1,
     section: 'Setup',
-    description: 'Fork, install, run WaCRM locally in about 15 minutes.',
+    description: 'Fork, install, run the template locally in about 15 minutes.',
   },
   'supabase-setup': {
     order: 2,
@@ -37,12 +37,12 @@ const ORDER: Record<string, { order: number; section: string; description: strin
   'environment-variables': {
     order: 4,
     section: 'Setup',
-    description: 'Full reference for every env var WaCRM reads.',
+    description: 'Full reference for every env var the app reads.',
   },
   'deployment-hostinger': {
     order: 5,
     section: 'Deploy',
-    description: 'Ship WaCRM on Hostinger Managed Node.js Hosting.',
+    description: 'Ship the template on Hostinger Managed Node.js Hosting.',
   },
   'automations-and-cron': {
     order: 6,

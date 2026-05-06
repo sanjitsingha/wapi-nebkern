@@ -1,6 +1,6 @@
 # Security Policy
 
-Thanks for taking the time to look into WaCRM's security.
+Thanks for taking the time to look into the security of this template.
 
 ## Reporting a vulnerability
 
@@ -12,7 +12,7 @@ Instead, please report privately via one of:
 
 - [GitHub Security Advisories](https://github.com/ArnasDon/wacrm/security/advisories/new)
   (preferred — keeps the disclosure, fix, and CVE all in one place).
-- Email: `a.donauskas@hostinger.com` with `[WaCRM security]` in the subject.
+- Email: `a.donauskas@hostinger.com` with `[CRM template security]` in the subject.
 
 Include, if you can:
 
@@ -59,4 +59,4 @@ action against anyone who:
 - Gives us reasonable time to respond before any public disclosure.
 - Doesn't exploit the issue beyond what's necessary to demonstrate it.
 
-Thanks for helping keep WaCRM (and its forks) safe.
+Thanks for helping keep this template (and its forks) safe.

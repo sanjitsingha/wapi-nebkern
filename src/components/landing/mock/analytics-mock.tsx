@@ -27,7 +27,9 @@ export function AnalyticsMock() {
         <span className="h-2.5 w-2.5 rounded-full bg-slate-700" />
         <span className="h-2.5 w-2.5 rounded-full bg-slate-700" />
         <span className="h-2.5 w-2.5 rounded-full bg-slate-700" />
-        <span className="ml-3 text-[10px] text-slate-500">Dashboard — WaCRM</span>
+        <span className="ml-3 text-[10px] text-slate-500">
+          Dashboard — CRM Template for WhatsApp
+        </span>
       </div>
 
       <div className="space-y-3 p-4">

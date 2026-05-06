@@ -32,11 +32,17 @@ export function DocsShell({ pages, children }: DocsShellProps) {
             >
               {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
-            <Link href="/" className="flex items-center gap-2" aria-label="WaCRM home">
+            <Link
+              href="/"
+              className="flex items-center gap-2"
+              aria-label="CRM Template for WhatsApp home"
+            >
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500">
                 <MessageSquare className="h-4 w-4 text-white" />
               </span>
-              <span className="text-lg font-semibold text-white">WaCRM</span>
+              <span className="text-sm font-semibold text-white">
+                CRM Template for WhatsApp
+              </span>
               <span className="hidden rounded-md border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 sm:inline-block">
                 Docs
               </span>

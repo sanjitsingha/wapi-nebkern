@@ -6,6 +6,6 @@ contact_links:
   - name: Setup / "how do I..." questions
     url: https://github.com/ArnasDon/wacrm/blob/main/docs/README.md
     about: Check the docs first — setup, deploy, troubleshooting are all covered.
-  - name: Using WaCRM as a template (forking)
+  - name: Using this as a template (forking)
     url: https://github.com/ArnasDon/wacrm/blob/main/CONTRIBUTING.md
-    about: WaCRM is a template. Most changes belong in your fork, not an upstream issue — here's how that works.
+    about: This is a template. Most changes belong in your fork, not an upstream issue — here's how that works.

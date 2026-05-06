@@ -46,7 +46,7 @@ Set `NEXT_PUBLIC_SITE_URL` **and** add the same origin to Supabase →
 ### Webhook verification fails in Meta
 
 - The **verify token** in Meta must match exactly what you saved in
-  **Settings → WhatsApp** inside WaCRM.
+  **Settings → WhatsApp** inside the app.
 - The callback URL must be reachable without auth. Test it yourself:
   `curl 'https://crm.example.com/api/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=<token>&hub.challenge=test'`
   should return `test`.
@@ -91,7 +91,7 @@ endpoint is fine and the problem is just the schedule.
 
 ### An automation fires twice for the same message
 
-Most likely two WaCRM instances share one Supabase project and both
+Most likely two app instances share one Supabase project and both
 receive the same webhook. The webhook handler deduplicates by Meta's
 `wamid`, but only within a single deploy — split-brain setups can double
 up. Either consolidate to one deploy or route the webhook to exactly one.

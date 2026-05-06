@@ -52,7 +52,7 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-xl text-white">Welcome back</CardTitle>
           <CardDescription className="text-slate-400">
-            Sign in to your WaCRM account
+            Sign in to your account
           </CardDescription>
         </CardHeader>
         <CardContent>

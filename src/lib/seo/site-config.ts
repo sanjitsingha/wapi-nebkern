@@ -9,13 +9,13 @@
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://wacrm.tech'
 
-export const SITE_NAME = 'WaCRM'
+export const SITE_NAME = 'CRM Template for WhatsApp'
 
 export const SITE_TAGLINE = 'Run your WhatsApp business from one inbox'
 
 /** Default description — reused by layout metadata and structured data. */
 export const SITE_DESCRIPTION =
-  'WaCRM is a WhatsApp CRM for small teams: shared inbox, contact hub, sales pipelines, broadcasts, and no-code automations — built on the official WhatsApp Business API.'
+  'A CRM template for WhatsApp built for small teams: shared inbox, contact hub, sales pipelines, broadcasts, and no-code automations — built on the official WhatsApp Business API.'
 
 /**
  * Keyword targets. Search engines largely ignore the meta keywords
@@ -40,7 +40,7 @@ export const OG_IMAGE_ALT = `${SITE_NAME} — ${SITE_TAGLINE}`
 /** Organization info surfaced in JSON-LD. */
 export const ORG_INFO = {
   name: SITE_NAME,
-  legalName: 'WaCRM',
+  legalName: 'CRM Template for WhatsApp',
   url: SITE_URL,
   logo: `${SITE_URL}/icon`,
 }

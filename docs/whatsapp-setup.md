@@ -1,6 +1,6 @@
 # WhatsApp setup
 
-WaCRM talks to the official **WhatsApp Business Cloud API** (Meta). Each
+This template talks to the official **WhatsApp Business Cloud API** (Meta). Each
 account stores its own `phone_number_id`, `waba_id`, and encrypted
 `access_token` — there is no shared app-level token. This page walks
 through getting those values and wiring the webhook.
@@ -45,9 +45,9 @@ generate a **System User** access token:
    - `whatsapp_business_messaging`
 4. Copy the token. **This is shown only once.**
 
-## 4. Connect it inside WaCRM
+## 4. Connect it inside the app
 
-1. Run WaCRM locally (or open your deployed instance).
+1. Run the app locally (or open your deployed instance).
 2. Sign in, then go to **Settings → WhatsApp**.
 3. Fill in:
    - **Phone number ID** — from step 3.
@@ -55,7 +55,7 @@ generate a **System User** access token:
    - **Access token** — the System User token from step 3.
    - **Verify token** — any random string you make up; you will paste the
      same value into Meta in the next step.
-4. Save. WaCRM encrypts the access token and verify token with your
+4. Save. The app encrypts the access token and verify token with your
    `ENCRYPTION_KEY` before writing them to Supabase.
 
 ## 5. Configure the webhook in Meta
@@ -68,7 +68,7 @@ Under **WhatsApp → Configuration → Webhook**:
   - Production: `https://<your-domain>/api/whatsapp/webhook`.
 - **Verify token**: the same string you entered in step 4.
 - Click **Verify and save**. Meta sends a GET with
-  `hub.challenge` — WaCRM's webhook route decrypts stored verify tokens
+  `hub.challenge` — the app's webhook route decrypts stored verify tokens
   and echoes the challenge back. If verification fails, double-check the
   verify token matches and the callback URL is publicly reachable.
 
@@ -86,7 +86,7 @@ sync on the broadcast UI.
 ## 6. Signature verification (required)
 
 Set `META_APP_SECRET` to your app's **App Secret** (Meta for Developers →
-App Settings → Basic). WaCRM validates the `X-Hub-Signature-256` HMAC
+App Settings → Basic). The app validates the `X-Hub-Signature-256` HMAC
 on every inbound webhook and **rejects every request if the env var is
 not set** — anyone who knew the webhook URL could otherwise spoof
 messages and status updates. Configure it before pointing the webhook
@@ -96,9 +96,8 @@ at a deployed instance.
 
 1. From Meta's **API Setup** page, send a test message to a number that is
    a registered tester.
-2. Watch the WaCRM Inbox — the message should appear within a second or
-   two.
-3. Reply from WaCRM; the recipient gets a real WhatsApp message.
+2. Watch the Inbox — the message should appear within a second or two.
+3. Reply from the app; the recipient gets a real WhatsApp message.
 
 If nothing shows up, see [troubleshooting.md](./troubleshooting.md).
 

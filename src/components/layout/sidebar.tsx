@@ -114,7 +114,9 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500">
               <MessageSquare className="h-4 w-4 text-white" />
             </div>
-            <span className="text-lg font-semibold text-white">WaCRM</span>
+            <span className="text-sm font-semibold text-white">
+              CRM Template for WhatsApp
+            </span>
           </Link>
           <button
             type="button"

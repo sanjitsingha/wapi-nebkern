@@ -14,7 +14,9 @@ export function InboxMock() {
         <span className="h-2.5 w-2.5 rounded-full bg-slate-700" />
         <span className="h-2.5 w-2.5 rounded-full bg-slate-700" />
         <span className="h-2.5 w-2.5 rounded-full bg-slate-700" />
-        <span className="ml-3 text-[10px] text-slate-500">Inbox — WaCRM</span>
+        <span className="ml-3 text-[10px] text-slate-500">
+          Inbox — CRM Template for WhatsApp
+        </span>
       </div>
 
       <div className="grid grid-cols-[180px_1fr] lg:grid-cols-[220px_1fr]">

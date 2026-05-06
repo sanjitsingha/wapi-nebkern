@@ -1,6 +1,6 @@
 # Getting started
 
-Run WaCRM locally in about 15 minutes. This guide assumes Node.js 20+ and
+Run the template locally in about 15 minutes. This guide assumes Node.js 20+ and
 npm are already installed.
 
 ## 1. Fork and clone

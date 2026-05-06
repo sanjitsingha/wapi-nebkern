@@ -1,6 +1,6 @@
 # Automations cron
 
-WaCRM's **Automations** module lets you build flows that react to WhatsApp
+The **Automations** module lets you build flows that react to WhatsApp
 events (new message, new contact, keyword match, schedule, etc.). Most
 steps run inline — the exception is the **Wait** step, which parks the
 execution in `automation_pending_executions` until its due time.

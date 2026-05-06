@@ -1,7 +1,7 @@
 # Deploy on Hostinger
 
 Hostinger's **[Managed Node.js Hosting](https://www.hostinger.com/web-apps-hosting)**
-is the recommended way to run WaCRM in production: Hostinger patches the
+is the recommended way to run this template in production: Hostinger patches the
 OS and the Node runtime, handles SSL, and gives you a Git-based deploy
 flow from hPanel. You deploy from your fork without ever opening an SSH
 session if you don't want to.
@@ -93,7 +93,7 @@ baked into the client bundle.
 From the app page, click **Restart application** (or run the equivalent
 from the terminal). hPanel boots `npm start` behind its own reverse proxy
 on the domain you configured. Hit the URL in a browser — you should land
-on the WaCRM marketing page.
+on the marketing page.
 
 SSL is provisioned automatically. If you used a subdomain, Hostinger's
 AutoSSL usually takes a minute or two; until then the site may serve the
@@ -139,7 +139,7 @@ idempotent.
 
 ## When to reach for a VPS instead
 
-Managed Node.js covers most WaCRM deploys. Consider
+Managed Node.js covers most deploys of this template. Consider
 [Hostinger VPS](https://www.hostinger.com/vps-hosting) if you need:
 
 - Long-running background workers beyond what the single Next.js process

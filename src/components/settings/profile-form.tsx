@@ -214,7 +214,7 @@ export function ProfileForm() {
       <CardHeader>
         <CardTitle className="text-white">Profile</CardTitle>
         <CardDescription className="text-slate-400">
-          How you show up across WaCRM. Your avatar and name appear in the
+          How you show up across the app. Your avatar and name appear in the
           header, sidebar, and anywhere your teammates see you.
         </CardDescription>
       </CardHeader>

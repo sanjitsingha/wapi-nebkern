@@ -11,8 +11,8 @@ that standard.
 If you witness or experience behaviour that violates the Code, please
 report it privately to the project maintainer:
 
-- Email: **a.donauskas@hostinger.com** with `[WaCRM conduct]` in the
-  subject.
+- Email: **a.donauskas@hostinger.com** with `[CRM template conduct]` in
+  the subject.
 
 Reports are handled confidentially. Expect an acknowledgement within
 72 hours and a decision on next steps within a week.

@@ -16,7 +16,7 @@ export default async function DocsIndexPage() {
         Documentation
       </p>
       <h1 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-        Self-host WaCRM end to end
+        Self-host the CRM template for WhatsApp end to end
       </h1>
       <p className="mt-4 text-base leading-relaxed text-slate-400">
         Everything you need to take the template from a fresh fork to a

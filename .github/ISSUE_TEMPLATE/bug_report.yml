@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in WaCRM isn't working the way the docs say it should.
+description: Something in the template isn't working the way the docs say it should.
 title: "[bug] "
 labels: ["bug", "triage"]
 body:

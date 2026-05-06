@@ -11,7 +11,7 @@ export interface FaqItem {
 export const FAQ_ITEMS: FaqItem[] = [
   {
     q: 'Do I need my own WhatsApp Business API access?',
-    a: 'Yes. WaCRM plugs into your existing Meta WhatsApp Business setup — you bring the phone number and access token, we provide the CRM tooling around it. Any Meta-approved BSP (Business Solution Provider) works.',
+    a: 'Yes. This CRM template for WhatsApp plugs into your existing Meta WhatsApp Business setup — you bring the phone number and access token, we provide the CRM tooling around it. Any Meta-approved BSP (Business Solution Provider) works.',
   },
   {
     q: 'Can my whole team share one WhatsApp number?',

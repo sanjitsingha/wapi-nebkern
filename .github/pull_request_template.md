@@ -1,5 +1,5 @@
 <!--
-Heads up: WaCRM is a template, not a collaborative product. Most
+Heads up: this is a template, not a collaborative product. Most
 changes belong in your fork. See CONTRIBUTING.md for which kinds of
 upstream PRs tend to land (security, correctness, docs) vs. which
 belong in a fork (new features, stack swaps, opinionated refactors).
