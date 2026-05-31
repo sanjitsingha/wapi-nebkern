@@ -1,7 +1,7 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-import { Link, usePathname } from "@/i18n/navigation";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { LogOut, Menu, Settings as SettingsIcon, User } from "lucide-react";
 import {
@@ -16,27 +16,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LocaleSwitcher } from "@/components/layout/locale-switcher";
 
-// Maps path → translation key in the `nav` namespace. Order matters
-// for prefix matches: longest first, but here keys are simple enough
-// that order isn't important.
-const PAGE_KEYS: Record<string, string> = {
-  "/dashboard": "dashboard",
-  "/inbox": "inbox",
-  "/contacts": "contacts",
-  "/pipelines": "pipelines",
-  "/broadcasts": "broadcasts",
-  "/automations": "automations",
-  "/settings": "settings",
+const pageTitles: Record<string, string> = {
+  "/dashboard": "Dashboard",
+  "/inbox": "Inbox",
+  "/contacts": "Contacts",
+  "/pipelines": "Pipelines",
+  "/broadcasts": "Broadcasts",
+  "/automations": "Automations",
+  "/settings": "Settings",
 };
 
-function getPageKey(pathname: string): string {
-  if (PAGE_KEYS[pathname]) return PAGE_KEYS[pathname];
-  const match = Object.entries(PAGE_KEYS).find(([path]) =>
+function getPageTitle(pathname: string): string {
+  if (pageTitles[pathname]) return pageTitles[pathname];
+  const match = Object.entries(pageTitles).find(([path]) =>
     pathname.startsWith(path),
   );
-  return match ? match[1] : "dashboard";
+  return match ? match[1] : "Dashboard";
 }
 
 interface HeaderProps {
@@ -46,10 +42,9 @@ interface HeaderProps {
 }
 
 export function Header({ onOpenSidebar }: HeaderProps) {
-  const t = useTranslations("nav");
   const pathname = usePathname();
   const { profile, signOut } = useAuth();
-  const title = t(getPageKey(pathname));
+  const title = getPageTitle(pathname);
 
   const initial =
     profile?.full_name?.charAt(0)?.toUpperCase() ??
@@ -63,7 +58,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
         <button
           type="button"
           onClick={onOpenSidebar}
-          aria-label={t("openMenu")}
+          aria-label="Open menu"
           className="flex h-10 w-10 items-center justify-center rounded-md text-slate-300 transition-colors hover:bg-slate-800 hover:text-white lg:hidden"
         >
           <Menu className="h-5 w-5" />
@@ -73,19 +68,16 @@ export function Header({ onOpenSidebar }: HeaderProps) {
         </h1>
       </div>
 
-      <div className="flex items-center gap-2">
-        <LocaleSwitcher />
-
-        <DropdownMenu>
+      <DropdownMenu>
         <DropdownMenuTrigger
           className="flex items-center gap-2 rounded-md px-1 py-1 transition-colors hover:bg-slate-800/70 focus:bg-slate-800/70 focus:outline-none data-popup-open:bg-slate-800/70 sm:gap-3 sm:pl-1 sm:pr-3"
-          aria-label={t("openAccountMenu")}
+          aria-label="Open account menu"
         >
           <Avatar className="size-8">
             {profile?.avatar_url ? (
               <AvatarImage
                 src={profile.avatar_url}
-                alt={profile.full_name ?? t("avatarAlt")}
+                alt={profile.full_name ?? "Avatar"}
               />
             ) : null}
             <AvatarFallback className="bg-primary/10 text-sm font-medium text-primary">
@@ -93,7 +85,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
             </AvatarFallback>
           </Avatar>
           <span className="hidden text-sm font-medium text-white sm:inline">
-            {profile?.full_name ?? t("userFallback")}
+            {profile?.full_name ?? "User"}
           </span>
         </DropdownMenuTrigger>
         <DropdownMenuContent
@@ -103,7 +95,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
         >
           <div className="px-2 py-1.5">
             <p className="truncate text-sm font-medium text-white">
-              {profile?.full_name ?? t("userFallback")}
+              {profile?.full_name ?? "User"}
             </p>
             <p className="truncate text-xs text-slate-400">
               {profile?.email ?? ""}
@@ -119,7 +111,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
             }
           >
             <User className="size-4" />
-            {t("profile")}
+            Profile
           </DropdownMenuItem>
           <DropdownMenuItem
             render={
@@ -130,7 +122,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
             }
           >
             <SettingsIcon className="size-4" />
-            {t("settings")}
+            Settings
           </DropdownMenuItem>
           <DropdownMenuSeparator className="bg-slate-800" />
           <DropdownMenuItem
@@ -138,11 +130,10 @@ export function Header({ onOpenSidebar }: HeaderProps) {
             className="text-slate-200 focus:bg-slate-800 focus:text-white"
           >
             <LogOut className="size-4" />
-            {t("signOut")}
+            Sign out
           </DropdownMenuItem>
         </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      </DropdownMenu>
     </header>
   );
 }

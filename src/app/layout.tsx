@@ -1,13 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { hasLocale, NextIntlClientProvider } from "next-intl";
-import { setRequestLocale } from "next-intl/server";
 import { Inter } from "next/font/google";
-import { notFound } from "next/navigation";
 import Script from "next/script";
 import { Toaster } from "sonner";
-import "../globals.css";
+import "./globals.css";
 import { ThemeProvider } from "@/hooks/use-theme";
-import { routing } from "@/i18n/routing";
 import { DEFAULT_THEME, STORAGE_KEY, THEME_IDS } from "@/lib/themes";
 
 const inter = Inter({
@@ -44,6 +40,11 @@ export const viewport: Viewport = {
 // chosen theme is on the <html> element before first paint. Without
 // this every page load flashes the default Violet for a frame before
 // the React tree mounts and applies the picked theme.
+//
+// Kept dependency-free (no imports, no JSX) — must be a string the
+// browser can run as a single <script>. Knowledge of valid theme IDs
+// is sourced from the THEME_IDS constant so adding a theme doesn't
+// silently break the boot path.
 const THEME_BOOT_SCRIPT = `
 (function(){
   try {
@@ -59,28 +60,14 @@ const THEME_BOOT_SCRIPT = `
 })();
 `;
 
-export function generateStaticParams() {
-  return routing.locales.map((locale) => ({ locale }));
-}
-
-export default async function RootLayout({
+export default function RootLayout({
   children,
-  params,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-  params: Promise<{ locale: string }>;
-}) {
-  const { locale } = await params;
-
-  if (!hasLocale(routing.locales, locale)) {
-    notFound();
-  }
-
-  setRequestLocale(locale);
-
+}>) {
   return (
     <html
-      lang={locale}
+      lang="en"
       data-theme={DEFAULT_THEME}
       className={`${inter.variable} h-full antialiased`}
     >
@@ -92,22 +79,20 @@ export default async function RootLayout({
         />
       </head>
       <body className="min-h-full bg-background text-foreground font-sans">
-        <NextIntlClientProvider>
-          <ThemeProvider>
-            {children}
-            <Toaster
-              theme="dark"
-              position="top-right"
-              toastOptions={{
-                style: {
-                  background: "rgb(30 41 59)",
-                  border: "1px solid rgb(51 65 85)",
-                  color: "white",
-                },
-              }}
-            />
-          </ThemeProvider>
-        </NextIntlClientProvider>
+        <ThemeProvider>
+          {children}
+          <Toaster
+            theme="dark"
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: "rgb(30 41 59)",
+                border: "1px solid rgb(51 65 85)",
+                color: "white",
+              },
+            }}
+          />
+        </ThemeProvider>
       </body>
     </html>
   );
