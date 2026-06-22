@@ -14,6 +14,7 @@
  */
 
 export const THEME_IDS = [
+  "teal",
   "violet",
   "emerald",
   "cobalt",
@@ -23,7 +24,7 @@ export const THEME_IDS = [
 
 export type ThemeId = (typeof THEME_IDS)[number];
 
-export const DEFAULT_THEME: ThemeId = "violet";
+export const DEFAULT_THEME: ThemeId = "teal";
 
 export const STORAGE_KEY = "wacrm.theme";
 
@@ -32,9 +33,9 @@ export const STORAGE_KEY = "wacrm.theme";
  *
  * The CSS variables live in `src/app/globals.css` under
  * `html[data-mode="..."]` blocks (neutral surfaces only). Applied
- * at runtime via `document.documentElement.dataset.mode`. Dark is
- * the historical default and stays the app's identity; light is the
- * opt-in eye-strain-friendly alternative.
+ * at runtime via `document.documentElement.dataset.mode`. Light is
+ * the default — a clean, professional corporate surface; dark is the
+ * opt-in low-light alternative.
  *
  * Persisted under its own localStorage key so it composes freely
  * with the accent choice (you can run Violet-light or Violet-dark).
@@ -43,7 +44,7 @@ export const MODES = ["light", "dark"] as const;
 
 export type Mode = (typeof MODES)[number];
 
-export const DEFAULT_MODE: Mode = "dark";
+export const DEFAULT_MODE: Mode = "light";
 
 export const MODE_STORAGE_KEY = "wacrm.mode";
 
@@ -68,9 +69,15 @@ export interface ThemeMeta {
 
 export const THEMES: ReadonlyArray<ThemeMeta> = [
   {
+    id: "teal",
+    name: "Teal",
+    tagline: "The default — Interakt-style WhatsApp-commerce teal.",
+    swatch: "oklch(0.648 0.121 175)",
+  },
+  {
     id: "violet",
     name: "Violet",
-    tagline: "The default — confident, slightly playful.",
+    tagline: "Confident and slightly playful.",
     swatch: "oklch(0.526 0.247 293)",
   },
   {
@@ -82,8 +89,8 @@ export const THEMES: ReadonlyArray<ThemeMeta> = [
   {
     id: "cobalt",
     name: "Cobalt",
-    tagline: "Clean B2B-SaaS blue — calm and product-y.",
-    swatch: "oklch(0.585 0.2 254)",
+    tagline: "Clean, corporate B2B-SaaS blue.",
+    swatch: "oklch(0.55 0.19 255)",
   },
   {
     id: "amber",

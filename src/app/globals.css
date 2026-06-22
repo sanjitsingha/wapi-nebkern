@@ -2,7 +2,11 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+/* Dark mode is toggled via `data-mode="dark"` on <html> (see
+ * use-theme.tsx / the boot script), NOT a `.dark` class. Point the
+ * Tailwind `dark:` variant at that attribute so `dark:` utilities
+ * across the app actually fire in dark mode. */
+@custom-variant dark (&:is([data-mode="dark"] *));
 
 @theme inline {
   --color-background: var(--background);
@@ -48,20 +52,23 @@
   --color-primary-hover: var(--primary-hover);
   --color-primary-soft: var(--primary-soft);
   --color-primary-soft-2: var(--primary-soft-2);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  /* Tightened, professional radius scale — corners are crisp rather
+   * than bubbly. The upper end is flattened so big surfaces (cards,
+   * dialogs) stay nearly square. Base radius is set per-mode below. */
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-xl: calc(var(--radius) * 1.15);
+  --radius-2xl: calc(var(--radius) * 1.3);
+  --radius-3xl: calc(var(--radius) * 1.45);
+  --radius-4xl: calc(var(--radius) * 1.6);
 }
 
 /* ============================================================
  * THEMING — two orthogonal dimensions
  *
  *   1. MODE   (light / dark)  → neutral surfaces. Selected with
- *      `document.documentElement.dataset.mode`. Defaults to dark.
+ *      `document.documentElement.dataset.mode`. Defaults to light.
  *   2. ACCENT (violet / …)    → the primary color only. Selected
  *      with `document.documentElement.dataset.theme`.
  *
@@ -72,7 +79,7 @@
  * --sidebar-ring) live in the ACCENT blocks. They set disjoint
  * variables, so cascade order between them doesn't matter.
  *
- * `:root` carries the dark-mode + violet defaults so a visitor
+ * `:root` carries the light-mode + teal defaults so a visitor
  * renders correctly before JS runs; the boot script in
  * layout.tsx replays the saved mode + accent before first paint.
  *
@@ -86,7 +93,6 @@
 
 /* ---- MODE: neutral surfaces ---- */
 
-:root,
 html[data-mode="dark"] {
   --background: oklch(0.13 0.01 260);
   --foreground: oklch(0.985 0 0);
@@ -108,7 +114,7 @@ html[data-mode="dark"] {
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  --radius: 0.3rem;
   --sidebar: oklch(0.16 0.01 260);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.22 0.01 260);
@@ -116,38 +122,59 @@ html[data-mode="dark"] {
   --sidebar-border: oklch(0.28 0.01 260);
 }
 
+:root,
 html[data-mode="light"] {
-  --background: oklch(0.99 0.002 260);
-  --foreground: oklch(0.21 0.01 260);
+  /* Cool, professional light surfaces — a faint blue-grey canvas,
+   * pure-white cards, and crisp borders that read as a corporate
+   * SaaS product rather than a playful app. */
+  --background: oklch(0.985 0.003 255);
+  --foreground: oklch(0.205 0.015 260);
   --card: oklch(1 0 0);
-  --card-2: oklch(0.985 0.002 260);
-  --card-foreground: oklch(0.21 0.01 260);
+  --card-2: oklch(0.978 0.004 255);
+  --card-foreground: oklch(0.205 0.015 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.01 260);
-  --secondary: oklch(0.967 0.003 260);
-  --secondary-foreground: oklch(0.25 0.01 260);
-  --muted: oklch(0.967 0.003 260);
-  --muted-foreground: oklch(0.52 0.015 260);
-  --accent: oklch(0.96 0.004 260);
-  --accent-foreground: oklch(0.25 0.01 260);
+  --popover-foreground: oklch(0.205 0.015 260);
+  --secondary: oklch(0.965 0.005 255);
+  --secondary-foreground: oklch(0.27 0.015 260);
+  --muted: oklch(0.965 0.005 255);
+  --muted-foreground: oklch(0.5 0.018 258);
+  --accent: oklch(0.955 0.008 255);
+  --accent-foreground: oklch(0.27 0.015 260);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0.004 260);
-  --input: oklch(0.922 0.004 260);
-  --chart-2: oklch(0.6 0.1 260);
-  --chart-3: oklch(0.7 0.06 260);
-  --chart-4: oklch(0.8 0.04 260);
-  --chart-5: oklch(0.87 0.03 260);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0.002 260);
-  --sidebar-foreground: oklch(0.21 0.01 260);
-  --sidebar-accent: oklch(0.96 0.004 260);
-  --sidebar-accent-foreground: oklch(0.25 0.01 260);
-  --sidebar-border: oklch(0.922 0.004 260);
+  --border: oklch(0.91 0.006 255);
+  --input: oklch(0.91 0.006 255);
+  --chart-2: oklch(0.6 0.1 255);
+  --chart-3: oklch(0.7 0.06 255);
+  --chart-4: oklch(0.8 0.04 255);
+  --chart-5: oklch(0.87 0.03 255);
+  --radius: 0.3rem;
+  --sidebar: oklch(0.99 0.003 255);
+  --sidebar-foreground: oklch(0.205 0.015 260);
+  --sidebar-accent: oklch(0.955 0.008 255);
+  --sidebar-accent-foreground: oklch(0.27 0.015 260);
+  --sidebar-border: oklch(0.91 0.006 255);
 }
 
 /* ---- ACCENT: primary color ---- */
 
 :root,
+html[data-theme="teal"] {
+  /* The default accent — an Interakt-inspired WhatsApp-commerce teal
+   * (their CTA teal is ~#05A68B). Clean and product-y on the light
+   * canvas; soft tints lean toward Interakt's mint. */
+  --primary: oklch(0.648 0.121 175);
+  --primary-foreground: oklch(0.99 0 0);
+  --primary-hover: oklch(0.58 0.115 175);
+  --primary-soft: oklch(0.648 0.121 175 / 0.12);
+  --primary-soft-2: oklch(0.648 0.121 175 / 0.2);
+  --ring: oklch(0.648 0.121 175);
+  --chart-1: oklch(0.648 0.121 175);
+  --chart-2: oklch(0.7 0.13 195);
+  --sidebar-primary: oklch(0.648 0.121 175);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-ring: oklch(0.648 0.121 175);
+}
+
 html[data-theme="violet"] {
   --primary: oklch(0.526 0.247 293);
   --primary-foreground: oklch(0.985 0 0);
@@ -176,17 +203,20 @@ html[data-theme="emerald"] {
 }
 
 html[data-theme="cobalt"] {
-  --primary: oklch(0.585 0.2 254);
-  --primary-foreground: oklch(0.985 0 0);
-  --primary-hover: oklch(0.66 0.18 254);
-  --primary-soft: oklch(0.585 0.2 254 / 0.12);
-  --primary-soft-2: oklch(0.585 0.2 254 / 0.22);
-  --ring: oklch(0.585 0.2 254);
-  --chart-1: oklch(0.585 0.2 254);
-  --chart-2: oklch(0.7 0.15 220);
-  --sidebar-primary: oklch(0.585 0.2 254);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-ring: oklch(0.585 0.2 254);
+  /* A confident, corporate B2B-SaaS blue. Hover goes slightly darker
+   * (reads more professional against the light canvas than a lighter
+   * tint). */
+  --primary: oklch(0.55 0.19 255);
+  --primary-foreground: oklch(0.99 0 0);
+  --primary-hover: oklch(0.49 0.18 255);
+  --primary-soft: oklch(0.55 0.19 255 / 0.1);
+  --primary-soft-2: oklch(0.55 0.19 255 / 0.18);
+  --ring: oklch(0.55 0.19 255);
+  --chart-1: oklch(0.55 0.19 255);
+  --chart-2: oklch(0.7 0.13 230);
+  --sidebar-primary: oklch(0.55 0.19 255);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-ring: oklch(0.55 0.19 255);
 }
 
 html[data-theme="amber"] {

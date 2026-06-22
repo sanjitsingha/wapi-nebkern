@@ -597,20 +597,20 @@ export function ImportModal({
                   </div>
                 )}
                 {result.tagsAssigned > 0 && (
-                  <div className="flex items-center gap-1.5 text-sm text-cyan-400">
+                  <div className="flex items-center gap-1.5 text-sm text-cyan-600 dark:text-cyan-400">
                     <CheckCircle className="size-4 shrink-0" />
                     {result.tagsAssigned} tag
                     {result.tagsAssigned !== 1 ? 's' : ''} assigned
                   </div>
                 )}
                 {result.skipped > 0 && (
-                  <div className="flex items-center gap-1.5 text-sm text-amber-400">
+                  <div className="flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-400">
                     <AlertTriangle className="size-4 shrink-0" />
                     {result.skipped} skipped
                   </div>
                 )}
                 {result.failed > 0 && (
-                  <div className="flex items-center gap-1.5 text-sm text-red-400">
+                  <div className="flex items-center gap-1.5 text-sm text-red-600 dark:text-red-400">
                     <XCircle className="size-4 shrink-0" />
                     {result.failed} failed
                   </div>

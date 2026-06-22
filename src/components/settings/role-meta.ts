@@ -6,6 +6,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
+import { softBadge } from '@/lib/badge-colors';
 import type { AccountRole } from '@/lib/auth/roles';
 import type { ChipVariant } from './settings-chip';
 
@@ -26,7 +27,7 @@ export const ROLE_META: Record<
     icon: Crown,
     label: 'Owner',
     variant: 'owner',
-    className: 'border-amber-500/40 bg-amber-500/10 text-amber-300',
+    className: softBadge.amber,
   },
   admin: {
     icon: Shield,

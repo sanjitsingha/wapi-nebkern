@@ -11,6 +11,9 @@ import { PresenceHeartbeat } from "@/components/presence/presence-heartbeat";
 // itself can stay a server component and export metadata (noindex) —
 // client components can't export Next's metadata object.
 
+// localStorage key for the desktop sidebar collapse preference.
+const SIDEBAR_COLLAPSED_KEY = "wacrm.sidebar-collapsed";
+
 function DashboardShellInner({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -19,6 +22,21 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
   // always visible and this stays at `false` (ignored by the component).
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+
+  // Desktop-only collapse state — shrinks the sidebar to an icon rail.
+  // Persisted so the choice survives reloads. Read in an effect (not a
+  // lazy initializer) to keep server and first client render in sync.
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    setCollapsed(localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1");
+  }, []);
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? "1" : "0");
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -44,7 +62,12 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
       {/* Reports this tab's online/away presence once we know a user is
           signed in. Headless — renders nothing. */}
       <PresenceHeartbeat />
-      <Sidebar open={sidebarOpen} onClose={closeSidebar} />
+      <Sidebar
+        open={sidebarOpen}
+        onClose={closeSidebar}
+        collapsed={collapsed}
+        onToggleCollapse={toggleCollapsed}
+      />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header onOpenSidebar={() => setSidebarOpen(true)} />
         {/* Thinner horizontal padding on mobile so cards have room to breathe. */}

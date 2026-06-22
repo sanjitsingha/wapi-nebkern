@@ -251,7 +251,7 @@ export function ContactForm({
 
           <div className="space-y-2">
             <Label htmlFor="cf-phone" className="text-muted-foreground">
-              Phone <span className="text-red-400">*</span>
+              Phone <span className="text-destructive">*</span>
             </Label>
             <Input
               id="cf-phone"
@@ -268,8 +268,8 @@ export function ContactForm({
               <div
                 className={`flex items-start gap-2 rounded-md border px-2.5 py-2 text-xs ${
                   dupMatch.exact
-                    ? 'border-red-500/40 bg-red-500/10 text-red-300'
-                    : 'border-amber-500/40 bg-amber-500/10 text-amber-300'
+                    ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300'
+                    : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300'
                 }`}
               >
                 <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />

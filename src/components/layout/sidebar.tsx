@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { softBadge } from "@/lib/badge-colors";
 import { useAuth } from "@/hooks/use-auth";
 import { useTotalUnread } from "@/hooks/use-total-unread";
 import {
@@ -12,6 +13,8 @@ import {
   LayoutDashboard,
   LogOut,
   MessageSquare,
+  PanelLeftClose,
+  PanelLeftOpen,
   Radio,
   Settings,
   Shield,
@@ -37,8 +40,7 @@ const ROLE_CHIP: Record<
     icon: Crown,
     label: "Owner",
     // Amber: scarce, immutable, "the boss" — gets visual emphasis.
-    className:
-      "border-amber-500/40 bg-amber-500/10 text-amber-300",
+    className: softBadge.amber,
   },
   admin: {
     icon: Shield,
@@ -51,15 +53,13 @@ const ROLE_CHIP: Record<
     icon: UserCog,
     label: "Agent",
     // Neutral slate: the operational default.
-    className:
-      "border-border bg-muted text-foreground",
+    className: "border-border bg-muted text-foreground",
   },
   viewer: {
     icon: User,
     label: "Viewer",
     // Muted slate: read-only role; visually quieter than agent.
-    className:
-      "border-border bg-card text-muted-foreground",
+    className: "border-border bg-transparent text-muted-foreground",
   },
 };
 import {
@@ -104,9 +104,22 @@ interface SidebarProps {
   /** Controlled on mobile by the Header's hamburger button. Ignored on lg+. */
   open?: boolean;
   onClose?: () => void;
+  /**
+   * Desktop-only icon-rail collapse. When true, the sidebar narrows to
+   * a rail showing just icons; labels and text are hidden. Has no
+   * effect on mobile (< lg), where the drawer is always full width.
+   */
+  collapsed?: boolean;
+  /** Toggles the desktop collapse. Drives the in-sidebar toggle button. */
+  onToggleCollapse?: () => void;
 }
 
-export function Sidebar({ open = false, onClose }: SidebarProps) {
+export function Sidebar({
+  open = false,
+  onClose,
+  collapsed = false,
+  onToggleCollapse,
+}: SidebarProps) {
   const pathname = usePathname();
   const { profile, profileLoading, account, accountRole, signOut } = useAuth();
   const totalUnread = useTotalUnread();
@@ -171,18 +184,34 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
           "transition-transform duration-200 ease-out will-change-transform",
           open ? "translate-x-0" : "-translate-x-full",
           // Desktop: static, always visible — reset all the mobile framing.
-          "lg:static lg:z-0 lg:w-60 lg:translate-x-0 lg:transition-none",
+          // Width animates between the full sidebar and the icon rail.
+          "lg:static lg:z-0 lg:translate-x-0 lg:transition-[width] lg:duration-200 lg:ease-out",
+          collapsed ? "lg:w-16" : "lg:w-60",
         )}
         aria-label="Primary"
       >
         {/* Logo row. On mobile we put a close button here; on desktop the
             close button is hidden since the sidebar is always-visible. */}
-        <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+        <div
+          className={cn(
+            "flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border px-4",
+            collapsed && "lg:justify-center lg:px-0",
+          )}
+        >
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2"
+            title={collapsed ? "CRM Template for WhatsApp" : undefined}
+          >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <MessageSquare className="h-4 w-4" />
             </div>
-            <span className="text-sm font-semibold text-foreground">
+            <span
+              className={cn(
+                "text-sm font-semibold text-foreground",
+                collapsed && "lg:hidden",
+              )}
+            >
               CRM Template for WhatsApp
             </span>
           </Link>
@@ -211,20 +240,28 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                 <li key={item.href}>
                   <Link
                     href={item.href}
+                    title={collapsed ? item.label : undefined}
                     className={cn(
                       // Taller on mobile so fingers can hit the row reliably (≥44px).
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
+                      "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
+                      collapsed && "lg:justify-center lg:px-0",
                       isActive
                         ? "bg-primary/10 text-primary"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground",
                     )}
                   >
-                    <item.icon className="h-4 w-4" />
-                    <span className="flex-1">{item.label}</span>
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    <span className={cn("flex-1", collapsed && "lg:hidden")}>
+                      {item.label}
+                    </span>
                     {item.beta && (
                       <span
                         aria-label="Beta feature"
-                        className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-300"
+                        className={cn(
+                          "rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider",
+                          softBadge.amber,
+                          collapsed && "lg:hidden",
+                        )}
                       >
                         Beta
                       </span>
@@ -232,7 +269,12 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     {showUnreadDot && (
                       <span
                         aria-label={`${totalUnread} unread conversation${totalUnread === 1 ? "" : "s"}`}
-                        className="relative flex h-2 w-2"
+                        className={cn(
+                          "relative flex h-2 w-2",
+                          // On the rail there's no label to sit beside, so
+                          // pin the dot to the icon's top-right corner.
+                          collapsed && "lg:absolute lg:right-2 lg:top-1.5",
+                        )}
                       >
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
                         <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
@@ -253,20 +295,48 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                 <li key={item.href}>
                   <Link
                     href={item.href}
+                    title={collapsed ? item.label : undefined}
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
+                      collapsed && "lg:justify-center lg:px-0",
                       isActive
                         ? "bg-primary/10 text-primary"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground",
                     )}
                   >
-                    <item.icon className="h-4 w-4" />
-                    {item.label}
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    <span className={cn(collapsed && "lg:hidden")}>
+                      {item.label}
+                    </span>
                   </Link>
                 </li>
               );
             })}
           </ul>
+
+          {/* Desktop-only collapse toggle. Lives in the sidebar so it
+              travels with the nav in both states. Hidden on mobile,
+              where the drawer is driven by the header hamburger. */}
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-pressed={collapsed}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className={cn(
+              "mt-1 hidden w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:flex",
+              collapsed && "lg:justify-center lg:px-0",
+            )}
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="h-4 w-4 shrink-0" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4 shrink-0" />
+            )}
+            <span className={cn("flex-1 text-left", collapsed && "lg:hidden")}>
+              Collapse
+            </span>
+          </button>
         </nav>
 
         {/* User section */}
@@ -278,7 +348,12 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
               below; for renamed or shared accounts it tells the user
               which account they're acting in. */}
           {showAccountStrip && account?.name ? (
-            <div className="mb-2 flex items-center gap-2 px-3 text-xs text-muted-foreground">
+            <div
+              className={cn(
+                "mb-2 flex items-center gap-2 px-3 text-xs text-muted-foreground",
+                collapsed && "lg:hidden",
+              )}
+            >
               <UsersRound className="size-3.5 shrink-0" />
               {/* `title=` exposes the full name on hover when it
                   gets truncated (long account names + narrow
@@ -307,7 +382,17 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
             </div>
           ) : null}
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted/60 focus:bg-muted/60 focus:outline-none data-popup-open:bg-muted/60">
+            <DropdownMenuTrigger
+              title={
+                collapsed
+                  ? (profile?.full_name ?? profile?.email ?? "Account")
+                  : undefined
+              }
+              className={cn(
+                "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted/60 focus:bg-muted/60 focus:outline-none data-popup-open:bg-muted/60",
+                collapsed && "lg:justify-center lg:px-0",
+              )}
+            >
               <Avatar className="size-8 shrink-0">
                 {profile?.avatar_url ? (
                   <AvatarImage
@@ -321,7 +406,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     "U"}
                 </AvatarFallback>
               </Avatar>
-              <div className="min-w-0 flex-1">
+              <div className={cn("min-w-0 flex-1", collapsed && "lg:hidden")}>
                 <p className="truncate text-sm font-medium text-foreground">
                   {profile?.full_name ?? "User"}
                 </p>
