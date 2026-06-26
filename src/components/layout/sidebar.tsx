@@ -406,14 +406,10 @@ export function Sidebar({
                     "U"}
                 </AvatarFallback>
               </Avatar>
-              <div className={cn("min-w-0 flex-1", collapsed && "lg:hidden")}>
-                <p className="truncate text-sm font-medium text-foreground">
-                  {profile?.full_name ?? "User"}
-                </p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {profile?.email ?? ""}
-                </p>
-              </div>
+              {/* Name + email intentionally omitted here — they already
+                  live in the header's top-right account menu, so showing
+                  them again would just duplicate. The avatar remains as
+                  the trigger for quick access to Sign out from the rail. */}
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
