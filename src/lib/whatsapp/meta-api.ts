@@ -39,6 +39,102 @@ async function throwMetaError(response: Response, fallback: string): Promise<nev
 }
 
 // ============================================================
+// Onboarding request logging
+// ============================================================
+//
+// Embedded Signup → /register is the hardest part of this integration
+// to debug: a failure surfaces days later as a "Pending" phone number
+// in Meta Business Manager with no local trace of WHY. To make future
+// debugging straightforward, every onboarding-related Meta request and
+// response flows through `metaFetch`, which logs method, URL, request
+// body, status, latency, and response body — with all secrets
+// (bearer tokens, access_token / client_secret / code query params and
+// body fields, and the 2FA pin) redacted.
+
+/** Mask a secret to a recognisable-but-useless stub for logs. */
+function redactSecret(value: string): string {
+  if (!value) return value
+  return value.length <= 8 ? '***' : `${value.slice(0, 4)}…${value.slice(-2)}`
+}
+
+const SECRET_KEYS = ['access_token', 'client_secret', 'code', 'pin']
+
+/** Redact secret query-string params in a URL for logging. */
+function redactUrl(url: string): string {
+  return url.replace(
+    /(access_token|client_secret|code)=([^&]+)/gi,
+    (_m, key, val) => `${key}=${redactSecret(decodeURIComponent(val))}`,
+  )
+}
+
+/**
+ * Redact secret fields out of a JSON request/response body for logging.
+ * Falls back to a truncated raw string when the body isn't JSON.
+ */
+function redactBodyForLog(body: unknown): unknown {
+  if (body == null) return undefined
+  const text = typeof body === 'string' ? body : undefined
+  if (text === undefined) return '[non-string body]'
+  try {
+    const parsed = JSON.parse(text) as Record<string, unknown>
+    for (const key of SECRET_KEYS) {
+      if (typeof parsed[key] === 'string') {
+        parsed[key] = redactSecret(parsed[key] as string)
+      }
+    }
+    return parsed
+  } catch {
+    const max = 500
+    return text.length > max ? `${text.slice(0, max)}…[${text.length} chars]` : text
+  }
+}
+
+interface MetaFetchContext {
+  /** Onboarding step label, e.g. 'exchangeEmbeddedSignupCode'. */
+  op: string
+}
+
+/**
+ * fetch() wrapper that logs the request and response for onboarding
+ * calls with all secrets redacted. Returns the raw Response untouched,
+ * so callers keep full control over status handling (the body is read
+ * from a clone for logging and is NOT consumed for the caller).
+ */
+async function metaFetch(
+  url: string,
+  init: RequestInit | undefined,
+  ctx: MetaFetchContext,
+): Promise<Response> {
+  const started = Date.now()
+  const method = init?.method ?? 'GET'
+  console.info(
+    `[meta:${ctx.op}] → ${method} ${redactUrl(url)}`,
+    init?.body !== undefined ? { body: redactBodyForLog(init.body) } : '',
+  )
+  let response: Response
+  try {
+    response = await fetch(url, init)
+  } catch (err) {
+    console.error(
+      `[meta:${ctx.op}] ✗ network error after ${Date.now() - started}ms:`,
+      err instanceof Error ? err.message : err,
+    )
+    throw err
+  }
+  let bodyText = ''
+  try {
+    bodyText = await response.clone().text()
+  } catch {
+    bodyText = '[unreadable body]'
+  }
+  const line = `[meta:${ctx.op}] ← ${response.status} in ${Date.now() - started}ms`
+  const logged = redactBodyForLog(bodyText)
+  if (response.ok) console.info(line, logged)
+  else console.error(line, logged)
+  return response
+}
+
+// ============================================================
 // Phone number / account
 // ============================================================
 
@@ -56,10 +152,28 @@ export async function verifyPhoneNumber(
 ): Promise<MetaPhoneInfo> {
   const { phoneNumberId, accessToken } = args
   const url = `${META_API_BASE}/${phoneNumberId}?fields=id,display_phone_number,verified_name,quality_rating`
-  const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  })
+  const response = await metaFetch(
+    url,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+    { op: 'verifyPhoneNumber' },
+  )
   if (!response.ok) {
+    // (#100) "nonexisting field (display_phone_number)" means the ID
+    // isn't a phone-number node at all — the user almost always pasted
+    // the WABA ID (or the literal +number) into the Phone Number ID
+    // field. Meta's raw message is cryptic, so translate it.
+    let raw = ''
+    try {
+      const data = (await response.clone().json()) as MetaErrorResponse
+      raw = data.error?.message ?? ''
+    } catch {
+      /* fall through to generic handling */
+    }
+    if (/nonexisting field \(display_phone_number\)/i.test(raw)) {
+      throw new Error(
+        'That Phone Number ID is not a WhatsApp phone number. You likely entered the WhatsApp Business Account (WABA) ID or the phone number itself — copy the numeric "Phone number ID" from Meta → WhatsApp → API Setup instead.',
+      )
+    }
     await throwMetaError(response, `Meta API error: ${response.status}`)
   }
   return response.json()
@@ -125,14 +239,18 @@ export async function registerPhoneNumber(
 ): Promise<RegisterPhoneNumberResult> {
   const { phoneNumberId, accessToken, pin } = args
   const url = `${META_API_BASE}/${phoneNumberId}/register`
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
+  const response = await metaFetch(
+    url,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ messaging_product: 'whatsapp', pin }),
     },
-    body: JSON.stringify({ messaging_product: 'whatsapp', pin }),
-  })
+    { op: 'registerPhoneNumber' },
+  )
 
   if (response.ok) {
     return { success: true, alreadyRegistered: false }
@@ -169,10 +287,14 @@ export async function subscribeWabaToApp(
 ): Promise<void> {
   const { wabaId, accessToken } = args
   const url = `${META_API_BASE}/${wabaId}/subscribed_apps`
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${accessToken}` },
-  })
+  const response = await metaFetch(
+    url,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    },
+    { op: 'subscribeWabaToApp' },
+  )
   if (!response.ok) {
     await throwMetaError(response, `Meta API error: ${response.status}`)
   }
@@ -201,13 +323,149 @@ export async function getSubscribedApps(
 ): Promise<SubscribedApp[]> {
   const { wabaId, accessToken } = args
   const url = `${META_API_BASE}/${wabaId}/subscribed_apps`
-  const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  })
+  const response = await metaFetch(
+    url,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+    { op: 'getSubscribedApps' },
+  )
   if (!response.ok) {
     await throwMetaError(response, `Meta API error: ${response.status}`)
   }
   const data = (await response.json()) as { data?: SubscribedApp[] }
+  return data.data ?? []
+}
+
+// ============================================================
+// Embedded Signup onboarding
+// ============================================================
+//
+// The Embedded Signup flow (Facebook JS SDK → FB.login with an ES
+// configuration) hands the browser a short-lived authorization `code`
+// plus a `sessionInfo` payload carrying the new WABA id and phone
+// number id. The server exchanges that code for a long-lived business
+// integration system-user access token, then runs the same
+// subscribe + register steps the manual path uses.
+//
+// See: https://developers.facebook.com/docs/whatsapp/embedded-signup
+
+export interface ExchangeEmbeddedSignupCodeArgs {
+  /** Authorization code returned by FB.login's authResponse. */
+  code: string
+  /** Meta App id (env META_APP_ID). */
+  appId: string
+  /** Meta App secret (env META_APP_SECRET). */
+  appSecret: string
+}
+
+export interface ExchangeEmbeddedSignupCodeResult {
+  accessToken: string
+  tokenType?: string
+  /** Seconds until expiry. Embedded Signup business tokens are long-lived. */
+  expiresIn?: number
+}
+
+/**
+ * Exchange an Embedded Signup authorization code for a business
+ * integration system-user access token.
+ *
+ * Note: unlike the classic OAuth web flow, Embedded Signup's code
+ * exchange does NOT take a `redirect_uri`. Passing one yields Meta's
+ * "Invalid application ID" / redirect-mismatch errors.
+ */
+export async function exchangeEmbeddedSignupCode(
+  args: ExchangeEmbeddedSignupCodeArgs,
+): Promise<ExchangeEmbeddedSignupCodeResult> {
+  const { code, appId, appSecret } = args
+  const params = new URLSearchParams({
+    client_id: appId,
+    client_secret: appSecret,
+    code,
+  })
+  const url = `${META_API_BASE}/oauth/access_token?${params.toString()}`
+  const response = await metaFetch(url, undefined, {
+    op: 'exchangeEmbeddedSignupCode',
+  })
+  if (!response.ok) {
+    await throwMetaError(response, `Code exchange failed: ${response.status}`)
+  }
+  const data = (await response.json()) as {
+    access_token?: string
+    token_type?: string
+    expires_in?: number
+  }
+  if (!data.access_token) {
+    throw new Error('Code exchange succeeded but Meta returned no access_token.')
+  }
+  return {
+    accessToken: data.access_token,
+    tokenType: data.token_type,
+    expiresIn: data.expires_in,
+  }
+}
+
+export interface WabaInfo {
+  id: string
+  name?: string
+  currency?: string
+  timezone_id?: string
+  account_review_status?: string
+}
+
+/**
+ * Retrieve metadata for a WhatsApp Business Account — used after code
+ * exchange to confirm the token can actually see the WABA the browser
+ * reported, before we persist anything.
+ */
+export async function getWabaInfo(args: {
+  wabaId: string
+  accessToken: string
+}): Promise<WabaInfo> {
+  const { wabaId, accessToken } = args
+  const url = `${META_API_BASE}/${wabaId}?fields=id,name,currency,timezone_id,account_review_status`
+  const response = await metaFetch(
+    url,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+    { op: 'getWabaInfo' },
+  )
+  if (!response.ok) {
+    await throwMetaError(response, `Meta API error: ${response.status}`)
+  }
+  return response.json()
+}
+
+export interface WabaPhoneNumber {
+  id: string
+  display_phone_number: string
+  verified_name?: string
+  quality_rating?: string
+  /** e.g. "PENDING", "CONNECTED", "FLAGGED" — Cloud API registration state. */
+  status?: string
+  /** e.g. "NOT_VERIFIED", "VERIFIED". */
+  code_verification_status?: string
+  /** e.g. "CLOUD_API", "ON_PREMISE". */
+  platform_type?: string
+}
+
+/**
+ * List the phone numbers under a WABA. Used to resolve / confirm the
+ * Phone Number ID when Embedded Signup's sessionInfo didn't carry one,
+ * and to read each number's current registration `status`.
+ */
+export async function getWabaPhoneNumbers(args: {
+  wabaId: string
+  accessToken: string
+}): Promise<WabaPhoneNumber[]> {
+  const { wabaId, accessToken } = args
+  const url = `${META_API_BASE}/${wabaId}/phone_numbers?fields=id,display_phone_number,verified_name,quality_rating,status,code_verification_status,platform_type`
+  const response = await metaFetch(
+    url,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+    { op: 'getWabaPhoneNumbers' },
+  )
+  if (!response.ok) {
+    await throwMetaError(response, `Meta API error: ${response.status}`)
+  }
+  const data = (await response.json()) as { data?: WabaPhoneNumber[] }
   return data.data ?? []
 }
 

@@ -224,6 +224,13 @@ export interface WhatsAppConfig {
   subscribed_apps_at?: string;
   /** Last error from /register; cleared on success. */
   last_registration_error?: string;
+  /**
+   * Encrypted 2-step PIN set during Embedded Signup registration.
+   * Meta requires the same PIN for any later re-registration, so we
+   * persist it (AES-256-GCM, same scheme as access_token). NULL for
+   * manual-credential rows where the user supplies the PIN by hand.
+   */
+  registration_pin?: string;
 }
 
 // Raw Meta status enum. We persist this verbatim from Meta (sync + webhook)

@@ -22,6 +22,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { SettingsPanelHead } from './settings-panel-head';
+import { EmbeddedSignupButton } from './embedded-signup-button';
 import {
   Accordion,
   AccordionItem,
@@ -547,12 +548,35 @@ export function WhatsAppConfig() {
           </Alert>
         )}
 
+        {/* One-click onboarding via Meta Embedded Signup. Exchanges the
+            authorization code, retrieves the WABA + phone number, runs
+            Cloud API registration, and persists everything server-side —
+            no manual credential entry needed. Falls back to a hint when
+            the Meta app env vars aren't set. */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-foreground">Quick connect</CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Onboard in one step with Meta Embedded Signup. We exchange the
+              login, register your number with the Cloud API, and store the
+              credentials for you.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <EmbeddedSignupButton
+              onConnected={() => {
+                if (accountId) void fetchConfig(accountId);
+              }}
+            />
+          </CardContent>
+        </Card>
+
         {/* API Credentials */}
         <Card>
           <CardHeader>
             <CardTitle className="text-foreground">API Credentials</CardTitle>
             <CardDescription className="text-muted-foreground">
-              Enter your Meta WhatsApp Business API credentials.
+              Or enter your Meta WhatsApp Business API credentials manually.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
