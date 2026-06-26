@@ -1,4 +1,4 @@
-import { NextResponse, after } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { decrypt, encrypt, isLegacyFormat } from '@/lib/whatsapp/encryption'
 import { getMediaUrl, downloadMedia } from '@/lib/whatsapp/meta-api'
@@ -195,19 +195,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  // Process AFTER the response is sent so we ack Meta within their
-  // timeout — but via `after()`, which on Vercel keeps the serverless
-  // function alive until the work finishes. The previous fire-and-forget
-  // `processWebhook(...).catch()` returned 200 and let the runtime freeze
-  // the function before the DB writes completed, so messages were acked
-  // but intermittently never saved (works for the first, drops later ones).
-  after(async () => {
-    try {
-      await processWebhook(body)
-    } catch (error) {
-      console.error('Error processing webhook:', error)
-    }
-  })
+  // Process the message BEFORE responding. On Vercel serverless, work
+  // done after the response is returned — whether fire-and-forget OR
+  // `after()` — gets cut off when the instance freezes, so the message
+  // was acked (200) but its DB writes never completed (function returned
+  // in ~45ms while the writes need ~1s). Awaiting guarantees the message
+  // is persisted before we ack. A single message's writes finish well
+  // within Meta's webhook timeout; on the rare timeout Meta simply
+  // retries, which is safe here.
+  try {
+    await processWebhook(body)
+  } catch (error) {
+    console.error('Error processing webhook:', error)
+  }
 
   return NextResponse.json({ status: 'received' }, { status: 200 })
 }
