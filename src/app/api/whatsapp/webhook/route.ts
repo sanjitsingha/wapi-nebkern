@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { decrypt, encrypt, isLegacyFormat } from '@/lib/whatsapp/encryption'
 import { getMediaUrl, downloadMedia } from '@/lib/whatsapp/meta-api'
@@ -167,6 +167,19 @@ export async function POST(request: Request) {
   const rawBody = await request.text()
   const signature = request.headers.get('x-hub-signature-256')
 
+  // Unconditional arrival log — proves Meta actually reached this
+  // endpoint (vs. a stale callback URL / unsubscribed field, where
+  // NOTHING shows up here at all). Logged before the signature check
+  // so a META_APP_SECRET mismatch is distinguishable from non-delivery.
+  console.info(
+    '[webhook] POST received',
+    JSON.stringify({
+      hasSignature: Boolean(signature),
+      bytes: rawBody.length,
+      preview: rawBody.slice(0, 200),
+    }),
+  )
+
   if (!verifyMetaWebhookSignature(rawBody, signature)) {
     // 401 (not 200) — we want Meta's delivery dashboard to show failures
     // loudly if a misconfiguration causes signatures to stop matching,
@@ -182,9 +195,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  // Process asynchronously so we can ack Meta within their timeout.
-  processWebhook(body).catch((error) => {
-    console.error('Error processing webhook:', error)
+  // Process AFTER the response is sent so we ack Meta within their
+  // timeout — but via `after()`, which on Vercel keeps the serverless
+  // function alive until the work finishes. The previous fire-and-forget
+  // `processWebhook(...).catch()` returned 200 and let the runtime freeze
+  // the function before the DB writes completed, so messages were acked
+  // but intermittently never saved (works for the first, drops later ones).
+  after(async () => {
+    try {
+      await processWebhook(body)
+    } catch (error) {
+      console.error('Error processing webhook:', error)
+    }
   })
 
   return NextResponse.json({ status: 'received' }, { status: 200 })
