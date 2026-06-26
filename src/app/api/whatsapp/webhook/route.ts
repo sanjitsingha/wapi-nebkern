@@ -957,16 +957,24 @@ async function findOrCreateConversation(
   configOwnerUserId: string,
   contactId: string,
 ) {
-  // Look for existing conversation in this account
-  const { data: existing, error: findError } = await supabaseAdmin()
+  // Look for an existing conversation in this account. Use
+  // order+limit (not `.single()`) so that if duplicate conversations
+  // already exist for this contact — e.g. from inbound that arrived
+  // before the contacts dedup index (migration 022) was in place —
+  // we deterministically reuse the OLDEST one instead of `.single()`
+  // throwing PGRST116 and us creating yet another duplicate thread.
+  const { data: existingRows, error: findError } = await supabaseAdmin()
     .from('conversations')
     .select('*')
     .eq('account_id', accountId)
     .eq('contact_id', contactId)
-    .single()
+    .order('created_at', { ascending: true })
+    .limit(1)
 
-  if (!findError && existing) {
-    return existing
+  if (findError) {
+    console.error('Error looking up conversation:', findError)
+  } else if (existingRows && existingRows.length > 0) {
+    return existingRows[0]
   }
 
   // Create new conversation. Same tenancy + audit split as
