@@ -990,6 +990,20 @@ async function findOrCreateConversation(
     .single()
 
   if (createError) {
+    // Lost a race: a concurrent inbound created the conversation between
+    // our lookup and insert, and the UNIQUE(account_id, contact_id) index
+    // (migration 027) rejected the duplicate. Re-resolve the existing row
+    // instead of dropping the message.
+    if (isUniqueViolation(createError)) {
+      const { data: racedRows } = await supabaseAdmin()
+        .from('conversations')
+        .select('*')
+        .eq('account_id', accountId)
+        .eq('contact_id', contactId)
+        .order('created_at', { ascending: true })
+        .limit(1)
+      if (racedRows && racedRows.length > 0) return racedRows[0]
+    }
     console.error('Error creating conversation:', createError)
     return null
   }
