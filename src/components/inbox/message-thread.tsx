@@ -428,6 +428,16 @@ export function MessageThread({
       .then(({ error }) => {
         if (error) console.error("Failed to reset unread_count:", error);
       });
+
+    // Send a WhatsApp read receipt (blue ticks) so the customer sees the
+    // agent has read their message. Resetting unread_count above is
+    // local-only — it never reaches Meta. Best-effort: fire-and-forget,
+    // a failure must not affect opening the thread.
+    fetch("/api/whatsapp/mark-read", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversation_id: conversationId }),
+    }).catch((err) => console.error("mark-read request failed:", err));
   }, [conversationId, hasUnread]);
 
   // Auto-scroll to bottom on new messages

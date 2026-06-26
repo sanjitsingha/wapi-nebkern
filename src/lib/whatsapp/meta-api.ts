@@ -517,6 +517,55 @@ export async function sendTextMessage(
   return { messageId: data.messages[0].id }
 }
 
+// ============================================================
+// Read receipts (blue ticks)
+// ============================================================
+
+export interface MarkMessageAsReadArgs {
+  phoneNumberId: string
+  accessToken: string
+  /**
+   * Meta wamid of the INBOUND message to mark as read. Meta marks that
+   * message — and every earlier message in the same conversation — as
+   * read, so the customer sees blue ticks. Pass the latest inbound id.
+   */
+  messageId: string
+}
+
+/**
+ * Tell Meta the agent has read an inbound message, which delivers the
+ * blue (read) ticks to the customer's phone. Without this call, marking
+ * a conversation read locally never reaches WhatsApp.
+ *
+ * Best-effort by convention at the call site — a failure here must not
+ * block opening a conversation.
+ */
+export async function markMessageAsRead(
+  args: MarkMessageAsReadArgs,
+): Promise<void> {
+  const { phoneNumberId, accessToken, messageId } = args
+  const url = `${META_API_BASE}/${phoneNumberId}/messages`
+  const response = await metaFetch(
+    url,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        status: 'read',
+        message_id: messageId,
+      }),
+    },
+    { op: 'markMessageAsRead' },
+  )
+  if (!response.ok) {
+    await throwMetaError(response, `Meta API error: ${response.status}`)
+  }
+}
+
 export type MediaKind = 'image' | 'video' | 'document' | 'audio'
 
 export interface SendMediaMessageArgs {
