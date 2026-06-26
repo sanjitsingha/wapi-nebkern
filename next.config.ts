@@ -62,6 +62,19 @@ const SECURITY_HEADERS = [
 
 const nextConfig: NextConfig = {
   /**
+   * Origins (besides localhost) allowed to hit the dev server.
+   *
+   * Next 16 blocks cross-origin requests to dev-only assets/endpoints
+   * by default. When tunnelling the dev server through ngrok the
+   * browser's origin is the tunnel host, not localhost, so HMR
+   * (wss://…/_next/webpack-hmr) and other dev requests get refused —
+   * which also breaks client-side auth flows over the tunnel. Allow
+   * the ngrok wildcard so the random per-session subdomain works.
+   *
+   * Dev-only — `allowedDevOrigins` has no effect on production builds.
+   */
+  allowedDevOrigins: ["*.ngrok-free.app", "*.ngrok.app", "*.ngrok.io"],
+  /**
    * Cache-Control policy.
    *
    * Why this exists:
