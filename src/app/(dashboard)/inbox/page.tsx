@@ -374,6 +374,58 @@ export default function InboxPage() {
   }, []);
 
   /**
+   * Polling fallback for the OPEN thread.
+   *
+   * Realtime postgres_changes on `messages` is unreliable here: the
+   * table's RLS policy joins `conversations` (messages_select ->
+   * is_account_member(c.account_id)), and Supabase Realtime evaluates
+   * such cross-table policies poorly, so a customer's reply is saved but
+   * its INSERT event often never reaches the client — the open thread
+   * sits stale until the next manual refetch.
+   *
+   * While a conversation is open and the tab is visible, re-fetch its
+   * messages every few seconds and merge by id: no loading flash, no
+   * scroll jump, and idle polls are skipped when nothing changed. This
+   * guarantees inbound messages surface within a few seconds regardless
+   * of realtime; realtime still provides the instant path when it works.
+   */
+  useEffect(() => {
+    const convId = activeConversation?.id;
+    if (!convId) return;
+    const supabase = createClient();
+    let cancelled = false;
+
+    const poll = async () => {
+      if (document.visibilityState !== "visible") return;
+      const { data, error } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("conversation_id", convId)
+        .order("created_at", { ascending: true });
+      if (cancelled || error || !data) return;
+      setMessages((prev) => {
+        // Keep any in-flight optimistic rows that aren't persisted yet.
+        const pendingTemps = prev.filter((m) => m.id.startsWith("temp-"));
+        const prevReal = prev.filter((m) => !m.id.startsWith("temp-"));
+        // Skip the state update when nothing changed so an idle thread
+        // doesn't re-render (and the scroll position doesn't move).
+        const unchanged =
+          pendingTemps.length === 0 &&
+          prevReal.length === data.length &&
+          prevReal.every((m, i) => m.id === data[i]?.id);
+        if (unchanged) return prev;
+        return [...data, ...pendingTemps];
+      });
+    };
+
+    const id = setInterval(poll, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [activeConversation?.id]);
+
+  /**
    * Manual refresh trigger for the thread-header refresh button.
    * Bumps the same resyncToken the reconnect / visibility paths use,
    * so it goes through the existing dedupe & refetch plumbing — no
