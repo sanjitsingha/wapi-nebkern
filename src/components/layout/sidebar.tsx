@@ -193,26 +193,42 @@ export function Sidebar({
         )}
       >
         <link.icon className={cn("shrink-0", indented ? "h-4 w-4" : "h-5 w-5")} />
-        <span className="flex-1 truncate">{link.label}</span>
+        <span
+          className={cn(
+            "flex-1 truncate transition-opacity duration-200",
+            collapsed && "lg:opacity-0",
+          )}
+        >
+          {link.label}
+        </span>
         {link.badge === "Beta" && (
           <span
             className={cn(
-              "shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider",
+              "shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider transition-opacity duration-200",
               softBadge.amber,
+              collapsed && "lg:opacity-0",
             )}
           >
             Beta
           </span>
         )}
         {link.badge === "New" && (
-          <span className="shrink-0 rounded-full bg-violet-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+          <span
+            className={cn(
+              "shrink-0 rounded-full bg-violet-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white transition-opacity duration-200",
+              collapsed && "lg:opacity-0",
+            )}
+          >
             New
           </span>
         )}
         {link.unread && totalUnread > 0 && !active && (
           <span
             aria-label={`${totalUnread} unread conversation${totalUnread === 1 ? "" : "s"}`}
-            className="relative flex h-2 w-2 shrink-0"
+            className={cn(
+              "relative flex h-2 w-2 shrink-0 transition-opacity duration-200",
+              collapsed && "lg:opacity-0",
+            )}
           >
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
@@ -242,16 +258,29 @@ export function Sidebar({
           )}
         >
           <group.icon className="h-5 w-5 shrink-0" />
-          <span className="flex-1 truncate text-left">{group.label}</span>
+          <span
+            className={cn(
+              "flex-1 truncate text-left transition-opacity duration-200",
+              collapsed && "lg:opacity-0",
+            )}
+          >
+            {group.label}
+          </span>
           {group.badge === "New" && (
-            <span className="shrink-0 rounded-full bg-violet-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+            <span
+              className={cn(
+                "shrink-0 rounded-full bg-violet-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white transition-opacity duration-200",
+                collapsed && "lg:opacity-0",
+              )}
+            >
               New
             </span>
           )}
           <ChevronDown
             className={cn(
-              "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+              "h-4 w-4 shrink-0 text-muted-foreground transition-all duration-200",
               open && "rotate-180",
+              collapsed && "lg:opacity-0",
             )}
           />
         </button>
@@ -307,7 +336,12 @@ export function Sidebar({
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <MessageSquare className="h-4 w-4" />
             </div>
-            <span className="truncate text-sm font-semibold text-foreground">
+            <span
+              className={cn(
+                "truncate text-sm font-semibold text-foreground transition-opacity duration-200",
+                collapsed && "lg:opacity-0",
+              )}
+            >
               CRM Template for WhatsApp
             </span>
           </Link>
@@ -327,7 +361,12 @@ export function Sidebar({
             <li>{renderLink(homeLink)}</li>
           </ul>
 
-          <p className="px-3 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p
+            className={cn(
+              "px-3 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground transition-opacity duration-200",
+              collapsed && "lg:opacity-0",
+            )}
+          >
             Quick links
           </p>
           <ul className="flex flex-col gap-1">
@@ -354,7 +393,14 @@ export function Sidebar({
             ) : (
               <PanelLeftClose className="h-4 w-4 shrink-0" />
             )}
-            <span className="flex-1 truncate text-left">Collapse</span>
+            <span
+              className={cn(
+                "flex-1 truncate text-left transition-opacity duration-200",
+                collapsed && "lg:opacity-0",
+              )}
+            >
+              Collapse
+            </span>
           </button>
         </nav>
       </aside>
