@@ -184,14 +184,13 @@ export function Sidebar({
         className={cn(
           "relative flex items-center gap-3 rounded-lg px-3 font-medium transition-colors",
           indented ? "py-2 text-sm lg:py-1.5" : "py-2.5 text-base lg:py-2",
-          collapsed && !indented && "lg:justify-center lg:px-0",
           active
             ? "bg-primary/10 text-primary"
             : "text-muted-foreground hover:bg-muted hover:text-foreground",
         )}
       >
         <link.icon className={cn("shrink-0", indented ? "h-4 w-4" : "h-5 w-5")} />
-        <span className={cn("flex-1", collapsed && !indented && "lg:hidden")}>
+        <span className={cn("flex-1", collapsed && "lg:hidden")}>
           {link.label}
         </span>
         {link.badge === "Beta" && (
@@ -218,10 +217,7 @@ export function Sidebar({
         {link.unread && totalUnread > 0 && !active && (
           <span
             aria-label={`${totalUnread} unread conversation${totalUnread === 1 ? "" : "s"}`}
-            className={cn(
-              "relative flex h-2 w-2",
-              collapsed && "lg:absolute lg:right-2 lg:top-1.5",
-            )}
+            className="relative flex h-2 w-2"
           >
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
@@ -234,29 +230,36 @@ export function Sidebar({
   const renderGroup = (group: NavGroup) => {
     const open = !!openGroups[group.label];
     const anyActive = group.children.some(isLinkActive);
-    const firstHref = group.children[0]?.href ?? "#";
     return (
       <li key={group.label}>
-        {/* Toggle header — full sidebar + mobile drawer. Hidden on the
-            desktop rail (replaced by the icon-link below). */}
+        {/* Group header. On the collapsed rail only the icon shows
+            (label, badge, chevron hide) — placement is identical to the
+            expanded state, the sidebar just narrows. */}
         <button
           type="button"
           onClick={() =>
             setOpenGroups((p) => ({ ...p, [group.label]: !p[group.label] }))
           }
           aria-expanded={open}
+          title={collapsed ? group.label : undefined}
           className={cn(
             "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium transition-colors lg:py-2",
-            collapsed && "lg:hidden",
             anyActive
               ? "text-foreground"
               : "text-muted-foreground hover:bg-muted hover:text-foreground",
           )}
         >
           <group.icon className="h-5 w-5 shrink-0" />
-          <span className="flex-1 text-left">{group.label}</span>
+          <span className={cn("flex-1 text-left", collapsed && "lg:hidden")}>
+            {group.label}
+          </span>
           {group.badge === "New" && (
-            <span className="rounded-full bg-violet-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+            <span
+              className={cn(
+                "rounded-full bg-violet-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white",
+                collapsed && "lg:hidden",
+              )}
+            >
               New
             </span>
           )}
@@ -264,26 +267,10 @@ export function Sidebar({
             className={cn(
               "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
               open && "rotate-180",
+              collapsed && "lg:hidden",
             )}
           />
         </button>
-
-        {/* Desktop rail only — the group as a single icon linking to its
-            first child (children aren't shown on the narrow rail). */}
-        <Link
-          href={firstHref}
-          onClick={onClose}
-          title={group.label}
-          className={cn(
-            "hidden items-center justify-center rounded-lg py-2",
-            collapsed ? "lg:flex" : "lg:hidden",
-            anyActive
-              ? "bg-primary/10 text-primary"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground",
-          )}
-        >
-          <group.icon className="h-5 w-5 shrink-0" />
-        </Link>
 
         {/* Children — nested, with a tree rail. Hidden on the collapsed
             desktop rail. */}
@@ -335,12 +322,7 @@ export function Sidebar({
       >
         {/* Logo row. On mobile we put a close button here; on desktop the
             close button is hidden since the sidebar is always-visible. */}
-        <div
-          className={cn(
-            "flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border px-4",
-            collapsed && "lg:justify-center lg:px-0",
-          )}
-        >
+        <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
           <Link
             href="/dashboard"
             className="flex items-center gap-2"
@@ -404,10 +386,7 @@ export function Sidebar({
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-pressed={collapsed}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className={cn(
-              "mt-2 hidden w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:flex",
-              collapsed && "lg:justify-center lg:px-0",
-            )}
+            className="mt-2 hidden w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:flex"
           >
             {collapsed ? (
               <PanelLeftOpen className="h-4 w-4 shrink-0" />
