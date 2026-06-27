@@ -185,10 +185,7 @@ export function Sidebar({
         onClick={onClose}
         title={link.label}
         className={cn(
-          // Full-bleed: padding lives inside the row (px-3) so the
-          // active/hover background reaches both edges of the sidebar;
-          // no rounded corners, no outer inset.
-          "relative flex items-center gap-3 px-3 font-medium transition-colors",
+          "relative flex items-center gap-3 rounded-md px-3 font-medium transition-colors",
           indented ? "py-2 text-sm lg:py-1.5" : "py-2.5 text-base lg:py-2",
           active
             ? "bg-primary/10 text-primary"
@@ -254,7 +251,7 @@ export function Sidebar({
           aria-expanded={open}
           title={group.label}
           className={cn(
-            "flex w-full items-center gap-3 px-3 py-2.5 text-base font-medium transition-colors lg:py-2",
+            "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-base font-medium transition-colors lg:py-2",
             anyActive
               ? "text-foreground"
               : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -359,7 +356,7 @@ export function Sidebar({
         </div>
 
         {/* Main navigation — fixed width; the aside clips it when narrow. */}
-        <nav className={cn("flex-1 overflow-y-auto overflow-x-hidden py-4", CONTENT_W)}>
+        <nav className={cn("flex-1 overflow-y-auto overflow-x-hidden px-2 py-4", CONTENT_W)}>
           <ul className="flex flex-col gap-1">
             <li>{renderLink(homeLink)}</li>
           </ul>
@@ -389,7 +386,7 @@ export function Sidebar({
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-pressed={collapsed}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className="mt-2 hidden w-full items-center gap-3 px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:flex"
+            className="mt-2 hidden w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:flex"
           >
             {collapsed ? (
               <PanelLeftOpen className="h-4 w-4 shrink-0" />
