@@ -175,14 +175,14 @@ export function Sidebar({
                     title={collapsed ? item.label : undefined}
                     className={cn(
                       // Taller on mobile so fingers can hit the row reliably (≥44px).
-                      "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
+                      "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium transition-colors lg:py-2",
                       collapsed && "lg:justify-center lg:px-0",
                       isActive
                         ? "bg-primary/10 text-primary"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground",
                     )}
                   >
-                    <item.icon className="h-4 w-4 shrink-0" />
+                    <item.icon className="h-5 w-5 shrink-0" />
                     <span className={cn("flex-1", collapsed && "lg:hidden")}>
                       {item.label}
                     </span>
@@ -229,14 +229,14 @@ export function Sidebar({
                     href={item.href}
                     title={collapsed ? item.label : undefined}
                     className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
+                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium transition-colors lg:py-2",
                       collapsed && "lg:justify-center lg:px-0",
                       isActive
                         ? "bg-primary/10 text-primary"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground",
                     )}
                   >
-                    <item.icon className="h-4 w-4 shrink-0" />
+                    <item.icon className="h-5 w-5 shrink-0" />
                     <span className={cn(collapsed && "lg:hidden")}>
                       {item.label}
                     </span>
