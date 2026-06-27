@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -62,12 +62,17 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
       {/* Reports this tab's online/away presence once we know a user is
           signed in. Headless — renders nothing. */}
       <PresenceHeartbeat />
-      <Sidebar
-        open={sidebarOpen}
-        onClose={closeSidebar}
-        collapsed={collapsed}
-        onToggleCollapse={toggleCollapsed}
-      />
+      {/* Suspense boundary required because Sidebar reads useSearchParams
+          (to highlight the active Settings sub-tab). Without it, Next can
+          fail to statically render dashboard pages. */}
+      <Suspense fallback={null}>
+        <Sidebar
+          open={sidebarOpen}
+          onClose={closeSidebar}
+          collapsed={collapsed}
+          onToggleCollapse={toggleCollapsed}
+        />
+      </Suspense>
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header onOpenSidebar={() => setSidebarOpen(true)} />
         {/* Thinner horizontal padding on mobile so cards have room to breathe. */}

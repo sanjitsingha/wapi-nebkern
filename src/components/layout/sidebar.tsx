@@ -1,48 +1,104 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { softBadge } from "@/lib/badge-colors";
 import { useTotalUnread } from "@/hooks/use-total-unread";
 import {
+  resolveSection,
+  type SettingsSection,
+} from "@/components/settings/settings-sections";
+import {
+  ChevronDown,
+  Coins,
+  FileText,
   GitBranch,
   LayoutDashboard,
   MessageSquare,
+  Palette,
   PanelLeftClose,
   PanelLeftOpen,
+  PlugZap,
   Radio,
   Settings,
+  Tags,
+  User,
   Users,
+  UsersRound,
   Workflow,
   X,
   Zap,
+  type LucideIcon,
 } from "lucide-react";
 
-interface NavItem {
-  href: string;
+// A single clickable destination. `tab` marks a Settings sub-section
+// (active state keys off `?tab=` rather than the path, since they all
+// live under /settings). `unread` flags the Inbox row for the dot.
+interface NavLink {
   label: string;
-  icon: typeof LayoutDashboard;
-  /**
-   * When true, the nav row renders a small "Beta" chip after the label.
-   * Purely informational — doesn't affect routing or access.
-   */
-  beta?: boolean;
+  icon: LucideIcon;
+  href: string;
+  tab?: SettingsSection;
+  badge?: "New" | "Beta";
+  unread?: boolean;
 }
 
-const navItems: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/inbox", label: "Inbox", icon: MessageSquare },
-  { href: "/contacts", label: "Contacts", icon: Users },
-  { href: "/pipelines", label: "Pipelines", icon: GitBranch },
-  { href: "/broadcasts", label: "Broadcasts", icon: Radio },
-  { href: "/automations", label: "Automations", icon: Zap },
-  { href: "/flows", label: "Flows", icon: Workflow, beta: true },
+// An expandable section. Renders a chevron toggle in the full sidebar
+// and an icon-link (to the first child) on the collapsed rail.
+interface NavGroup {
+  label: string;
+  icon: LucideIcon;
+  badge?: "New";
+  children: NavLink[];
+}
+
+// Standalone item above the grouped nav (the reference's "Home").
+const homeLink: NavLink = {
+  label: "Dashboard",
+  icon: LayoutDashboard,
+  href: "/dashboard",
+};
+
+const quickLinks: NavLink[] = [
+  { label: "Inbox", icon: MessageSquare, href: "/inbox", unread: true },
+  { label: "Contacts", icon: Users, href: "/contacts" },
+  { label: "Broadcasts", icon: Radio, href: "/broadcasts" },
 ];
 
-const bottomNavItems = [
-  { href: "/settings", label: "Settings", icon: Settings },
+// Expandable groups. Settings fans out into the real `?tab=` sections
+// (settings-sections.ts), so every child is a live page — no stubs.
+const groups: NavGroup[] = [
+  {
+    label: "Sales CRM",
+    icon: GitBranch,
+    children: [
+      { label: "Pipelines", icon: GitBranch, href: "/pipelines" },
+      { label: "Deals", icon: Coins, href: "/settings?tab=deals", tab: "deals" },
+    ],
+  },
+  {
+    label: "Automation",
+    icon: Zap,
+    badge: "New",
+    children: [
+      { label: "Automations", icon: Zap, href: "/automations" },
+      { label: "Flows", icon: Workflow, href: "/flows", badge: "Beta" },
+    ],
+  },
+  {
+    label: "Settings",
+    icon: Settings,
+    children: [
+      { label: "WhatsApp", icon: PlugZap, href: "/settings?tab=whatsapp", tab: "whatsapp" },
+      { label: "Templates", icon: FileText, href: "/settings?tab=templates", tab: "templates" },
+      { label: "Team members", icon: UsersRound, href: "/settings?tab=members", tab: "members" },
+      { label: "Fields & tags", icon: Tags, href: "/settings?tab=fields", tab: "fields" },
+      { label: "Your profile", icon: User, href: "/settings?tab=profile", tab: "profile" },
+      { label: "Appearance", icon: Palette, href: "/settings?tab=appearance", tab: "appearance" },
+    ],
+  },
 ];
 
 interface SidebarProps {
@@ -66,7 +122,31 @@ export function Sidebar({
   onToggleCollapse,
 }: SidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const totalUnread = useTotalUnread();
+  const activeTab = resolveSection(searchParams.get("tab"));
+
+  // Which expandable groups are open. The group containing the active
+  // route is auto-opened (without collapsing ones the user opened).
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+
+  const isLinkActive = (link: NavLink): boolean => {
+    if (link.tab) return pathname === "/settings" && activeTab === link.tab;
+    if (link.href === "/dashboard") return pathname === "/dashboard";
+    return pathname === link.href || pathname.startsWith(link.href + "/");
+  };
+
+  // Auto-open the active group on navigation.
+  useEffect(() => {
+    const active = groups.find((g) => g.children.some(isLinkActive));
+    if (active) {
+      setOpenGroups((prev) =>
+        prev[active.label] ? prev : { ...prev, [active.label]: true },
+      );
+    }
+    // isLinkActive closes over pathname + activeTab, which are the real deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, activeTab]);
 
   // Close the drawer when route changes — users opened it to navigate,
   // so once they pick a destination the drawer should get out of the way.
@@ -91,6 +171,137 @@ export function Sidebar({
       window.removeEventListener("keydown", onKey);
     };
   }, [open, onClose]);
+
+  // ---- row renderers -------------------------------------------------
+
+  const renderLink = (link: NavLink, indented = false) => {
+    const active = isLinkActive(link);
+    return (
+      <Link
+        href={link.href}
+        onClick={onClose}
+        title={collapsed && !indented ? link.label : undefined}
+        className={cn(
+          "relative flex items-center gap-3 rounded-lg px-3 font-medium transition-colors",
+          indented ? "py-2 text-sm lg:py-1.5" : "py-2.5 text-base lg:py-2",
+          collapsed && !indented && "lg:justify-center lg:px-0",
+          active
+            ? "bg-primary/10 text-primary"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+        )}
+      >
+        <link.icon className={cn("shrink-0", indented ? "h-4 w-4" : "h-5 w-5")} />
+        <span className={cn("flex-1", collapsed && !indented && "lg:hidden")}>
+          {link.label}
+        </span>
+        {link.badge === "Beta" && (
+          <span
+            className={cn(
+              "rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider",
+              softBadge.amber,
+              collapsed && !indented && "lg:hidden",
+            )}
+          >
+            Beta
+          </span>
+        )}
+        {link.badge === "New" && (
+          <span
+            className={cn(
+              "rounded-full bg-violet-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white",
+              collapsed && !indented && "lg:hidden",
+            )}
+          >
+            New
+          </span>
+        )}
+        {link.unread && totalUnread > 0 && !active && (
+          <span
+            aria-label={`${totalUnread} unread conversation${totalUnread === 1 ? "" : "s"}`}
+            className={cn(
+              "relative flex h-2 w-2",
+              collapsed && "lg:absolute lg:right-2 lg:top-1.5",
+            )}
+          >
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+          </span>
+        )}
+      </Link>
+    );
+  };
+
+  const renderGroup = (group: NavGroup) => {
+    const open = !!openGroups[group.label];
+    const anyActive = group.children.some(isLinkActive);
+    const firstHref = group.children[0]?.href ?? "#";
+    return (
+      <li key={group.label}>
+        {/* Toggle header — full sidebar + mobile drawer. Hidden on the
+            desktop rail (replaced by the icon-link below). */}
+        <button
+          type="button"
+          onClick={() =>
+            setOpenGroups((p) => ({ ...p, [group.label]: !p[group.label] }))
+          }
+          aria-expanded={open}
+          className={cn(
+            "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium transition-colors lg:py-2",
+            collapsed && "lg:hidden",
+            anyActive
+              ? "text-foreground"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          )}
+        >
+          <group.icon className="h-5 w-5 shrink-0" />
+          <span className="flex-1 text-left">{group.label}</span>
+          {group.badge === "New" && (
+            <span className="rounded-full bg-violet-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+              New
+            </span>
+          )}
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+              open && "rotate-180",
+            )}
+          />
+        </button>
+
+        {/* Desktop rail only — the group as a single icon linking to its
+            first child (children aren't shown on the narrow rail). */}
+        <Link
+          href={firstHref}
+          onClick={onClose}
+          title={group.label}
+          className={cn(
+            "hidden items-center justify-center rounded-lg py-2",
+            collapsed ? "lg:flex" : "lg:hidden",
+            anyActive
+              ? "bg-primary/10 text-primary"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          )}
+        >
+          <group.icon className="h-5 w-5 shrink-0" />
+        </Link>
+
+        {/* Children — nested, with a tree rail. Hidden on the collapsed
+            desktop rail. */}
+        {open && (
+          <ul
+            className={cn(
+              "mt-1 ml-[1.35rem] flex flex-col gap-1 border-l border-border pl-2",
+              collapsed && "lg:hidden",
+            )}
+          >
+            {group.children.map((child) => (
+              <li key={child.href}>{renderLink(child, true)}</li>
+            ))}
+          </ul>
+        )}
+      </li>
+    );
+  };
 
   return (
     <>
@@ -159,92 +370,30 @@ export function Sidebar({
 
         {/* Main navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">
+          {/* Standalone top item */}
           <ul className="flex flex-col gap-1">
-            {navItems.map((item) => {
-              const isActive =
-                pathname === item.href ||
-                (item.href !== "/dashboard" && pathname.startsWith(item.href));
-
-              const showUnreadDot =
-                item.href === "/inbox" && totalUnread > 0 && !isActive;
-
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    title={collapsed ? item.label : undefined}
-                    className={cn(
-                      // Taller on mobile so fingers can hit the row reliably (≥44px).
-                      "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium transition-colors lg:py-2",
-                      collapsed && "lg:justify-center lg:px-0",
-                      isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    )}
-                  >
-                    <item.icon className="h-5 w-5 shrink-0" />
-                    <span className={cn("flex-1", collapsed && "lg:hidden")}>
-                      {item.label}
-                    </span>
-                    {item.beta && (
-                      <span
-                        aria-label="Beta feature"
-                        className={cn(
-                          "rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider",
-                          softBadge.amber,
-                          collapsed && "lg:hidden",
-                        )}
-                      >
-                        Beta
-                      </span>
-                    )}
-                    {showUnreadDot && (
-                      <span
-                        aria-label={`${totalUnread} unread conversation${totalUnread === 1 ? "" : "s"}`}
-                        className={cn(
-                          "relative flex h-2 w-2",
-                          // On the rail there's no label to sit beside, so
-                          // pin the dot to the icon's top-right corner.
-                          collapsed && "lg:absolute lg:right-2 lg:top-1.5",
-                        )}
-                      >
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              );
-            })}
+            <li>{renderLink(homeLink)}</li>
           </ul>
 
-          <div className="my-4 border-t border-border" />
-
+          {/* Quick links section */}
+          <p
+            className={cn(
+              "px-3 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground",
+              collapsed && "lg:hidden",
+            )}
+          >
+            Quick links
+          </p>
           <ul className="flex flex-col gap-1">
-            {bottomNavItems.map((item) => {
-              const isActive = pathname.startsWith(item.href);
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    title={collapsed ? item.label : undefined}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium transition-colors lg:py-2",
-                      collapsed && "lg:justify-center lg:px-0",
-                      isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    )}
-                  >
-                    <item.icon className="h-5 w-5 shrink-0" />
-                    <span className={cn(collapsed && "lg:hidden")}>
-                      {item.label}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
+            {quickLinks.map((link) => (
+              <li key={link.href}>{renderLink(link)}</li>
+            ))}
           </ul>
+
+          <div className="my-3 border-t border-border" />
+
+          {/* Expandable groups */}
+          <ul className="flex flex-col gap-1">{groups.map(renderGroup)}</ul>
 
           {/* Desktop-only collapse toggle. Lives in the sidebar so it
               travels with the nav in both states. Hidden on mobile,
@@ -256,7 +405,7 @@ export function Sidebar({
             aria-pressed={collapsed}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             className={cn(
-              "mt-1 hidden w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:flex",
+              "mt-2 hidden w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:flex",
               collapsed && "lg:justify-center lg:px-0",
             )}
           >
