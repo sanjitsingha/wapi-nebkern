@@ -144,6 +144,13 @@ export function Sidebar({
   };
 
   useEffect(() => {
+    // Collapsing the sidebar to the icon rail also closes any expanded
+    // group — a half-open menu makes no sense on the rail. Expanding
+    // again re-opens the group that holds the current route.
+    if (collapsed) {
+      setOpenGroups({});
+      return;
+    }
     const active = groups.find((g) => g.children.some(isLinkActive));
     if (active) {
       setOpenGroups((prev) =>
@@ -152,7 +159,7 @@ export function Sidebar({
     }
     // isLinkActive closes over pathname + activeTab, the real deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, activeTab]);
+  }, [pathname, activeTab, collapsed]);
 
   useEffect(() => {
     onClose?.();
