@@ -35,8 +35,9 @@ interface AudienceConfig {
 interface Step2Props {
   audience: AudienceConfig;
   onUpdate: (audience: AudienceConfig) => void;
-  onNext: () => void;
-  onBack: () => void;
+  onNext?: () => void;
+  onBack?: () => void;
+  embedded?: boolean;
 }
 
 const audienceOptions: {
@@ -82,6 +83,7 @@ export function Step2SelectAudience({
   onUpdate,
   onNext,
   onBack,
+  embedded = false,
 }: Step2Props) {
   const [tags, setTags] = useState<Tag[]>([]);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
@@ -248,12 +250,14 @@ export function Step2SelectAudience({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-foreground">Select Audience</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Choose who will receive this broadcast.
-        </p>
-      </div>
+      {!embedded && (
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Select Audience</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Choose who will receive this broadcast.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {audienceOptions.map((option) => {
@@ -449,24 +453,26 @@ export function Step2SelectAudience({
         )}
       </div>
 
-      <div className="flex items-center justify-between border-t border-border pt-4">
-        <Button
-          variant="outline"
-          onClick={onBack}
-          className="border-border text-muted-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </Button>
-        <Button
-          onClick={onNext}
-          disabled={!isValid}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-        >
-          Next
-          <ArrowRight className="h-4 w-4" />
-        </Button>
-      </div>
+      {!embedded && onBack && onNext && (
+        <div className="flex items-center justify-between border-t border-border pt-4">
+          <Button
+            variant="outline"
+            onClick={onBack}
+            className="border-border text-muted-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
+          <Button
+            onClick={onNext}
+            disabled={!isValid}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            Next
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

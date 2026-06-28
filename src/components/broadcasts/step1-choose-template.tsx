@@ -15,11 +15,18 @@ const categoryColors: Record<string, string> = {
 interface Step1Props {
   selectedTemplate: MessageTemplate | null;
   onSelect: (template: MessageTemplate) => void;
-  onNext: () => void;
-  onBack: () => void;
+  onNext?: () => void;
+  onBack?: () => void;
+  embedded?: boolean;
 }
 
-export function Step1ChooseTemplate({ selectedTemplate, onSelect, onNext, onBack }: Step1Props) {
+export function Step1ChooseTemplate({
+  selectedTemplate,
+  onSelect,
+  onNext,
+  onBack,
+  embedded = false,
+}: Step1Props) {
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,12 +74,14 @@ export function Step1ChooseTemplate({ selectedTemplate, onSelect, onNext, onBack
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-foreground">Choose a Template</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Select an approved message template for your broadcast.
-        </p>
-      </div>
+      {!embedded && (
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Choose a Template</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Select an approved message template for your broadcast.
+          </p>
+        </div>
+      )}
 
       {templates.length === 0 ? (
         <div className="flex h-48 flex-col items-center justify-center rounded-xl border border-border bg-card/50">
@@ -81,7 +90,7 @@ export function Step1ChooseTemplate({ selectedTemplate, onSelect, onNext, onBack
           <p className="mt-1 text-xs text-muted-foreground">Create a template in Settings first.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {templates.map((template) => {
             const isSelected = selectedTemplate?.id === template.id;
             const catColor = categoryColors[template.category] ?? categoryColors.Utility;
@@ -117,19 +126,21 @@ export function Step1ChooseTemplate({ selectedTemplate, onSelect, onNext, onBack
         </div>
       )}
 
-      <div className="flex items-center justify-between border-t border-border pt-4">
-        <Button variant="outline" onClick={onBack} className="border-border text-muted-foreground">
-          Back
-        </Button>
-        <Button
-          onClick={onNext}
-          disabled={!selectedTemplate}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-        >
-          Next
-          <ArrowRight className="h-4 w-4" />
-        </Button>
-      </div>
+      {!embedded && onBack && onNext && (
+        <div className="flex items-center justify-between border-t border-border pt-4">
+          <Button variant="outline" onClick={onBack} className="border-border text-muted-foreground">
+            Back
+          </Button>
+          <Button
+            onClick={onNext}
+            disabled={!selectedTemplate}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            Next
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

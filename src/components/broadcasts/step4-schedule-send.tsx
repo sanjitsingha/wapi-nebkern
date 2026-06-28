@@ -29,9 +29,10 @@ interface Step4Props {
   audience: AudienceConfig;
   onSend: () => void;
   onSaveDraft?: () => void;
-  onBack: () => void;
+  onBack?: () => void;
   isProcessing: boolean;
   progress: number;
+  embedded?: boolean;
 }
 
 export function Step4ScheduleSend({
@@ -44,6 +45,7 @@ export function Step4ScheduleSend({
   onBack,
   isProcessing,
   progress,
+  embedded = false,
 }: Step4Props) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [estimatedReach, setEstimatedReach] = useState<number>(0);
@@ -92,12 +94,14 @@ export function Step4ScheduleSend({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-foreground">Review & Send</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Name your broadcast, review the details, and send.
-        </p>
-      </div>
+      {!embedded && (
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Review & Send</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Name your broadcast, review the details, and send.
+          </p>
+        </div>
+      )}
 
       {/* Broadcast Name */}
       <div>
@@ -161,16 +165,22 @@ export function Step4ScheduleSend({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
-        <Button
-          variant="outline"
-          onClick={onBack}
-          disabled={isProcessing}
-          className="border-border text-muted-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </Button>
+      <div
+        className={`flex flex-wrap items-center gap-2 border-t border-border pt-4 ${
+          embedded ? 'justify-end' : 'justify-between'
+        }`}
+      >
+        {!embedded && onBack && (
+          <Button
+            variant="outline"
+            onClick={onBack}
+            disabled={isProcessing}
+            className="border-border text-muted-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
+        )}
 
         <div className="flex items-center gap-2">
           {onSaveDraft && (

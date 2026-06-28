@@ -25,8 +25,9 @@ interface Step3Props {
   template: MessageTemplate;
   variables: Record<string, VariableMapping>;
   onUpdate: (variables: Record<string, VariableMapping>) => void;
-  onNext: () => void;
-  onBack: () => void;
+  onNext?: () => void;
+  onBack?: () => void;
+  embedded?: boolean;
 }
 
 const contactFields = [
@@ -54,6 +55,7 @@ export function Step3Personalize({
   onUpdate,
   onNext,
   onBack,
+  embedded = false,
 }: Step3Props) {
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loadingFields, setLoadingFields] = useState(true);
@@ -186,13 +188,15 @@ export function Step3Personalize({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-foreground">Personalize Message</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Map template variables to contact fields, custom fields, or static
-          values.
-        </p>
-      </div>
+      {!embedded && (
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Personalize Message</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Map template variables to contact fields, custom fields, or static
+            values.
+          </p>
+        </div>
+      )}
 
       {placeholders.length === 0 ? (
         <div className="rounded-xl border border-border bg-card/50 p-6 text-center">
@@ -310,25 +314,25 @@ export function Step3Personalize({
         </div>
       )}
 
-      {/* Live Preview — rendered as a WhatsApp-style bubble so the user
-          sees approximately what the recipient will see. */}
-      <div className="rounded-xl border border-border bg-card/50 p-4">
-        <div className="mb-3 flex items-center gap-2">
-          <Eye className="h-4 w-4 text-primary" />
-          <p className="text-sm font-medium text-foreground">Live Preview</p>
-          <span className="text-xs text-muted-foreground">({previewLabel})</span>
-          {loadingPreview && (
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-          )}
-        </div>
-        <div className="rounded-lg bg-[#0e1a12] p-3">
-          <div className="ml-auto max-w-[85%] rounded-lg bg-primary/30 px-3 py-2 shadow-sm">
-            <p className="whitespace-pre-wrap text-sm text-primary">
-              {previewText}
-            </p>
+      {!embedded && (
+        <div className="rounded-xl border border-border bg-card/50 p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <Eye className="h-4 w-4 text-primary" />
+            <p className="text-sm font-medium text-foreground">Live Preview</p>
+            <span className="text-xs text-muted-foreground">({previewLabel})</span>
+            {loadingPreview && (
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+            )}
+          </div>
+          <div className="rounded-lg bg-[#0e1a12] p-3">
+            <div className="ml-auto max-w-[85%] rounded-lg bg-primary/30 px-3 py-2 shadow-sm">
+              <p className="whitespace-pre-wrap text-sm text-primary">
+                {previewText}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {unmappedKeys.length > 0 && (
         <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
@@ -340,24 +344,26 @@ export function Step3Personalize({
         </div>
       )}
 
-      <div className="flex items-center justify-between border-t border-border pt-4">
-        <Button
-          variant="outline"
-          onClick={onBack}
-          className="border-border text-muted-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </Button>
-        <Button
-          onClick={onNext}
-          disabled={unmappedKeys.length > 0}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-        >
-          Next
-          <ArrowRight className="h-4 w-4" />
-        </Button>
-      </div>
+      {!embedded && onBack && onNext && (
+        <div className="flex items-center justify-between border-t border-border pt-4">
+          <Button
+            variant="outline"
+            onClick={onBack}
+            className="border-border text-muted-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
+          <Button
+            onClick={onNext}
+            disabled={unmappedKeys.length > 0}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            Next
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
