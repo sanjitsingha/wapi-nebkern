@@ -1,35 +1,42 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
+import {
+  authenticateApiKey,
+  requireApiKey,
+} from '@/lib/api-keys/auth';
 import { buildAppointmentTemplateParams } from '@/lib/integrations/appointment-notification';
 import { sanitizePhoneForMeta, isValidE164 } from '@/lib/whatsapp/phone-utils';
 import { decrypt } from '@/lib/whatsapp/encryption';
 import { sendTemplateMessage } from '@/lib/whatsapp/meta-api';
 import { isMessageTemplate } from '@/lib/whatsapp/template-row-guard';
 
-function getHeaderApiKey(request: Request) {
-  const header = request.headers.get('x-wacrm-api-key');
-  return header?.trim();
-}
-
+/**
+ * POST /api/integrations/appointment-event
+ *
+ * Send a WhatsApp appointment notification to a patient.
+ *
+ * Auth: x-api-key header (per-account scoped API key from wacrm Settings)
+ *
+ * Body:
+ *   {
+ *     patient: { name: string, phone: string },
+ *     appointment: { id, date, time, doctor_name, clinic_name },
+ *     template: { name: string, language?: string },
+ *     variable_order?: string[]
+ *   }
+ */
 export async function POST(request: Request) {
   try {
-    const apiKey = getHeaderApiKey(request);
-    const expectedApiKey = process.env.WACRM_INTEGRATION_API_KEY?.trim();
-
-    if (!expectedApiKey || !apiKey || apiKey !== expectedApiKey) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // 1. Authenticate via API key (server-to-server, no browser session)
+    const apiAuth = await authenticateApiKey(request);
+    const authResult = requireApiKey(apiAuth, ['send:messages']);
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
+    const accountId = authResult.accountId;
 
     const body = await request.json();
-    const { organization_id, patient, appointment, template, variable_order } =
-      body ?? {};
-
-    if (!organization_id) {
-      return NextResponse.json(
-        { error: 'organization_id is required' },
-        { status: 400 }
-      );
-    }
+    const { patient, appointment, template, variable_order } = body ?? {};
 
     const phone = patient?.phone;
     if (!phone) {
@@ -39,29 +46,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('account_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    const accountId = profile?.account_id as string | undefined;
-    if (!accountId) {
-      return NextResponse.json(
-        { error: 'Your profile is not linked to an account.' },
-        { status: 403 }
-      );
-    }
+    // Use admin client for DB lookups (no session cookie in server-to-server)
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
     const { data: config, error: configError } = await supabase
       .from('whatsapp_config')
@@ -85,10 +74,10 @@ export async function POST(request: Request) {
     }
 
     const templateName =
-      template?.slug || template?.name || template?.template_name;
+      template?.name || template?.slug || template?.template_name;
     if (!templateName) {
       return NextResponse.json(
-        { error: 'template slug/name is required' },
+        { error: 'template.name is required' },
         { status: 400 }
       );
     }

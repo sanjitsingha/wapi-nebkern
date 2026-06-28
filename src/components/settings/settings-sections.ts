@@ -1,6 +1,7 @@
 import {
   Coins,
   FileText,
+  KeyRound,
   LayoutGrid,
   Palette,
   PlugZap,
@@ -26,6 +27,7 @@ export const SETTINGS_SECTIONS = [
   'appearance',
   'whatsapp',
   'templates',
+  'api-access',
   'integrations',
   'fields',
   'deals',
@@ -79,6 +81,12 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     id: 'templates',
     label: 'Templates',
     icon: FileText,
+    group: 'workspace',
+  },
+  'api-access': {
+    id: 'api-access',
+    label: 'API Access',
+    icon: KeyRound,
     group: 'workspace',
   },
   integrations: {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Copy, Loader2, Sparkles } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +42,7 @@ const DEFAULT_VARIABLE_ORDER = [
 export function IntegrationSetupPanel() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [copyState, setCopyState] = useState<'idle' | 'copied'>('idle');
   const [templates, setTemplates] = useState<TemplateOption[]>([]);
   const [config, setConfig] = useState<IntegrationConfig>({
     appointment_notification_template: null,
@@ -92,6 +93,61 @@ export function IntegrationSetupPanel() {
     }
   }
 
+  async function copyPrompt() {
+    const prompt = `Create an integration connector for Wacrm.
+
+PREREQUISITE: Generate an API key in Wacrm → Settings → API Access first.
+
+1. Send a POST request to ${window.location.origin}/api/integrations/handshake with:
+   Header: x-api-key: <your-wacrm-api-key>
+   Body:
+   {
+     "organization_id": "<your-organization-id>",
+     "crm_name": "<your-crm-name>",
+     "crm_url": "<your-crm-url>"
+   }
+
+2. Expect a response with:
+   - supported_events: ["appointment.notification"]
+   - endpoint: "/api/integrations/send-message"
+   - required_headers: ["x-api-key"]
+
+3. Fetch approved templates:
+   GET ${window.location.origin}/api/integrations/templates
+   Header: x-api-key: <your-wacrm-api-key>
+
+4. Send a WhatsApp message (generic — works for any template):
+   POST ${window.location.origin}/api/integrations/send-message
+   Header: x-api-key: <your-wacrm-api-key>
+   Body:
+   {
+     "to": "<recipient-phone-e164>",
+     "template": {
+       "name": "<template-name>",
+       "language": "en_US"
+     },
+     "params": ["{{1}}-value", "{{2}}-value", "..."]
+   }
+
+   Advanced (headers, buttons, media):
+   {
+     "to": "<recipient-phone-e164>",
+     "template": { "name": "<template-name>", "language": "en_US" },
+     "messageParams": {
+       "body": ["{{1}}-value", "{{2}}-value"],
+       "headerText": "<header-variable-value>",
+       "headerMediaUrl": "<image-url>",
+       "buttonParams": { "0": "<button-url-or-code>" }
+     }
+   }
+
+5. Return a success message to the user after the event is accepted.`;
+
+    await navigator.clipboard.writeText(prompt);
+    setCopyState('copied');
+    window.setTimeout(() => setCopyState('idle'), 1500);
+  }
+
   if (loading) {
     return (
       <div className="border-border bg-card flex h-48 items-center justify-center rounded-xl border">
@@ -120,6 +176,36 @@ export function IntegrationSetupPanel() {
         </div>
 
         <div className="mt-6 space-y-4">
+          <div className="border-border rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950">
+            <p className="text-sm text-amber-800 dark:text-amber-300">
+              <strong>Before connecting your CRM:</strong> Generate an API key in{' '}
+              <a
+                href="/settings?tab=api-access"
+                className="underline font-medium"
+              >
+                Settings → API Access
+              </a>{' '}
+              first. The integration endpoints require a per-account API key.
+            </p>
+          </div>
+
+          <div className="border-border rounded-lg border p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-foreground text-sm font-semibold">
+                  CRM handshake instructions
+                </h3>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Copy this prompt into your CRM's code agent to connect it to
+                  Wacrm and send appointment notifications.
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={copyPrompt}>
+                <Copy className="mr-2 h-4 w-4" />
+                {copyState === 'copied' ? 'Copied' : 'Copy prompt'}
+              </Button>
+            </div>
+          </div>
           <div className="border-border flex items-center justify-between rounded-lg border p-4">
             <div>
               <Label htmlFor="enabled" className="text-sm font-medium">
