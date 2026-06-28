@@ -174,11 +174,9 @@ export function ApiKeysPanel() {
 
       {/* Create Key Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogTrigger asChild>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Generate new key
-          </Button>
+        <DialogTrigger render={<Button />}>
+          <Plus className="mr-2 h-4 w-4" />
+          Generate new key
         </DialogTrigger>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
