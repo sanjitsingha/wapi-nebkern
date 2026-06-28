@@ -32,6 +32,7 @@ import {
   Download,
   ChevronDown,
   Trash2,
+  Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -303,6 +304,19 @@ export default function BroadcastDetailPage() {
           </div>
         </div>
 
+        <div className="flex items-center gap-2">
+          {broadcast.status === 'draft' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push(`/campaigns/new?draft=${broadcastId}`)}
+              className="border-border text-foreground"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Edit Campaign
+            </Button>
+          )}
+
         {/* Delete — inline-confirm pattern matches the pipeline-settings
             "Delete Pipeline" flow. Mid-send broadcasts can't be deleted
             because orphaning in-flight Meta messages would leave the
@@ -345,6 +359,7 @@ export default function BroadcastDetailPage() {
             Delete
           </Button>
         )}
+        </div>
       </div>
 
       {/* Stats — 6 cards: Total / Sent / Delivered / Read / Replied / Failed */}
