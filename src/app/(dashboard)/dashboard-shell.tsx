@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import { Suspense, useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { AuthProvider, useAuth } from "@/hooks/use-auth";
-import { Sidebar } from "@/components/layout/sidebar";
-import { Header } from "@/components/layout/header";
-import { PresenceHeartbeat } from "@/components/presence/presence-heartbeat";
+import { Suspense, useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { AuthProvider, useAuth } from '@/hooks/use-auth';
+import { Sidebar } from '@/components/layout/sidebar';
+import { Header } from '@/components/layout/header';
+import { PresenceHeartbeat } from '@/components/presence/presence-heartbeat';
 
 // Auth-gated dashboard shell. Extracted from the layout so the layout
 // itself can stay a server component and export metadata (noindex) —
 // client components can't export Next's metadata object.
 
 // localStorage key for the desktop sidebar collapse preference.
-const SIDEBAR_COLLAPSED_KEY = "wacrm.sidebar-collapsed";
+const SIDEBAR_COLLAPSED_KEY = 'wacrm.sidebar-collapsed';
 
 function DashboardShellInner({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -28,28 +28,21 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
   // lazy initializer) to keep server and first client render in sync.
   const [collapsed, setCollapsed] = useState(false);
   useEffect(() => {
-    setCollapsed(localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1");
-  }, []);
-  const toggleCollapsed = useCallback(() => {
-    setCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? "1" : "0");
-      return next;
-    });
+    setCollapsed(localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1');
   }, []);
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push("/login");
+      router.push('/login');
     }
   }, [user, loading, router]);
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
+      <div className="bg-background flex h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Loading...</p>
+          <div className="border-primary h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
+          <p className="text-muted-foreground text-sm">Loading...</p>
         </div>
       </div>
     );
@@ -58,7 +51,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="bg-background flex h-screen overflow-hidden">
       {/* Reports this tab's online/away presence once we know a user is
           signed in. Headless — renders nothing. */}
       <PresenceHeartbeat />
@@ -70,7 +63,6 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
           open={sidebarOpen}
           onClose={closeSidebar}
           collapsed={collapsed}
-          onToggleCollapse={toggleCollapsed}
         />
       </Suspense>
       <div className="flex flex-1 flex-col overflow-hidden">

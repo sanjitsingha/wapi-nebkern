@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 /**
  * View-switcher for the flow editor.
@@ -16,16 +16,16 @@
  * feedback was that the list shape made flows "hard to understand".
  */
 
-import { useEffect, useState } from "react";
-import { LayoutGrid, ListTree } from "lucide-react";
+import { useEffect, useState } from 'react';
+import { LayoutGrid, ListTree } from 'lucide-react';
 
-import { FlowBuilder } from "./flow-builder";
-import { FlowCanvas } from "./flow-canvas";
-import { FlowEditorProvider } from "./flow-editor-state";
-import { EditorHeader } from "./header";
-import { ValidationPanel } from "./validation-panel";
-import { cn } from "@/lib/utils";
-import type { FlowRow, FlowNodeRow } from "@/lib/flows/types";
+import { FlowBuilder } from './flow-builder';
+import { FlowCanvas } from './flow-canvas';
+import { FlowEditorProvider } from './flow-editor-state';
+import { EditorHeader } from './header';
+import { ValidationPanel } from './validation-panel';
+import { cn } from '@/lib/utils';
+import type { FlowRow, FlowNodeRow } from '@/lib/flows/types';
 
 /**
  * Below this viewport width we force list view and hide the toggle.
@@ -33,11 +33,11 @@ import type { FlowRow, FlowNodeRow } from "@/lib/flows/types";
  * ~10px and live finger drags from one node to another aren't a
  * practical workflow. Matches Tailwind's `md` breakpoint.
  */
-const MOBILE_BREAKPOINT = "(max-width: 767px)";
+const MOBILE_BREAKPOINT = '(max-width: 767px)';
 
-type View = "canvas" | "list";
+type View = 'canvas' | 'list';
 
-const STORAGE_KEY = "wacrm.flowEditor.view";
+const STORAGE_KEY = 'wacrm.flowEditor.view';
 
 interface Props {
   initialFlow: FlowRow;
@@ -53,11 +53,11 @@ export function FlowEditorShell({ initialFlow, initialNodes }: Props) {
   const [view, setView] = useState<View>(() => {
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
-      if (saved === "canvas" || saved === "list") return saved;
+      if (saved === 'canvas' || saved === 'list') return saved;
     } catch {
       // Private browsing / disabled storage — fall through to default.
     }
-    return "canvas";
+    return 'canvas';
   });
 
   // Live mobile detection. We don't render canvas under the
@@ -65,7 +65,7 @@ export function FlowEditorShell({ initialFlow, initialNodes }: Props) {
   // intact so the user's preference comes back when they widen
   // again (e.g. rotating a tablet, resizing a window).
   const isMobile = useMatchMedia(MOBILE_BREAKPOINT);
-  const effectiveView: View = isMobile ? "list" : view;
+  const effectiveView: View = isMobile ? 'list' : view;
 
   const choose = (next: View) => {
     setView(next);
@@ -78,39 +78,43 @@ export function FlowEditorShell({ initialFlow, initialNodes }: Props) {
 
   return (
     <FlowEditorProvider initialFlow={initialFlow} initialNodes={initialNodes}>
-      <div className="mx-auto flex h-full max-w-4xl flex-col gap-6 p-6">
-        <EditorHeader />
-        {!isMobile && (
-          <div className="flex items-center justify-end">
-            <div
-              role="group"
-              aria-label="Editor view"
-              className="inline-flex items-center gap-1 rounded-md border border-border bg-card p-0.5 text-xs"
-            >
-              <ToggleButton
-                active={effectiveView === "canvas"}
-                onClick={() => choose("canvas")}
-                icon={<LayoutGrid className="h-3 w-3" />}
-                label="Canvas"
-              />
-              <ToggleButton
-                active={effectiveView === "list"}
-                onClick={() => choose("list")}
-                icon={<ListTree className="h-3 w-3" />}
-                label="List"
-              />
+      <div className="mx-auto flex min-h-screen w-full max-w-full flex-col">
+        <header className="border-b border-border bg-card p-6">
+          <EditorHeader />
+        </header>
+
+        <main className="flex h-full w-full flex-1 flex-col gap-6 p-6">
+          {!isMobile && (
+            <div className="flex items-center justify-end">
+              <div
+                role="group"
+                aria-label="Editor view"
+                className="border-border bg-card inline-flex items-center gap-1 rounded-md border p-0.5 text-xs"
+              >
+                <ToggleButton
+                  active={effectiveView === 'canvas'}
+                  onClick={() => choose('canvas')}
+                  icon={<LayoutGrid className="h-3 w-3" />}
+                  label="Canvas"
+                />
+                <ToggleButton
+                  active={effectiveView === 'list'}
+                  onClick={() => choose('list')}
+                  icon={<ListTree className="h-3 w-3" />}
+                  label="List"
+                />
+              </div>
             </div>
+          )}
+
+          <div className="flex-1 overflow-hidden">
+            {effectiveView === 'canvas' ? <FlowCanvas /> : <FlowBuilder />}
           </div>
-        )}
 
-        {effectiveView === "canvas" ? <FlowCanvas /> : <FlowBuilder />}
-
-        {/* Sticky-bottom validation panel mirrors the placement used
-            when this lived inside FlowBuilder — the activate-readiness
-            status follows the user as they scroll, in either view. */}
-        <div className="sticky bottom-4 z-10 shadow-xl shadow-background/60">
-          <ValidationPanel />
-        </div>
+          <div className="shadow-background/60 sticky bottom-4 z-10 shadow-xl">
+            <ValidationPanel />
+          </div>
+        </main>
       </div>
     </FlowEditorProvider>
   );
@@ -123,17 +127,17 @@ export function FlowEditorShell({ initialFlow, initialNodes }: Props) {
  */
 function useMatchMedia(query: string): boolean {
   const [matches, setMatches] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
+    if (typeof window === 'undefined') return false;
     return window.matchMedia(query).matches;
   });
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') return;
     const mql = window.matchMedia(query);
     const handler = (e: MediaQueryListEvent) => setMatches(e.matches);
     // Safari < 14 still uses addListener; addEventListener is the
     // modern path. Both fire identically.
-    mql.addEventListener("change", handler);
-    return () => mql.removeEventListener("change", handler);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
   }, [query]);
   return matches;
 }
@@ -155,10 +159,10 @@ function ToggleButton({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded px-2 py-1 transition-colors",
+        'inline-flex items-center gap-1.5 rounded px-2 py-1 transition-colors',
         active
-          ? "bg-secondary text-secondary-foreground"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          ? 'bg-secondary text-secondary-foreground'
+          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
       )}
     >
       {icon}
