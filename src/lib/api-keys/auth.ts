@@ -32,7 +32,7 @@ export function hashKey(raw: string): string {
   return createHash('sha256').update(raw).digest('hex');
 }
 
-function isWellFormed(raw: string | null): raw is string {
+function isWellFormed(raw: string | null): boolean {
   if (!raw) return false;
   // Expected: "wak_" + 48 hex chars = 52 chars total
   if (!raw.startsWith(PREFIX)) return false;
