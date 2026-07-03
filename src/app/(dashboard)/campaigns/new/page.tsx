@@ -11,6 +11,7 @@ import { Step2SelectAudience } from '@/components/broadcasts/step2-select-audien
 import { Step3Personalize } from '@/components/broadcasts/step3-personalize';
 import { Step4ScheduleSend } from '@/components/broadcasts/step4-schedule-send';
 import { useBroadcastSending } from '@/hooks/use-broadcast-sending';
+import { useWhatsAppInfo } from '@/hooks/use-whatsapp-info';
 import { CampaignPreview } from '@/components/campaign-preview';
 import {
   Accordion,
@@ -46,6 +47,7 @@ export default function NewBroadcastPage() {
   const { accountId } = useAuth();
   const { createAndSendBroadcast, isProcessing, progress } =
     useBroadcastSending();
+  const waInfo = useWhatsAppInfo();
 
   const [openSections, setOpenSections] = useState<string[]>([...SECTIONS]);
   const [template, setTemplate] = useState<MessageTemplate | null>(null);
@@ -369,7 +371,11 @@ export default function NewBroadcastPage() {
         </div>
 
         <aside className="min-w-0 lg:sticky lg:top-4 lg:self-start">
-          <CampaignPreview template={template} variables={variables} />
+          <CampaignPreview
+            template={template}
+            variables={variables}
+            businessName={waInfo?.verified_name}
+          />
         </aside>
       </div>
     </div>

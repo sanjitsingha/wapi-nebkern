@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useAvailability } from '@/hooks/use-availability';
+import { useWhatsAppInfo } from '@/hooks/use-whatsapp-info';
 import { LogOut, Menu, MessageSquare, Settings as SettingsIcon, User, MessageCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -16,32 +16,6 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { PresenceDot } from '@/components/presence/presence-dot';
 
-interface WaPhoneInfo {
-  verified_name?: string;
-  display_phone_number?: string;
-}
-
-function useWaInfo() {
-  const [info, setInfo] = useState<WaPhoneInfo | null>(null);
-
-  useEffect(() => {
-    fetch('/api/whatsapp/config')
-      .then((r) => r.json())
-      .then((data) => {
-        if (data?.connected && data?.phone_info) {
-          setInfo({
-            verified_name: data.phone_info.verified_name,
-            display_phone_number: data.phone_info.display_phone_number,
-          });
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  return info;
-}
-
-
 interface HeaderProps {
   /** Wired to the shell's drawer state. Used only on mobile — the
    *  hamburger button is hidden on lg+. */
@@ -51,7 +25,7 @@ interface HeaderProps {
 export function Header({ onOpenSidebar }: HeaderProps) {
   const { profile, signOut } = useAuth();
   const { available, setAvailable } = useAvailability();
-  const waInfo = useWaInfo();
+  const waInfo = useWhatsAppInfo();
 
   const initial =
     profile?.full_name?.charAt(0)?.toUpperCase() ??
