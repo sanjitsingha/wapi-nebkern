@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
+import { AvailabilityProvider } from '@/hooks/use-availability';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { PresenceHeartbeat } from '@/components/presence/presence-heartbeat';
@@ -51,23 +52,19 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   return (
-    <div className="bg-background flex h-screen overflow-hidden">
-      {/* Reports this tab's online/away presence once we know a user is
-          signed in. Headless — renders nothing. */}
+    <div className="bg-background flex h-screen flex-col overflow-hidden">
       <PresenceHeartbeat />
-      {/* Suspense boundary required because Sidebar reads useSearchParams
-          (to highlight the active Settings sub-tab). Without it, Next can
-          fail to statically render dashboard pages. */}
-      <Suspense fallback={null}>
-        <Sidebar
-          open={sidebarOpen}
-          onClose={closeSidebar}
-          collapsed={collapsed}
-        />
-      </Suspense>
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header onOpenSidebar={() => setSidebarOpen(true)} />
-        {/* Thinner horizontal padding on mobile so cards have room to breathe. */}
+      {/* Header spans the full width at the top */}
+      <Header onOpenSidebar={() => setSidebarOpen(true)} />
+      {/* Sidebar + main content side-by-side below the header */}
+      <div className="flex flex-1 overflow-hidden">
+        <Suspense fallback={null}>
+          <Sidebar
+            open={sidebarOpen}
+            onClose={closeSidebar}
+            collapsed={collapsed}
+          />
+        </Suspense>
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</main>
       </div>
     </div>
@@ -77,7 +74,9 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
-      <DashboardShellInner>{children}</DashboardShellInner>
+      <AvailabilityProvider>
+        <DashboardShellInner>{children}</DashboardShellInner>
+      </AvailabilityProvider>
     </AuthProvider>
   );
 }

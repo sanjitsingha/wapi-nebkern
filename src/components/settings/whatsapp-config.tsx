@@ -475,7 +475,7 @@ export function WhatsAppConfig() {
                 size="sm"
                 onClick={handleVerifyRegistration}
                 disabled={verifyingRegistration}
-                className="border-border bg-transparent text-foreground hover:bg-muted h-7"
+                className="border-border bg-transparent text-foreground hover:bg-muted h-10"
               >
                 {verifyingRegistration ? (
                   <Loader2 className="size-3.5 animate-spin" />

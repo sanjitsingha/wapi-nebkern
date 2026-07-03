@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useAvailability } from "@/hooks/use-availability";
 import { HEARTBEAT_MS, IDLE_AFTER_MS, type StoredPresence } from "@/lib/presence";
 
 /**
@@ -21,6 +22,10 @@ import { HEARTBEAT_MS, IDLE_AFTER_MS, type StoredPresence } from "@/lib/presence
  */
 export function PresenceHeartbeat() {
   const { accountId } = useAuth();
+  // When the member marks themselves Unavailable, we report 'offline'
+  // instead of online/away. Toggling re-runs the effect below, which
+  // fires an immediate beat so teammates see the change at once.
+  const { available } = useAvailability();
 
   // 0 = "never recorded"; set on mount so we don't read the clock during
   // render (impure). Until the effect runs the tab counts as active.
@@ -43,6 +48,7 @@ export function PresenceHeartbeat() {
     };
 
     const currentStatus = (): StoredPresence => {
+      if (!available) return "offline";
       if (typeof document !== "undefined" && document.hidden) return "away";
       if (Date.now() - lastActivityRef.current > IDLE_AFTER_MS) return "away";
       return "online";
@@ -99,7 +105,7 @@ export function PresenceHeartbeat() {
       document.removeEventListener("visibilitychange", onReturn);
       window.removeEventListener("focus", onReturn);
     };
-  }, [accountId]);
+  }, [accountId, available]);
 
   return null;
 }

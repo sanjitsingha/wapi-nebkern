@@ -18,13 +18,7 @@ import {
   Home,
   Megaphone,
   MessageSquare,
-  Palette,
-  PlugZap,
-  Settings,
-  Tags,
-  User,
   Users,
-  UsersRound,
   Workflow,
   X,
   Zap,
@@ -79,12 +73,7 @@ const groups: NavGroup[] = [
     icon: Megaphone,
     children: [
       { label: 'Campaigns', icon: Megaphone, href: '/campaigns' },
-      {
-        label: 'Templates',
-        icon: FileText,
-        href: '/settings/templates',
-        tab: 'templates',
-      },
+      { label: 'Templates', icon: FileText, href: '/templates' },
     ],
   },
   {
@@ -95,7 +84,7 @@ const groups: NavGroup[] = [
       {
         label: 'Deals',
         icon: Coins,
-        href: '/settings?tab=deals',
+        href: '/settings/deals',
         tab: 'deals',
       },
     ],
@@ -107,48 +96,6 @@ const groups: NavGroup[] = [
     children: [
       { label: 'Automations', icon: Zap, href: '/automations' },
       { label: 'Flows', icon: Workflow, href: '/flows', badge: 'Beta' },
-    ],
-  },
-  {
-    label: 'Settings',
-    icon: Settings,
-    children: [
-      {
-        label: 'WhatsApp',
-        icon: PlugZap,
-        href: '/settings?tab=whatsapp',
-        tab: 'whatsapp',
-      },
-      {
-        label: 'Templates',
-        icon: FileText,
-        href: '/settings/templates',
-        tab: 'templates',
-      },
-      {
-        label: 'Team members',
-        icon: UsersRound,
-        href: '/settings?tab=members',
-        tab: 'members',
-      },
-      {
-        label: 'Fields & tags',
-        icon: Tags,
-        href: '/settings?tab=fields',
-        tab: 'fields',
-      },
-      {
-        label: 'Your profile',
-        icon: User,
-        href: '/settings?tab=profile',
-        tab: 'profile',
-      },
-      {
-        label: 'Appearance',
-        icon: Palette,
-        href: '/settings?tab=appearance',
-        tab: 'appearance',
-      },
     ],
   },
 ];
@@ -244,15 +191,15 @@ export function Sidebar({
         onClick={onClose}
         title={link.label}
         className={cn(
-          'relative flex items-center gap-3 rounded-md px-3 font-medium transition-colors',
-          indented ? 'py-2 text-sm lg:py-1.5' : 'py-2.5 text-base lg:py-2',
+          'relative flex items-center gap-3.5 rounded-lg px-3 text-sm font-medium transition-colors',
+          indented ? 'py-3' : 'py-3.5',
           active
-            ? 'bg-primary/10 text-primary'
+            ? 'bg-primary-soft text-primary font-semibold'
             : 'text-muted-foreground hover:bg-muted hover:text-foreground'
         )}
       >
         <link.icon
-          className={cn('shrink-0', indented ? 'h-4 w-4' : 'h-5 w-5')}
+          className={cn('shrink-0', indented ? 'h-5 w-5' : 'h-5.5 w-5.5')}
         />
         <span
           className={cn(
@@ -283,16 +230,18 @@ export function Sidebar({
             New
           </span>
         )}
-        {link.unread && totalUnread > 0 && !active && (
+        {link.unread && totalUnread > 0 && (
           <span
             aria-label={`${totalUnread} unread conversation${totalUnread === 1 ? '' : 's'}`}
             className={cn(
-              'relative flex h-2 w-2 shrink-0 transition-opacity duration-200',
+              'flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold tabular-nums transition-opacity duration-200',
+              active
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-primary-soft text-primary',
               isCollapsed && 'lg:opacity-0'
             )}
           >
-            <span className="bg-primary absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
-            <span className="bg-primary relative inline-flex h-2 w-2 rounded-full" />
+            {totalUnread > 99 ? '99+' : totalUnread}
           </span>
         )}
       </Link>
@@ -312,13 +261,13 @@ export function Sidebar({
           aria-expanded={open}
           title={group.label}
           className={cn(
-            'flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-base font-medium transition-colors lg:py-2',
+            'flex w-full items-center gap-3.5 rounded-lg px-3 py-3.5 text-sm font-medium transition-colors',
             anyActive
               ? 'text-foreground'
               : 'text-muted-foreground hover:bg-muted hover:text-foreground'
           )}
         >
-          <group.icon className="h-5 w-5 shrink-0" />
+          <group.icon className="h-5.5 w-5.5 shrink-0" />
           <span
             className={cn(
               'flex-1 truncate text-left transition-opacity duration-200',
@@ -339,7 +288,7 @@ export function Sidebar({
           )}
           <ChevronDown
             className={cn(
-              'text-muted-foreground h-4 w-4 shrink-0 transition-all duration-200',
+              'h-4.5 w-4.5 shrink-0 transition-all duration-200',
               open && 'rotate-180',
               isCollapsed && 'lg:opacity-0'
             )}
@@ -348,7 +297,7 @@ export function Sidebar({
 
         {/* Children stay rendered when open — collapsing just clips them. */}
         {open && (
-          <ul className="border-border mt-1 ml-[1.35rem] flex flex-col gap-1 border-l pl-2">
+          <ul className="border-border mt-1.5 mb-1.5 ml-[1.5rem] flex flex-col gap-1.5 border-l pl-3">
             {group.children.map((child) => (
               <li key={child.href}>{renderLink(child, true)}</li>
             ))}
@@ -375,83 +324,75 @@ export function Sidebar({
 
       <aside
         className={cn(
-          // Mobile: fixed drawer that slides in from the left.
-          'border-border bg-card fixed inset-y-0 left-0 z-40 flex h-full w-64 flex-col overflow-hidden border-r',
+          // Mobile: fixed drawer that slides in from the left, sitting below the header.
+          'border-border bg-card fixed top-14 bottom-0 left-0 z-40 flex w-64 flex-col overflow-hidden border-r',
           'transition-transform duration-200 ease-out will-change-transform',
           open ? 'translate-x-0' : '-translate-x-full',
           // Desktop: static. Width animates between full and the rail; the
           // inner content (fixed width) is clipped — no reflow.
-          'lg:static lg:z-0 lg:translate-x-0 lg:transition-[width] lg:duration-200 lg:ease-out',
+          'lg:static lg:top-auto lg:bottom-auto lg:z-0 lg:translate-x-0 lg:transition-[width] lg:duration-200 lg:ease-out',
           isCollapsed ? 'lg:w-16' : 'lg:w-64'
         )}
         aria-label="Primary"
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
-        {/* Logo row — fixed width so it clips instead of reflowing. */}
-        <div
-          className={cn(
-            'border-border flex h-14 shrink-0 items-center justify-between gap-2 border-b px-4',
-            CONTENT_W
-          )}
-        >
-          <div className="flex items-center gap-2">
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-2"
-              title="CRM Template for WhatsApp"
-            >
-              <div className="bg-primary text-primary-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
-                <MessageSquare className="h-4 w-4" />
-              </div>
-              <span
-                className={cn(
-                  'text-foreground truncate text-sm font-semibold transition-opacity duration-200',
-                  isCollapsed && 'lg:opacity-0'
-                )}
-              >
-                CRM
-              </span>
-            </Link>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close menu"
-            className="text-muted-foreground hover:bg-muted hover:text-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-md lg:hidden"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Main navigation — fixed width; the aside clips it when narrow. */}
+        {/* Main navigation — starts directly with items, no logo row. */}
         <nav
           className={cn(
-            'flex-1 overflow-x-hidden overflow-y-auto px-2 py-4',
+            'flex-1 overflow-x-hidden overflow-y-auto px-3 py-4',
             CONTENT_W
           )}
         >
-          <ul className="flex flex-col gap-1">
+          {/* Mobile close button */}
+          <div className="mb-2 flex justify-end lg:hidden">
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close menu"
+              className="text-muted-foreground hover:bg-muted hover:text-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <ul className="flex flex-col gap-1.5">
             <li>{renderLink(homeLink)}</li>
           </ul>
 
+          {/* Expanded: single-line label. Collapsed (lg rail): instead of
+              fading out, it re-wraps to a centered two-line "Quick /
+              Links" stack that fits the narrow icon rail. */}
           <p
             className={cn(
-              'text-muted-foreground px-3 pt-4 pb-1 text-[10px] font-semibold tracking-wider uppercase transition-opacity duration-200',
-              isCollapsed && 'lg:opacity-0'
+              'text-muted-foreground/70 px-3 pt-6 pb-2 text-[10px] font-semibold tracking-wider whitespace-nowrap uppercase',
+              isCollapsed && 'lg:hidden'
             )}
           >
             Quick links
           </p>
-          <ul className="flex flex-col gap-1">
+          {isCollapsed && (
+            // `nav` keeps a fixed w-64 (CONTENT_W) at all times — only the
+            // <aside> narrows on collapse, clipping the overflow — so a
+            // plain `text-center` here would center within the full
+            // 256px nav, off in the clipped-away region. `-ml-3 w-16`
+            // cancels nav's own left padding and pins this box to
+            // exactly the 64px window that's actually visible, so the
+            // text centers within the real collapsed rail.
+            <p className="text-muted-foreground/70 hidden pt-6 pb-2 text-center text-[9px] leading-tight font-semibold tracking-wider uppercase lg:-ml-3 lg:block lg:w-16">
+              Quick
+              <br />
+              Links
+            </p>
+          )}
+          <ul className="flex flex-col gap-1.5">
             {quickLinks.map((link) => (
               <li key={link.href}>{renderLink(link)}</li>
             ))}
           </ul>
 
-          <div className="border-border my-3 border-t" />
+          <div className="border-border my-4 border-t" />
 
-          <ul className="flex flex-col gap-1">{groups.map(renderGroup)}</ul>
+          <ul className="flex flex-col gap-1.5">{groups.map(renderGroup)}</ul>
         </nav>
       </aside>
     </>

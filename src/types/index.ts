@@ -98,6 +98,8 @@ export interface Contact {
   email?: string;
   company?: string;
   avatar_url?: string;
+  /** Flagged as spam from the inbox contact panel (migration 030). */
+  is_spam?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -152,6 +154,8 @@ export interface Conversation {
   assigned_agent_id?: string;
   last_message_text?: string;
   last_message_at?: string;
+  /** Timestamp of the last inbound customer message — used to compute the WhatsApp 24-hour messaging window. */
+  customer_replied_at?: string;
   unread_count: number;
   created_at: string;
   updated_at: string;
@@ -256,6 +260,12 @@ export type TemplateButton =
 export interface TemplateSampleValues {
   body?: string[];
   header?: string[];
+  /** Authentication-template config. Stored in this JSONB column so no
+   *  schema migration is needed — Marketing/Utility rows simply omit it. */
+  auth?: {
+    add_security_recommendation?: boolean;
+    code_expiration_minutes?: number;
+  };
 }
 
 export interface MessageTemplate {

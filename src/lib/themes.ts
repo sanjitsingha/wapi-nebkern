@@ -1,114 +1,19 @@
-/**
- * Single source of truth for the color-theme catalog.
- *
- * The CSS variables themselves live in `src/app/globals.css` under
- * `html[data-theme="..."]` blocks — that file is the one we paste
- * theme tokens into. This module only carries the metadata the UI
- * (settings picker, no-flash boot script) needs.
- *
- * Adding a new theme is a two-step change:
- *   1. Append the new `html[data-theme="<id>"]` block in globals.css
- *      with every token from an existing theme (use violet as the
- *      shape reference).
- *   2. Add an entry below. The order here drives the picker grid.
- */
+export const DEFAULT_THEME = "teal" as const;
+export type ThemeId = "teal";
 
-export const THEME_IDS = [
-  "teal",
-  "violet",
-  "emerald",
-  "cobalt",
-  "amber",
-  "rose",
-] as const;
-
-export type ThemeId = (typeof THEME_IDS)[number];
-
-export const DEFAULT_THEME: ThemeId = "teal";
+export const DEFAULT_MODE = "light" as const;
+export type Mode = "light";
 
 export const STORAGE_KEY = "wacrm.theme";
-
-/**
- * MODE — the light/dark dimension, orthogonal to the accent theme.
- *
- * The CSS variables live in `src/app/globals.css` under
- * `html[data-mode="..."]` blocks (neutral surfaces only). Applied
- * at runtime via `document.documentElement.dataset.mode`. Light is
- * the default — a clean, professional corporate surface; dark is the
- * opt-in low-light alternative.
- *
- * Persisted under its own localStorage key so it composes freely
- * with the accent choice (you can run Violet-light or Violet-dark).
- */
-export const MODES = ["light", "dark"] as const;
-
-export type Mode = (typeof MODES)[number];
-
-export const DEFAULT_MODE: Mode = "light";
-
 export const MODE_STORAGE_KEY = "wacrm.mode";
 
-export function isMode(value: unknown): value is Mode {
-  return (
-    typeof value === "string" && (MODES as ReadonlyArray<string>).includes(value)
-  );
-}
-
-export interface ThemeMeta {
-  id: ThemeId;
-  name: string;
-  tagline: string;
-  /**
-   * Static swatch color for the picker chip. Hard-coded so the boot
-   * script / picker cards don't need a getComputedStyle round trip
-   * before the page settles. Must mirror `--primary` of the same
-   * theme in globals.css.
-   */
-  swatch: string;
-}
-
-export const THEMES: ReadonlyArray<ThemeMeta> = [
-  {
-    id: "teal",
-    name: "Teal",
-    tagline: "The default — Interakt-style WhatsApp-commerce teal.",
-    swatch: "oklch(0.648 0.121 175)",
-  },
-  {
-    id: "violet",
-    name: "Violet",
-    tagline: "Confident and slightly playful.",
-    swatch: "oklch(0.526 0.247 293)",
-  },
-  {
-    id: "emerald",
-    name: "Emerald",
-    tagline: "Growth-coded, nods at messaging without copying WhatsApp green.",
-    swatch: "oklch(0.62 0.16 162)",
-  },
-  {
-    id: "cobalt",
-    name: "Cobalt",
-    tagline: "Clean, corporate B2B-SaaS blue.",
-    swatch: "oklch(0.55 0.19 255)",
-  },
-  {
-    id: "amber",
-    name: "Amber",
-    tagline: "Warm and friendly — feels good for SMB teams.",
-    swatch: "oklch(0.745 0.16 65)",
-  },
-  {
-    id: "rose",
-    name: "Rose",
-    tagline: "Bold and modern — D2C, creator-economy, lifestyle.",
-    swatch: "oklch(0.645 0.22 16)",
-  },
-];
+export const THEME_IDS = ["teal"] as const;
+export const MODES = ["light"] as const;
 
 export function isThemeId(value: unknown): value is ThemeId {
-  return (
-    typeof value === "string" &&
-    (THEME_IDS as ReadonlyArray<string>).includes(value)
-  );
+  return value === "teal";
+}
+
+export function isMode(value: unknown): value is Mode {
+  return value === "light";
 }

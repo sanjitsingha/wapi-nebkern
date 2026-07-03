@@ -657,7 +657,7 @@ export default function InboxPage() {
             resyncToken={resyncToken}
             onRefresh={handleManualRefresh}
             contactPanelOpen={contactPanelOpen}
-            onToggleContactPanel={handleToggleContactPanel}
+            onOpenContactPanel={handleToggleContactPanel}
           />
         </div>
 
@@ -667,7 +667,10 @@ export default function InboxPage() {
             toggle — which is itself desktop-only — never affects it. */}
         {contactPanelOpen && (
           <div className="hidden lg:block">
-            <ContactSidebar contact={activeContact} />
+            <ContactSidebar
+              contact={activeContact}
+              onTogglePanel={handleToggleContactPanel}
+            />
           </div>
         )}
       </div>

@@ -3,9 +3,9 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import type { Conversation, ConversationStatus } from "@/types";
-import { Search, ChevronDown } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import type { Conversation, ConversationStatus, Tag } from "@/types";
+import { Search, ChevronDown, Tag as TagIcon, X } from "lucide-react";
+import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -16,17 +16,27 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
+// Contact with embedded tag ids from the join
+interface ContactWithTags {
+  id: string;
+  name?: string;
+  phone?: string;
+  avatar_url?: string;
+  is_spam?: boolean;
+  contact_tags?: { tag_id: string }[];
+  [key: string]: unknown;
+}
+
+// Conversation with the enriched contact shape
+interface ConversationWithTags extends Omit<Conversation, "contact"> {
+  contact?: ContactWithTags;
+}
+
 interface ConversationListProps {
   activeConversationId: string | null;
   onSelect: (conversation: Conversation) => void;
   conversations: Conversation[];
   onConversationsLoaded: (conversations: Conversation[]) => void;
-  /**
-   * Increment to force the fetch effect below to refire. The parent
-   * bumps this on realtime reconnect / tab visibility → visible so the
-   * list catches up on any events sent while the WS was disconnected
-   * or the tab was throttled. Optional so existing callers keep working.
-   */
   resyncToken?: number;
 }
 
@@ -55,20 +65,10 @@ export function ConversationList({
 }: ConversationListProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<InboxFilter>("all");
+  const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Keep the latest callback in a ref so the fetch effect below can
-  // have a stable, empty-dep identity. Previously the fetch useCallback
-  // depended on `onConversationsLoaded`, which depends on the parent's
-  // `deepLinkConvId` — so every URL change (including one the parent
-  // triggered via router.replace after a click) caused a fresh
-  // conversations fetch. That extra refetch was the trigger for the
-  // deep-link auto-select running a second time and wiping the active
-  // thread's messages.
-  // Mutation lives in an effect (not render) per React 19's refs rule;
-  // the fetch runs once on mount so it's fine to read the slightly
-  // older value — the very next render updates the ref for any
-  // subsequent async completion.
   const onConversationsLoadedRef = useRef(onConversationsLoaded);
   useEffect(() => {
     onConversationsLoadedRef.current = onConversationsLoaded;
@@ -79,44 +79,51 @@ export function ConversationList({
     let cancelled = false;
 
     (async () => {
-      const { data, error } = await supabase
-        .from("conversations")
-        .select("*, contact:contacts(*)")
-        .order("last_message_at", { ascending: false });
+      const [convsRes, tagsRes] = await Promise.all([
+        supabase
+          .from("conversations")
+          // Include contact_tags so we can filter by tag client-side
+          .select("*, contact:contacts(*, contact_tags(tag_id))")
+          .order("last_message_at", { ascending: false }),
+        supabase.from("tags").select("*").order("name"),
+      ]);
 
       if (cancelled) return;
 
-      if (error) {
-        // Supabase errors have non-enumerable properties — log fields explicitly
+      if (convsRes.error) {
         console.error("Failed to fetch conversations:", {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
+          message: convsRes.error.message,
+          details: convsRes.error.details,
+          hint: convsRes.error.hint,
+          code: convsRes.error.code,
         });
         setLoading(false);
         return;
       }
 
-      onConversationsLoadedRef.current(data ?? []);
+      onConversationsLoadedRef.current((convsRes.data ?? []) as Conversation[]);
+      setAvailableTags((tagsRes.data ?? []) as Tag[]);
       setLoading(false);
     })();
 
     return () => {
       cancelled = true;
     };
-    // `resyncToken` is included so the parent can force a refetch when
-    // the realtime channel reconnects or the tab regains focus — catches
-    // up on any events sent while the WS was disconnected or throttled.
   }, [resyncToken]);
 
   const filtered = useMemo(() => {
-    let result = conversations;
+    let result = conversations as ConversationWithTags[];
 
     if (filter === "unread") {
       result = result.filter((c) => c.unread_count > 0);
     } else if (filter !== "all") {
       result = result.filter((c) => c.status === filter);
+    }
+
+    if (selectedTagId) {
+      result = result.filter((c) =>
+        c.contact?.contact_tags?.some((ct) => ct.tag_id === selectedTagId)
+      );
     }
 
     if (search.trim()) {
@@ -130,30 +137,24 @@ export function ConversationList({
     }
 
     return result;
-  }, [conversations, filter, search]);
+  }, [conversations, filter, selectedTagId, search]);
 
   const handleSearchChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSearch(e.target.value);
-    },
+    (e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value),
     []
   );
 
   const handleSelect = useCallback(
-    (conv: Conversation) => {
-      onSelect(conv);
-    },
+    (conv: Conversation) => onSelect(conv),
     [onSelect]
   );
 
   const activeFilter = FILTER_OPTIONS.find((o) => o.value === filter);
+  const activeTag = availableTags.find((t) => t.id === selectedTagId);
 
   return (
-    // w-full on mobile so the list occupies the whole viewport when it's
-    // the single pane showing; fixed 320px on desktop where it shares the
-    // row with the thread + contact sidebar.
-    <div className="flex h-full w-full flex-col border-r border-border bg-card lg:w-80">
-      {/* Search + Filter */}
+    <div className="flex h-full w-full flex-col border-r border-border bg-card lg:w-96">
+      {/* Search + Filters */}
       <div className="space-y-2 border-b border-border p-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -165,39 +166,75 @@ export function ConversationList({
           />
         </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger className="inline-flex items-center justify-center h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-muted">
+        <div className="flex items-center gap-1.5">
+          {/* Status filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className="inline-flex items-center justify-center h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-muted">
               {activeFilter?.label ?? "All"}
               <ChevronDown className="h-3 w-3" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="start"
-            className="border-border bg-popover"
-          >
-            {FILTER_OPTIONS.map((opt) => (
-              <DropdownMenuItem
-                key={opt.value}
-                onClick={() => setFilter(opt.value)}
-                className={cn(
-                  "text-sm",
-                  filter === opt.value
-                    ? "text-primary"
-                    : "text-popover-foreground"
-                )}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="border-border bg-popover">
+              {FILTER_OPTIONS.map((opt) => (
+                <DropdownMenuItem
+                  key={opt.value}
+                  onClick={() => setFilter(opt.value)}
+                  className={cn(
+                    "text-sm",
+                    filter === opt.value ? "text-primary" : "text-popover-foreground"
+                  )}
+                >
+                  {opt.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Tag filter */}
+          {availableTags.length > 0 && (
+            activeTag ? (
+              // Active tag chip — click × to clear
+              <button
+                type="button"
+                onClick={() => setSelectedTagId(null)}
+                className="inline-flex items-center gap-1 h-7 rounded-md px-2 text-xs font-medium transition-colors"
+                style={{ background: `${activeTag.color}20`, color: activeTag.color }}
               >
-                {opt.label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+                <span
+                  className="h-1.5 w-1.5 rounded-full shrink-0"
+                  style={{ background: activeTag.color }}
+                />
+                {activeTag.name}
+                <X className="h-2.5 w-2.5 ml-0.5" />
+              </button>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger className="inline-flex items-center justify-center h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-muted">
+                  <TagIcon className="h-3 w-3" />
+                  Tag
+                  <ChevronDown className="h-3 w-3" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="border-border bg-popover min-w-40">
+                  {availableTags.map((tag) => (
+                    <DropdownMenuItem
+                      key={tag.id}
+                      onClick={() => setSelectedTagId(tag.id)}
+                      className="gap-2 text-sm text-popover-foreground"
+                    >
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ background: tag.color }}
+                      />
+                      {tag.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )
+          )}
+        </div>
       </div>
 
-      {/* Conversation Items.
-          `min-h-0` is load-bearing: a flex child defaults to
-          min-height:auto, so without it this ScrollArea grows to fit
-          every conversation instead of shrinking to the remaining
-          space — the list then overflows and gets clipped by the
-          parent's overflow-hidden with no scrollbar (issue #229). */}
+      {/* Conversation Items */}
       <ScrollArea className="min-h-0 flex-1">
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -212,7 +249,7 @@ export function ConversationList({
             {filtered.map((conv) => (
               <ConversationItem
                 key={conv.id}
-                conversation={conv}
+                conversation={conv as Conversation}
                 isActive={conv.id === activeConversationId}
                 onSelect={handleSelect}
               />
@@ -224,17 +261,61 @@ export function ConversationList({
   );
 }
 
+// ─── Window period timer ───────────────────────────────────────────────────
+
+const WINDOW_HOURS = 24;
+
+function useNow(intervalMs = 60_000) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(id);
+  }, [intervalMs]);
+  return now;
+}
+
+function formatWindowRemaining(minutesLeft: number): string {
+  if (minutesLeft < 1) return "< 1m left";
+  if (minutesLeft < 60) return `${minutesLeft}m left`;
+  const h = Math.floor(minutesLeft / 60);
+  const m = minutesLeft % 60;
+  return m > 0 ? `${h}h ${m}m left` : `${h}h left`;
+}
+
+function WindowBadge({ customerRepliedAt }: { customerRepliedAt: string }) {
+  const now = useNow();
+  const minutesLeft =
+    WINDOW_HOURS * 60 - differenceInMinutes(now, new Date(customerRepliedAt));
+  if (minutesLeft <= 0) return null;
+
+  const urgent = minutesLeft < 120;
+  const warn = minutesLeft < 360;
+
+  return (
+    <span
+      className={cn(
+        "shrink-0 rounded px-1 py-px text-[10px] font-medium leading-none",
+        urgent
+          ? "bg-red-100 text-red-600"
+          : warn
+            ? "bg-amber-100 text-amber-600"
+            : "bg-primary-soft text-primary",
+      )}
+    >
+      {formatWindowRemaining(minutesLeft)}
+    </span>
+  );
+}
+
+// ─── Conversation row ──────────────────────────────────────────────────────
+
 interface ConversationItemProps {
   conversation: Conversation;
   isActive: boolean;
   onSelect: (conversation: Conversation) => void;
 }
 
-function ConversationItem({
-  conversation,
-  isActive,
-  onSelect,
-}: ConversationItemProps) {
+function ConversationItem({ conversation, isActive, onSelect }: ConversationItemProps) {
   const contact = conversation.contact;
   const displayName = contact?.name || contact?.phone || "Unknown";
   const initials = displayName.charAt(0).toUpperCase();
@@ -244,9 +325,7 @@ function ConversationItem({
   }, [onSelect, conversation]);
 
   const timeAgo = conversation.last_message_at
-    ? formatDistanceToNow(new Date(conversation.last_message_at), {
-        addSuffix: false,
-      })
+    ? formatDistanceToNow(new Date(conversation.last_message_at), { addSuffix: false })
     : "";
 
   return (
@@ -273,8 +352,13 @@ function ConversationItem({
       {/* Content */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-sm font-medium text-foreground">
-            {displayName}
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span className="truncate text-sm font-medium text-foreground">
+              {displayName}
+            </span>
+            {conversation.customer_replied_at && (
+              <WindowBadge customerRepliedAt={conversation.customer_replied_at} />
+            )}
           </span>
           <span className="shrink-0 text-[10px] text-muted-foreground">{timeAgo}</span>
         </div>
@@ -289,10 +373,7 @@ function ConversationItem({
               </span>
             )}
             <span
-              className={cn(
-                "h-2 w-2 rounded-full",
-                STATUS_COLORS[conversation.status]
-              )}
+              className={cn("h-2 w-2 rounded-full", STATUS_COLORS[conversation.status])}
               title={conversation.status}
             />
           </div>

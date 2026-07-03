@@ -10,21 +10,26 @@ import {
   Mail,
   Copy,
   Check,
-  User,
   Tag as TagIcon,
   DollarSign,
   StickyNote,
   Plus,
+  ShieldAlert,
+  ShieldCheck,
+  Loader2,
+  PanelRightClose,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
 import { format } from "date-fns";
 
 interface ContactSidebarProps {
   contact: Contact | null;
+  onTogglePanel?: () => void;
 }
 
-export function ContactSidebar({ contact }: ContactSidebarProps) {
+export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) {
   const { accountId } = useAuth();
   const [copied, setCopied] = useState(false);
   const [deals, setDeals] = useState<Deal[]>([]);
@@ -32,6 +37,15 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
   const [tags, setTags] = useState<(Tag & { contact_tag_id: string })[]>([]);
   const [newNote, setNewNote] = useState("");
   const [addingNote, setAddingNote] = useState(false);
+  // Mirrors contact.is_spam locally so the toggle reflects instantly
+  // without waiting for the parent to re-fetch and pass a fresh prop.
+  const [isSpam, setIsSpam] = useState(false);
+  const [updatingSpam, setUpdatingSpam] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsSpam(!!contact?.is_spam);
+  }, [contact]);
 
   const fetchContactData = useCallback(async () => {
     if (!contact) return;
@@ -115,10 +129,43 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
     setAddingNote(false);
   }, [contact, newNote, accountId]);
 
+  const handleToggleSpam = useCallback(async () => {
+    if (!contact || updatingSpam) return;
+    const next = !isSpam;
+    setUpdatingSpam(true);
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("contacts")
+      .update({ is_spam: next })
+      .eq("id", contact.id);
+    setUpdatingSpam(false);
+    if (error) {
+      toast.error("Couldn't update spam status. Please try again.");
+      return;
+    }
+    setIsSpam(next);
+    toast.success(next ? "Contact marked as spam" : "Contact removed from spam");
+  }, [contact, isSpam, updatingSpam]);
+
   if (!contact) {
     return (
-      <div className="flex h-full w-70 items-center justify-center border-l border-border bg-card">
-        <p className="text-sm text-muted-foreground">Select a conversation</p>
+      <div className="flex h-full w-88 flex-col border-l border-border bg-card">
+        <div className="flex items-center border-b border-border px-3 py-2.5">
+          {onTogglePanel && (
+            <button
+              type="button"
+              onClick={onTogglePanel}
+              aria-label="Hide contact panel"
+              title="Collapse panel"
+              className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <PanelRightClose className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        <div className="flex flex-1 items-center justify-center">
+          <p className="text-sm text-muted-foreground">Select a conversation</p>
+        </div>
       </div>
     );
   }
@@ -127,7 +174,21 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
   const initials = displayName.charAt(0).toUpperCase();
 
   return (
-    <div className="flex h-full w-70 flex-col border-l border-border bg-card">
+    <div className="flex h-full w-88 flex-col border-l border-border bg-card">
+      {/* Sidebar top bar with collapse button */}
+      <div className="flex items-center border-b border-border px-3 py-2.5">
+        {onTogglePanel && (
+          <button
+            type="button"
+            onClick={onTogglePanel}
+            aria-label="Hide contact panel"
+            title="Collapse panel"
+            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <PanelRightClose className="h-4 w-4" />
+          </button>
+        )}
+      </div>
       <ScrollArea className="flex-1">
         <div className="p-4">
           {/* Contact Info */}
@@ -148,6 +209,12 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
             </h3>
             {contact.company && (
               <p className="text-xs text-muted-foreground">{contact.company}</p>
+            )}
+            {isSpam && (
+              <span className="mt-2 inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-600 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400">
+                <ShieldAlert className="h-3 w-3" />
+                Marked as spam
+              </span>
             )}
           </div>
 
@@ -173,6 +240,27 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
               </div>
             )}
           </div>
+
+          {/* Mark as Spam */}
+          <button
+            onClick={handleToggleSpam}
+            disabled={updatingSpam}
+            className={cn(
+              "mt-3 flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-60",
+              isSpam
+                ? "border-border text-muted-foreground hover:bg-muted"
+                : "border-red-200 text-red-600 hover:bg-red-50 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10",
+            )}
+          >
+            {updatingSpam ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : isSpam ? (
+              <ShieldCheck className="h-4 w-4" />
+            ) : (
+              <ShieldAlert className="h-4 w-4" />
+            )}
+            {isSpam ? "Unmark as Spam" : "Mark as Spam"}
+          </button>
 
           {/* Divider */}
           <div className="my-4 border-t border-border" />

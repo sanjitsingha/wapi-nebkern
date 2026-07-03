@@ -110,7 +110,7 @@ function MediaImage({ url, alt }: { url: string; alt: string }) {
     <img
       src={src ?? ""}
       alt={alt}
-      className="max-h-64 max-w-60 rounded-lg object-cover"
+      className="max-h-72 max-w-72 rounded-lg object-cover"
       onError={() => setError(true)}
     />
   );
@@ -120,7 +120,7 @@ function MessageContent({ message }: { message: Message }) {
   switch (message.content_type) {
     case "text":
       return (
-        <p className="whitespace-pre-wrap break-words text-sm">
+        <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
           {message.content_text}
         </p>
       );
@@ -134,7 +134,7 @@ function MessageContent({ message }: { message: Message }) {
             <MediaUnavailable label="Image" />
           )}
           {message.content_text && (
-            <p className="mt-1 whitespace-pre-wrap break-words text-sm">
+            <p className="mt-1 whitespace-pre-wrap break-words text-[15px] leading-relaxed">
               {message.content_text}
             </p>
           )}
@@ -148,13 +148,13 @@ function MessageContent({ message }: { message: Message }) {
             <video
               src={message.media_url}
               controls
-              className="max-h-64 max-w-60 rounded-lg"
+              className="max-h-72 max-w-72 rounded-lg"
             />
           ) : (
             <MediaUnavailable label="Video" />
           )}
           {message.content_text && (
-            <p className="mt-1 whitespace-pre-wrap break-words text-sm">
+            <p className="mt-1 whitespace-pre-wrap break-words text-[15px] leading-relaxed">
               {message.content_text}
             </p>
           )}
@@ -165,7 +165,7 @@ function MessageContent({ message }: { message: Message }) {
       return (
         <div>
           {message.media_url ? (
-            <audio src={message.media_url} controls className="max-w-60" />
+            <audio src={message.media_url} controls className="max-w-72" />
           ) : (
             <MediaUnavailable label="Audio" />
           )}
@@ -181,7 +181,7 @@ function MessageContent({ message }: { message: Message }) {
           href={message.media_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-sm hover:bg-muted"
+          className="flex items-center gap-2 rounded-lg bg-muted/50 px-3.5 py-2.5 text-[15px] hover:bg-muted"
         >
           <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
           <span className="truncate">
@@ -198,7 +198,7 @@ function MessageContent({ message }: { message: Message }) {
             Template
           </span>
           {message.content_text && (
-            <p className="mt-1 whitespace-pre-wrap break-words text-sm">
+            <p className="mt-1 whitespace-pre-wrap break-words text-[15px] leading-relaxed">
               {message.content_text}
             </p>
           )}
@@ -207,7 +207,7 @@ function MessageContent({ message }: { message: Message }) {
 
     case "location":
       return (
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-2 text-[15px]">
           <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
           <span>{message.content_text || "Location shared"}</span>
         </div>
@@ -225,7 +225,7 @@ function MessageContent({ message }: { message: Message }) {
             <CornerDownLeft className="h-3 w-3" />
             Button reply
           </span>
-          <p className="whitespace-pre-wrap break-words text-sm">
+          <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
             {message.content_text || "[Interactive reply]"}
           </p>
         </div>
@@ -234,7 +234,7 @@ function MessageContent({ message }: { message: Message }) {
 
     default:
       return (
-        <p className="whitespace-pre-wrap break-words text-sm">
+        <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
           {message.content_text || "[Unsupported message type]"}
         </p>
       );
@@ -262,7 +262,7 @@ export function MessageBubble({
     >
       <div
         className={cn(
-          "relative rounded-2xl px-3 py-2",
+          "relative rounded-2xl px-3.5 py-2.5",
           isAgent
             ? "rounded-br-md bg-primary text-primary-foreground"
             : "rounded-bl-md bg-muted text-foreground",
@@ -284,7 +284,7 @@ export function MessageBubble({
         >
           <span
             className={cn(
-              "text-[10px]",
+              "text-[11px]",
               // Outbound bubbles sit on the primary fill, so the
               // timestamp must read against that (not the neutral
               // foreground) — otherwise it goes low-contrast in light

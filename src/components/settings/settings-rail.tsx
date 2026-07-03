@@ -1,39 +1,32 @@
 'use client';
 
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 import { cn } from '@/lib/utils';
 import {
+  DEFAULT_SECTION,
   RAIL_GROUPS,
   SECTION_META,
   SETTINGS_SECTIONS,
+  isSection,
+  sectionHref,
   type SettingsSection,
 } from './settings-sections';
 
-// Width at/above which the rail is a vertical column (already in view, so
-// no auto-scroll needed). Mirrors the Tailwind `lg:` breakpoint that
-// drives the row→column switch in the markup below — keep the two in sync.
 const RAIL_DESKTOP_MIN_PX = 1024;
 
-/**
- * The settings left rail — grouped, vertical on desktop and a
- * horizontal scroller on narrow screens (mirrors the mockup's ≤920px
- * behaviour). The active item auto-scrolls into view when the rail is
- * horizontal so a deep-linked section is never off-screen.
- */
-export function SettingsRail({
-  active,
-  onSelect,
-  hints,
-}: {
-  active: SettingsSection;
-  onSelect: (section: SettingsSection) => void;
-  hints?: Partial<Record<SettingsSection, ReactNode>>;
-}) {
-  const activeRef = useRef<HTMLButtonElement>(null);
+function getActiveSection(pathname: string): SettingsSection {
+  const segment = pathname.replace(/^\/settings\/?/, '');
+  return isSection(segment) ? segment : DEFAULT_SECTION;
+}
 
-  // When horizontal (mobile), keep the active chip in view. On desktop
-  // the rail is a static column, so skip.
+export function SettingsRail() {
+  const pathname = usePathname();
+  const active = getActiveSection(pathname);
+  const activeRef = useRef<HTMLAnchorElement>(null);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (window.matchMedia(`(min-width: ${RAIL_DESKTOP_MIN_PX}px)`).matches) return;
@@ -49,8 +42,7 @@ export function SettingsRail({
       aria-label="Settings sections"
       className={cn(
         'flex gap-1 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
-        'border-b border-border',
-        'lg:sticky lg:top-0 lg:flex-col lg:overflow-visible lg:border-b-0 lg:pb-0',
+        'lg:flex-col lg:overflow-visible lg:pb-0',
       )}
     >
       {RAIL_GROUPS.map(({ label, group }) => {
@@ -58,12 +50,9 @@ export function SettingsRail({
           (s) => SECTION_META[s].group === group,
         );
         return (
-          <div
-            key={group}
-            className="flex shrink-0 gap-1 lg:flex-col lg:gap-0.5"
-          >
+          <div key={group} className="flex shrink-0 gap-1 lg:flex-col lg:gap-2">
             {label ? (
-              <div className="hidden px-3 pt-3.5 pb-1.5 text-[11px] font-semibold tracking-[0.09em] text-muted-foreground uppercase lg:block">
+              <div className="hidden px-3 pt-4 pb-2 text-[11px] font-semibold tracking-[0.09em] text-muted-foreground uppercase lg:block">
                 {label}
               </div>
             ) : null}
@@ -72,33 +61,22 @@ export function SettingsRail({
               const Icon = meta.icon;
               const isActive = s === active;
               return (
-                <button
+                <Link
                   key={s}
                   ref={isActive ? activeRef : undefined}
-                  type="button"
-                  onClick={() => onSelect(s)}
+                  href={sectionHref(s)}
                   aria-current={isActive ? 'page' : undefined}
                   className={cn(
-                    'flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium whitespace-nowrap transition-colors',
+                    'flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[15px] font-medium whitespace-nowrap transition-colors',
                     'lg:w-full',
                     isActive
                       ? 'bg-primary-soft text-primary'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                   )}
                 >
-                  <Icon className="size-4 shrink-0" />
+                  <Icon className="size-5 shrink-0" />
                   <span className="flex-1">{meta.label}</span>
-                  {hints?.[s] != null ? (
-                    <span
-                      className={cn(
-                        'hidden items-center gap-1.5 text-xs lg:inline-flex',
-                        isActive ? 'text-primary' : 'text-muted-foreground',
-                      )}
-                    >
-                      {hints[s]}
-                    </span>
-                  ) : null}
-                </button>
+                </Link>
               );
             })}
           </div>

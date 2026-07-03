@@ -2,20 +2,14 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2, KeyRound } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 
 const MIN_PASSWORD = 8;
 
@@ -81,20 +75,9 @@ export function PasswordForm() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-foreground">
-          <KeyRound className="size-4 text-primary" />
-          Password
-        </CardTitle>
-        <CardDescription className="text-muted-foreground">
-          Use at least {MIN_PASSWORD} characters. You will stay signed in on
-          this device after changing it.
-        </CardDescription>
-      </CardHeader>
-
-      <CardContent>
-        <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit}>
+      <Card className="overflow-hidden py-0 gap-0">
+        <CardContent className="space-y-4 px-6 py-6">
           <div className="space-y-2">
             <Label htmlFor="current-password" className="text-foreground">
               Current password
@@ -144,28 +127,28 @@ export function PasswordForm() {
           </div>
 
           {confirmError && (
-            <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
               {confirmError}
             </p>
           )}
+        </CardContent>
 
-          <div className="flex justify-end">
-            <Button
-              type="submit"
-              disabled={saving || !current || !next || !confirm}
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  Updating…
-                </>
-              ) : (
-                'Update password'
-              )}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+        <div className="flex items-center justify-end border-t border-border bg-muted/30 px-6 py-4">
+          <Button
+            type="submit"
+            disabled={saving || !current || !next || !confirm}
+          >
+            {saving ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Updating…
+              </>
+            ) : (
+              'Update password'
+            )}
+          </Button>
+        </div>
+      </Card>
+    </form>
   );
 }

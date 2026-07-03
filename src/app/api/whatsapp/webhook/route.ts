@@ -639,13 +639,15 @@ async function processMessage(
   }
 
   // Update conversation
+  const now = new Date().toISOString()
   const { error: convError } = await supabaseAdmin()
     .from('conversations')
     .update({
       last_message_text: contentText || `[${message.type}]`,
-      last_message_at: new Date().toISOString(),
+      last_message_at: now,
+      customer_replied_at: now,
       unread_count: (conversation.unread_count || 0) + 1,
-      updated_at: new Date().toISOString(),
+      updated_at: now,
     })
     .eq('id', conversation.id)
 

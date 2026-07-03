@@ -15,7 +15,6 @@ import {
   AvatarImage,
 } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
-import { SettingsPanelHead } from './settings-panel-head';
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 const ALLOWED_MIME = new Set([
@@ -205,26 +204,27 @@ export function ProfileForm() {
     : '—';
 
   return (
-    <section className="max-w-2xl animate-in fade-in-50 duration-200">
-      <SettingsPanelHead
-        title="Your profile"
-        description="How you show up across the app. Your avatar and name appear in the header, sidebar, and anywhere your teammates see you."
-      />
-      <form onSubmit={onSubmit} className="space-y-4">
-        <Card>
-          <CardContent className="space-y-6">
-          {/* Avatar row */}
-          <div className="flex flex-wrap items-center gap-5">
-            <Avatar size="lg" className="size-16">
-              {currentAvatar ? (
-                <AvatarImage src={currentAvatar} alt={fullName || 'Avatar'} />
-              ) : null}
-              <AvatarFallback className="bg-primary/10 text-base text-primary">
-                {initial}
-              </AvatarFallback>
-            </Avatar>
+    <form onSubmit={onSubmit}>
+      <Card className="overflow-hidden py-0 gap-0">
+        {/* Avatar hero */}
+        <div className="flex flex-wrap items-center gap-5 border-b border-border bg-muted/30 px-6 py-5">
+          <Avatar size="lg" className="size-20 ring-2 ring-border">
+            {currentAvatar ? (
+              <AvatarImage src={currentAvatar} alt={fullName || 'Avatar'} />
+            ) : null}
+            <AvatarFallback className="bg-primary/10 text-xl font-semibold text-primary">
+              {initial}
+            </AvatarFallback>
+          </Avatar>
 
-            <div className="flex flex-wrap gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-base font-semibold text-foreground">
+              {fullName || profile?.full_name || '—'}
+            </p>
+            <p className="truncate text-sm text-muted-foreground">
+              {profile?.email ?? ''}
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -235,6 +235,7 @@ export function ProfileForm() {
               <Button
                 type="button"
                 variant="outline"
+                size="sm"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={saving}
               >
@@ -245,6 +246,7 @@ export function ProfileForm() {
                 <Button
                   type="button"
                   variant="ghost"
+                  size="sm"
                   onClick={onRemoveAvatar}
                   disabled={saving}
                   className="text-muted-foreground hover:text-foreground"
@@ -253,77 +255,77 @@ export function ProfileForm() {
                   Remove
                 </Button>
               )}
-              <p className="w-full text-xs text-muted-foreground">
-                PNG, JPG, WebP, or GIF. Up to 2 MB.
-              </p>
+              <span className="text-xs text-muted-foreground">
+                PNG, JPG, WebP, or GIF · up to 2 MB
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <CardContent className="space-y-6 px-6 py-6">
+          {/* Editable fields */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="profile-full-name" className="text-foreground">
+                Display name
+              </Label>
+              <Input
+                id="profile-full-name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Ada Lovelace"
+                maxLength={120}
+                disabled={saving}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="profile-email" className="text-foreground">
+                Email
+              </Label>
+              <Input
+                id="profile-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={saving}
+                required
+              />
             </div>
           </div>
 
-          {/* Name */}
-          <div className="space-y-2">
-            <Label htmlFor="profile-full-name" className="text-foreground">
-              Display name
-            </Label>
-            <Input
-              id="profile-full-name"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Ada Lovelace"
-              maxLength={120}
-              disabled={saving}
-              required
-            />
-          </div>
-
-          {/* Email */}
-          <div className="space-y-2">
-            <Label htmlFor="profile-email" className="text-foreground">
-              Email
-            </Label>
-            <Input
-              id="profile-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={saving}
-              required
-            />
-            {emailChangePending && (
-              <p className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
-                <Mail className="mt-0.5 size-3.5 shrink-0" />
-                <span>
-                  Check the inbox for <strong>{profile?.email}</strong> and{' '}
-                  <strong>{email}</strong> — both need to confirm before the
-                  change takes effect.
-                </span>
-              </p>
-            )}
-          </div>
-
-          {/* Read-only block */}
-          <div className="rounded-lg border border-border bg-muted p-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Account details
+          {emailChangePending && (
+            <p className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+              <Mail className="mt-0.5 size-3.5 shrink-0" />
+              <span>
+                Check the inbox for <strong>{profile?.email}</strong> and{' '}
+                <strong>{email}</strong> — both need to confirm before the
+                change takes effect.
+              </span>
             </p>
-            <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-muted-foreground">Role</dt>
-                <dd className="mt-0.5 font-mono text-foreground">
+          )}
+
+          {/* Read-only account details */}
+          <dl className="divide-y divide-border rounded-lg border border-border text-sm">
+            <div className="flex items-center justify-between gap-4 px-4 py-3">
+              <dt className="text-muted-foreground">Role</dt>
+              <dd>
+                <span className="inline-flex items-center rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-medium capitalize text-primary">
                   {profile?.role ?? 'user'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Joined</dt>
-                <dd className="mt-0.5 text-foreground">{joined}</dd>
-              </div>
-              <div className="sm:col-span-2">
-                <dt className="text-muted-foreground">User ID</dt>
-                <dd className="mt-0.5 break-all font-mono text-xs text-muted-foreground">
-                  {user?.id ?? '—'}
-                </dd>
-              </div>
-            </dl>
-          </div>
+                </span>
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-4 px-4 py-3">
+              <dt className="text-muted-foreground">Member since</dt>
+              <dd className="text-foreground">{joined}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-4 px-4 py-3">
+              <dt className="shrink-0 text-muted-foreground">User ID</dt>
+              <dd className="truncate font-mono text-xs text-muted-foreground">
+                {user?.id ?? '—'}
+              </dd>
+            </div>
+          </dl>
 
           {!profile && (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -331,11 +333,13 @@ export function ProfileForm() {
               Loading your profile…
             </p>
           )}
-
         </CardContent>
-        </Card>
 
-        <div className="flex justify-end">
+        {/* Footer save bar */}
+        <div className="flex items-center justify-between gap-3 border-t border-border bg-muted/30 px-6 py-4">
+          <p className="text-xs text-muted-foreground">
+            {dirty ? 'You have unsaved changes.' : ' '}
+          </p>
           <Button type="submit" disabled={saving || !dirty || !profile}>
             {saving ? (
               <>
@@ -347,7 +351,7 @@ export function ProfileForm() {
             )}
           </Button>
         </div>
-      </form>
-    </section>
+      </Card>
+    </form>
   );
 }

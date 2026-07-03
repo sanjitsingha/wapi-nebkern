@@ -32,6 +32,7 @@ import {
   ArrowUp,
   ArrowDown,
 } from 'lucide-react';
+import { FaWhatsapp } from 'react-icons/fa';
 import { useCan } from '@/hooks/use-can';
 import { GatedButton } from '@/components/ui/gated-button';
 import { getBroadcastStatus } from '@/lib/broadcast-status';
@@ -302,9 +303,10 @@ export default function BroadcastsPage() {
             canAct={canCreate}
             gateReason="create campaigns"
             onClick={() => router.push('/campaigns/new')}
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 gap-2"
           >
-            <Plus className="h-4 w-4" />
+            <FaWhatsapp className="h-4 w-4" />
+            <Plus className="h-3.5 w-3.5" />
             New Campaign
           </GatedButton>
         </div>
@@ -317,11 +319,11 @@ export default function BroadcastsPage() {
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search campaigns or templates"
-              className="max-w-xl flex-1"
+              className="max-w-xl flex-1 h-11"
             />
             <DropdownMenu>
               <DropdownMenuTrigger>
-                <Button variant="outline" className="h-8 gap-2">
+                <Button variant="outline" className="h-11 gap-2">
                   <Tag className="h-4 w-4" />
                   Category
                   <ChevronDown className="h-4 w-4" />
@@ -349,7 +351,7 @@ export default function BroadcastsPage() {
             </DropdownMenu>
             <DropdownMenu>
               <DropdownMenuTrigger>
-                <Button variant="outline" className="h-8 gap-2">
+                <Button variant="outline" className="h-11 gap-2">
                   <Filter className="h-4 w-4" />
                   Status
                   <ChevronDown className="h-4 w-4" />
@@ -418,9 +420,10 @@ export default function BroadcastsPage() {
             canAct={canCreate}
             gateReason="create campaigns"
             onClick={() => router.push('/campaigns/new')}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 mt-4"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 mt-4 h-11 gap-2"
           >
-            <Plus className="h-4 w-4" />
+            <FaWhatsapp className="h-4 w-4" />
+            <Plus className="h-3.5 w-3.5" />
             New Campaign
           </GatedButton>
         </div>
@@ -428,7 +431,7 @@ export default function BroadcastsPage() {
         <div className="border-border bg-card overflow-x-auto rounded-xl border">
           <Table>
             <TableHeader>
-              <TableRow className="border-border bg-primary/10 hover:bg-primary/20">
+              <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
                 <TableHead className="text-muted-foreground">
                   <button
                     type="button"
@@ -447,14 +450,14 @@ export default function BroadcastsPage() {
                     )}
                   </button>
                 </TableHead>
-                <TableHead className="text-primary">Name</TableHead>
-                <TableHead className="text-primary hidden md:table-cell">
+                <TableHead className="text-muted-foreground">Name</TableHead>
+                <TableHead className="text-muted-foreground hidden md:table-cell">
                   Template
                 </TableHead>
-                <TableHead className="text-primary hidden md:table-cell">
+                <TableHead className="text-muted-foreground hidden md:table-cell">
                   Category
                 </TableHead>
-                <TableHead className="text-primary hidden text-right sm:table-cell">
+                <TableHead className="text-muted-foreground hidden text-right sm:table-cell">
                   Recipients
                 </TableHead>
                 <TableHead className="text-muted-foreground hidden lg:table-cell">

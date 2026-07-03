@@ -1,11 +1,12 @@
 // ============================================================
 // Presence helpers — pure, unit-testable, no I/O.
 //
-// Mirrors the `member_presence` table from migration
-// 024_member_presence.sql. The DB stores only what the active
-// client reports ('online' / 'away'); "offline" is never stored
-// — it is derived here from staleness so a closed tab resolves to
-// offline without an unload write.
+// Mirrors the `member_presence` table from migrations
+// 024_member_presence.sql + 025_presence_offline.sql. The active
+// client normally reports 'online' / 'away'; a closed tab resolves
+// to 'offline' here from staleness (no unload write). Since 025 a
+// member can ALSO be explicitly stored 'offline' when they toggle
+// themselves Unavailable in the account menu.
 //
 // `now` is always passed in (epoch ms) rather than read from the
 // clock, so derivation and formatting stay deterministic and
@@ -25,10 +26,14 @@ export const OFFLINE_AFTER_MS = 75_000;
 /** No input / hidden tab for this long flips the client to 'away'. */
 export const IDLE_AFTER_MS = 5 * 60_000;
 
-/** What the active client reports (and what the DB stores). */
-export type StoredPresence = "online" | "away";
+/**
+ * What the active client reports (and what the DB stores). 'offline'
+ * is stored only when a member manually marks themselves Unavailable
+ * (migration 025); otherwise the client reports 'online' / 'away'.
+ */
+export type StoredPresence = "online" | "away" | "offline";
 
-/** What a viewer sees — adds the derived 'offline' state. */
+/** What a viewer sees — same set; 'offline' may be stored or derived. */
 export type PresenceStatus = "online" | "away" | "offline";
 
 /** Raw presence row as read from the `member_presence` table. */

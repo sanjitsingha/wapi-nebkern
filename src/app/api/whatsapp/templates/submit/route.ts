@@ -119,16 +119,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 })
     }
 
-    if (payload.category === 'Authentication') {
-      return NextResponse.json(
-        {
-          error:
-            'AUTHENTICATION templates are not yet supported here — create them in Meta WhatsApp Manager and use "Sync from Meta".',
-        },
-        { status: 400 },
-      )
-    }
-
     try {
       validateTemplatePayload(payload)
     } catch (e) {
@@ -210,13 +200,22 @@ export async function POST(request: Request) {
           }),
         )
         const isRateLimit = /\b429\b/.test(message)
+        // Authentication templates require Meta's explicit approval before the
+        // WABA can create them via the API. A permission error here almost always
+        // means the WABA hasn't been granted authentication message access yet.
+        const isAuthPermission =
+          payload.category === 'Authentication' &&
+          /permission|not have permission/i.test(message)
         return NextResponse.json(
           {
             error: isRateLimit
               ? 'Meta rate limit hit (100 template creates per hour). Try again later.'
-              : message,
+              : isAuthPermission
+                ? 'Your Meta WABA is not yet approved for Authentication templates. Apply at Meta Business Manager → WhatsApp → Message Templates → Request Access. The template has been saved as a Draft — re-submit once access is granted.'
+                : message,
+            saved_as_draft: true,
           },
-          { status: isRateLimit ? 429 : 502 },
+          { status: isRateLimit ? 429 : isAuthPermission ? 403 : 502 },
         )
       }
     }

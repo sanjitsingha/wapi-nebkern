@@ -17,6 +17,9 @@ export interface MetaComponent {
   type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS';
   format?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT';
   text?: string;
+  // Authentication-template body/footer fields (mutually exclusive with text)
+  add_security_recommendation?: boolean;
+  code_expiration_minutes?: number;
   buttons?: MetaButtonPayload[];
   example?: {
     header_text?: string[];
@@ -27,7 +30,9 @@ export interface MetaComponent {
 }
 
 interface MetaButtonPayload {
-  type: 'QUICK_REPLY' | 'URL' | 'PHONE_NUMBER' | 'COPY_CODE';
+  type: 'QUICK_REPLY' | 'URL' | 'PHONE_NUMBER' | 'COPY_CODE' | 'OTP';
+  /** Only for OTP buttons. */
+  otp_type?: 'COPY_CODE' | 'ZERO_TAP' | 'ONE_TAP';
   text: string;
   url?: string;
   phone_number?: string;
@@ -131,12 +136,52 @@ const CATEGORY_TO_META: Record<
 };
 
 /**
+ * Authentication templates have a fixed structure: auto-generated body,
+ * optional expiry footer, and a mandatory OTP button. Meta's API uses a
+ * different component shape (no body text, OTP button type) so we build
+ * it separately instead of reusing the standard helpers.
+ */
+function buildAuthMetaPayload(payload: TemplatePayload): MetaTemplateSubmitPayload {
+  const auth = payload.sample_values?.auth ?? {};
+  const components: MetaComponent[] = [];
+
+  components.push({
+    type: 'BODY',
+    add_security_recommendation: auth.add_security_recommendation ?? false,
+  });
+
+  if (auth.code_expiration_minutes) {
+    components.push({
+      type: 'FOOTER',
+      code_expiration_minutes: auth.code_expiration_minutes,
+    });
+  }
+
+  const buttonText = payload.buttons?.[0]?.text?.trim() || 'Copy code';
+  components.push({
+    type: 'BUTTONS',
+    buttons: [{ type: 'OTP', otp_type: 'COPY_CODE', text: buttonText }],
+  });
+
+  return {
+    name: payload.name,
+    category: 'AUTHENTICATION',
+    language: payload.language,
+    components,
+  };
+}
+
+/**
  * Assemble the full submit payload (name + category + language +
  * components in canonical order: HEADER → BODY → FOOTER → BUTTONS).
  */
 export function buildMetaTemplatePayload(
   payload: TemplatePayload,
 ): MetaTemplateSubmitPayload {
+  if (payload.category === 'Authentication') {
+    return buildAuthMetaPayload(payload);
+  }
+
   const components: MetaComponent[] = [];
   const header = buildHeaderComponent(payload);
   if (header) components.push(header);

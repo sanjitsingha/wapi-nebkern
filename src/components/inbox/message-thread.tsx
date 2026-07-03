@@ -25,7 +25,7 @@ import {
   ArrowLeft,
   RefreshCw,
   PanelRightOpen,
-  PanelRightClose,
+  X,
 } from "lucide-react";
 import { format, isToday, isYesterday, differenceInHours } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -98,14 +98,12 @@ interface MessageThreadProps {
    */
   onRefresh?: () => void;
   /**
-   * Desktop-only contact-panel toggle. The page owns the open/closed
-   * state (it's the one that renders the sidebar), so the thread just
-   * reflects it and asks the page to flip it. Both optional so existing
-   * callers keep working; the toggle button only renders when
-   * `onToggleContactPanel` is wired up.
+   * When the contact panel is collapsed, the thread shows a reopen button.
+   * Both props are optional; the button only renders when `onOpenContactPanel`
+   * is provided and `contactPanelOpen` is false.
    */
   contactPanelOpen?: boolean;
-  onToggleContactPanel?: () => void;
+  onOpenContactPanel?: () => void;
 }
 
 function formatDateSeparator(dateStr: string): string {
@@ -163,7 +161,7 @@ export function MessageThread({
   resyncToken = 0,
   onRefresh,
   contactPanelOpen,
-  onToggleContactPanel,
+  onOpenContactPanel,
 }: MessageThreadProps) {
   const { user } = useAuth();
   const { getPresence, getRow, now } = usePresence();
@@ -839,17 +837,17 @@ export function MessageThread({
               type="button"
               onClick={onBack}
               aria-label="Back to conversations"
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
           )}
-          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-foreground">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-base font-medium text-foreground">
             {displayName.charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <h2 className="truncate text-sm font-semibold text-foreground">{displayName}</h2>
-            <p className="truncate text-xs text-muted-foreground">{contact.phone}</p>
+            <h2 className="truncate text-base font-semibold text-foreground">{displayName}</h2>
+            <p className="truncate text-sm text-muted-foreground">{contact.phone}</p>
           </div>
           {/* Session timer badge — hidden on the narrowest phones so
               the name + back arrow keep their room. */}
@@ -865,39 +863,21 @@ export function MessageThread({
           </Badge>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Contact-panel toggle — desktop only. The contact sidebar
-              eats a chunk of horizontal width that crowds the thread on
-              smaller laptops; this lets agents reclaim it when they just
-              want to read and reply. Hidden on mobile, where the sidebar
-              never renders as a permanent panel anyway. Issue #258. */}
-          {onToggleContactPanel && (
+        <div className="flex items-center gap-1.5">
+          {/* Reopen contact panel — only visible on desktop when panel is collapsed */}
+          {!contactPanelOpen && onOpenContactPanel && (
             <button
               type="button"
-              onClick={onToggleContactPanel}
-              aria-label={
-                contactPanelOpen ? "Hide contact panel" : "Show contact panel"
-              }
-              aria-pressed={contactPanelOpen}
-              title={contactPanelOpen ? "Hide contact" : "Show contact"}
-              className={cn(
-                "hidden h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-muted hover:text-foreground lg:inline-flex",
-                contactPanelOpen ? "text-primary" : "text-muted-foreground",
-              )}
+              onClick={onOpenContactPanel}
+              aria-label="Show contact panel"
+              title="Show contact"
+              className="hidden h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:inline-flex"
             >
-              {contactPanelOpen ? (
-                <PanelRightClose className="h-4 w-4" />
-              ) : (
-                <PanelRightOpen className="h-4 w-4" />
-              )}
+              <PanelRightOpen className="h-4 w-4" />
             </button>
           )}
 
-          {/* Manual refresh — forces a refetch of the messages + the
-              conversation list (the parent bumps its resyncToken). Useful
-              when realtime missed an event or the agent just wants to be
-              sure nothing's stale. Only rendered when the parent wires
-              up `onRefresh`. */}
+          {/* Manual refresh */}
           {onRefresh && (
             <button
               type="button"
@@ -905,12 +885,10 @@ export function MessageThread({
               disabled={isRefreshing}
               aria-label="Refresh conversation"
               title="Refresh"
-              className={cn(
-                "inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-60",
-              )}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-60"
             >
               <RefreshCw
-                className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")}
+                className={cn("h-4 w-4", isRefreshing && "animate-spin")}
               />
             </button>
           )}
@@ -918,16 +896,13 @@ export function MessageThread({
           {/* Status dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger className={cn(
-                  "inline-flex items-center justify-center h-7 gap-1 px-2 text-xs rounded-md hover:bg-muted",
-                  currentStatus?.color ?? "text-muted-foreground"
-                )}>
-                {currentStatus?.label ?? "Status"}
-                <ChevronDown className="h-3 w-3" />
+              "inline-flex items-center justify-center h-9 gap-1.5 px-3 text-sm font-medium rounded-md border border-border hover:bg-muted transition-colors",
+              currentStatus?.color ?? "text-muted-foreground"
+            )}>
+              {currentStatus?.label ?? "Status"}
+              <ChevronDown className="h-3.5 w-3.5" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="border-border bg-popover"
-            >
+            <DropdownMenuContent align="end" className="border-border bg-popover">
               {STATUS_OPTIONS.map((opt) => (
                 <DropdownMenuItem
                   key={opt.value}
@@ -942,20 +917,15 @@ export function MessageThread({
 
           {/* Assign dropdown */}
           <DropdownMenu>
-            <DropdownMenuTrigger
-              className={cn(
-                "inline-flex items-center justify-center h-7 gap-1 px-2 text-xs rounded-md hover:bg-muted",
-                assignedAgentId ? "text-primary" : "text-muted-foreground"
-              )}
-            >
-              <UserPlus className="h-3 w-3" />
+            <DropdownMenuTrigger className={cn(
+              "inline-flex items-center justify-center h-9 gap-1.5 px-3 text-sm font-medium rounded-md border border-border hover:bg-muted transition-colors",
+              assignedAgentId ? "text-primary border-primary/30" : "text-muted-foreground"
+            )}>
+              <UserPlus className="h-4 w-4" />
               <span className="hidden sm:inline">{assignLabel}</span>
-              <ChevronDown className="h-3 w-3" />
+              <ChevronDown className="h-3.5 w-3.5" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="border-border bg-popover"
-            >
+            <DropdownMenuContent align="end" className="border-border bg-popover">
               {profiles.length === 0 ? (
                 <DropdownMenuItem disabled className="text-sm text-muted-foreground">
                   No teammates available
@@ -1004,11 +974,24 @@ export function MessageThread({
               )}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Close conversation */}
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label="Close conversation"
+              title="Close conversation"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 
       {/* Messages Area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -1021,17 +1004,17 @@ export function MessageThread({
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-5">
             {messageGroups.map((group) => (
               <div key={group.date}>
                 {/* Date separator */}
                 <div className="mb-4 flex items-center justify-center">
-                  <span className="rounded-full bg-muted px-3 py-1 text-[10px] font-medium text-muted-foreground">
+                  <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
                     {formatDateSeparator(group.date)}
                   </span>
                 </div>
                 {/* Messages */}
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   {group.messages.map((msg) => {
                     const parent = msg.reply_to_message_id
                       ? messagesById.get(msg.reply_to_message_id)

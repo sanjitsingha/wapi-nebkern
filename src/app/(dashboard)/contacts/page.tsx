@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import type { Contact, Tag, ContactTag } from '@/types';
@@ -48,16 +49,34 @@ import {
   SlidersHorizontal,
   Filter,
   X,
+  CalendarDays,
 } from 'lucide-react';
 import { ContactForm } from '@/components/contacts/contact-form';
-import { ContactDetailView } from '@/components/contacts/contact-detail-view';
 import { ImportModal } from '@/components/contacts/import-modal';
 import { CustomFieldsManager } from '@/components/contacts/custom-fields-manager';
+import { CreatedAtFilterDialog } from '@/components/contacts/created-at-filter-dialog';
 import { useCan } from '@/hooks/use-can';
 import { GatedButton } from '@/components/ui/gated-button';
 import { Checkbox } from '@/components/ui/checkbox';
 
 const PAGE_SIZE = 25;
+
+/** 'YYYY-MM-DD' → the ISO date of the following day (UTC), used as an
+ *  exclusive upper bound so a "to" date filter includes the whole day. */
+function nextDayISO(dateStr: string): string {
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function formatDateLabel(dateStr: string): string {
+  return new Date(`${dateStr}T00:00:00Z`).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
 
 interface ContactWithTags extends Contact {
   tags?: Tag[];
@@ -65,6 +84,7 @@ interface ContactWithTags extends Contact {
 
 export default function ContactsPage() {
   const supabase = createClient();
+  const router = useRouter();
   const canEdit = useCan('send-messages');
   const canEditSettings = useCan('edit-settings');
 
@@ -76,12 +96,17 @@ export default function ContactsPage() {
   // Tag filter — contacts shown must have ANY of these tags (OR).
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
+  // Created-at filter — applied range (both inclusive, 'YYYY-MM-DD' or
+  // '' for unset). Edited via CreatedAtFilterDialog, which owns its
+  // own draft state and only reports back through onApply.
+  const [createdFrom, setCreatedFrom] = useState('');
+  const [createdTo, setCreatedTo] = useState('');
+  const [dateFilterOpen, setDateFilterOpen] = useState(false);
+
   // Modals
   const [formOpen, setFormOpen] = useState(false);
   const [editContact, setEditContact] = useState<Contact | null>(null);
   const [editContactTags, setEditContactTags] = useState<ContactTag[]>([]);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detailContactId, setDetailContactId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [customFieldsOpen, setCustomFieldsOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -135,12 +160,15 @@ export default function ContactsPage() {
       // Tag filter active — resolve it server-side (join + distinct +
       // windowed total count + pagination) so a tag covering many
       // contacts can't silently truncate the result or overflow an IN
-      // clause. See migration 025_filter_contacts_by_tags.
+      // clause. See migration 025_filter_contacts_by_tags (extended by
+      // 032 with the creation-date range).
       const { data, error } = await supabase.rpc('filter_contacts_by_tags', {
         p_tag_ids: selectedTagIds,
         p_search: term || null,
         p_limit: PAGE_SIZE,
         p_offset: from,
+        p_created_from: createdFrom || null,
+        p_created_to: createdTo || null,
       });
       if (seq !== fetchSeq.current) return; // superseded by a newer fetch
       if (error) {
@@ -161,6 +189,14 @@ export default function ContactsPage() {
       if (term) {
         const like = `%${term}%`;
         query = query.or(`name.ilike.${like},phone.ilike.${like},email.ilike.${like}`);
+      }
+      if (createdFrom) {
+        query = query.gte('created_at', createdFrom);
+      }
+      if (createdTo) {
+        // Exclusive upper bound (start of the day after) so the whole
+        // "to" day is included, not just its midnight instant.
+        query = query.lt('created_at', nextDayISO(createdTo));
       }
 
       const { data, count: exactCount, error } = await query;
@@ -205,7 +241,7 @@ export default function ContactsPage() {
 
     setContacts(enriched);
     setLoading(false);
-  }, [supabase, page, search, selectedTagIds, tagsMap]);
+  }, [supabase, page, search, selectedTagIds, createdFrom, createdTo, tagsMap]);
 
   // Load-once-on-mount-ish data fetches. Each setter inside runs
   // inside an async promise completion (Supabase await), not
@@ -235,11 +271,6 @@ export default function ContactsPage() {
     setEditContact(contact);
     setEditContactTags(data ?? []);
     setFormOpen(true);
-  }
-
-  function openDetail(contactId: string) {
-    setDetailContactId(contactId);
-    setDetailOpen(true);
   }
 
   function confirmDelete(contact: Contact) {
@@ -321,7 +352,9 @@ export default function ContactsPage() {
   const allTags = Object.values(tagsMap).sort((a, b) =>
     a.name.localeCompare(b.name)
   );
-  const hasActiveFilters = search.trim().length > 0 || selectedTagIds.length > 0;
+  const hasDateFilter = createdFrom !== '' || createdTo !== '';
+  const hasActiveFilters =
+    search.trim().length > 0 || selectedTagIds.length > 0 || hasDateFilter;
 
   function toggleTagFilter(tagId: string) {
     setSelectedTagIds((prev) =>
@@ -335,6 +368,17 @@ export default function ContactsPage() {
   function clearTagFilters() {
     setSelectedTagIds([]);
     setPage(0);
+  }
+
+  function clearDateFilter() {
+    setCreatedFrom('');
+    setCreatedTo('');
+    setPage(0);
+  }
+
+  function clearAllFilters() {
+    clearTagFilters();
+    clearDateFilter();
   }
 
   return (
@@ -352,7 +396,7 @@ export default function ContactsPage() {
             <Button
               variant="outline"
               onClick={() => setCustomFieldsOpen(true)}
-              className="border-border text-muted-foreground hover:bg-muted"
+              className="h-11 border-border text-muted-foreground hover:bg-muted"
             >
               <SlidersHorizontal className="size-4" />
               Custom fields
@@ -363,7 +407,7 @@ export default function ContactsPage() {
             canAct={canEdit}
             gateReason="add or import contacts"
             onClick={() => setImportOpen(true)}
-            className="border-border text-muted-foreground hover:bg-muted"
+            className="h-11 border-border text-muted-foreground hover:bg-muted"
           >
             <Upload className="size-4" />
             Import
@@ -372,7 +416,7 @@ export default function ContactsPage() {
             canAct={canEdit}
             gateReason="add or import contacts"
             onClick={openAddForm}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            className="h-11 bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             <Plus className="size-4" />
             Add Contact
@@ -394,7 +438,7 @@ export default function ContactsPage() {
                 setPage(0);
               }}
               placeholder="Search by name, phone, or email..."
-              className="pl-8 bg-card border-border text-foreground placeholder:text-muted-foreground"
+              className="h-11 pl-8 bg-card border-border text-foreground placeholder:text-muted-foreground"
             />
           </div>
 
@@ -403,7 +447,7 @@ export default function ContactsPage() {
               render={
                 <Button
                   variant="outline"
-                  className="border-border text-muted-foreground hover:bg-muted shrink-0"
+                  className="h-11 border-border text-muted-foreground hover:bg-muted shrink-0"
                 />
               }
             >
@@ -458,10 +502,23 @@ export default function ContactsPage() {
               )}
             </PopoverContent>
           </Popover>
+
+          <Button
+            variant="outline"
+            onClick={() => setDateFilterOpen(true)}
+            className={`h-11 shrink-0 border-border hover:bg-muted ${
+              hasDateFilter ? 'text-primary border-primary/40' : 'text-muted-foreground'
+            }`}
+          >
+            <CalendarDays className="size-4" />
+            {hasDateFilter
+              ? `${createdFrom ? formatDateLabel(createdFrom) : 'Any'} – ${createdTo ? formatDateLabel(createdTo) : 'Any'}`
+              : 'Created at'}
+          </Button>
         </div>
 
-        {/* Active tag-filter chips */}
-        {selectedTagIds.length > 0 && (
+        {/* Active filter chips */}
+        {(selectedTagIds.length > 0 || hasDateFilter) && (
           <div className="flex flex-wrap items-center gap-1.5">
             {selectedTagIds.map((id) => {
               const tag = tagsMap[id];
@@ -486,8 +543,22 @@ export default function ContactsPage() {
                 </span>
               );
             })}
+            {hasDateFilter && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                <CalendarDays className="size-3" />
+                {createdFrom ? formatDateLabel(createdFrom) : 'Any'} –{' '}
+                {createdTo ? formatDateLabel(createdTo) : 'Any'}
+                <button
+                  onClick={clearDateFilter}
+                  aria-label="Remove creation date filter"
+                  className="hover:opacity-70"
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            )}
             <button
-              onClick={clearTagFilters}
+              onClick={clearAllFilters}
               className="text-xs text-muted-foreground hover:text-foreground px-1"
             >
               Clear all
@@ -527,10 +598,10 @@ export default function ContactsPage() {
       )}
 
       {/* Table */}
-      <div className="rounded-lg border border-border overflow-hidden">
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="border-border hover:bg-transparent">
+            <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
               <TableHead className="w-10">
                 <Checkbox
                   checked={allOnPageSelected}
@@ -588,7 +659,7 @@ export default function ContactsPage() {
                 <TableRow
                   key={contact.id}
                   className="border-border hover:bg-muted/50 cursor-pointer"
-                  onClick={() => openDetail(contact.id)}
+                  onClick={() => router.push(`/contacts/${contact.id}`)}
                 >
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <Checkbox
@@ -735,16 +806,21 @@ export default function ContactsPage() {
         }}
         onViewExisting={(id) => {
           setFormOpen(false);
-          openDetail(id);
+          router.push(`/contacts/${id}`);
         }}
       />
 
-      {/* Contact Detail Sheet */}
-      <ContactDetailView
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-        contactId={detailContactId}
-        onUpdated={fetchContacts}
+      {/* Created At Filter Modal */}
+      <CreatedAtFilterDialog
+        open={dateFilterOpen}
+        onOpenChange={setDateFilterOpen}
+        appliedFrom={createdFrom}
+        appliedTo={createdTo}
+        onApply={(from, to) => {
+          setCreatedFrom(from);
+          setCreatedTo(to);
+          setPage(0);
+        }}
       />
 
       {/* Import Modal */}

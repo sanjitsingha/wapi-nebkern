@@ -1,11 +1,7 @@
 import {
   Coins,
-  FileText,
   KeyRound,
-  LayoutGrid,
-  Palette,
   PlugZap,
-  Shield,
   Tags,
   User,
   UsersRound,
@@ -13,20 +9,18 @@ import {
 } from 'lucide-react';
 
 /**
- * Settings information architecture for the redesigned page.
+ * Settings information architecture.
  *
- * The flat tab strip became a grouped left rail with a new Overview
- * landing. The URL query param stays `?tab=` (deep-linkable, and it
- * keeps the existing links in sidebar.tsx / header.tsx working) — we
- * just map the old values onto the new sections.
+ * A grouped left rail of sections. The URL query param stays `?tab=`
+ * (deep-linkable, and it keeps existing links in sidebar.tsx /
+ * header.tsx working) — legacy values are mapped onto their new homes
+ * in `resolveSection`. There is no Overview landing: `/settings`
+ * redirects to the default section, and Profile & security is one
+ * combined section.
  */
 export const SETTINGS_SECTIONS = [
-  'overview',
   'profile',
-  'security',
-  'appearance',
   'whatsapp',
-  'templates',
   'api-access',
   'integrations',
   'fields',
@@ -36,51 +30,27 @@ export const SETTINGS_SECTIONS = [
 
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
 
-export const DEFAULT_SECTION: SettingsSection = 'overview';
+export const DEFAULT_SECTION: SettingsSection = 'profile';
 
 /** Rail grouping. `adminOnly` items are hidden for non-admins. */
 export interface SectionMeta {
   id: SettingsSection;
   label: string;
   icon: LucideIcon;
-  group: 'top' | 'account' | 'workspace';
+  group: 'account' | 'workspace';
 }
 
 export const SECTION_META: Record<SettingsSection, SectionMeta> = {
-  overview: {
-    id: 'overview',
-    label: 'Overview',
-    icon: LayoutGrid,
-    group: 'top',
-  },
   profile: {
     id: 'profile',
-    label: 'Your profile',
+    label: 'Profile & security',
     icon: User,
-    group: 'account',
-  },
-  security: {
-    id: 'security',
-    label: 'Login & security',
-    icon: Shield,
-    group: 'account',
-  },
-  appearance: {
-    id: 'appearance',
-    label: 'Appearance',
-    icon: Palette,
     group: 'account',
   },
   whatsapp: {
     id: 'whatsapp',
     label: 'WhatsApp',
     icon: PlugZap,
-    group: 'workspace',
-  },
-  templates: {
-    id: 'templates',
-    label: 'Templates',
-    icon: FileText,
     group: 'workspace',
   },
   'api-access': {
@@ -119,23 +89,28 @@ export const RAIL_GROUPS: {
   label: string | null;
   group: SectionMeta['group'];
 }[] = [
-  { label: null, group: 'top' },
   { label: 'Account', group: 'account' },
   { label: 'Workspace', group: 'workspace' },
 ];
 
-function isSection(value: string | null): value is SettingsSection {
+export function isSection(value: string | null): value is SettingsSection {
   return !!value && (SETTINGS_SECTIONS as readonly string[]).includes(value);
 }
 
+/** Canonical URL for a settings section. */
+export function sectionHref(section: SettingsSection): string {
+  return `/settings/${section}`;
+}
+
 /**
- * Resolve a raw `?tab=` value to a section. Legacy tabs from the old
- * flat layout collapse onto their new home (Tags + Custom fields → the
- * merged "Fields & tags" section). Anything unknown falls back to the
- * Overview landing.
+ * Resolve a raw `?tab=` value to a section. Legacy tabs collapse onto
+ * their new homes (Tags + Custom fields → "Fields & tags"; Security and
+ * the removed Overview → "Profile & security"). Anything unknown falls
+ * back to the default section.
  */
 export function resolveSection(raw: string | null): SettingsSection {
   if (raw === 'tags' || raw === 'custom-fields') return 'fields';
+  if (raw === 'security' || raw === 'overview') return 'profile';
   if (isSection(raw)) return raw;
   return DEFAULT_SECTION;
 }

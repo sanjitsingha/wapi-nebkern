@@ -314,6 +314,32 @@ export function validateSampleValues(
 }
 
 /**
+ * Validate an Authentication template payload. The body is auto-generated
+ * by Meta; only the button text and optional auth settings matter here.
+ */
+export function validateAuthPayload(payload: TemplatePayload): void {
+  validateTemplateName(payload.name);
+  if (!payload.language?.trim()) {
+    throw new Error('Language is required.');
+  }
+  const buttonText = payload.buttons?.[0]?.text ?? '';
+  if (!buttonText.trim()) {
+    throw new Error('Authentication button label is required.');
+  }
+  if (buttonText.length > TEMPLATE_LIMITS.buttonTextMaxLength) {
+    throw new Error(
+      `Button text exceeds ${TEMPLATE_LIMITS.buttonTextMaxLength} chars.`,
+    );
+  }
+  const expiry = payload.sample_values?.auth?.code_expiration_minutes;
+  if (expiry !== undefined) {
+    if (!Number.isInteger(expiry) || expiry < 1 || expiry > 90) {
+      throw new Error('Code expiry must be between 1 and 90 minutes.');
+    }
+  }
+}
+
+/**
  * Run every validator. Throws on the first failure with a specific,
  * field-level message. Returns the variable counts so callers can
  * reuse them when building the Meta components payload.
@@ -322,6 +348,10 @@ export function validateTemplatePayload(payload: TemplatePayload): {
   bodyVarCount: number;
   headerVarCount: number;
 } {
+  if (payload.category === 'Authentication') {
+    validateAuthPayload(payload);
+    return { bodyVarCount: 0, headerVarCount: 0 };
+  }
   validateTemplateName(payload.name);
   if (!payload.language?.trim()) {
     throw new Error('Language is required.');
