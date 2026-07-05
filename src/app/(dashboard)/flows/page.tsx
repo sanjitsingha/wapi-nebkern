@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Workflow,
   Plus,
   Trash2,
-  Pencil,
   Loader2,
   MessageSquare,
   PlayCircle,
@@ -16,7 +15,12 @@ import {
   HelpCircle,
   UserPlus,
   FileText,
+  History,
+  Search,
+  Filter,
+  ChevronDown,
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 import { useCan } from "@/hooks/use-can";
 import { Button } from "@/components/ui/button";
@@ -29,6 +33,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -62,7 +80,8 @@ const STATUS_LABELS: Record<FlowRow["status"], string> = {
 
 const STATUS_COLORS: Record<FlowRow["status"], string> = {
   draft: "border-border bg-muted text-muted-foreground",
-  active: "border-emerald-600/40 bg-emerald-500/10 text-emerald-300",
+  active:
+    "border-emerald-600/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
   archived: "border-border bg-muted/50 text-muted-foreground",
 };
 
@@ -90,6 +109,8 @@ export default function FlowsPage() {
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<FlowRow["status"][]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -191,6 +212,24 @@ export default function FlowsPage() {
     }
   }
 
+  const filteredFlows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return flows.filter((flow) => {
+      if (statusFilter.length > 0 && !statusFilter.includes(flow.status)) {
+        return false;
+      }
+      if (!q) return true;
+      const haystack = [
+        flow.name,
+        flow.description ?? "",
+        describeTrigger(flow),
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [flows, search, statusFilter]);
+
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -205,7 +244,7 @@ export default function FlowsPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold text-foreground">Flows</h1>
-            <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-300">
+            <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-300">
               Beta
             </span>
           </div>
@@ -218,6 +257,7 @@ export default function FlowsPage() {
           canAct={canCreate}
           gateReason="create flows"
           onClick={() => setCreateOpen(true)}
+          className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 gap-2"
         >
           <Plus className="h-4 w-4" />
           New flow
@@ -230,15 +270,108 @@ export default function FlowsPage() {
           canCreate={canCreate}
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {flows.map((flow) => (
-            <FlowCard
-              key={flow.id}
-              flow={flow}
-              onEdit={() => router.push(`/flows/${flow.id}`)}
-              onDelete={() => handleDelete(flow)}
-            />
-          ))}
+        <div className="space-y-4">
+          {/* Search + status filter */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative max-w-xl flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search flows by name, description, or trigger"
+                className="h-11 pl-9"
+              />
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger>
+                <Button variant="outline" className="h-11 gap-2">
+                  <Filter className="h-4 w-4" />
+                  Status
+                  {statusFilter.length > 0 && (
+                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                      {statusFilter.length}
+                    </span>
+                  )}
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                {(Object.keys(STATUS_LABELS) as FlowRow["status"][]).map(
+                  (status) => (
+                    <DropdownMenuCheckboxItem
+                      key={status}
+                      checked={statusFilter.includes(status)}
+                      className="gap-2"
+                      onCheckedChange={() =>
+                        setStatusFilter((prev) =>
+                          prev.includes(status)
+                            ? prev.filter((s) => s !== status)
+                            : [...prev, status],
+                        )
+                      }
+                    >
+                      {STATUS_LABELS[status]}
+                    </DropdownMenuCheckboxItem>
+                  ),
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {filteredFlows.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/50 px-6 py-14 text-center">
+              <Search className="h-6 w-6 text-muted-foreground" />
+              <p className="mt-3 text-sm font-medium text-foreground">
+                No flows match your filters
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Try a different search term or clear the status filter.
+              </p>
+              {(search || statusFilter.length > 0) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
+                  onClick={() => {
+                    setSearch("");
+                    setStatusFilter([]);
+                  }}
+                >
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-border bg-card">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
+                    <TableHead className="text-muted-foreground">Flow</TableHead>
+                    <TableHead className="text-muted-foreground">Status</TableHead>
+                    <TableHead className="hidden text-muted-foreground md:table-cell">
+                      Trigger
+                    </TableHead>
+                    <TableHead className="hidden text-muted-foreground lg:table-cell">
+                      Last run
+                    </TableHead>
+                    <TableHead className="text-muted-foreground">Runs</TableHead>
+                    <TableHead className="w-10 text-muted-foreground" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredFlows.map((flow) => (
+                    <FlowTableRow
+                      key={flow.id}
+                      flow={flow}
+                      onEdit={() => router.push(`/flows/${flow.id}`)}
+                      onRun={() => router.push(`/flows/${flow.id}/runs`)}
+                      onDelete={() => handleDelete(flow)}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </div>
       )}
 
@@ -355,13 +488,15 @@ function EmptyState({
   );
 }
 
-function FlowCard({
+function FlowTableRow({
   flow,
   onEdit,
+  onRun,
   onDelete,
 }: {
   flow: FlowRow;
   onEdit: () => void;
+  onRun: () => void;
   onDelete: () => void;
 }) {
   const triggerSummary = describeTrigger(flow);
@@ -371,54 +506,82 @@ function FlowCard({
       : flow.status === "archived"
         ? Archive
         : PauseCircle;
+  const lastRun = flow.last_executed_at
+    ? formatDistanceToNow(new Date(flow.last_executed_at), { addSuffix: true })
+    : "Never";
+
   return (
-    <div className="flex flex-col rounded-lg border border-border bg-card p-4 transition-colors hover:border-border">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <Workflow className="h-4 w-4 shrink-0 text-primary" />
-          <h3 className="truncate text-sm font-semibold text-foreground">
-            {flow.name}
-          </h3>
+    <TableRow
+      className="cursor-pointer border-border hover:bg-muted/50"
+      onClick={onEdit}
+    >
+      {/* Flow — icon + name + description */}
+      <TableCell className="max-w-0">
+        <div className="flex items-center gap-2.5">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
+            <Workflow className="h-4 w-4" />
+          </span>
+          <div className="min-w-0">
+            <div className="truncate text-sm font-medium text-foreground">
+              {flow.name}
+            </div>
+            <div className="truncate text-xs text-muted-foreground">
+              {flow.description || triggerSummary}
+            </div>
+          </div>
         </div>
+      </TableCell>
+
+      {/* Status */}
+      <TableCell>
         <Badge
           variant="outline"
-          className={cn(
-            "shrink-0 gap-1 text-[10px]",
-            STATUS_COLORS[flow.status],
-          )}
+          className={cn("gap-1 text-[10px]", STATUS_COLORS[flow.status])}
         >
           <StatusIcon className="h-3 w-3" />
           {STATUS_LABELS[flow.status]}
         </Badge>
-      </div>
+      </TableCell>
 
-      <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
-        {flow.description || triggerSummary}
-      </p>
+      {/* Trigger */}
+      <TableCell className="hidden max-w-48 truncate text-sm text-muted-foreground md:table-cell">
+        {triggerSummary}
+      </TableCell>
 
-      <div className="mt-4 flex items-center gap-3 text-[11px] text-muted-foreground">
-        <span className="inline-flex items-center gap-1">
-          <MessageSquare className="h-3 w-3" />
-          {flow.execution_count} {flow.execution_count === 1 ? "run" : "runs"}
-        </span>
-      </div>
+      {/* Last run */}
+      <TableCell className="hidden text-sm text-muted-foreground lg:table-cell">
+        {lastRun}
+      </TableCell>
 
-      <div className="mt-4 flex items-center justify-end gap-2 border-t border-border pt-3">
-        <Button variant="ghost" size="sm" onClick={onEdit}>
-          <Pencil className="h-3.5 w-3.5" />
-          Edit
-        </Button>
+      {/* Runs — count + run button that opens this flow's runs */}
+      <TableCell onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          onClick={onRun}
+          title="View runs"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:text-primary"
+        >
+          <History className="h-3.5 w-3.5" />
+          {flow.execution_count}
+          <span className="hidden sm:inline">
+            {flow.execution_count === 1 ? "run" : "runs"}
+          </span>
+        </button>
+      </TableCell>
+
+      {/* Delete */}
+      <TableCell onClick={(e) => e.stopPropagation()}>
         <Button
           variant="ghost"
-          size="sm"
+          size="icon"
           onClick={onDelete}
-          className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
+          aria-label="Delete flow"
+          className="size-8 text-muted-foreground hover:bg-red-500/10 hover:text-red-500 dark:hover:text-red-400"
         >
-          <Trash2 className="h-3.5 w-3.5" />
-          Delete
+          <Trash2 className="h-4 w-4" />
         </Button>
-      </div>
-    </div>
+      </TableCell>
+    </TableRow>
   );
 }
 

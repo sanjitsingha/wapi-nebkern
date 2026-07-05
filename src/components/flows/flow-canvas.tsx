@@ -40,6 +40,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   applyNodeChanges,
   Background,
+  BackgroundVariant,
   Controls,
   Handle,
   MiniMap,
@@ -457,7 +458,14 @@ function FlowCanvasInner() {
 
   if (rfNodes.length === 0) {
     return (
-      <div className="flex h-[60vh] flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-background text-sm text-muted-foreground">
+      <div
+        className="flex h-full w-full flex-col items-center justify-center gap-3 bg-background text-sm text-muted-foreground"
+        style={{
+          backgroundImage:
+            'radial-gradient(color-mix(in oklch, var(--border) 90%, transparent) 1.4px, transparent 1.4px)',
+          backgroundSize: '22px 22px',
+        }}
+      >
         <p>No nodes yet.</p>
         <CanvasAddNodeButton />
       </div>
@@ -466,7 +474,7 @@ function FlowCanvasInner() {
 
   return (
     <>
-      <div className="h-[70vh] w-full overflow-hidden rounded-lg border border-border bg-background">
+      <div className="h-full w-full overflow-hidden bg-background">
         <ReactFlow
           nodes={rfNodes}
           edges={rfEdges}
@@ -492,17 +500,27 @@ function FlowCanvasInner() {
           minZoom={0.2}
           maxZoom={1.5}
         >
-          <Background gap={24} size={1} color="var(--border)" />
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={22}
+            size={1.4}
+            color="color-mix(in oklch, var(--border) 90%, transparent)"
+          />
           <Controls
+            position="bottom-left"
             className="!border-border !bg-card [&_button]:!border-border [&_button]:!bg-card [&_button:hover]:!bg-muted [&_button_svg]:!fill-foreground"
             showInteractive={false}
           />
+          {/* MiniMap sits at the bottom-left, just to the right of the
+              zoom controls (offset past their ~40px column). */}
           <MiniMap
+            position="bottom-left"
             pannable
             zoomable
             nodeColor="var(--muted-foreground)"
             maskColor="color-mix(in oklch, var(--background) 70%, transparent)"
             className="!border !border-border !bg-card"
+            style={{ left: 56, bottom: 12, width: 150, height: 96 }}
           />
           <Panel position="bottom-right" className="!bottom-4 !right-4">
             <CanvasAddNodeButton />
@@ -658,19 +676,26 @@ function CanvasAddNodeButton() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground shadow-lg transition-colors hover:bg-muted"
+        className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-colors hover:bg-primary-hover"
         aria-label="Add node"
       >
-        <Plus className="h-3.5 w-3.5" />
+        <Plus className="h-5 w-5" />
         Add node
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="border-border bg-popover">
+      <DropdownMenuContent
+        align="end"
+        className="flex w-56 flex-col gap-1 border-border bg-popover"
+      >
         {ADD_NODE_TYPES.map((t) => {
           const meta = NODE_META[t];
           const Icon = meta.icon;
           return (
-            <DropdownMenuItem key={t} onClick={() => handleAdd(t)}>
-              <Icon className={cn("h-3.5 w-3.5", meta.color)} />
+            <DropdownMenuItem
+              key={t}
+              onClick={() => handleAdd(t)}
+              className="gap-2.5 px-2.5 py-2.5 text-sm"
+            >
+              <Icon className={cn("h-4 w-4", meta.color)} />
               {meta.label}
             </DropdownMenuItem>
           );

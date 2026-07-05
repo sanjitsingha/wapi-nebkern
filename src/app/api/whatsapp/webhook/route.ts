@@ -7,6 +7,7 @@ import { findExistingContact, isUniqueViolation } from '@/lib/contacts/dedupe'
 import { verifyMetaWebhookSignature } from '@/lib/whatsapp/webhook-signature'
 import { runAutomationsForTrigger } from '@/lib/automations/engine'
 import { dispatchInboundToFlows } from '@/lib/flows/engine'
+import { dispatchInboundToAiReply } from '@/lib/ai/auto-reply'
 import {
   handleTemplateWebhookChange,
   isTemplateWebhookField,
@@ -736,6 +737,22 @@ async function processMessage(
         conversation_id: conversation.id,
       },
     }).catch((err) => console.error('[automations] dispatch failed:', err))
+  }
+
+  // AI auto-reply — last, and only when no deterministic Flow consumed
+  // the message (Flows win). Fire-and-forget: the bot owns its own
+  // try/catch and never throws, and its internal gates (AI off, a human
+  // is assigned, an active message-automation exists, the per-thread cap
+  // is hit, a prior handoff) make it a cheap no-op for accounts that
+  // don't use it.
+  if (!flowConsumed) {
+    dispatchInboundToAiReply({
+      accountId,
+      conversationId: conversation.id,
+      contactId: contactRecord.id,
+      configOwnerUserId,
+      messageText: inboundText,
+    }).catch((err) => console.error('[ai auto-reply] dispatch failed:', err))
   }
 }
 

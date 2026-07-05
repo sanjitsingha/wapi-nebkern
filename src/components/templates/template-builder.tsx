@@ -1,13 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Plus, Loader2, ShieldCheck, X, Upload, FolderOpen } from 'lucide-react';
-import {
-  uploadAccountMedia,
-  MEDIA_MAX_BYTES_BY_KIND,
-} from '@/lib/storage/upload-media';
+import { Plus, Loader2, ShieldCheck, X, FolderOpen } from 'lucide-react';
 import { MediaLibraryPicker } from '@/components/media/media-library-picker';
 import type { MediaKind } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -36,6 +32,21 @@ import {
   extractVariableIndices,
   TEMPLATE_LIMITS,
 } from '@/lib/whatsapp/template-validators';
+
+/** Field label with an optional muted hint aligned on the right of the
+ *  same line (instead of a helper paragraph below the input). */
+function LabelRow({ label, hint }: { label: string; hint?: ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <Label className="text-muted-foreground">{label}</Label>
+      {hint ? (
+        <span className="text-right text-[11px] leading-tight text-muted-foreground">
+          {hint}
+        </span>
+      ) : null}
+    </div>
+  );
+}
 
 const CATEGORIES = ['Marketing', 'Utility', 'Authentication'] as const;
 type HeaderFormat = 'none' | 'text' | 'image' | 'video' | 'document';
@@ -167,9 +178,7 @@ export function TemplateBuilder({
   );
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
-  const [uploadingHeader, setUploadingHeader] = useState(false);
   const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
-  const headerFileRef = useRef<HTMLInputElement>(null);
 
   const isAuth = form.category === 'Authentication';
   const waInfo = useWhatsAppInfo();
@@ -467,29 +476,6 @@ export function TemplateBuilder({
     }));
   }
 
-  async function handleHeaderImageFile(file: File) {
-    if (!['image/jpeg', 'image/png'].includes(file.type)) {
-      toast.error('Header image must be a JPEG or PNG.');
-      return;
-    }
-    if (file.size > MEDIA_MAX_BYTES_BY_KIND.image) {
-      toast.error(
-        `Image is ${(file.size / 1024 / 1024).toFixed(1)} MB — Meta's limit is 5 MB.`,
-      );
-      return;
-    }
-    setUploadingHeader(true);
-    try {
-      const { publicUrl } = await uploadAccountMedia('chat-media', file);
-      setForm((f) => ({ ...f, header_media_url: publicUrl }));
-      toast.success('Image uploaded.');
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Upload failed.');
-    } finally {
-      setUploadingHeader(false);
-    }
-  }
-
   const busy = submitting || savingDraft;
 
   return (
@@ -517,7 +503,14 @@ export function TemplateBuilder({
           {/* ── Name + Type ───────────────────────────────────────────── */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_11rem]">
             <div className="space-y-2">
-              <Label className="text-muted-foreground">Template Name</Label>
+              <LabelRow
+                label="Template Name"
+                hint={
+                  isEdit
+                    ? 'Fixed once created'
+                    : 'Lowercase letters, digits, underscores only'
+                }
+              />
               <Input
                 placeholder="e.g. order_confirmation"
                 value={form.name}
@@ -525,15 +518,13 @@ export function TemplateBuilder({
                 disabled={isEdit}
                 className="bg-muted border-border text-foreground placeholder:text-muted-foreground disabled:opacity-60 disabled:cursor-not-allowed"
               />
-              <p className="text-[11px] text-muted-foreground">
-                {isEdit
-                  ? 'Name is fixed once a template exists — create a new template to change it.'
-                  : 'Lowercase letters, digits, and underscores only.'}
-              </p>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-muted-foreground">Type</Label>
+              <LabelRow
+                label="Type"
+                hint={form.category === 'Marketing' ? undefined : 'Marketing only'}
+              />
               <Select
                 value={form.template_type}
                 onValueChange={(val) => {
@@ -554,7 +545,7 @@ export function TemplateBuilder({
                 }}
                 disabled={isEdit || isAuth || form.category !== 'Marketing'}
               >
-                <SelectTrigger className="h-11 w-full bg-muted border-border text-foreground disabled:opacity-60 disabled:cursor-not-allowed">
+                <SelectTrigger className="data-[size=default]:h-11 w-full bg-muted border-border text-foreground disabled:opacity-60 disabled:cursor-not-allowed">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border">
@@ -572,11 +563,6 @@ export function TemplateBuilder({
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-[11px] text-muted-foreground">
-                {form.category === 'Marketing'
-                  ? 'Carousel = swipeable media cards.'
-                  : 'Carousel is Marketing-only.'}
-              </p>
             </div>
           </div>
 
@@ -598,7 +584,7 @@ export function TemplateBuilder({
                 }
                 disabled={isEdit}
               >
-                <SelectTrigger className="h-11 w-full bg-muted border-border text-foreground disabled:opacity-60 disabled:cursor-not-allowed">
+                <SelectTrigger className="data-[size=default]:h-11 w-full bg-muted border-border text-foreground disabled:opacity-60 disabled:cursor-not-allowed">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border">
@@ -616,7 +602,10 @@ export function TemplateBuilder({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-muted-foreground">Language</Label>
+              <LabelRow
+                label="Language"
+                hint={isEdit ? 'Fixed once created' : 'Exact Meta code'}
+              />
               <Input
                 list="template-language-codes"
                 placeholder="en_US"
@@ -630,16 +619,6 @@ export function TemplateBuilder({
                   <option key={code} value={code} />
                 ))}
               </datalist>
-              <p className="text-[11px] text-muted-foreground">
-                {isEdit ? (
-                  'Language is fixed once a template exists.'
-                ) : (
-                  <>
-                    Must match the exact code on Meta — <code>en_US</code> and{' '}
-                    <code>en</code> are distinct.
-                  </>
-                )}
-              </p>
             </div>
           </div>
 
@@ -739,7 +718,7 @@ export function TemplateBuilder({
                     })
                   }
                 >
-                  <SelectTrigger className="h-11 w-full bg-muted border-border text-foreground">
+                  <SelectTrigger className="data-[size=default]:h-11 w-full bg-muted border-border text-foreground">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border">
@@ -787,39 +766,7 @@ export function TemplateBuilder({
 
                 {headerNeedsMedia && (
                   <div className="space-y-2 mt-2">
-                    {form.header_format === 'image' && (
-                      <div className="flex items-center gap-2">
-                        <input
-                          ref={headerFileRef}
-                          type="file"
-                          accept="image/jpeg,image/png"
-                          className="hidden"
-                          onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            if (f) void handleHeaderImageFile(f);
-                            e.target.value = '';
-                          }}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={uploadingHeader}
-                          onClick={() => headerFileRef.current?.click()}
-                        >
-                          {uploadingHeader ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Upload className="h-3.5 w-3.5" />
-                          )}
-                          Upload image
-                        </Button>
-                        <span className="text-[11px] text-muted-foreground">
-                          JPEG or PNG, ≤5 MB
-                        </span>
-                      </div>
-                    )}
-                    <div>
+                    <div className="flex flex-wrap items-center gap-2">
                       <Button
                         type="button"
                         variant="outline"
@@ -827,17 +774,22 @@ export function TemplateBuilder({
                         onClick={() => setLibraryPickerOpen(true)}
                       >
                         <FolderOpen className="h-3.5 w-3.5" />
-                        Pick from library
+                        {form.header_media_url
+                          ? 'Change media'
+                          : 'Pick from library'}
                       </Button>
+                      {form.header_media_url && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setForm({ ...form, header_media_url: '' })
+                          }
+                          className="text-[11px] font-medium text-muted-foreground hover:text-destructive"
+                        >
+                          Remove
+                        </button>
+                      )}
                     </div>
-                    <Input
-                      placeholder={`https://… (or paste a public ${form.header_format} link)`}
-                      value={form.header_media_url}
-                      onChange={(e) =>
-                        setForm({ ...form, header_media_url: e.target.value })
-                      }
-                      className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                    />
                     <MediaLibraryPicker
                       open={libraryPickerOpen}
                       onOpenChange={setLibraryPickerOpen}
@@ -849,22 +801,30 @@ export function TemplateBuilder({
                         }))
                       }
                     />
-                    {form.header_format === 'image' && form.header_media_url && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={form.header_media_url}
-                        alt="Header sample"
-                        className="max-h-28 rounded-md border border-border object-contain"
-                      />
-                    )}
+                    {form.header_media_url &&
+                      (form.header_format === 'image' ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={form.header_media_url}
+                          alt="Header sample"
+                          className="max-h-28 rounded-md border border-border object-contain"
+                        />
+                      ) : form.header_format === 'video' ? (
+                        <video
+                          src={form.header_media_url}
+                          controls
+                          className="max-h-28 rounded-md border border-border"
+                        />
+                      ) : (
+                        <div className="inline-flex items-center gap-2 rounded-md border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
+                          <FolderOpen className="h-4 w-4" />
+                          Document selected
+                        </div>
+                      ))}
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      {form.header_format === 'image'
-                        ? 'Upload a JPEG/PNG (≤5 MB, ≥800×418 px recommended) or paste a public HTTPS link — we upload it to Meta for review automatically.'
-                        : 'Must be a publicly accessible HTTPS link. Meta fetches it once during review, so it needs to stay live for ~24 hrs.'}
-                      {form.header_format === 'video' &&
-                        ' Recommended: MP4 / 3GPP, ≤16 MB, ≤60 seconds.'}
-                      {form.header_format === 'document' &&
-                        ' Recommended: PDF, ≤100 MB.'}
+                      Choose a {form.header_format} from your Media library — it&apos;s
+                      uploaded to Meta for review automatically. Manage files on the{' '}
+                      <span className="font-medium text-foreground">Media</span> page.
                     </p>
                   </div>
                 )}
@@ -872,9 +832,16 @@ export function TemplateBuilder({
               )}
 
               <div className="space-y-2">
-                <Label className="text-muted-foreground">
-                  {isCarousel ? 'Message text (shown above the cards)' : 'Body Text'}
-                </Label>
+                <LabelRow
+                  label={
+                    isCarousel ? 'Message text (above cards)' : 'Body Text'
+                  }
+                  hint={
+                    <>
+                      {`{{1}}`}, {`{{2}}`} = variables (contiguous)
+                    </>
+                  }
+                />
                 <Textarea
                   placeholder="Hello {{1}}, your order {{2}} is confirmed."
                   value={form.body_text}
@@ -885,10 +852,6 @@ export function TemplateBuilder({
                   maxLength={TEMPLATE_LIMITS.bodyMaxLength}
                   className="bg-muted border-border text-foreground placeholder:text-muted-foreground resize-none"
                 />
-                <p className="text-[11px] text-muted-foreground">
-                  Use {`{{1}}`}, {`{{2}}`} for variables (must be contiguous
-                  starting at {`{{1}}`}).
-                </p>
 
                 {bodyVarCount > 0 && (
                   <div className="space-y-1.5 pt-1">

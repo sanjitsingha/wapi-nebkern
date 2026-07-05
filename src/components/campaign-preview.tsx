@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MessageTemplate } from '@/types';
 import { Contact } from '@/types';
 import type { CarouselCard } from '@/types';
@@ -460,7 +460,11 @@ function ReadTicks() {
   );
 }
 
-/** Horizontal, swipeable row of carousel cards shown below the bubble. */
+/**
+ * Horizontal, swipeable row of carousel cards shown below the bubble.
+ * Cards span ~80% of the phone width (matching WhatsApp), the scrollbar
+ * is hidden, and the strip is drag-to-scroll with a grab cursor.
+ */
 function CarouselCards({
   cards,
   format,
@@ -468,22 +472,53 @@ function CarouselCards({
   cards: CarouselCard[];
   format: 'image' | 'video';
 }) {
+  const scroller = useRef<HTMLDivElement>(null);
+  const drag = useRef({ active: false, startX: 0, startScroll: 0 });
+
   if (cards.length === 0) return null;
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const el = scroller.current;
+    if (!el) return;
+    drag.current = {
+      active: true,
+      startX: e.clientX,
+      startScroll: el.scrollLeft,
+    };
+    el.setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const el = scroller.current;
+    if (!el || !drag.current.active) return;
+    el.scrollLeft = drag.current.startScroll - (e.clientX - drag.current.startX);
+  };
+  const endDrag = () => {
+    drag.current.active = false;
+  };
+
   return (
-    <div className="flex gap-2 overflow-x-auto px-2 pb-1 pt-0.5">
+    <div
+      ref={scroller}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      className="flex cursor-grab snap-x snap-mandatory gap-2.5 overflow-x-auto px-3 pb-2 pt-1 select-none active:cursor-grabbing [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
       {cards.map((card, i) => (
         <div
           key={i}
-          className="w-40 shrink-0 overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/5"
+          className="w-[80%] shrink-0 snap-start overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/5"
         >
           {/* Media */}
-          <div className="relative h-24 w-full bg-[#e9edef]">
+          <div className="relative aspect-4/3 w-full bg-[#e9edef]">
             {card.media_url ? (
               format === 'image' ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={card.media_url}
                   alt={`Card ${i + 1}`}
+                  draggable={false}
                   className="h-full w-full object-cover"
                 />
               ) : (
@@ -495,8 +530,8 @@ function CarouselCards({
                     className="h-full w-full object-cover"
                   />
                   <span className="absolute inset-0 flex items-center justify-center">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/45">
-                      <Play className="h-4 w-4 text-white" fill="white" />
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-black/45">
+                      <Play className="h-5 w-5 text-white" fill="white" />
                     </span>
                   </span>
                 </>
@@ -504,38 +539,40 @@ function CarouselCards({
             ) : (
               <div className="flex h-full w-full items-center justify-center opacity-50">
                 {format === 'image' ? (
-                  <ImageIcon className="h-6 w-6 text-[#667781]" />
+                  <ImageIcon className="h-9 w-9 text-[#667781]" />
                 ) : (
-                  <Play className="h-6 w-6 text-[#667781]" />
+                  <Play className="h-9 w-9 text-[#667781]" />
                 )}
               </div>
             )}
           </div>
 
           {/* Body */}
-          <p className="px-2 pt-1.5 text-[11px] leading-snug text-[#111b21]">
+          <p className="px-2.5 pt-2 text-[13px] leading-snug text-[#111b21]">
             {card.body_text || (
               <span className="text-[#8696a0]">Card text…</span>
             )}
           </p>
 
           {/* Buttons */}
-          {card.buttons.length > 0 && (
-            <div className="mt-1.5 border-t border-black/5">
+          {card.buttons.length > 0 ? (
+            <div className="mt-2 border-t border-black/5">
               {card.buttons.map((b, j) => (
                 <div
                   key={j}
-                  className="flex items-center justify-center gap-1 border-b border-black/5 py-1.5 text-[11px] font-medium text-[#027eb5] last:border-b-0"
+                  className="flex items-center justify-center gap-1.5 border-b border-black/5 py-2.5 text-[13.5px] font-medium text-[#027eb5] last:border-b-0"
                 >
                   {b.type === 'URL' ? (
-                    <ExternalLink className="h-3 w-3" />
+                    <ExternalLink className="h-3.5 w-3.5" />
                   ) : (
-                    <Reply className="h-3 w-3" />
+                    <Reply className="h-3.5 w-3.5" />
                   )}
                   {b.text || (b.type === 'URL' ? 'Visit' : 'Reply')}
                 </div>
               ))}
             </div>
+          ) : (
+            <div className="h-2.5" />
           )}
         </div>
       ))}
@@ -759,7 +796,7 @@ export function CampaignPreview({
         <div className="relative flex min-h-0 flex-1 flex-col">
           <ChatWallpaper />
 
-          <div className="relative flex-1 overflow-y-auto px-0.5 pb-2 pt-1">
+          <div className="relative flex-1 overflow-y-auto px-0.5 pb-2 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {template ? (
               <>
                 <DateSeparator text="Today" />

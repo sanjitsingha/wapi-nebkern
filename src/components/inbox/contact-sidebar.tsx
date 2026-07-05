@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
@@ -14,13 +15,20 @@ import {
   DollarSign,
   StickyNote,
   Plus,
+  X,
   ShieldAlert,
   ShieldCheck,
   Loader2,
   PanelRightClose,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -35,6 +43,9 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
   const [deals, setDeals] = useState<Deal[]>([]);
   const [notes, setNotes] = useState<ContactNote[]>([]);
   const [tags, setTags] = useState<(Tag & { contact_tag_id: string })[]>([]);
+  const [allTags, setAllTags] = useState<Tag[]>([]);
+  const [tagSearch, setTagSearch] = useState("");
+  const [savingTag, setSavingTag] = useState(false);
   const [newNote, setNewNote] = useState("");
   const [addingNote, setAddingNote] = useState(false);
   // Mirrors contact.is_spam locally so the toggle reflects instantly
@@ -89,6 +100,58 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchContactData();
   }, [fetchContactData]);
+
+  // All tags (once) — the "Add tag" picker chooses from these.
+  useEffect(() => {
+    let cancelled = false;
+    const supabase = createClient();
+    supabase
+      .from("tags")
+      .select("*")
+      .order("name")
+      .then(({ data }) => {
+        if (!cancelled && data) setAllTags(data as Tag[]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Add or remove a tag on this contact, updating local state instantly.
+  const toggleTag = useCallback(
+    async (tag: Tag) => {
+      if (!contact || savingTag) return;
+      setSavingTag(true);
+      const supabase = createClient();
+      const existing = tags.find((t) => t.id === tag.id);
+      try {
+        if (existing) {
+          const { error } = await supabase
+            .from("contact_tags")
+            .delete()
+            .eq("id", existing.contact_tag_id);
+          if (error) throw error;
+          setTags((prev) => prev.filter((t) => t.id !== tag.id));
+        } else {
+          const { data, error } = await supabase
+            .from("contact_tags")
+            .insert({ contact_id: contact.id, tag_id: tag.id })
+            .select("id")
+            .single();
+          if (error) throw error;
+          setTags((prev) => [
+            ...prev,
+            { ...tag, contact_tag_id: data.id as string },
+          ]);
+        }
+      } catch {
+        toast.error("Couldn't update tags. Please try again.");
+      } finally {
+        setSavingTag(false);
+      }
+    },
+    [contact, tags, savingTag],
+  );
 
   const handleCopyPhone = useCallback(async () => {
     if (!contact?.phone) return;
@@ -216,6 +279,14 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
                 Marked as spam
               </span>
             )}
+
+            <Link
+              href={`/contacts/${contact.id}`}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted hover:text-primary"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              View contact
+            </Link>
           </div>
 
           {/* Phone */}
@@ -267,9 +338,67 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
 
           {/* Tags */}
           <div>
-            <div className="flex items-center gap-2 px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              <TagIcon className="h-3 w-3" />
-              Tags
+            <div className="flex items-center justify-between gap-2 px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <span className="flex items-center gap-2">
+                <TagIcon className="h-3 w-3" />
+                Tags
+              </span>
+              <Popover onOpenChange={(open) => !open && setTagSearch("")}>
+                <PopoverTrigger className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium normal-case text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none data-popup-open:bg-muted data-popup-open:text-foreground">
+                  <Plus className="h-3 w-3" />
+                  Add
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-56 gap-0 p-0">
+                  {allTags.length === 0 ? (
+                    <p className="px-3 py-6 text-center text-xs text-muted-foreground">
+                      No tags yet. Create tags in Settings.
+                    </p>
+                  ) : (
+                    <>
+                      <div className="border-b border-border p-2">
+                        <input
+                          value={tagSearch}
+                          onChange={(e) => setTagSearch(e.target.value)}
+                          placeholder="Search tags…"
+                          autoFocus
+                          className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        />
+                      </div>
+                      <div className="max-h-56 overflow-y-auto p-1">
+                        {allTags
+                          .filter((t) =>
+                            t.name
+                              .toLowerCase()
+                              .includes(tagSearch.trim().toLowerCase()),
+                          )
+                          .map((tag) => {
+                            const active = tags.some((t) => t.id === tag.id);
+                            return (
+                              <button
+                                key={tag.id}
+                                type="button"
+                                onClick={() => toggleTag(tag)}
+                                disabled={savingTag}
+                                className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-muted disabled:opacity-60"
+                              >
+                                <span
+                                  className="size-2.5 shrink-0 rounded-full"
+                                  style={{ backgroundColor: tag.color }}
+                                />
+                                <span className="flex-1 truncate text-xs text-foreground">
+                                  {tag.name}
+                                </span>
+                                {active && (
+                                  <Check className="size-3.5 shrink-0 text-primary" />
+                                )}
+                              </button>
+                            );
+                          })}
+                      </div>
+                    </>
+                  )}
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="mt-2 flex flex-wrap gap-1">
               {tags.length === 0 ? (
@@ -278,13 +407,22 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
                 tags.map((tag) => (
                   <span
                     key={tag.contact_tag_id}
-                    className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                    className="group/tag inline-flex items-center gap-1 rounded-full py-0.5 pl-2 pr-1 text-[10px] font-medium"
                     style={{
                       backgroundColor: `${tag.color}20`,
                       color: tag.color,
                     }}
                   >
                     {tag.name}
+                    <button
+                      type="button"
+                      onClick={() => toggleTag(tag)}
+                      disabled={savingTag}
+                      aria-label={`Remove ${tag.name}`}
+                      className="flex size-3.5 items-center justify-center rounded-full opacity-60 transition-opacity hover:bg-black/10 hover:opacity-100 disabled:opacity-40"
+                    >
+                      <X className="size-2.5" />
+                    </button>
                   </span>
                 ))
               )}

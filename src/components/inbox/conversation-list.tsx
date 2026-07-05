@@ -1,20 +1,33 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Conversation, ConversationStatus, Tag } from "@/types";
-import { Search, ChevronDown, Tag as TagIcon, X } from "lucide-react";
+import {
+  Search,
+  ChevronDown,
+  Tag as TagIcon,
+  X,
+  Bot,
+  Check,
+} from "lucide-react";
 import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
+interface FlowOption {
+  id: string;
+  name: string;
+}
 
 // Contact with embedded tag ids from the join
 interface ContactWithTags {
@@ -67,12 +80,79 @@ export function ConversationList({
   const [filter, setFilter] = useState<InboxFilter>("all");
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [flows, setFlows] = useState<FlowOption[]>([]);
   const [loading, setLoading] = useState(true);
 
   const onConversationsLoadedRef = useRef(onConversationsLoaded);
   useEffect(() => {
     onConversationsLoadedRef.current = onConversationsLoaded;
   });
+
+  // Active flows (bots) — for the per-row assign menu.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/flows")
+      .then((r) => (r.ok ? r.json() : { flows: [] }))
+      .then((data: { flows?: { id: string; name: string; status: string }[] }) => {
+        if (cancelled) return;
+        setFlows(
+          (data.flows ?? [])
+            .filter((f) => f.status === "active")
+            .map((f) => ({ id: f.id, name: f.name })),
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // tag_id → Tag, so rows can resolve a contact's tags to name + color.
+  const tagMap = useMemo(() => {
+    const m = new Map<string, Tag>();
+    availableTags.forEach((t) => m.set(t.id, t));
+    return m;
+  }, [availableTags]);
+
+  // Assign / unassign a bot (flow) straight from a conversation row.
+  // Routes through the same endpoint as the thread's Assign dropdown,
+  // then patches the conversation in the parent's list state.
+  const assignFlow = useCallback(
+    async (conversationId: string, flowId: string | null) => {
+      try {
+        const res = await fetch(
+          `/api/conversations/${conversationId}/assign`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(
+              flowId ? { type: "flow", flowId } : { type: "none" },
+            ),
+          },
+        );
+        const data = await res.json();
+        if (!res.ok) {
+          toast.error(data?.error ?? "Failed to update assignment");
+          return;
+        }
+        onConversationsLoadedRef.current(
+          (conversations as Conversation[]).map((c) =>
+            c.id === conversationId
+              ? {
+                  ...c,
+                  assigned_flow_id: data.assigned_flow_id ?? null,
+                  assigned_agent_id: data.assigned_agent_id ?? undefined,
+                }
+              : c,
+          ),
+        );
+        toast.success(flowId ? "Assigned to bot" : "Bot unassigned");
+      } catch {
+        toast.error("Failed to update assignment");
+      }
+    },
+    [conversations],
+  );
 
   useEffect(() => {
     const supabase = createClient();
@@ -252,6 +332,9 @@ export function ConversationList({
                 conversation={conv as Conversation}
                 isActive={conv.id === activeConversationId}
                 onSelect={handleSelect}
+                tagMap={tagMap}
+                flows={flows}
+                onAssignFlow={assignFlow}
               />
             ))}
           </div>
@@ -313,10 +396,20 @@ interface ConversationItemProps {
   conversation: Conversation;
   isActive: boolean;
   onSelect: (conversation: Conversation) => void;
+  tagMap: Map<string, Tag>;
+  flows: FlowOption[];
+  onAssignFlow: (conversationId: string, flowId: string | null) => void;
 }
 
-function ConversationItem({ conversation, isActive, onSelect }: ConversationItemProps) {
-  const contact = conversation.contact;
+function ConversationItem({
+  conversation,
+  isActive,
+  onSelect,
+  tagMap,
+  flows,
+  onAssignFlow,
+}: ConversationItemProps) {
+  const contact = conversation.contact as ContactWithTags | undefined;
   const displayName = contact?.name || contact?.phone || "Unknown";
   const initials = displayName.charAt(0).toUpperCase();
 
@@ -328,21 +421,38 @@ function ConversationItem({ conversation, isActive, onSelect }: ConversationItem
     ? formatDistanceToNow(new Date(conversation.last_message_at), { addSuffix: false })
     : "";
 
+  // Resolve the contact's tags to displayable chips.
+  const tags = (contact?.contact_tags ?? [])
+    .map((ct) => tagMap.get(ct.tag_id))
+    .filter((t): t is Tag => Boolean(t));
+
+  const assignedFlowId = conversation.assigned_flow_id ?? null;
+  const assignedFlow = flows.find((f) => f.id === assignedFlowId);
+
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
       className={cn(
-        "flex w-full items-start gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50",
-        isActive && "border-l-2 border-primary bg-muted/70"
+        "flex w-full cursor-pointer items-start gap-3 px-3 py-3.5 text-left outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50",
+        isActive && "border-l-2 border-primary bg-muted/70",
       )}
     >
       {/* Avatar */}
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-foreground">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-foreground">
         {contact?.avatar_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={contact.avatar_url}
             alt={displayName}
-            className="h-10 w-10 rounded-full object-cover"
+            className="h-11 w-11 rounded-full object-cover"
           />
         ) : (
           initials
@@ -353,7 +463,7 @@ function ConversationItem({ conversation, isActive, onSelect }: ConversationItem
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
           <span className="flex min-w-0 items-center gap-1.5">
-            <span className="truncate text-sm font-medium text-foreground">
+            <span className="truncate text-sm font-semibold text-foreground">
               {displayName}
             </span>
             {conversation.customer_replied_at && (
@@ -362,7 +472,8 @@ function ConversationItem({ conversation, isActive, onSelect }: ConversationItem
           </span>
           <span className="shrink-0 text-[10px] text-muted-foreground">{timeAgo}</span>
         </div>
-        <div className="mt-0.5 flex items-center justify-between gap-2">
+
+        <div className="mt-1 flex items-center justify-between gap-2">
           <p className="truncate text-xs text-muted-foreground">
             {conversation.last_message_text || "No messages yet"}
           </p>
@@ -378,7 +489,119 @@ function ConversationItem({ conversation, isActive, onSelect }: ConversationItem
             />
           </div>
         </div>
+
+        {/* Tags + bot control */}
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-1">
+            {tags.slice(0, 3).map((tag) => (
+              <span
+                key={tag.id}
+                className="inline-flex max-w-24 items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                style={{ background: `${tag.color}20`, color: tag.color }}
+              >
+                <span
+                  className="h-1.5 w-1.5 shrink-0 rounded-full"
+                  style={{ background: tag.color }}
+                />
+                <span className="truncate">{tag.name}</span>
+              </span>
+            ))}
+            {tags.length > 3 && (
+              <span className="text-[10px] text-muted-foreground">
+                +{tags.length - 3}
+              </span>
+            )}
+          </div>
+
+          <BotControl
+            conversationId={conversation.id}
+            assignedFlowId={assignedFlowId}
+            assignedFlowName={assignedFlow?.name}
+            flows={flows}
+            onAssignFlow={onAssignFlow}
+          />
+        </div>
       </div>
-    </button>
+    </div>
+  );
+}
+
+// ─── Per-row bot assign / unassign ─────────────────────────────────────────
+
+function BotControl({
+  conversationId,
+  assignedFlowId,
+  assignedFlowName,
+  flows,
+  onAssignFlow,
+}: {
+  conversationId: string;
+  assignedFlowId: string | null;
+  assignedFlowName?: string;
+  flows: FlowOption[];
+  onAssignFlow: (conversationId: string, flowId: string | null) => void;
+}) {
+  const stop = (e: React.SyntheticEvent) => e.stopPropagation();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        onClick={stop}
+        title={assignedFlowId ? "Bot assigned" : "Assign a bot"}
+        className={cn(
+          "inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2 text-[10px] font-medium transition-colors",
+          assignedFlowId
+            ? "bg-primary-soft text-primary"
+            : "border border-dashed border-border text-muted-foreground hover:border-primary/50 hover:text-primary",
+        )}
+      >
+        <Bot className="h-3 w-3" />
+        <span className="max-w-20 truncate">
+          {assignedFlowId ? assignedFlowName ?? "Bot" : "Bot"}
+        </span>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="border-border bg-popover min-w-44" onClick={stop}>
+        <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Assign bot
+        </div>
+        {flows.length === 0 ? (
+          <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+            No active bots
+          </DropdownMenuItem>
+        ) : (
+          flows.map((f) => {
+            const active = f.id === assignedFlowId;
+            return (
+              <DropdownMenuItem
+                key={f.id}
+                onClick={(e) => {
+                  stop(e);
+                  onAssignFlow(conversationId, f.id);
+                }}
+                className={cn("text-sm", active ? "text-primary" : "text-popover-foreground")}
+              >
+                <Bot className="size-4" />
+                <span className="flex-1 truncate">{f.name}</span>
+                {active && <Check className="size-3.5" />}
+              </DropdownMenuItem>
+            );
+          })
+        )}
+        {assignedFlowId && (
+          <>
+            <DropdownMenuSeparator className="bg-border" />
+            <DropdownMenuItem
+              onClick={(e) => {
+                stop(e);
+                onAssignFlow(conversationId, null);
+              }}
+              className="text-sm text-muted-foreground"
+            >
+              Unassign bot
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

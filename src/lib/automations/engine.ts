@@ -578,17 +578,32 @@ async function resolveConversationId(args: ExecuteArgs): Promise<string> {
   return data.id as string
 }
 
-function triggerMatches(automation: Automation, ctx: AutomationContext | undefined): boolean {
-  if (automation.trigger_type !== 'keyword_match') return true
-  const cfg = automation.trigger_config as KeywordMatchTriggerConfig
+/**
+ * Does `text` satisfy a keyword_match trigger config? Shared so other
+ * subsystems (e.g. the AI auto-reply bot's stand-down gate) can decide
+ * whether a keyword automation would actually fire for a given message,
+ * rather than assuming it fires for everything.
+ */
+export function matchesKeywordTrigger(
+  cfg: KeywordMatchTriggerConfig | null | undefined,
+  text: string,
+): boolean {
   if (!cfg?.keywords || cfg.keywords.length === 0) return false
-  const text = (ctx?.message_text ?? '').toString()
   if (!text) return false
   const haystack = cfg.case_sensitive ? text : text.toLowerCase()
   return cfg.keywords.some((raw) => {
     const k = cfg.case_sensitive ? raw : raw.toLowerCase()
     return cfg.match_type === 'exact' ? haystack === k : haystack.includes(k)
   })
+}
+
+function triggerMatches(automation: Automation, ctx: AutomationContext | undefined): boolean {
+  if (automation.trigger_type !== 'keyword_match') return true
+  const text = (ctx?.message_text ?? '').toString()
+  return matchesKeywordTrigger(
+    automation.trigger_config as KeywordMatchTriggerConfig,
+    text,
+  )
 }
 
 async function evaluateCondition(cfg: ConditionStepConfig, args: ExecuteArgs): Promise<boolean> {

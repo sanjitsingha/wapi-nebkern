@@ -11,6 +11,7 @@ import {
   type SettingsSection,
 } from '@/components/settings/settings-sections';
 import {
+  Bot,
   ChevronDown,
   Coins,
   FileText,
@@ -53,11 +54,19 @@ interface NavGroup {
   children: NavLink[];
 }
 
-// Standalone item above the grouped nav (the reference's "Home").
+// Standalone items above the grouped nav (the reference's "Home").
 const homeLink: NavLink = {
   label: 'Home',
   icon: Home,
   href: '/dashboard',
+};
+
+// AI Agents sits on its own, outside any group — a first-class surface.
+const agentsLink: NavLink = {
+  label: 'AI Agents',
+  icon: Bot,
+  href: '/agents',
+  badge: 'New',
 };
 
 const quickLinks: NavLink[] = [
@@ -317,7 +326,7 @@ export function Sidebar({
         aria-label="Close menu"
         onClick={onClose}
         className={cn(
-          'bg-background/70 fixed inset-0 z-30 backdrop-blur-sm transition-opacity lg:hidden',
+          'bg-black/50 fixed inset-0 z-30 transition-opacity lg:hidden',
           open
             ? 'pointer-events-auto opacity-100'
             : 'pointer-events-none opacity-0'
@@ -359,6 +368,7 @@ export function Sidebar({
           </div>
           <ul className="flex flex-col gap-1.5">
             <li>{renderLink(homeLink)}</li>
+            <li>{renderLink(agentsLink)}</li>
           </ul>
 
           {/* Expanded: single-line label. Collapsed (lg rail): instead of

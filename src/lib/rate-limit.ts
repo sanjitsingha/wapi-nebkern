@@ -141,6 +141,15 @@ export const RATE_LIMITS = {
    *  while still bounding accidental abuse from a script run in a
    *  loop or a compromised admin session spamming role flips. */
   adminAction: { limit: 30, windowMs: 60_000 },
+  /** AI generation per user (Draft with AI / Playground). Each call
+   *  spends tokens on the account's own provider key, so this is a
+   *  guardrail against a stuck loop or an over-eager click, not a hard
+   *  usage ceiling. 20/min is plenty for a human drafting replies. */
+  aiDraft: { limit: 20, windowMs: 60_000 },
+  /** AI generation per account. Caps the whole team's combined draws on
+   *  the shared BYO provider key so one workspace can't spike its own
+   *  bill (or hit the provider's rate limit) via many agents at once. */
+  aiDraftAccount: { limit: 60, windowMs: 60_000 },
 } as const;
 
 /** Test-only helper. Clears the in-memory state so unit tests don't

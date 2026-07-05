@@ -18,6 +18,7 @@ import {
   Square,
   X,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GatedButton } from "@/components/ui/gated-button";
@@ -124,6 +125,11 @@ export function MessageComposer({
   const [sending, setSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // "Draft with AI" — only surfaced when the account has an active AI
+  // config (checked once on mount). `drafting` covers the request window.
+  const [aiActive, setAiActive] = useState(false);
+  const [drafting, setDrafting] = useState(false);
+
   // Media attachment state. `draft` holds an uploaded-but-not-yet-sent
   // attachment; `busy` covers the upload/transcode window.
   const [draft, setDraft] = useState<MediaDraft | null>(null);
@@ -181,6 +187,26 @@ export function MessageComposer({
     };
   }, [clearTimer, removeStaged]);
 
+  // Is the AI assistant live for this account? Drives whether the ✨
+  // Draft button shows. A failure just leaves it hidden.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/ai/config");
+        const data = await res.json().catch(() => ({}));
+        if (!cancelled) {
+          setAiActive(Boolean(data?.configured && data?.is_active));
+        }
+      } catch {
+        // Leave the button hidden on error.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const adjustHeight = useCallback(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -188,6 +214,37 @@ export function MessageComposer({
     // Max 4 lines (~96px)
     el.style.height = `${Math.min(el.scrollHeight, 96)}px`;
   }, []);
+
+  // Ask the AI for a suggested reply and drop it into the composer for
+  // the agent to edit + send. Read-only server-side — nothing is sent.
+  const handleDraft = useCallback(async () => {
+    if (drafting || readOnly) return;
+    setDrafting(true);
+    try {
+      const res = await fetch("/api/ai/draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversation_id: conversationId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error ?? "Couldn't draft a reply.");
+        return;
+      }
+      if (typeof data.draft === "string" && data.draft.trim()) {
+        setText(data.draft.trim());
+        requestAnimationFrame(() => {
+          adjustHeight();
+          textareaRef.current?.focus();
+        });
+      }
+    } catch {
+      toast.error("Couldn't reach the AI assistant.");
+    } finally {
+      setDrafting(false);
+    }
+    // `readOnly` is derived from a hook and stable within a render.
+  }, [drafting, readOnly, conversationId, adjustHeight]);
 
   const handleSend = useCallback(async () => {
     const trimmed = text.trim();
@@ -522,6 +579,24 @@ export function MessageComposer({
           >
             <LayoutTemplate className="h-5 w-5" />
           </GatedButton>
+
+          {aiActive && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleDraft}
+              disabled={inputsDisabled || drafting}
+              title="Draft a reply with AI"
+              className="h-10 w-10 shrink-0 p-0 text-primary hover:bg-primary-soft/60 hover:text-primary disabled:opacity-50"
+            >
+              {drafting ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Sparkles className="h-5 w-5" />
+              )}
+            </Button>
+          )}
 
           <textarea
             ref={textareaRef}

@@ -77,9 +77,13 @@ export function IssueLine({
   onJump?: (key: string) => void;
 }) {
   const tone =
-    issue.severity === "error" ? "text-red-300" : "text-amber-300";
+    issue.severity === "error"
+      ? "text-red-600 dark:text-red-300"
+      : "text-amber-600 dark:text-amber-300";
   const iconTone =
-    issue.severity === "error" ? "text-red-400" : "text-amber-400";
+    issue.severity === "error"
+      ? "text-red-500 dark:text-red-400"
+      : "text-amber-500 dark:text-amber-400";
   const body = (
     <>
       <CircleAlert className={cn("mt-0.5 h-3 w-3 shrink-0", iconTone)} />
