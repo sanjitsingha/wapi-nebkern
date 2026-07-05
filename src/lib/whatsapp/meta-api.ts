@@ -24,14 +24,43 @@ export interface MetaPhoneInfo {
 }
 
 interface MetaErrorResponse {
-  error?: { message?: string; code?: number; type?: string }
+  error?: {
+    message?: string
+    code?: number
+    type?: string
+    error_subcode?: number
+    // Meta puts the actionable reason here for template rejects — the
+    // top-level `message` is usually just "(#100) Invalid parameter".
+    error_user_title?: string
+    error_user_msg?: string
+    error_data?: { details?: string } | null
+  }
 }
 
 async function throwMetaError(response: Response, fallback: string): Promise<never> {
   let message = fallback
   try {
     const data = (await response.json()) as MetaErrorResponse
-    if (data.error?.message) message = data.error.message
+    const err = data.error
+    if (err) {
+      // Meta's top-level `message` (e.g. "(#100) Invalid parameter") is
+      // rarely actionable — the specific reason lives in error_user_title
+      // / error_user_msg / error_data.details. Surface all of them so a
+      // rejected template says WHAT is wrong (which field, which rule).
+      const seen = new Set<string>()
+      const parts = [
+        err.message,
+        err.error_user_title,
+        err.error_user_msg,
+        err.error_data?.details,
+      ].filter((s): s is string => {
+        if (!s || !s.trim() || seen.has(s)) return false
+        seen.add(s)
+        return true
+      })
+      if (parts.length > 0) message = parts.join(' — ')
+      if (err.error_subcode) message += ` [subcode ${err.error_subcode}]`
+    }
   } catch {
     // response body wasn't JSON — keep the fallback
   }

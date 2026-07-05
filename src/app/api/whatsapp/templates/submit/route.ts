@@ -187,6 +187,12 @@ export async function POST(request: Request) {
       }
 
       const metaPayload = buildMetaTemplatePayload(payload)
+      // Log the exact components we send so a Meta rejection can be traced
+      // to the offending field (buttons/examples/urls) from the dev log.
+      console.log(
+        '[templates/submit] → Meta payload:',
+        JSON.stringify(metaPayload),
+      )
       try {
         const meta = await submitMessageTemplate({
           wabaId: config.waba_id,
@@ -197,6 +203,7 @@ export async function POST(request: Request) {
         metaStatus = meta.status
       } catch (e) {
         const message = e instanceof Error ? e.message : 'Meta submit failed.'
+        console.error('[templates/submit] ✗ Meta rejected:', message)
         // Persist the failure so the user can retry; row stays DRAFT
         // until they fix and re-submit.
         await upsertTemplateRow(

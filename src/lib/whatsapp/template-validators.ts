@@ -144,6 +144,21 @@ export function validateHeader(
         `Header text exceeds ${TEMPLATE_LIMITS.headerTextMaxLength} chars (got ${header_content.length}).`,
       );
     }
+    // Meta rejects text headers with line breaks, tabs, markdown
+    // formatting (asterisks), or emoji (subcode 2388072). Catch it here
+    // with a specific message instead of a generic "Invalid parameter".
+    // Note: this restriction is header-only — the body may contain emoji.
+    if (/[\n\r\t]/.test(header_content)) {
+      throw new Error('Header text cannot contain line breaks or tabs (Meta rule).');
+    }
+    if (header_content.includes('*')) {
+      throw new Error(
+        'Header text cannot contain asterisks or markdown formatting (Meta rule).',
+      );
+    }
+    if (/\p{Extended_Pictographic}/u.test(header_content)) {
+      throw new Error('Header text cannot contain emojis (Meta rule).');
+    }
     const indices = extractVariableIndices(header_content);
     if (indices.length > 1) {
       throw new Error(

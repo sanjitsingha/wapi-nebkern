@@ -108,7 +108,17 @@ function buildButtonPayload(b: TemplateButton): MetaButtonPayload {
         text: b.text,
         url: b.url,
       };
-      if (b.example) payload.example = [b.example];
+      // Meta wants the URL button's example as the FULL example URL, not
+      // the bare `{{1}}` value. The builder collects just the value
+      // (e.g. "ORD-1024"), so substitute it into the url to produce
+      // "https://…/ORD-1024". If the user already pasted a full URL,
+      // use it verbatim so we don't double-substitute.
+      if (b.example) {
+        const full = /^https?:\/\//i.test(b.example)
+          ? b.example
+          : b.url.replace(/\{\{\s*1\s*\}\}/, b.example);
+        payload.example = [full];
+      }
       return payload;
     }
     case 'PHONE_NUMBER':

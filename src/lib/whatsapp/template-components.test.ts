@@ -102,7 +102,9 @@ describe('buildMetaTemplatePayload', () => {
     const buttons = payload.components.find((c) => c.type === 'BUTTONS');
     expect(buttons?.buttons).toEqual([
       { type: 'QUICK_REPLY', text: 'Yes' },
-      { type: 'URL', text: 'Track', url: 'https://x/{{1}}', example: ['abc'] },
+      // The bare value 'abc' is substituted into the url to form the
+      // full example URL Meta requires.
+      { type: 'URL', text: 'Track', url: 'https://x/{{1}}', example: ['https://x/abc'] },
       { type: 'PHONE_NUMBER', text: 'Call', phone_number: '+15551234567' },
       { type: 'COPY_CODE', text: 'Copy', example: ['SUMMER20'] },
     ]);

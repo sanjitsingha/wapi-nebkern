@@ -1011,7 +1011,7 @@ export function TemplateBuilder({
                             />
                             {extractVariableIndices(btn.url).length > 0 && (
                               <Input
-                                placeholder="Example value for {{1}} (required when URL has a variable)"
+                                placeholder="Example for {{1}} — e.g. ORD-1024 (or a full URL)"
                                 value={btn.example ?? ''}
                                 onChange={(e) =>
                                   updateButton(i, { example: e.target.value })
