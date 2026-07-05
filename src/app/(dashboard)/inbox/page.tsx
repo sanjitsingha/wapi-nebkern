@@ -574,10 +574,12 @@ export default function InboxPage() {
       conversationId: string,
       assignedAgentId: string | null,
       assignedFlowId: string | null,
+      aiAgentAssigned: boolean,
     ) => {
       const patch = {
         assigned_agent_id: assignedAgentId ?? undefined,
         assigned_flow_id: assignedFlowId ?? null,
+        ai_agent_assigned: aiAgentAssigned,
       };
       setConversations((prev) =>
         prev.map((c) => (c.id === conversationId ? { ...c, ...patch } : c))

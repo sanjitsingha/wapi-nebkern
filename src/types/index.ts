@@ -185,6 +185,11 @@ export interface Conversation {
   /** Flow (bot) currently driving this conversation, if any (migration
    *  035). Mutually exclusive with `assigned_agent_id` in the UI. */
   assigned_flow_id?: string | null;
+  /** The account's AI agent owns this thread (migration 041): it
+   *  auto-replies to every inbound here regardless of the account-wide
+   *  toggle and without the per-conversation cap. Mutually exclusive
+   *  with `assigned_agent_id` / `assigned_flow_id`. */
+  ai_agent_assigned?: boolean;
   last_message_text?: string;
   last_message_at?: string;
   /** Timestamp of the last inbound customer message — used to compute the WhatsApp 24-hour messaging window. */

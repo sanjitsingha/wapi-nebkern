@@ -51,8 +51,25 @@ export async function dispatchInboundToAiReply(
   try {
     const db = supabaseAdmin()
 
+    // Master switch (`is_active`) governs everything, including
+    // per-chat assignments — loadAiConfig returns null when it's off.
     const config = await loadAiConfig(db, accountId)
-    if (!config || !config.autoReplyEnabled) return
+    if (!config) return
+
+    const { data: conv, error: convErr } = await db
+      .from('conversations')
+      .select(
+        'assigned_agent_id, ai_autoreply_disabled, ai_reply_count, ai_agent_assigned',
+      )
+      .eq('id', conversationId)
+      .maybeSingle()
+    if (convErr || !conv) return
+
+    // Per-chat assignment is the explicit "the AI owns this thread"
+    // override: it works even when the account-wide auto-reply toggle is
+    // off, and skips the per-conversation cap + sticky-mute gates below.
+    const aiAssigned = conv.ai_agent_assigned === true
+    if (!aiAssigned && !config.autoReplyEnabled) return
 
     // Deterministic, user-configured responders win over the LLM — the
     // caller already excludes messages a Flow consumed. Message-level
@@ -82,17 +99,13 @@ export async function dispatchInboundToAiReply(
     )
     if (anAutomationWillFire) return
 
-    const { data: conv, error: convErr } = await db
-      .from('conversations')
-      .select('assigned_agent_id, ai_autoreply_disabled, ai_reply_count')
-      .eq('id', conversationId)
-      .maybeSingle()
-    if (convErr || !conv) return
     if (conv.assigned_agent_id) return // a human owns this thread
-    if (conv.ai_autoreply_disabled) return // handed off / turned off here
-    // Cheap early-out; the authoritative cap check is the atomic claim
-    // below (this read can race a concurrent inbound).
-    if (conv.ai_reply_count >= config.autoReplyMaxPerConversation) return
+    if (!aiAssigned) {
+      if (conv.ai_autoreply_disabled) return // handed off / turned off here
+      // Cheap early-out; the authoritative cap check is the atomic claim
+      // below (this read can race a concurrent inbound).
+      if (conv.ai_reply_count >= config.autoReplyMaxPerConversation) return
+    }
 
     const messages = await buildConversationContext(db, conversationId)
     if (messages.length === 0) return
@@ -120,10 +133,12 @@ export async function dispatchInboundToAiReply(
     if (handoff || !text) {
       // The model can't (or shouldn't) answer — stop auto-replying on
       // this thread and leave the inbound unanswered so it surfaces in
-      // the inbox for a human. Sticky until an admin re-enables.
+      // the inbox for a human. Sticky until an admin re-enables. An
+      // assigned AI resigns its assignment too, so the conversation
+      // shows as unassigned and a teammate knows to pick it up.
       await db
         .from('conversations')
-        .update({ ai_autoreply_disabled: true })
+        .update({ ai_autoreply_disabled: true, ai_agent_assigned: false })
         .eq('id', conversationId)
       return
     }
@@ -133,11 +148,14 @@ export async function dispatchInboundToAiReply(
     // another inbound just took the last slot, `claimed` is false and we
     // skip the send. (We consume a slot slightly before the send lands —
     // fail-safe: under-reply rather than over-reply.)
+    //
+    // Assigned mode has no cap, but still claims with an effectively
+    // unbounded max so `ai_reply_count` keeps counting for visibility.
     const { data: claimed, error: claimErr } = await db.rpc(
       'claim_ai_reply_slot',
       {
         conversation_id: conversationId,
-        max_replies: config.autoReplyMaxPerConversation,
+        max_replies: aiAssigned ? 2147483647 : config.autoReplyMaxPerConversation,
       },
     )
     if (claimErr || claimed !== true) return

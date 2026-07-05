@@ -27,6 +27,7 @@ import {
   PanelRightOpen,
   X,
   Bot,
+  Sparkles,
 } from "lucide-react";
 import { format, isToday, isYesterday, differenceInHours } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +76,7 @@ interface MessageThreadProps {
     conversationId: string,
     assignedAgentId: string | null,
     assignedFlowId: string | null,
+    aiAgentAssigned: boolean,
   ) => void;
   /**
    * On mobile, the thread is shown full-screen with the conversation list
@@ -798,6 +800,7 @@ export function MessageThread({
       body:
         | { type: "agent"; agentId: string }
         | { type: "flow"; flowId: string }
+        | { type: "ai" }
         | { type: "none" },
     ) => {
       if (!conversation) return;
@@ -819,13 +822,16 @@ export function MessageThread({
           conversation.id,
           data.assigned_agent_id ?? null,
           data.assigned_flow_id ?? null,
+          data.ai_agent_assigned === true,
         );
         toast.success(
           body.type === "flow"
             ? "Assigned to bot"
-            : body.type === "agent"
-              ? "Conversation assigned"
-              : "Conversation unassigned",
+            : body.type === "ai"
+              ? "AI Agent will handle this chat"
+              : body.type === "agent"
+                ? "Conversation assigned"
+                : "Conversation unassigned",
         );
       } catch {
         toast.error("Failed to update assignment");
@@ -860,16 +866,19 @@ export function MessageThread({
   );
   const assignedAgentId = conversation.assigned_agent_id ?? null;
   const assignedFlowId = conversation.assigned_flow_id ?? null;
+  const aiAssigned = conversation.ai_agent_assigned === true;
   const currentAssignee = profiles.find((p) => p.user_id === assignedAgentId);
   const assignedFlow = flows.find((f) => f.id === assignedFlowId);
-  const isAssigned = !!assignedAgentId || !!assignedFlowId;
-  const assignLabel = assignedFlow
-    ? assignedFlow.name
-    : assignedFlowId
-      ? "Bot"
-      : assignedAgentId
-        ? (currentAssignee?.full_name ?? "Assigned")
-        : "Assign";
+  const isAssigned = !!assignedAgentId || !!assignedFlowId || aiAssigned;
+  const assignLabel = aiAssigned
+    ? "AI Agent"
+    : assignedFlow
+      ? assignedFlow.name
+      : assignedFlowId
+        ? "Bot"
+        : assignedAgentId
+          ? (currentAssignee?.full_name ?? "Assigned")
+          : "Assign";
 
   return (
     // `min-w-0` is load-bearing: the page already puts min-w-0 on the
@@ -976,7 +985,9 @@ export function MessageThread({
               "inline-flex items-center justify-center h-9 gap-1.5 px-3 text-sm font-medium rounded-md border border-border hover:bg-muted transition-colors",
               isAssigned ? "text-primary border-primary/30" : "text-muted-foreground"
             )}>
-              {assignedFlowId ? (
+              {aiAssigned ? (
+                <Sparkles className="h-4 w-4" />
+              ) : assignedFlowId ? (
                 <Bot className="h-4 w-4" />
               ) : (
                 <UserPlus className="h-4 w-4" />
@@ -985,6 +996,24 @@ export function MessageThread({
               <ChevronDown className="h-3.5 w-3.5" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="border-border bg-popover">
+              {/* AI Agent — the BYO-key assistant handles this chat on its
+                  own: replies to every inbound (KB-grounded), no cap, even
+                  with the account-wide auto-reply toggle off. */}
+              <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                AI
+              </div>
+              <DropdownMenuItem
+                onClick={() => assign({ type: "ai" })}
+                className={cn(
+                  "text-sm",
+                  aiAssigned ? "text-primary" : "text-popover-foreground",
+                )}
+              >
+                <Sparkles className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="flex-1 truncate">AI Agent</span>
+                {aiAssigned && <Check className="ml-2 h-3 w-3" />}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-border" />
               {/* Bots (Flows) */}
               {flows.length > 0 && (
                 <>
