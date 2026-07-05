@@ -98,10 +98,40 @@ export interface Contact {
   email?: string;
   company?: string;
   avatar_url?: string;
+  /** Structured postal address (migration 033). All nullable. */
+  street?: string;
+  locality?: string;
+  city?: string;
+  state?: string;
+  pin_code?: string;
   /** Flagged as spam from the inbox contact panel (migration 030). */
   is_spam?: boolean;
+  /** Notifications suppressed for this contact (migration 034). */
+  is_muted?: boolean;
+  /** Contact blocked (migration 034). */
+  is_blocked?: boolean;
   created_at: string;
   updated_at: string;
+}
+
+/** Kind of media a WhatsApp template header can carry. */
+export type MediaKind = 'image' | 'video' | 'document';
+
+/** A reusable file in the media library (migration 036). */
+export interface MediaLibraryItem {
+  id: string;
+  account_id: string;
+  user_id: string;
+  name: string;
+  kind: MediaKind;
+  mime_type: string;
+  size_bytes: number;
+  width?: number | null;
+  height?: number | null;
+  bucket: string;
+  path: string;
+  public_url: string;
+  created_at: string;
 }
 
 export interface Tag {
@@ -152,6 +182,9 @@ export interface Conversation {
   contact_id: string;
   status: ConversationStatus;
   assigned_agent_id?: string;
+  /** Flow (bot) currently driving this conversation, if any (migration
+   *  035). Mutually exclusive with `assigned_agent_id` in the UI. */
+  assigned_flow_id?: string | null;
   last_message_text?: string;
   last_message_at?: string;
   /** Timestamp of the last inbound customer message — used to compute the WhatsApp 24-hour messaging window. */
@@ -268,12 +301,28 @@ export interface TemplateSampleValues {
   };
 }
 
+/** One card of a carousel template. All cards in a template share the
+ *  same media format and the same button structure (Meta rule); only
+ *  the media, body, and per-button values differ per card. */
+export interface CarouselCard {
+  /** Public URL of the card's media (image or video). */
+  media_url: string;
+  /** Resumable-Upload handle, derived at submit time. */
+  media_handle?: string;
+  body_text: string;
+  buttons: TemplateButton[];
+}
+
+export type TemplateType = 'standard' | 'carousel';
+
 export interface MessageTemplate {
   id: string;
   user_id: string;
   name: string;
   category: 'Marketing' | 'Utility' | 'Authentication';
   language?: string;
+  /** 'standard' (default) or 'carousel'. */
+  template_type?: TemplateType;
   header_type?: 'text' | 'image' | 'video' | 'document';
   header_content?: string;
   header_handle?: string;
@@ -281,6 +330,9 @@ export interface MessageTemplate {
   body_text: string;
   footer_text?: string;
   buttons?: TemplateButton[];
+  /** Carousel-only: shared media format + the cards. */
+  carousel_card_format?: 'image' | 'video';
+  carousel_cards?: CarouselCard[];
   sample_values?: TemplateSampleValues;
   status?: MessageTemplateStatus;
   meta_template_id?: string;

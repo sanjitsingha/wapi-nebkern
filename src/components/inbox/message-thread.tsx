@@ -26,6 +26,7 @@ import {
   RefreshCw,
   PanelRightOpen,
   X,
+  Bot,
 } from "lucide-react";
 import { format, isToday, isYesterday, differenceInHours } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -73,6 +74,7 @@ interface MessageThreadProps {
   onAssignChange: (
     conversationId: string,
     assignedAgentId: string | null,
+    assignedFlowId: string | null,
   ) => void;
   /**
    * On mobile, the thread is shown full-screen with the conversation list
@@ -169,6 +171,8 @@ export function MessageThread({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  // Active flows (bots) that a conversation can be assigned to.
+  const [flows, setFlows] = useState<{ id: string; name: string }[]>([]);
   const [reactions, setReactions] = useState<MessageReaction[]>([]);
   // Purely visual spin state for the manual-refresh button. The actual
   // refetch is fire-and-forget through `onRefresh` (which bumps the
@@ -212,6 +216,27 @@ export function MessageThread({
         }
         setProfiles((data as Profile[]) ?? []);
       });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Active flows for the "Assign → Bot" options. Fetched from the API
+  // (not supabase directly) so it goes through the same account scoping
+  // as the flows page; only active flows can drive a conversation.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/flows")
+      .then((r) => (r.ok ? r.json() : { flows: [] }))
+      .then((data: { flows?: { id: string; name: string; status: string }[] }) => {
+        if (cancelled) return;
+        setFlows(
+          (data.flows ?? [])
+            .filter((f) => f.status === "active")
+            .map((f) => ({ id: f.id, name: f.name })),
+        );
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -765,23 +790,46 @@ export function MessageThread({
     [conversation, user?.id],
   );
 
-  const handleAssignChange = useCallback(
-    async (agentId: string | null) => {
+  // Unified assignment — routes agent / flow / unassign through one API
+  // endpoint that also keeps the bot's flow-run lifecycle in sync (start
+  // on flow assign, stop on human/unassign).
+  const assign = useCallback(
+    async (
+      body:
+        | { type: "agent"; agentId: string }
+        | { type: "flow"; flowId: string }
+        | { type: "none" },
+    ) => {
       if (!conversation) return;
-
-      const supabase = createClient();
-      const { error } = await supabase
-        .from("conversations")
-        .update({ assigned_agent_id: agentId })
-        .eq("id", conversation.id);
-
-      if (error) {
-        console.error("Failed to update assignment:", error);
+      try {
+        const res = await fetch(
+          `/api/conversations/${conversation.id}/assign`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          },
+        );
+        const data = await res.json();
+        if (!res.ok) {
+          toast.error(data?.error ?? "Failed to update assignment");
+          return;
+        }
+        onAssignChange(
+          conversation.id,
+          data.assigned_agent_id ?? null,
+          data.assigned_flow_id ?? null,
+        );
+        toast.success(
+          body.type === "flow"
+            ? "Assigned to bot"
+            : body.type === "agent"
+              ? "Conversation assigned"
+              : "Conversation unassigned",
+        );
+      } catch {
         toast.error("Failed to update assignment");
-        return;
       }
-
-      onAssignChange(conversation.id, agentId);
     },
     [conversation, onAssignChange],
   );
@@ -811,10 +859,17 @@ export function MessageThread({
     (s) => s.value === conversation.status
   );
   const assignedAgentId = conversation.assigned_agent_id ?? null;
+  const assignedFlowId = conversation.assigned_flow_id ?? null;
   const currentAssignee = profiles.find((p) => p.user_id === assignedAgentId);
-  const assignLabel = assignedAgentId
-    ? (currentAssignee?.full_name ?? "Assigned")
-    : "Assign";
+  const assignedFlow = flows.find((f) => f.id === assignedFlowId);
+  const isAssigned = !!assignedAgentId || !!assignedFlowId;
+  const assignLabel = assignedFlow
+    ? assignedFlow.name
+    : assignedFlowId
+      ? "Bot"
+      : assignedAgentId
+        ? (currentAssignee?.full_name ?? "Assigned")
+        : "Assign";
 
   return (
     // `min-w-0` is load-bearing: the page already puts min-w-0 on the
@@ -919,13 +974,48 @@ export function MessageThread({
           <DropdownMenu>
             <DropdownMenuTrigger className={cn(
               "inline-flex items-center justify-center h-9 gap-1.5 px-3 text-sm font-medium rounded-md border border-border hover:bg-muted transition-colors",
-              assignedAgentId ? "text-primary border-primary/30" : "text-muted-foreground"
+              isAssigned ? "text-primary border-primary/30" : "text-muted-foreground"
             )}>
-              <UserPlus className="h-4 w-4" />
-              <span className="hidden sm:inline">{assignLabel}</span>
+              {assignedFlowId ? (
+                <Bot className="h-4 w-4" />
+              ) : (
+                <UserPlus className="h-4 w-4" />
+              )}
+              <span className="hidden max-w-32 truncate sm:inline">{assignLabel}</span>
               <ChevronDown className="h-3.5 w-3.5" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="border-border bg-popover">
+              {/* Bots (Flows) */}
+              {flows.length > 0 && (
+                <>
+                  <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Bots
+                  </div>
+                  {flows.map((f) => {
+                    const isSelected = f.id === assignedFlowId;
+                    return (
+                      <DropdownMenuItem
+                        key={f.id}
+                        onClick={() => assign({ type: "flow", flowId: f.id })}
+                        className={cn(
+                          "text-sm",
+                          isSelected ? "text-primary" : "text-popover-foreground"
+                        )}
+                      >
+                        <Bot className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="flex-1 truncate">{f.name}</span>
+                        {isSelected && <Check className="ml-2 h-3 w-3" />}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                  <DropdownMenuSeparator className="bg-border" />
+                </>
+              )}
+
+              {/* Agents */}
+              <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Agents
+              </div>
               {profiles.length === 0 ? (
                 <DropdownMenuItem disabled className="text-sm text-muted-foreground">
                   No teammates available
@@ -937,7 +1027,7 @@ export function MessageThread({
                   return (
                     <DropdownMenuItem
                       key={p.id}
-                      onClick={() => handleAssignChange(p.user_id)}
+                      onClick={() => assign({ type: "agent", agentId: p.user_id })}
                       className={cn(
                         "text-sm",
                         isSelected ? "text-primary" : "text-popover-foreground"
@@ -961,11 +1051,11 @@ export function MessageThread({
                   );
                 })
               )}
-              {assignedAgentId && (
+              {isAssigned && (
                 <>
                   <DropdownMenuSeparator className="bg-border" />
                   <DropdownMenuItem
-                    onClick={() => handleAssignChange(null)}
+                    onClick={() => assign({ type: "none" })}
                     className="text-sm text-muted-foreground"
                   >
                     Unassign

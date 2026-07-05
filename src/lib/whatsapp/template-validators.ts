@@ -16,9 +16,11 @@
  */
 
 import type {
+  CarouselCard,
   MessageTemplate,
   TemplateButton,
   TemplateSampleValues,
+  TemplateType,
 } from '@/types';
 
 export const TEMPLATE_LIMITS = {
@@ -30,6 +32,11 @@ export const TEMPLATE_LIMITS = {
   maxUrlButtons: 2,
   maxPhoneButtons: 1,
   maxCopyCodeButtons: 1,
+  /** Carousel-specific caps (Meta). */
+  minCarouselCards: 2,
+  maxCarouselCards: 10,
+  carouselCardBodyMaxLength: 160,
+  maxCarouselCardButtons: 2,
   /** Meta: lowercase a-z, digits, underscore. Up to 512 chars. */
   nameRegex: /^[a-z0-9_]{1,512}$/,
 } as const;
@@ -38,6 +45,7 @@ export interface TemplatePayload {
   name: string;
   category: MessageTemplate['category'];
   language: string;
+  template_type?: TemplateType;
   header_type?: MessageTemplate['header_type'];
   header_content?: string;
   header_media_url?: string;
@@ -45,6 +53,8 @@ export interface TemplatePayload {
   body_text: string;
   footer_text?: string;
   buttons?: TemplateButton[];
+  carousel_card_format?: 'image' | 'video';
+  carousel_cards?: CarouselCard[];
   sample_values?: TemplateSampleValues;
 }
 
@@ -340,6 +350,78 @@ export function validateAuthPayload(payload: TemplatePayload): void {
 }
 
 /**
+ * Validate a carousel template. The bubble (body_text) is a normal
+ * body; then 2–10 cards, all sharing the same media format and the
+ * same button structure (Meta rule). Each card body is capped at 160
+ * chars and has up to 2 QUICK_REPLY / URL buttons.
+ */
+export function validateCarousel(payload: TemplatePayload): void {
+  validateTemplateName(payload.name);
+  if (!payload.language?.trim()) {
+    throw new Error('Language is required.');
+  }
+  // Bubble text — a regular body (reuses the body rules).
+  validateBody(payload.body_text);
+
+  const format = payload.carousel_card_format;
+  if (format !== 'image' && format !== 'video') {
+    throw new Error('Carousel cards must be all images or all videos.');
+  }
+
+  const cards = payload.carousel_cards ?? [];
+  if (cards.length < TEMPLATE_LIMITS.minCarouselCards) {
+    throw new Error(
+      `A carousel needs at least ${TEMPLATE_LIMITS.minCarouselCards} cards (got ${cards.length}).`,
+    );
+  }
+  if (cards.length > TEMPLATE_LIMITS.maxCarouselCards) {
+    throw new Error(
+      `A carousel can have at most ${TEMPLATE_LIMITS.maxCarouselCards} cards (got ${cards.length}).`,
+    );
+  }
+
+  // Structure the buttons of the first card define; every card must match.
+  const signature = (btns: TemplateButton[]) =>
+    btns.map((b) => b.type).join(',');
+  const firstSig = signature(cards[0].buttons ?? []);
+
+  cards.forEach((card, i) => {
+    const n = i + 1;
+    if (!card.media_url && !card.media_handle) {
+      throw new Error(`Card ${n} is missing its ${format}.`);
+    }
+    if (card.media_url) {
+      try {
+        new URL(card.media_url);
+      } catch {
+        throw new Error(`Card ${n} has an invalid media URL.`);
+      }
+    }
+    if (!card.body_text?.trim()) {
+      throw new Error(`Card ${n} is missing body text.`);
+    }
+    if (card.body_text.length > TEMPLATE_LIMITS.carouselCardBodyMaxLength) {
+      throw new Error(
+        `Card ${n} body exceeds ${TEMPLATE_LIMITS.carouselCardBodyMaxLength} chars.`,
+      );
+    }
+    const btns = card.buttons ?? [];
+    if (btns.length > TEMPLATE_LIMITS.maxCarouselCardButtons) {
+      throw new Error(
+        `Card ${n} has too many buttons — max ${TEMPLATE_LIMITS.maxCarouselCardButtons} per card.`,
+      );
+    }
+    if (signature(btns) !== firstSig) {
+      throw new Error(
+        'Every card must have the same buttons in the same order (Meta rule).',
+      );
+    }
+    // Per-button field checks reuse the standard button validator.
+    validateButtons(btns.length > 0 ? btns : undefined);
+  });
+}
+
+/**
  * Run every validator. Throws on the first failure with a specific,
  * field-level message. Returns the variable counts so callers can
  * reuse them when building the Meta components payload.
@@ -351,6 +433,13 @@ export function validateTemplatePayload(payload: TemplatePayload): {
   if (payload.category === 'Authentication') {
     validateAuthPayload(payload);
     return { bodyVarCount: 0, headerVarCount: 0 };
+  }
+  if (payload.template_type === 'carousel') {
+    validateCarousel(payload);
+    return {
+      bodyVarCount: extractVariableIndices(payload.body_text).length,
+      headerVarCount: 0,
+    };
   }
   validateTemplateName(payload.name);
   if (!payload.language?.trim()) {

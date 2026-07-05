@@ -16,6 +16,7 @@ import {
   FileText,
   GitBranch,
   Home,
+  Image as ImageIcon,
   Megaphone,
   MessageSquare,
   Users,
@@ -74,6 +75,7 @@ const groups: NavGroup[] = [
     children: [
       { label: 'Campaigns', icon: Megaphone, href: '/campaigns' },
       { label: 'Templates', icon: FileText, href: '/templates' },
+      { label: 'Media', icon: ImageIcon, href: '/media' },
     ],
   },
   {

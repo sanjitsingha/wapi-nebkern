@@ -14,19 +14,26 @@ import type { TemplatePayload } from './template-validators';
 import type { TemplateButton } from '@/types';
 
 export interface MetaComponent {
-  type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS';
+  type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS' | 'CAROUSEL';
   format?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT';
   text?: string;
   // Authentication-template body/footer fields (mutually exclusive with text)
   add_security_recommendation?: boolean;
   code_expiration_minutes?: number;
   buttons?: MetaButtonPayload[];
+  /** Only for the CAROUSEL component — 2–10 cards. */
+  cards?: MetaCard[];
   example?: {
     header_text?: string[];
     header_url?: string[];
     header_handle?: string[];
     body_text?: string[][];
   };
+}
+
+/** One card inside a CAROUSEL component — its own mini component set. */
+export interface MetaCard {
+  components: MetaComponent[];
 }
 
 interface MetaButtonPayload {
@@ -119,6 +126,38 @@ function buildButtonsComponent(payload: TemplatePayload): MetaComponent | null {
   };
 }
 
+/**
+ * Build the CAROUSEL component from the template's cards. Each card
+ * becomes its own `{ components: [HEADER, BODY, BUTTONS?] }`. The header
+ * uses the card's Resumable-Upload handle when present (required by Meta
+ * for media at creation) and falls back to the public URL otherwise.
+ */
+function buildCarouselComponent(payload: TemplatePayload): MetaComponent {
+  const format = payload.carousel_card_format === 'video' ? 'VIDEO' : 'IMAGE';
+  const cards: MetaCard[] = (payload.carousel_cards ?? []).map((card) => {
+    const header: MetaComponent = { type: 'HEADER', format };
+    if (card.media_handle) {
+      header.example = { header_handle: [card.media_handle] };
+    } else if (card.media_url) {
+      header.example = { header_url: [card.media_url] };
+    }
+
+    const components: MetaComponent[] = [
+      header,
+      { type: 'BODY', text: card.body_text },
+    ];
+    if (card.buttons && card.buttons.length > 0) {
+      components.push({
+        type: 'BUTTONS',
+        buttons: card.buttons.map(buildButtonPayload),
+      });
+    }
+    return { components };
+  });
+
+  return { type: 'CAROUSEL', cards };
+}
+
 export interface MetaTemplateSubmitPayload {
   name: string;
   category: 'MARKETING' | 'UTILITY' | 'AUTHENTICATION';
@@ -180,6 +219,17 @@ export function buildMetaTemplatePayload(
 ): MetaTemplateSubmitPayload {
   if (payload.category === 'Authentication') {
     return buildAuthMetaPayload(payload);
+  }
+
+  // Carousel: a top-level BODY "bubble" followed by the CAROUSEL of
+  // cards. No standalone header/footer/buttons at the template level.
+  if (payload.template_type === 'carousel') {
+    return {
+      name: payload.name,
+      category: CATEGORY_TO_META[payload.category],
+      language: payload.language,
+      components: [buildBodyComponent(payload), buildCarouselComponent(payload)],
+    };
   }
 
   const components: MetaComponent[] = [];

@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Plus, Loader2, ShieldCheck, X, Upload } from 'lucide-react';
+import { Plus, Loader2, ShieldCheck, X, Upload, FolderOpen } from 'lucide-react';
 import {
   uploadAccountMedia,
   MEDIA_MAX_BYTES_BY_KIND,
 } from '@/lib/storage/upload-media';
+import { MediaLibraryPicker } from '@/components/media/media-library-picker';
+import type { MediaKind } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,10 +23,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CampaignPreview } from '@/components/campaign-preview';
+import { CarouselEditor } from '@/components/templates/carousel-editor';
+import { useWhatsAppInfo } from '@/hooks/use-whatsapp-info';
 import type {
   MessageTemplate,
   TemplateButton,
   TemplateSampleValues,
+  TemplateType,
+  CarouselCard,
 } from '@/types';
 import {
   extractVariableIndices,
@@ -65,6 +71,8 @@ interface TemplateFormData {
   name: string;
   category: MessageTemplate['category'];
   language: string;
+  /** 'standard' or 'carousel' (Marketing only). */
+  template_type: TemplateType;
   header_format: HeaderFormat;
   header_content: string;
   header_media_url: string;
@@ -73,6 +81,9 @@ interface TemplateFormData {
   body_samples: string[];
   footer_text: string;
   buttons: TemplateButton[];
+  // Carousel-specific
+  carousel_format: 'image' | 'video';
+  carousel_cards: CarouselCard[];
   // Authentication-specific
   auth_button_text: string;
   auth_security_recommendation: boolean;
@@ -83,6 +94,7 @@ const emptyForm: TemplateFormData = {
   name: '',
   category: 'Marketing',
   language: 'en_US',
+  template_type: 'standard',
   header_format: 'none',
   header_content: '',
   header_media_url: '',
@@ -91,6 +103,8 @@ const emptyForm: TemplateFormData = {
   body_samples: [],
   footer_text: '',
   buttons: [],
+  carousel_format: 'image',
+  carousel_cards: [],
   auth_button_text: 'Copy code',
   auth_security_recommendation: true,
   auth_expiry_minutes: '',
@@ -115,6 +129,7 @@ function formFromTemplate(t: MessageTemplate): TemplateFormData {
     name: t.name,
     category: t.category,
     language: t.language || 'en_US',
+    template_type: t.template_type ?? 'standard',
     header_format: (t.header_type ?? 'none') as HeaderFormat,
     header_content: t.header_content ?? '',
     header_media_url: t.header_media_url ?? '',
@@ -123,6 +138,8 @@ function formFromTemplate(t: MessageTemplate): TemplateFormData {
     body_samples: t.sample_values?.body ?? [],
     footer_text: t.footer_text ?? '',
     buttons: t.category === 'Authentication' ? [] : (t.buttons ?? []),
+    carousel_format: t.carousel_card_format ?? 'image',
+    carousel_cards: t.carousel_cards ?? [],
     auth_button_text:
       t.category === 'Authentication'
         ? (t.buttons?.[0]?.text ?? 'Copy code')
@@ -151,9 +168,14 @@ export function TemplateBuilder({
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [uploadingHeader, setUploadingHeader] = useState(false);
+  const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
   const headerFileRef = useRef<HTMLInputElement>(null);
 
   const isAuth = form.category === 'Authentication';
+  const waInfo = useWhatsAppInfo();
+  // Carousel is a Marketing-only template shape.
+  const isCarousel =
+    form.template_type === 'carousel' && form.category === 'Marketing';
 
   const bodyVarCount = useMemo(
     () => (isAuth ? 0 : extractVariableIndices(form.body_text).length),
@@ -213,17 +235,23 @@ export function TemplateBuilder({
       name: form.name,
       category: form.category,
       language: form.language,
+      template_type: isCarousel ? 'carousel' : 'standard',
       header_type:
-        form.header_format === 'none' ? undefined : form.header_format,
+        isCarousel || form.header_format === 'none'
+          ? undefined
+          : form.header_format,
       header_content:
         form.header_format === 'text' ? form.header_content : undefined,
-      header_media_url: headerNeedsMedia ? form.header_media_url : undefined,
+      header_media_url:
+        !isCarousel && headerNeedsMedia ? form.header_media_url : undefined,
       body_text: form.body_text,
-      footer_text: form.footer_text || undefined,
-      buttons: form.buttons.filter((b) => b.text.trim()),
+      footer_text: isCarousel ? undefined : form.footer_text || undefined,
+      buttons: isCarousel ? undefined : form.buttons.filter((b) => b.text.trim()),
+      carousel_card_format: isCarousel ? form.carousel_format : undefined,
+      carousel_cards: isCarousel ? form.carousel_cards : undefined,
       created_at: '',
     };
-  }, [form, isAuth, headerNeedsMedia]);
+  }, [form, isAuth, isCarousel, headerNeedsMedia]);
 
   function buildSubmitPayload() {
     if (isAuth) {
@@ -256,6 +284,29 @@ export function TemplateBuilder({
     }
     if (form.header_format === 'text' && form.header_sample.trim()) {
       sample_values.header = [form.header_sample.trim()];
+    }
+
+    if (isCarousel) {
+      return {
+        name: form.name.trim(),
+        category: form.category,
+        language: form.language.trim() || 'en_US',
+        template_type: 'carousel' as const,
+        body_text: form.body_text.trim(),
+        carousel_card_format: form.carousel_format,
+        carousel_cards: form.carousel_cards.map((c) => ({
+          media_url: c.media_url.trim(),
+          media_handle: c.media_handle,
+          body_text: c.body_text.trim(),
+          buttons: c.buttons.map((b) =>
+            b.type === 'URL'
+              ? { type: 'URL' as const, text: b.text.trim(), url: b.url.trim() }
+              : { type: 'QUICK_REPLY' as const, text: b.text.trim() },
+          ),
+        })),
+        sample_values:
+          Object.keys(sample_values).length > 0 ? sample_values : undefined,
+      };
     }
 
     return {
@@ -463,21 +514,70 @@ export function TemplateBuilder({
 
       <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[6fr_4fr] lg:gap-14">
         <div className="min-w-0 space-y-4">
-          {/* ── Name ──────────────────────────────────────────────────── */}
-          <div className="space-y-2">
-            <Label className="text-muted-foreground">Template Name</Label>
-            <Input
-              placeholder="e.g. order_confirmation"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              disabled={isEdit}
-              className="bg-muted border-border text-foreground placeholder:text-muted-foreground disabled:opacity-60 disabled:cursor-not-allowed"
-            />
-            <p className="text-[11px] text-muted-foreground">
-              {isEdit
-                ? 'Name is fixed once a template exists — create a new template to change it.'
-                : 'Lowercase letters, digits, and underscores only.'}
-            </p>
+          {/* ── Name + Type ───────────────────────────────────────────── */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_11rem]">
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">Template Name</Label>
+              <Input
+                placeholder="e.g. order_confirmation"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                disabled={isEdit}
+                className="bg-muted border-border text-foreground placeholder:text-muted-foreground disabled:opacity-60 disabled:cursor-not-allowed"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                {isEdit
+                  ? 'Name is fixed once a template exists — create a new template to change it.'
+                  : 'Lowercase letters, digits, and underscores only.'}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">Type</Label>
+              <Select
+                value={form.template_type}
+                onValueChange={(val) => {
+                  if (!val) return;
+                  const t = val as TemplateType;
+                  setForm((f) => ({
+                    ...f,
+                    template_type: t,
+                    // Seed two empty cards when first entering carousel.
+                    carousel_cards:
+                      t === 'carousel' && f.carousel_cards.length < 2
+                        ? [
+                            { media_url: '', body_text: '', buttons: [] },
+                            { media_url: '', body_text: '', buttons: [] },
+                          ]
+                        : f.carousel_cards,
+                  }));
+                }}
+                disabled={isEdit || isAuth || form.category !== 'Marketing'}
+              >
+                <SelectTrigger className="h-11 w-full bg-muted border-border text-foreground disabled:opacity-60 disabled:cursor-not-allowed">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border">
+                  <SelectItem
+                    value="standard"
+                    className="text-popover-foreground focus:bg-muted focus:text-popover-foreground"
+                  >
+                    Standard
+                  </SelectItem>
+                  <SelectItem
+                    value="carousel"
+                    className="text-popover-foreground focus:bg-muted focus:text-popover-foreground"
+                  >
+                    Carousel
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                {form.category === 'Marketing'
+                  ? 'Carousel = swipeable media cards.'
+                  : 'Carousel is Marketing-only.'}
+              </p>
+            </div>
           </div>
 
           {/* ── Category + Language ───────────────────────────────────── */}
@@ -490,11 +590,15 @@ export function TemplateBuilder({
                   setForm({
                     ...form,
                     category: val as MessageTemplate['category'],
+                    // Carousel is Marketing-only — leaving Marketing
+                    // silently falls back to a standard template.
+                    template_type:
+                      val === 'Marketing' ? form.template_type : 'standard',
                   })
                 }
                 disabled={isEdit}
               >
-                <SelectTrigger className="w-full bg-muted border-border text-foreground disabled:opacity-60 disabled:cursor-not-allowed">
+                <SelectTrigger className="h-11 w-full bg-muted border-border text-foreground disabled:opacity-60 disabled:cursor-not-allowed">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border">
@@ -588,7 +692,7 @@ export function TemplateBuilder({
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     Appends{' '}
                     <span className="italic text-foreground/70">
-                      "For your security, do not share this code."
+                      &ldquo;For your security, do not share this code.&rdquo;
                     </span>{' '}
                     to the message.
                   </p>
@@ -615,14 +719,15 @@ export function TemplateBuilder({
                   <span className="text-sm text-muted-foreground">minutes</span>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Adds "This code expires in N minutes." as the footer (1–90
-                  min). Leave empty to omit.
+                  Adds &ldquo;This code expires in N minutes.&rdquo; as the footer
+                  (1–90 min). Leave empty to omit.
                 </p>
               </div>
             </div>
           ) : (
             /* ── Marketing / Utility fields ──────────────────────────── */
             <>
+              {!isCarousel && (
               <div className="space-y-2">
                 <Label className="text-muted-foreground">Header</Label>
                 <Select
@@ -634,7 +739,7 @@ export function TemplateBuilder({
                     })
                   }
                 >
-                  <SelectTrigger className="w-full bg-muted border-border text-foreground">
+                  <SelectTrigger className="h-11 w-full bg-muted border-border text-foreground">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border">
@@ -714,6 +819,17 @@ export function TemplateBuilder({
                         </span>
                       </div>
                     )}
+                    <div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setLibraryPickerOpen(true)}
+                      >
+                        <FolderOpen className="h-3.5 w-3.5" />
+                        Pick from library
+                      </Button>
+                    </div>
                     <Input
                       placeholder={`https://… (or paste a public ${form.header_format} link)`}
                       value={form.header_media_url}
@@ -721,6 +837,17 @@ export function TemplateBuilder({
                         setForm({ ...form, header_media_url: e.target.value })
                       }
                       className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
+                    />
+                    <MediaLibraryPicker
+                      open={libraryPickerOpen}
+                      onOpenChange={setLibraryPickerOpen}
+                      kind={form.header_format as MediaKind}
+                      onSelect={(item) =>
+                        setForm((f) => ({
+                          ...f,
+                          header_media_url: item.public_url,
+                        }))
+                      }
                     />
                     {form.header_format === 'image' && form.header_media_url && (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -742,9 +869,12 @@ export function TemplateBuilder({
                   </div>
                 )}
               </div>
+              )}
 
               <div className="space-y-2">
-                <Label className="text-muted-foreground">Body Text</Label>
+                <Label className="text-muted-foreground">
+                  {isCarousel ? 'Message text (shown above the cards)' : 'Body Text'}
+                </Label>
                 <Textarea
                   placeholder="Hello {{1}}, your order {{2}} is confirmed."
                   value={form.body_text}
@@ -787,6 +917,21 @@ export function TemplateBuilder({
                 )}
               </div>
 
+              {isCarousel && (
+                <CarouselEditor
+                  format={form.carousel_format}
+                  onFormatChange={(f) =>
+                    setForm((prev) => ({ ...prev, carousel_format: f }))
+                  }
+                  cards={form.carousel_cards}
+                  onChange={(cards) =>
+                    setForm((prev) => ({ ...prev, carousel_cards: cards }))
+                  }
+                />
+              )}
+
+              {!isCarousel && (
+              <>
               <div className="space-y-2">
                 <Label className="text-muted-foreground">Footer (optional)</Label>
                 <Input
@@ -938,6 +1083,8 @@ export function TemplateBuilder({
                   </div>
                 )}
               </div>
+              </>
+              )}
             </>
           )}
 
@@ -988,7 +1135,11 @@ export function TemplateBuilder({
         </div>
 
         <aside className="min-w-0 lg:sticky lg:top-4 lg:self-start">
-          <CampaignPreview template={previewTemplate} variables={{}} />
+          <CampaignPreview
+            template={previewTemplate}
+            variables={{}}
+            businessName={waInfo?.verified_name}
+          />
         </aside>
       </div>
     </div>

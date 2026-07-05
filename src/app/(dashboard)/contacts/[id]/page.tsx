@@ -6,7 +6,14 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { formatCurrency } from '@/lib/currency';
 import { toast } from 'sonner';
-import type { Contact, Tag, ContactNote, CustomField, Deal } from '@/types';
+import type { Contact, Tag, ContactNote, CustomField, Deal, Message } from '@/types';
+import {
+  ContactMedia,
+  ContactLinks,
+  extractLinks,
+  filterMedia,
+  type LinkItem,
+} from '@/components/contacts/contact-media';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,9 +21,22 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import {
   Phone,
   Mail,
   Building2,
+  MapPin,
   Copy,
   Check,
   Loader2,
@@ -32,13 +52,25 @@ import {
   Briefcase,
   History,
   UserPlus,
+  Search,
+  X,
+  Image as ImageIcon,
+  Link as LinkIcon,
+  MoreVertical,
+  BellOff,
+  Bell,
+  ShieldAlert,
+  ShieldCheck,
+  Ban,
+  CircleCheck,
 } from 'lucide-react';
 
 const TABS = [
   { value: 'details', label: 'Details', icon: User },
   { value: 'timeline', label: 'Timeline', icon: History },
-  { value: 'tags', label: 'Tags', icon: TagIcon },
   { value: 'notes', label: 'Notes', icon: StickyNote },
+  { value: 'media', label: 'Media', icon: ImageIcon },
+  { value: 'links', label: 'Links', icon: LinkIcon },
   { value: 'custom', label: 'Custom Fields', icon: SlidersHorizontal },
   { value: 'deals', label: 'Deals', icon: Briefcase },
 ] as const;
@@ -46,6 +78,31 @@ const TABS = [
 function getInitials(name?: string | null) {
   if (!name) return '?';
   return name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
+}
+
+const STATUS_TONES = {
+  red: 'border-red-500/30 bg-red-500/10 text-red-600',
+  amber: 'border-amber-500/30 bg-amber-500/10 text-amber-600',
+  muted: 'border-border bg-muted text-muted-foreground',
+} as const;
+
+function StatusBadge({
+  icon: Icon,
+  label,
+  tone,
+}: {
+  icon: typeof Ban;
+  label: string;
+  tone: keyof typeof STATUS_TONES;
+}) {
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${STATUS_TONES[tone]}`}
+    >
+      <Icon className="size-3" />
+      {label}
+    </span>
+  );
 }
 
 export default function ContactDetailPage() {
@@ -63,11 +120,17 @@ export default function ContactDetailPage() {
   const [editPhone, setEditPhone] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editCompany, setEditCompany] = useState('');
+  const [editStreet, setEditStreet] = useState('');
+  const [editLocality, setEditLocality] = useState('');
+  const [editCity, setEditCity] = useState('');
+  const [editState, setEditState] = useState('');
+  const [editPinCode, setEditPinCode] = useState('');
   const [savingDetails, setSavingDetails] = useState(false);
 
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [contactTagIds, setContactTagIds] = useState<string[]>([]);
   const [savingTags, setSavingTags] = useState(false);
+  const [tagSearch, setTagSearch] = useState('');
 
   const [notes, setNotes] = useState<ContactNote[]>([]);
   const [newNote, setNewNote] = useState('');
@@ -82,6 +145,10 @@ export default function ContactDetailPage() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loadingDeals, setLoadingDeals] = useState(false);
 
+  const [mediaMessages, setMediaMessages] = useState<Message[]>([]);
+  const [linkItems, setLinkItems] = useState<LinkItem[]>([]);
+  const [loadingMedia, setLoadingMedia] = useState(false);
+
   const fetchContact = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase.from('contacts').select('*').eq('id', contactId).single();
@@ -91,6 +158,11 @@ export default function ContactDetailPage() {
       setEditPhone(data.phone);
       setEditEmail(data.email ?? '');
       setEditCompany(data.company ?? '');
+      setEditStreet(data.street ?? '');
+      setEditLocality(data.locality ?? '');
+      setEditCity(data.city ?? '');
+      setEditState(data.state ?? '');
+      setEditPinCode(data.pin_code ?? '');
     }
     setLoading(false);
   }, [contactId, supabase]);
@@ -141,13 +213,43 @@ export default function ContactDetailPage() {
     setLoadingDeals(false);
   }, [contactId, supabase]);
 
+  // Media + links live in this contact's message history. Resolve the
+  // contact's conversations first, then pull their messages once and
+  // split them into shared media and extracted links (both newest-first).
+  const fetchMediaLinks = useCallback(async () => {
+    setLoadingMedia(true);
+    const { data: convs } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('contact_id', contactId);
+    const convIds = (convs ?? []).map((c) => c.id);
+    if (convIds.length === 0) {
+      setMediaMessages([]);
+      setLinkItems([]);
+      setLoadingMedia(false);
+      return;
+    }
+    const { data } = await supabase
+      .from('messages')
+      .select(
+        'id, conversation_id, sender_type, content_type, content_text, media_url, status, created_at',
+      )
+      .in('conversation_id', convIds)
+      .order('created_at', { ascending: false });
+    const messages = (data ?? []) as Message[];
+    setMediaMessages(filterMedia(messages));
+    setLinkItems(extractLinks(messages));
+    setLoadingMedia(false);
+  }, [contactId, supabase]);
+
   useEffect(() => {
     fetchContact();
     fetchTags();
     fetchNotes();
     fetchCustomFields();
     fetchDeals();
-  }, [fetchContact, fetchTags, fetchNotes, fetchCustomFields, fetchDeals]);
+    fetchMediaLinks();
+  }, [fetchContact, fetchTags, fetchNotes, fetchCustomFields, fetchDeals, fetchMediaLinks]);
 
   async function copyPhone() {
     if (!contact) return;
@@ -164,11 +266,41 @@ export default function ContactDetailPage() {
       phone: editPhone.trim(),
       email: editEmail.trim() || null,
       company: editCompany.trim() || null,
+      street: editStreet.trim() || null,
+      locality: editLocality.trim() || null,
+      city: editCity.trim() || null,
+      state: editState.trim() || null,
+      pin_code: editPinCode.trim() || null,
       updated_at: new Date().toISOString(),
     }).eq('id', contactId);
     if (error) { toast.error('Failed to update contact'); }
     else { toast.success('Contact updated'); fetchContact(); }
     setSavingDetails(false);
+  }
+
+  // Toggle a boolean status flag (is_muted / is_spam / is_blocked) on
+  // the contact. Optimistic — flips local state immediately, rolls back
+  // on error. `updatingStatus` guards against overlapping clicks.
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  async function toggleStatus(
+    field: 'is_muted' | 'is_spam' | 'is_blocked',
+    labels: { on: string; off: string },
+  ) {
+    if (!contact || updatingStatus) return;
+    const next = !contact[field];
+    setUpdatingStatus(true);
+    setContact({ ...contact, [field]: next });
+    const { error } = await supabase
+      .from('contacts')
+      .update({ [field]: next, updated_at: new Date().toISOString() })
+      .eq('id', contactId);
+    setUpdatingStatus(false);
+    if (error) {
+      setContact({ ...contact, [field]: !next }); // roll back
+      toast.error('Failed to update contact');
+      return;
+    }
+    toast.success(next ? labels.on : labels.off);
   }
 
   async function toggleTag(tagId: string) {
@@ -291,6 +423,9 @@ export default function ContactDetailPage() {
   }
 
   const activeTags = allTags.filter((t) => contactTagIds.includes(t.id));
+  const filteredTags = allTags.filter((t) =>
+    t.name.toLowerCase().includes(tagSearch.trim().toLowerCase()),
+  );
 
   return (
     <div className="space-y-6">
@@ -305,17 +440,101 @@ export default function ContactDetailPage() {
       </button>
 
       {/* Profile header card */}
-      <div className="rounded-xl border border-border bg-card p-6">
+      <div className="relative rounded-xl border border-border bg-card p-6">
+        {/* Actions menu — top right */}
+        <div className="absolute right-4 top-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label="Contact actions"
+              className="flex size-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none data-popup-open:bg-muted data-popup-open:text-foreground"
+            >
+              <MoreVertical className="size-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem
+                onClick={() =>
+                  toggleStatus('is_muted', {
+                    on: 'Contact muted',
+                    off: 'Contact unmuted',
+                  })
+                }
+                disabled={updatingStatus}
+              >
+                {contact.is_muted ? (
+                  <>
+                    <Bell className="size-4" /> Unmute
+                  </>
+                ) : (
+                  <>
+                    <BellOff className="size-4" /> Mute
+                  </>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  toggleStatus('is_spam', {
+                    on: 'Reported as spam',
+                    off: 'Removed from spam',
+                  })
+                }
+                disabled={updatingStatus}
+              >
+                {contact.is_spam ? (
+                  <>
+                    <ShieldCheck className="size-4" /> Not spam
+                  </>
+                ) : (
+                  <>
+                    <ShieldAlert className="size-4" /> Report spam
+                  </>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant={contact.is_blocked ? 'default' : 'destructive'}
+                onClick={() =>
+                  toggleStatus('is_blocked', {
+                    on: 'Contact blocked',
+                    off: 'Contact unblocked',
+                  })
+                }
+                disabled={updatingStatus}
+              >
+                {contact.is_blocked ? (
+                  <>
+                    <CircleCheck className="size-4" /> Unblock
+                  </>
+                ) : (
+                  <>
+                    <Ban className="size-4" /> Block
+                  </>
+                )}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
           <Avatar className="size-16 shrink-0">
             <AvatarFallback className="bg-primary/10 text-primary text-xl font-semibold">
               {getInitials(contact.name)}
             </AvatarFallback>
           </Avatar>
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-2xl font-bold text-foreground">
-              {contact.name || 'Unknown'}
-            </h1>
+          <div className="min-w-0 flex-1 pr-10 sm:pr-12">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="truncate text-2xl font-bold text-foreground">
+                {contact.name || 'Unknown'}
+              </h1>
+              {contact.is_blocked && (
+                <StatusBadge icon={Ban} label="Blocked" tone="red" />
+              )}
+              {contact.is_spam && (
+                <StatusBadge icon={ShieldAlert} label="Spam" tone="amber" />
+              )}
+              {contact.is_muted && (
+                <StatusBadge icon={BellOff} label="Muted" tone="muted" />
+              )}
+            </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <button
@@ -342,19 +561,97 @@ export default function ContactDetailPage() {
               )}
             </div>
 
-            {activeTags.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {activeTags.map((tag) => (
+            {/* Tags — active pills + inline "add tag" popover */}
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              {activeTags.map((tag) => (
+                <span
+                  key={tag.id}
+                  className="group/tag inline-flex items-center gap-1.5 rounded-full border py-1 pl-2 pr-1 text-[11px] font-medium"
+                  style={{
+                    borderColor: tag.color + '55',
+                    backgroundColor: tag.color + '14',
+                    color: tag.color,
+                  }}
+                >
                   <span
-                    key={tag.id}
-                    className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-                    style={{ backgroundColor: tag.color + '20', color: tag.color }}
+                    className="size-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: tag.color }}
+                  />
+                  {tag.name}
+                  <button
+                    type="button"
+                    onClick={() => toggleTag(tag.id)}
+                    disabled={savingTags}
+                    aria-label={`Remove ${tag.name}`}
+                    className="flex size-4 items-center justify-center rounded-full opacity-50 transition-opacity hover:bg-black/10 hover:opacity-100 disabled:opacity-40"
                   >
-                    {tag.name}
-                  </span>
-                ))}
-              </div>
-            )}
+                    <X className="size-3" />
+                  </button>
+                </span>
+              ))}
+
+              <Popover onOpenChange={(open) => !open && setTagSearch('')}>
+                <PopoverTrigger className="inline-flex items-center gap-1 rounded-full border border-dashed border-border bg-transparent py-1 pl-2 pr-2.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary focus:outline-none data-popup-open:border-primary/50 data-popup-open:text-primary">
+                  <TagIcon className="size-3" />
+                  Add tag
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-64 gap-0 p-0">
+                  {allTags.length === 0 ? (
+                    <p className="px-3 py-6 text-center text-xs text-muted-foreground">
+                      No tags yet.
+                      <br />
+                      Create tags in Settings.
+                    </p>
+                  ) : (
+                    <>
+                      <div className="border-b border-border p-2">
+                        <div className="relative">
+                          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                          <input
+                            value={tagSearch}
+                            onChange={(e) => setTagSearch(e.target.value)}
+                            placeholder="Search tags…"
+                            autoFocus
+                            className="h-8 w-full rounded-md border border-border bg-background pl-8 pr-2 text-xs text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
+                          />
+                        </div>
+                      </div>
+                      <div className="max-h-56 overflow-y-auto p-1">
+                        {filteredTags.length === 0 ? (
+                          <p className="px-2 py-4 text-center text-xs text-muted-foreground">
+                            No tags found.
+                          </p>
+                        ) : (
+                          filteredTags.map((tag) => {
+                            const active = contactTagIds.includes(tag.id);
+                            return (
+                              <button
+                                key={tag.id}
+                                type="button"
+                                onClick={() => toggleTag(tag.id)}
+                                disabled={savingTags}
+                                className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-muted disabled:opacity-60"
+                              >
+                                <span
+                                  className="size-2.5 shrink-0 rounded-full"
+                                  style={{ backgroundColor: tag.color }}
+                                />
+                                <span className="flex-1 truncate text-xs text-foreground">
+                                  {tag.name}
+                                </span>
+                                {active && (
+                                  <Check className="size-3.5 shrink-0 text-primary" />
+                                )}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </>
+                  )}
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         </div>
       </div>
@@ -403,6 +700,43 @@ export default function ContactDetailPage() {
                   className="bg-background border-border text-foreground" />
               </div>
             </div>
+
+            {/* Address */}
+            <div className="mt-8 mb-5 flex items-center gap-2 border-t border-border pt-6">
+              <MapPin className="size-4 text-muted-foreground" />
+              <h3 className="text-sm font-semibold text-foreground">Address</h3>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="space-y-1.5 sm:col-span-2 lg:col-span-3 xl:col-span-4">
+                <Label className="text-muted-foreground text-xs">Street</Label>
+                <Input value={editStreet} onChange={(e) => setEditStreet(e.target.value)}
+                  placeholder="House / building, street"
+                  className="bg-background border-border text-foreground placeholder:text-muted-foreground" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-muted-foreground text-xs">Locality</Label>
+                <Input value={editLocality} onChange={(e) => setEditLocality(e.target.value)}
+                  placeholder="Area / locality"
+                  className="bg-background border-border text-foreground placeholder:text-muted-foreground" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-muted-foreground text-xs">City</Label>
+                <Input value={editCity} onChange={(e) => setEditCity(e.target.value)}
+                  className="bg-background border-border text-foreground" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-muted-foreground text-xs">State</Label>
+                <Input value={editState} onChange={(e) => setEditState(e.target.value)}
+                  className="bg-background border-border text-foreground" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-muted-foreground text-xs">Pin Code</Label>
+                <Input value={editPinCode} onChange={(e) => setEditPinCode(e.target.value)}
+                  inputMode="numeric"
+                  className="bg-background border-border text-foreground" />
+              </div>
+            </div>
+
             <div className="mt-6 flex justify-end border-t border-border pt-5">
               <Button onClick={saveDetails} disabled={savingDetails}
                 className="bg-primary hover:bg-primary-hover text-primary-foreground">
@@ -460,33 +794,6 @@ export default function ContactDetailPage() {
           </div>
         </TabsContent>
 
-        {/* Tags */}
-        <TabsContent value="tags" className="mt-6">
-          <div className="rounded-xl border border-border bg-card p-6">
-            <h2 className="text-sm font-semibold text-foreground">Tags</h2>
-            <p className="mt-1 mb-4 text-xs text-muted-foreground">Click a tag to add or remove it from this contact.</p>
-            {allTags.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No tags available. Create tags in Settings.</p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {allTags.map((tag) => {
-                  const active = contactTagIds.includes(tag.id);
-                  return (
-                    <button key={tag.id} onClick={() => toggleTag(tag.id)} disabled={savingTags}
-                      className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-all disabled:opacity-60 ${
-                        active ? 'ring-2 ring-primary ring-offset-1 ring-offset-card' : 'opacity-50 hover:opacity-80'
-                      }`}
-                      style={{ backgroundColor: tag.color + '20', color: tag.color }}>
-                      {active && <Check className="size-3" />}
-                      {tag.name}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
         {/* Notes */}
         <TabsContent value="notes" className="mt-6">
           <div className="space-y-4">
@@ -524,6 +831,26 @@ export default function ContactDetailPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </TabsContent>
+
+        {/* Media */}
+        <TabsContent value="media" className="mt-6">
+          <div className="rounded-xl border border-border bg-card p-6">
+            <h2 className="mb-5 text-sm font-semibold text-foreground">
+              Shared media
+            </h2>
+            <ContactMedia items={mediaMessages} loading={loadingMedia} />
+          </div>
+        </TabsContent>
+
+        {/* Links */}
+        <TabsContent value="links" className="mt-6">
+          <div className="rounded-xl border border-border bg-card p-6">
+            <h2 className="mb-5 text-sm font-semibold text-foreground">
+              Shared links
+            </h2>
+            <ContactLinks items={linkItems} loading={loadingMedia} />
           </div>
         </TabsContent>
 

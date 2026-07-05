@@ -59,7 +59,14 @@ export type MetaSendComponent =
       sub_type: 'url' | 'quick_reply' | 'copy_code';
       index: string;
       parameters: MetaSendParameter[];
-    };
+    }
+  | { type: 'carousel'; cards: MetaSendCard[] };
+
+/** One card of a CAROUSEL send component. */
+export interface MetaSendCard {
+  card_index: number;
+  components: MetaSendComponent[];
+}
 
 type MetaSendParameter =
   | { type: 'text'; text: string }
@@ -212,6 +219,36 @@ function buildButtonComponent(
 }
 
 /**
+ * Build the CAROUSEL send component. Meta requires the media header on
+ * every card of every send (the link/id, matching what was approved);
+ * static card bodies and buttons ride along with the approved template,
+ * so they need no per-send parameters in the v1 shape (static cards).
+ */
+function buildCarouselComponent(template: MessageTemplate): MetaSendComponent {
+  const format = template.carousel_card_format === 'video' ? 'video' : 'image';
+  const cards: MetaSendCard[] = (template.carousel_cards ?? []).map(
+    (card, cardIndex) => {
+      if (!card.media_url) {
+        throw new Error(
+          `Carousel card ${cardIndex + 1} is missing its media link.`,
+        );
+      }
+      const media = { link: card.media_url };
+      const header: MetaSendComponent = {
+        type: 'header',
+        parameters: [
+          format === 'video'
+            ? { type: 'video', video: media }
+            : { type: 'image', image: media },
+        ],
+      };
+      return { card_index: cardIndex, components: [header] };
+    },
+  );
+  return { type: 'carousel', cards };
+}
+
+/**
  * Build the full `components` array for the send-message payload.
  * Returns an empty array when the template is fully static (no
  * variables, no media header), which is a valid Meta request.
@@ -220,6 +257,16 @@ export function buildSendComponents(
   template: MessageTemplate,
   params: SendTimeParams = {},
 ): MetaSendComponent[] {
+  // Carousel: an optional bubble body (its variables) + the carousel
+  // component of cards. No standalone header/footer/buttons.
+  if (template.template_type === 'carousel') {
+    const out: MetaSendComponent[] = [];
+    const body = buildBodyComponent(template, params);
+    if (body) out.push(body);
+    out.push(buildCarouselComponent(template));
+    return out;
+  }
+
   const out: MetaSendComponent[] = [];
   const header = buildHeaderComponent(template, params);
   if (header) out.push(header);

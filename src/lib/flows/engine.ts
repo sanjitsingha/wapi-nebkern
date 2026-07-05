@@ -1115,3 +1115,116 @@ async function startNewRun(
     outcome: outcome.outcome === "advanced" ? "started" : outcome.outcome,
   };
 }
+
+/**
+ * Manually start a flow ("bot") on a conversation — powers the inbox
+ * "Assign → Bot" action. Unlike inbound dispatch, this bypasses the
+ * entry trigger entirely: it inserts a flow_run for this flow + contact
+ * and runs the advance loop so the bot sends its opening message(s)
+ * right away. Every later inbound message advances the run through the
+ * normal `dispatchInboundToFlows` path (which finds the active run
+ * before looking for a trigger match).
+ *
+ * If a *different* flow is already active for the contact it's ended
+ * first (one active run per contact is enforced by a partial unique
+ * index); re-assigning the same flow is a no-op.
+ */
+export async function startFlowForConversation(args: {
+  accountId: string;
+  flowId: string;
+  contactId: string;
+  conversationId: string;
+}): Promise<{ ok: boolean; flow_run_id?: string; error?: string }> {
+  const db = supabaseAdmin();
+  try {
+    const { data: flow, error: flowErr } = await db
+      .from("flows")
+      .select("*")
+      .eq("id", args.flowId)
+      .eq("account_id", args.accountId)
+      .maybeSingle();
+    if (flowErr || !flow) return { ok: false, error: "flow_not_found" };
+    const f = flow as FlowRow;
+    if (f.status !== "active") return { ok: false, error: "flow_not_active" };
+    const entryNodeKey = f.entry_node_id;
+    if (!entryNodeKey) return { ok: false, error: "flow_has_no_entry" };
+
+    // If a run is already active for this contact, replace it (unless
+    // it's already this same flow, in which case leave it running).
+    const existing = await loadActiveRunForContact(
+      db,
+      args.accountId,
+      args.contactId,
+    );
+    if (existing) {
+      if (existing.flow_id === f.id) {
+        return { ok: true, flow_run_id: existing.id };
+      }
+      await endRun(db, existing.id, "handed_off", "reassigned_to_another_flow");
+    }
+
+    const nodes = await loadAllNodes(db, f.id);
+    const { data: inserted, error: insErr } = await db
+      .from("flow_runs")
+      .insert({
+        flow_id: f.id,
+        account_id: f.account_id,
+        user_id: f.user_id,
+        contact_id: args.contactId,
+        conversation_id: args.conversationId,
+        status: "active",
+        current_node_key: entryNodeKey,
+      })
+      .select("*")
+      .maybeSingle();
+    if (insErr || !inserted) {
+      console.error(
+        "[flows] startFlowForConversation insert error:",
+        insErr?.message,
+      );
+      return { ok: false, error: "run_insert_failed" };
+    }
+    const run = inserted as FlowRunRow;
+    await logEvent(db, run.id, "started", entryNodeKey, {
+      flow_id: f.id,
+      trigger_type: "manual_assignment",
+      manual: true,
+    });
+    await db.rpc("increment_flow_execution_count", { p_flow_id: f.id });
+    await advanceFromNodeKey(db, run, entryNodeKey, nodes);
+    return { ok: true, flow_run_id: run.id };
+  } catch (err) {
+    console.error(
+      "[flows] startFlowForConversation threw:",
+      err instanceof Error ? err.message : err,
+    );
+    return { ok: false, error: "internal_error" };
+  }
+}
+
+/**
+ * End any active flow run for a contact — used when a conversation is
+ * unassigned or handed to a human agent, so the bot stops driving it.
+ * No-op when nothing is running.
+ */
+export async function stopFlowForContact(args: {
+  accountId: string;
+  contactId: string;
+}): Promise<void> {
+  const db = supabaseAdmin();
+  try {
+    const existing = await loadActiveRunForContact(
+      db,
+      args.accountId,
+      args.contactId,
+    );
+    if (existing) {
+      await endRun(db, existing.id, "handed_off", "unassigned_from_bot");
+    }
+  } catch (err) {
+    console.error(
+      "[flows] stopFlowForContact threw:",
+      err instanceof Error ? err.message : err,
+    );
+  }
+}

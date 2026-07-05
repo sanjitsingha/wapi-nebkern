@@ -78,40 +78,43 @@ export function FlowEditorShell({ initialFlow, initialNodes }: Props) {
 
   return (
     <FlowEditorProvider initialFlow={initialFlow} initialNodes={initialNodes}>
-      <div className="mx-auto flex min-h-screen w-full max-w-full flex-col">
-        <header className="border-b border-border bg-card p-6">
+      {/* Full-screen editor overlay — covers the app sidebar + header so
+          the builder gets a distraction-free, single-chrome canvas
+          (mirrors the automation builder). */}
+      <div className="fixed inset-0 flex flex-col bg-background">
+        <header className="shrink-0 border-b border-border bg-card/80 px-3 py-2.5 sm:px-4">
           <EditorHeader />
         </header>
 
-        <main className="flex h-full w-full flex-1 flex-col gap-6 p-6">
+        <main className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+          {/* Floating Canvas / List toggle — overlays the canvas top-right
+              instead of taking its own row. */}
           {!isMobile && (
-            <div className="flex items-center justify-end">
-              <div
-                role="group"
-                aria-label="Editor view"
-                className="border-border bg-card inline-flex items-center gap-1 rounded-md border p-0.5 text-xs"
-              >
-                <ToggleButton
-                  active={effectiveView === 'canvas'}
-                  onClick={() => choose('canvas')}
-                  icon={<LayoutGrid className="h-3 w-3" />}
-                  label="Canvas"
-                />
-                <ToggleButton
-                  active={effectiveView === 'list'}
-                  onClick={() => choose('list')}
-                  icon={<ListTree className="h-3 w-3" />}
-                  label="List"
-                />
-              </div>
+            <div
+              role="group"
+              aria-label="Editor view"
+              className="absolute right-4 top-4 z-10 inline-flex items-center gap-1 rounded-lg border border-border bg-card/90 p-0.5 text-xs shadow-sm backdrop-blur-sm"
+            >
+              <ToggleButton
+                active={effectiveView === 'canvas'}
+                onClick={() => choose('canvas')}
+                icon={<LayoutGrid className="h-3 w-3" />}
+                label="Canvas"
+              />
+              <ToggleButton
+                active={effectiveView === 'list'}
+                onClick={() => choose('list')}
+                icon={<ListTree className="h-3 w-3" />}
+                label="List"
+              />
             </div>
           )}
 
-          <div className="flex-1 overflow-hidden">
+          <div className="min-h-0 flex-1 overflow-hidden p-4 sm:p-6">
             {effectiveView === 'canvas' ? <FlowCanvas /> : <FlowBuilder />}
           </div>
 
-          <div className="shadow-background/60 sticky bottom-4 z-10 shadow-xl">
+          <div className="shadow-background/60 sticky bottom-4 z-10 px-4 shadow-xl sm:px-6">
             <ValidationPanel />
           </div>
         </main>

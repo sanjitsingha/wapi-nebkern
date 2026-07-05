@@ -8,7 +8,10 @@ import {
   type TemplatePayload,
 } from '@/lib/whatsapp/template-validators'
 import { buildMetaTemplatePayload } from '@/lib/whatsapp/template-components'
-import { ensureImageHeaderHandle } from '@/lib/whatsapp/template-header-handle'
+import {
+  ensureImageHeaderHandle,
+  ensureCarouselCardHandles,
+} from '@/lib/whatsapp/template-header-handle'
 import { normalizeStatus } from '@/lib/whatsapp/template-status-normalize'
 
 /**
@@ -38,6 +41,7 @@ function buildUpsertRow(
     name: payload.name,
     category: payload.category,
     language: payload.language,
+    template_type: payload.template_type ?? 'standard',
     header_type: payload.header_type ?? null,
     header_content: payload.header_content ?? null,
     header_media_url: payload.header_media_url ?? null,
@@ -45,6 +49,8 @@ function buildUpsertRow(
     body_text: payload.body_text,
     footer_text: payload.footer_text ?? null,
     buttons: payload.buttons ?? null,
+    carousel_card_format: payload.carousel_card_format ?? null,
+    carousel_cards: payload.carousel_cards ?? null,
     sample_values: payload.sample_values ?? null,
     status: extras.status,
     meta_template_id: extras.metaTemplateId,
@@ -171,6 +177,8 @@ export async function POST(request: Request) {
       // (missing META_APP_ID, unreachable URL, wrong type/size).
       try {
         await ensureImageHeaderHandle(payload, accessToken)
+        // Carousel cards each need their own Resumable-Upload handle.
+        await ensureCarouselCardHandles(payload, accessToken)
       } catch (e) {
         return NextResponse.json(
           { error: e instanceof Error ? e.message : 'Header image upload failed.' },

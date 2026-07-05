@@ -84,9 +84,7 @@ export default function FlowEditorPage() {
     );
   }
 
-  return (
-    <div className="min-h-screen">
-      <FlowEditorShell initialFlow={flow} initialNodes={nodes} />
-    </div>
-  );
+  // FlowEditorShell renders a fixed inset-0 full-screen overlay, so no
+  // wrapper is needed — it covers the app chrome on its own.
+  return <FlowEditorShell initialFlow={flow} initialNodes={nodes} />;
 }

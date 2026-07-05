@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { MessageTemplate } from '@/types';
 import { Contact } from '@/types';
+import type { CarouselCard } from '@/types';
 import {
   Smartphone,
   Smile,
@@ -14,6 +15,8 @@ import {
   FileText,
   Play,
   MoreVertical,
+  ExternalLink,
+  Reply,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────
@@ -104,14 +107,29 @@ function getPreviewText(
 
 // ─── iOS Status Bar ───────────────────────────────────────────────
 
+/** Current wall-clock time in the iPhone's h:mm style (no AM/PM). */
+function formatClock(d: Date): string {
+  const h = d.getHours() % 12 || 12;
+  return `${h}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 function StatusBar() {
+  const [time, setTime] = useState(() => formatClock(new Date()));
+
+  // Tick every 30s so the mock's clock stays honest while the page
+  // sits open. Cheap — one small text node re-renders.
+  useEffect(() => {
+    const id = setInterval(() => setTime(formatClock(new Date())), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   return (
     <div className="absolute left-0 right-0 top-0 z-30 flex h-9.5 items-center px-5">
       <span
         className="text-[12px] font-semibold leading-none text-white"
         style={{ textShadow: '0 1px 2px rgba(0,0,0,0.2)' }}
       >
-        9:41
+        {time}
       </span>
       <div className="flex-1" />
       <div className="flex items-center gap-1.25">
@@ -336,8 +354,30 @@ function WhatsAppHeader({ businessName }: { businessName: string }) {
 
 // ─── Message Bubble ───────────────────────────────────────────────
 
-function HeaderMedia({ headerType, header }: { headerType: string; header?: string }) {
+function HeaderMedia({
+  headerType,
+  header,
+  mediaUrl,
+}: {
+  headerType: string;
+  header?: string;
+  mediaUrl?: string;
+}) {
   if (headerType === 'image') {
+    // Show the actual chosen image once a URL is set; otherwise fall
+    // back to the generic placeholder while the user is still picking.
+    if (mediaUrl) {
+      return (
+        <div className="relative overflow-hidden" style={{ height: 130 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={mediaUrl}
+            alt="Header"
+            className="h-full w-full object-cover"
+          />
+        </div>
+      );
+    }
     return (
       <div
         className="relative overflow-hidden"
@@ -358,10 +398,20 @@ function HeaderMedia({ headerType, header }: { headerType: string; header?: stri
       <div
         className="relative overflow-hidden"
         style={{
-          background: 'linear-gradient(145deg, #2c3e50 0%, #1a252f 100%)',
+          background: mediaUrl
+            ? '#000'
+            : 'linear-gradient(145deg, #2c3e50 0%, #1a252f 100%)',
           height: 130,
         }}
       >
+        {mediaUrl && (
+          <video
+            src={mediaUrl}
+            muted
+            preload="metadata"
+            className="h-full w-full object-cover"
+          />
+        )}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
             <Play className="h-5 w-5 text-white" fill="white" />
@@ -410,6 +460,89 @@ function ReadTicks() {
   );
 }
 
+/** Horizontal, swipeable row of carousel cards shown below the bubble. */
+function CarouselCards({
+  cards,
+  format,
+}: {
+  cards: CarouselCard[];
+  format: 'image' | 'video';
+}) {
+  if (cards.length === 0) return null;
+  return (
+    <div className="flex gap-2 overflow-x-auto px-2 pb-1 pt-0.5">
+      {cards.map((card, i) => (
+        <div
+          key={i}
+          className="w-40 shrink-0 overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/5"
+        >
+          {/* Media */}
+          <div className="relative h-24 w-full bg-[#e9edef]">
+            {card.media_url ? (
+              format === 'image' ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={card.media_url}
+                  alt={`Card ${i + 1}`}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <>
+                  <video
+                    src={card.media_url}
+                    muted
+                    preload="metadata"
+                    className="h-full w-full object-cover"
+                  />
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/45">
+                      <Play className="h-4 w-4 text-white" fill="white" />
+                    </span>
+                  </span>
+                </>
+              )
+            ) : (
+              <div className="flex h-full w-full items-center justify-center opacity-50">
+                {format === 'image' ? (
+                  <ImageIcon className="h-6 w-6 text-[#667781]" />
+                ) : (
+                  <Play className="h-6 w-6 text-[#667781]" />
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Body */}
+          <p className="px-2 pt-1.5 text-[11px] leading-snug text-[#111b21]">
+            {card.body_text || (
+              <span className="text-[#8696a0]">Card text…</span>
+            )}
+          </p>
+
+          {/* Buttons */}
+          {card.buttons.length > 0 && (
+            <div className="mt-1.5 border-t border-black/5">
+              {card.buttons.map((b, j) => (
+                <div
+                  key={j}
+                  className="flex items-center justify-center gap-1 border-b border-black/5 py-1.5 text-[11px] font-medium text-[#027eb5] last:border-b-0"
+                >
+                  {b.type === 'URL' ? (
+                    <ExternalLink className="h-3 w-3" />
+                  ) : (
+                    <Reply className="h-3 w-3" />
+                  )}
+                  {b.text || (b.type === 'URL' ? 'Visit' : 'Reply')}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function MessageBubble({
   text,
   time,
@@ -417,6 +550,7 @@ function MessageBubble({
   footer,
   header,
   headerType,
+  mediaUrl,
   buttons,
 }: {
   text: string;
@@ -425,6 +559,7 @@ function MessageBubble({
   footer?: string;
   header?: string;
   headerType?: string;
+  mediaUrl?: string;
   buttons?: { text: string }[];
 }) {
   const bg = isOutgoing ? WA.outgoing : WA.incoming;
@@ -461,7 +596,11 @@ function MessageBubble({
         >
           {/* Media header */}
           {hasMedia && headerType && (
-            <HeaderMedia headerType={headerType} header={header} />
+            <HeaderMedia
+              headerType={headerType}
+              header={header}
+              mediaUrl={mediaUrl}
+            />
           )}
 
           {/* Text header */}
@@ -629,11 +768,19 @@ export function CampaignPreview({
                   text={previewText || template.body_text}
                   time={now}
                   isOutgoing={false}
-                  footer={template.footer_text}
+                  footer={template.template_type === 'carousel' ? undefined : template.footer_text}
                   header={template.header_content}
                   headerType={template.header_type}
-                  buttons={template.buttons}
+                  mediaUrl={template.header_media_url}
+                  buttons={template.template_type === 'carousel' ? undefined : template.buttons}
                 />
+
+                {template.template_type === 'carousel' && (
+                  <CarouselCards
+                    cards={template.carousel_cards ?? []}
+                    format={template.carousel_card_format ?? 'image'}
+                  />
+                )}
               </>
             ) : (
               <EmptyPreviewState />
