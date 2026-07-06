@@ -32,10 +32,11 @@ const btnGhost =
 
 export default function LandingPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
+    <div className="bg-background text-foreground flex min-h-screen flex-col">
       <SiteHeader />
       <main className="flex-1">
         <Hero />
+        <PeopleSplash />
         <TrustStrip />
         <Features />
         <Spotlight />
@@ -52,11 +53,11 @@ export default function LandingPage() {
 
 function SiteHeader() {
   return (
-    <header className="sticky top-0 z-50 border-b border-border/70 bg-background/80 backdrop-blur-md">
+    <header className="border-border/70 bg-background/80 sticky top-0 z-50 border-b backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <MessageSquare className="h-4.5 w-4.5 text-primary-foreground" />
+          <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-lg">
+            <MessageSquare className="text-primary-foreground h-4.5 w-4.5" />
           </div>
           <span className="text-lg font-bold tracking-tight">wacrm</span>
         </Link>
@@ -64,19 +65,19 @@ function SiteHeader() {
         <nav className="hidden items-center gap-8 md:flex">
           <a
             href="#features"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
           >
             Features
           </a>
           <a
             href="#how-it-works"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
           >
             How it works
           </a>
           <a
             href="#testimonial"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
           >
             Customers
           </a>
@@ -116,45 +117,52 @@ function Hero() {
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-40 left-1/2 -z-10 h-96 w-[42rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl"
+        className="bg-primary/10 pointer-events-none absolute -top-40 left-1/2 -z-10 h-96 w-[42rem] -translate-x-1/2 rounded-full blur-3xl"
       />
 
       <div className="mx-auto max-w-6xl px-4 pt-16 pb-12 text-center sm:px-6 sm:pt-24">
-        <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
-          <span className="flex h-1.5 w-1.5 rounded-full bg-primary" />
+        <span className="border-border bg-card text-muted-foreground inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium">
+          <span className="bg-primary flex h-1.5 w-1.5 rounded-full" />
           Built on the official WhatsApp Business API
         </span>
 
         <h1 className="mx-auto mt-6 max-w-3xl text-4xl font-bold tracking-tight text-balance sm:text-5xl md:text-6xl">
-          The WhatsApp CRM your{' '}
-          <span className="text-primary">whole team</span> runs on
+          The WhatsApp CRM your <span className="text-primary">whole team</span>{' '}
+          runs on
         </h1>
 
-        <p className="mx-auto mt-5 max-w-xl text-base text-muted-foreground text-pretty sm:text-lg">
+        <p className="text-muted-foreground mx-auto mt-5 max-w-xl text-base text-pretty sm:text-lg">
           Manage contacts, send broadcast campaigns, and reply to every
           conversation from one shared inbox. Simple to set up, powerful enough
           to scale.
         </p>
 
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link href="/signup" className={`${btnPrimary} h-12 w-full px-6 sm:w-auto`}>
+          <Link
+            href="/signup"
+            className={`${btnPrimary} h-12 w-full px-6 sm:w-auto`}
+          >
             Get started free
             <ArrowRight className="h-4 w-4" />
           </Link>
-          <Link href="/login" className={`${btnGhost} h-12 w-full border border-border px-6 sm:w-auto`}>
+          <Link
+            href="/login"
+            className={`${btnGhost} border-border h-12 w-full border px-6 sm:w-auto`}
+          >
             Log in
           </Link>
         </div>
 
-        <p className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-xs text-muted-foreground">
+        <p className="text-muted-foreground mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-xs">
           <span className="inline-flex items-center gap-1.5">
-            <Check className="h-3.5 w-3.5 text-primary" /> No credit card required
+            <Check className="text-primary h-3.5 w-3.5" /> No credit card
+            required
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <Check className="h-3.5 w-3.5 text-primary" /> Self-hostable
+            <Check className="text-primary h-3.5 w-3.5" /> Self-hostable
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <Check className="h-3.5 w-3.5 text-primary" /> Set up in minutes
+            <Check className="text-primary h-3.5 w-3.5" /> Set up in minutes
           </span>
         </p>
 
@@ -168,20 +176,20 @@ function Hero() {
 function ProductMock() {
   return (
     <div className="relative mx-auto mt-14 max-w-4xl">
-      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-primary/5">
+      <div className="border-border bg-card shadow-primary/5 overflow-hidden rounded-2xl border shadow-2xl">
         {/* Window chrome */}
-        <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-4 py-3">
+        <div className="border-border bg-muted/40 flex items-center gap-2 border-b px-4 py-3">
           <span className="h-3 w-3 rounded-full bg-red-400/70" />
           <span className="h-3 w-3 rounded-full bg-amber-400/70" />
           <span className="h-3 w-3 rounded-full bg-emerald-400/70" />
-          <div className="ml-3 hidden h-6 flex-1 items-center rounded-md border border-border bg-background px-3 text-[11px] text-muted-foreground sm:flex">
+          <div className="border-border bg-background text-muted-foreground ml-3 hidden h-6 flex-1 items-center rounded-md border px-3 text-[11px] sm:flex">
             app.wacrm.com/inbox
           </div>
         </div>
 
         <div className="grid grid-cols-[auto_1fr] text-left">
           {/* Mini sidebar */}
-          <div className="hidden w-40 flex-col gap-1 border-r border-border bg-muted/20 p-3 sm:flex">
+          <div className="border-border bg-muted/20 hidden w-40 flex-col gap-1 border-r p-3 sm:flex">
             {[
               { icon: BarChart3, label: 'Dashboard' },
               { icon: Inbox, label: 'Inbox', active: true },
@@ -204,7 +212,7 @@ function ProductMock() {
 
           {/* Inbox */}
           <div className="grid grid-cols-[minmax(0,10rem)_1fr]">
-            <div className="space-y-1 border-r border-border p-2.5">
+            <div className="border-border space-y-1 border-r p-2.5">
               {HERO_CONVERSATIONS.map((c, i) => (
                 <div
                   key={c.name}
@@ -212,14 +220,16 @@ function ProductMock() {
                 >
                   <div className="flex items-center gap-2">
                     <span
-                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-primary"
+                      className="text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold"
                       style={{ background: 'var(--primary-soft)' }}
                     >
                       {c.name.charAt(0)}
                     </span>
-                    <span className="truncate text-xs font-medium">{c.name}</span>
+                    <span className="truncate text-xs font-medium">
+                      {c.name}
+                    </span>
                   </div>
-                  <p className="mt-1 truncate text-[11px] text-muted-foreground">
+                  <p className="text-muted-foreground mt-1 truncate text-[11px]">
                     {c.preview}
                   </p>
                 </div>
@@ -227,22 +237,22 @@ function ProductMock() {
             </div>
 
             {/* Thread */}
-            <div className="flex flex-col gap-2.5 bg-muted/10 p-4">
-              <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-card px-3 py-2 text-xs shadow-sm ring-1 ring-border">
+            <div className="bg-muted/10 flex flex-col gap-2.5 p-4">
+              <div className="bg-card ring-border max-w-[85%] rounded-2xl rounded-tl-sm px-3 py-2 text-xs shadow-sm ring-1">
                 Hi! Do you ship internationally? 🌍
               </div>
-              <div className="ml-auto max-w-[85%] rounded-2xl rounded-tr-sm bg-primary px-3 py-2 text-xs text-primary-foreground">
+              <div className="bg-primary text-primary-foreground ml-auto max-w-[85%] rounded-2xl rounded-tr-sm px-3 py-2 text-xs">
                 Yes we do — sending you the rates now.
               </div>
-              <div className="ml-auto flex items-center gap-1 text-[10px] text-primary">
+              <div className="text-primary ml-auto flex items-center gap-1 text-[10px]">
                 <CheckCheck className="h-3 w-3" /> Delivered
               </div>
-              <div className="mt-auto flex items-center gap-2 rounded-full border border-border bg-background px-3 py-2">
-                <span className="flex-1 text-[11px] text-muted-foreground">
+              <div className="border-border bg-background mt-auto flex items-center gap-2 rounded-full border px-3 py-2">
+                <span className="text-muted-foreground flex-1 text-[11px]">
                   Type a message…
                 </span>
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary">
-                  <Send className="h-3 w-3 text-primary-foreground" />
+                <span className="bg-primary flex h-6 w-6 items-center justify-center rounded-full">
+                  <Send className="text-primary-foreground h-3 w-3" />
                 </span>
               </div>
             </div>
@@ -253,18 +263,86 @@ function ProductMock() {
   );
 }
 
+/* ─── People splash (marketing hero visual) ───────────────────────── */
+
+function PeopleSplash() {
+  return (
+    <section className="mx-auto mt-10 max-w-6xl px-4 sm:px-6">
+      <div className="relative overflow-visible rounded-lg bg-transparent py-16 text-center">
+        <h2 className="text-foreground mx-auto max-w-3xl text-3xl font-bold tracking-tight sm:text-4xl">
+          Increase orders, secure more bookings, and streamline customer
+          interactions <span className="text-primary">effortlessly</span>
+        </h2>
+
+        {/* floating avatars */}
+        <div className="pointer-events-none relative mx-auto mt-10 h-40 w-full max-w-3xl">
+          {/* Center area for text; avatars positioned absolutely around */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+            {/* empty center - text is above */}
+          </div>
+
+          {/* avatar: top-left */}
+          <div className="absolute -top-6 -left-6">
+            <div className="flex items-center gap-2">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-emerald-200 to-emerald-400 text-sm font-semibold text-emerald-900 shadow-md">
+                AD
+              </div>
+              <div className="bg-card text-muted-foreground ml-2 hidden rounded-md px-3 py-1 text-xs sm:block">
+                New order received!
+              </div>
+            </div>
+          </div>
+
+          {/* avatar: top-right */}
+          <div className="absolute -top-10 right-6">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-sky-200 to-sky-400 text-sm font-semibold text-sky-900 shadow-md">
+              MJ
+            </div>
+          </div>
+
+          {/* avatar: right-center */}
+          <div className="absolute top-1/2 right-0 -translate-y-1/2">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-rose-200 to-rose-400 text-sm font-semibold text-rose-900 shadow-md">
+              LT
+            </div>
+          </div>
+
+          {/* avatar: bottom-left */}
+          <div className="absolute bottom-0 left-10">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-indigo-200 to-indigo-400 text-sm font-semibold text-indigo-900 shadow-md">
+              SR
+            </div>
+          </div>
+
+          {/* avatar: bottom-right with small bubble */}
+          <div className="absolute -right-6 bottom-2">
+            <div className="flex items-center gap-2">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-lime-200 to-lime-400 text-sm font-semibold text-lime-900 shadow-md">
+                PT
+              </div>
+              <div className="bg-card text-muted-foreground hidden rounded-md px-3 py-1 text-xs sm:block">
+                I want a black T-s...
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── Trust strip ─────────────────────────────────────────────────── */
 
 function TrustStrip() {
   return (
-    <section className="border-y border-border bg-card/50">
+    <section className="border-border bg-card/50 border-y">
       <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-4 py-10 sm:px-6 md:grid-cols-4">
         {STATS.map((s) => (
           <div key={s.label} className="text-center">
-            <p className="text-3xl font-bold tracking-tight text-foreground">
+            <p className="text-foreground text-3xl font-bold tracking-tight">
               {s.value}
             </p>
-            <p className="mt-1 text-sm text-muted-foreground">{s.label}</p>
+            <p className="text-muted-foreground mt-1 text-sm">{s.label}</p>
           </div>
         ))}
       </div>
@@ -287,13 +365,13 @@ function Features() {
         {FEATURES.map(({ icon: Icon, title, description }) => (
           <div
             key={title}
-            className="group rounded-2xl border border-border bg-card p-6 transition-shadow hover:shadow-md"
+            className="group border-border bg-card rounded-2xl border p-6 transition-shadow hover:shadow-md"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-soft text-primary">
+            <div className="bg-primary-soft text-primary flex h-11 w-11 items-center justify-center rounded-xl">
               <Icon className="h-5 w-5" />
             </div>
             <h3 className="mt-5 text-base font-semibold">{title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
               {description}
             </p>
           </div>
@@ -307,14 +385,16 @@ function Features() {
 
 function Spotlight() {
   return (
-    <section className="border-y border-border bg-card/40">
+    <section className="border-border bg-card/40 border-y">
       <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-20 sm:px-6 lg:grid-cols-2">
         <div>
-          <p className="text-sm font-semibold text-primary">Shared team inbox</p>
+          <p className="text-primary text-sm font-semibold">
+            Shared team inbox
+          </p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-balance sm:text-4xl">
             Every conversation, assigned and never dropped
           </h2>
-          <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+          <p className="text-muted-foreground mt-4 text-base leading-relaxed">
             Your whole team works from a single WhatsApp inbox. Assign chats,
             leave internal notes, and see the full history for every contact —
             so nothing falls through the cracks.
@@ -322,10 +402,10 @@ function Spotlight() {
           <ul className="mt-6 space-y-3">
             {SPOTLIGHT_POINTS.map((point) => (
               <li key={point} className="flex items-start gap-3">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
+                <span className="bg-primary-soft text-primary mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full">
                   <Check className="h-3 w-3" />
                 </span>
-                <span className="text-sm text-foreground">{point}</span>
+                <span className="text-foreground text-sm">{point}</span>
               </li>
             ))}
           </ul>
@@ -339,14 +419,16 @@ function Spotlight() {
         <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-emerald-950 via-emerald-900 to-emerald-800 p-6 shadow-xl sm:p-8">
           <div
             aria-hidden
-            className="pointer-events-none absolute -right-16 top-8 h-64 w-64 rounded-full bg-emerald-400/20 blur-3xl"
+            className="pointer-events-none absolute top-8 -right-16 h-64 w-64 rounded-full bg-emerald-400/20 blur-3xl"
           />
           <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm">
             <div className="flex items-center gap-2.5 border-b border-white/10 px-4 py-3">
-              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary">
-                <MessageSquare className="h-3.5 w-3.5 text-primary-foreground" />
+              <div className="bg-primary flex h-6 w-6 items-center justify-center rounded-md">
+                <MessageSquare className="text-primary-foreground h-3.5 w-3.5" />
               </div>
-              <span className="text-sm font-semibold text-white">wacrm · Inbox</span>
+              <span className="text-sm font-semibold text-white">
+                wacrm · Inbox
+              </span>
             </div>
             <div className="grid grid-cols-[minmax(0,7rem)_1fr]">
               <div className="space-y-1 border-r border-white/10 p-2">
@@ -371,7 +453,7 @@ function Spotlight() {
                 <div className="max-w-[80%] rounded-2xl rounded-tl-sm bg-white/10 px-3 py-2 text-[11px] text-white/80">
                   Can I get a demo this week?
                 </div>
-                <div className="ml-auto max-w-[80%] rounded-2xl rounded-tr-sm bg-primary px-3 py-2 text-[11px] text-primary-foreground">
+                <div className="bg-primary text-primary-foreground ml-auto max-w-[80%] rounded-2xl rounded-tr-sm px-3 py-2 text-[11px]">
                   Absolutely — does Thursday 2pm work?
                 </div>
                 <div className="ml-auto flex items-center gap-1 text-[9px] text-emerald-200/70">
@@ -399,12 +481,15 @@ function HowItWorks() {
 
       <div className="mt-14 grid gap-6 md:grid-cols-3">
         {STEPS.map((step, i) => (
-          <div key={step.title} className="relative rounded-2xl border border-border bg-card p-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+          <div
+            key={step.title}
+            className="border-border bg-card relative rounded-2xl border p-6"
+          >
+            <div className="bg-primary text-primary-foreground flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold">
               {i + 1}
             </div>
             <h3 className="mt-5 text-base font-semibold">{step.title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
               {step.description}
             </p>
           </div>
@@ -418,23 +503,25 @@ function HowItWorks() {
 
 function Testimonial() {
   return (
-    <section id="testimonial" className="border-y border-border bg-card/40">
+    <section id="testimonial" className="border-border bg-card/40 border-y">
       <div className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+        <div className="bg-primary-soft text-primary mx-auto flex h-12 w-12 items-center justify-center rounded-2xl">
           <Quote className="h-6 w-6" />
         </div>
-        <blockquote className="mt-6 text-2xl font-semibold leading-snug tracking-tight text-balance sm:text-3xl">
+        <blockquote className="mt-6 text-2xl leading-snug font-semibold tracking-tight text-balance sm:text-3xl">
           &ldquo;We run every customer conversation, broadcast, and follow-up
           through wacrm now. Our whole team finally works from the same
           inbox.&rdquo;
         </blockquote>
         <div className="mt-6 flex items-center justify-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+          <div className="bg-primary text-primary-foreground flex h-11 w-11 items-center justify-center rounded-full text-sm font-semibold">
             BP
           </div>
           <div className="text-left">
             <p className="text-sm font-semibold">Bettie Porter</p>
-            <p className="text-sm text-muted-foreground">Senior Marketing Manager</p>
+            <p className="text-muted-foreground text-sm">
+              Senior Marketing Manager
+            </p>
           </div>
         </div>
       </div>
@@ -494,22 +581,28 @@ function FinalCta() {
 
 function SiteFooter() {
   return (
-    <footer className="border-t border-border">
+    <footer className="border-border border-t">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 sm:flex-row sm:px-6">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
-            <MessageSquare className="h-4 w-4 text-primary-foreground" />
+          <div className="bg-primary flex h-7 w-7 items-center justify-center rounded-lg">
+            <MessageSquare className="text-primary-foreground h-4 w-4" />
           </div>
           <span className="font-bold tracking-tight">wacrm</span>
         </Link>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           © {new Date().getFullYear()} wacrm · Self-hostable CRM for WhatsApp
         </p>
         <div className="flex items-center gap-6 text-sm">
-          <Link href="/login" className="text-muted-foreground transition-colors hover:text-foreground">
+          <Link
+            href="/login"
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
             Log in
           </Link>
-          <Link href="/signup" className="text-muted-foreground transition-colors hover:text-foreground">
+          <Link
+            href="/signup"
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
             Sign up
           </Link>
         </div>
@@ -531,11 +624,11 @@ function SectionHeading({
 }) {
   return (
     <div className="mx-auto max-w-2xl text-center">
-      <p className="text-sm font-semibold text-primary">{eyebrow}</p>
+      <p className="text-primary text-sm font-semibold">{eyebrow}</p>
       <h2 className="mt-3 text-3xl font-bold tracking-tight text-balance sm:text-4xl">
         {title}
       </h2>
-      <p className="mt-4 text-base leading-relaxed text-muted-foreground text-pretty">
+      <p className="text-muted-foreground mt-4 text-base leading-relaxed text-pretty">
         {subtitle}
       </p>
     </div>

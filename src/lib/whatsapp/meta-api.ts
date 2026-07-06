@@ -209,6 +209,379 @@ export async function verifyPhoneNumber(
 }
 
 // ============================================================
+// Business profile (public "business details" shown in-chat)
+// ============================================================
+//
+// The WhatsApp Business Profile is the card a customer sees when they
+// tap the business name in a chat: photo, an "about" line, a longer
+// description, address, email, websites, and an industry vertical. All
+// of it is read/written on the PHONE NUMBER node via the
+// `whatsapp_business_profile` edge — NOT the WABA.
+//
+// The profile photo is set by first uploading the image through the
+// app-scoped Resumable Upload API (`uploadResumableMedia` below) to get
+// a handle, then passing that handle as `profile_picture_handle` on the
+// update. Reads return a short-lived `profile_picture_url` instead.
+
+/** Industry verticals Meta accepts for `whatsapp_business_profile.vertical`. */
+export const BUSINESS_VERTICALS = [
+  'UNDEFINED',
+  'OTHER',
+  'AUTO',
+  'BEAUTY',
+  'APPAREL',
+  'EDU',
+  'ENTERTAIN',
+  'EVENT_PLAN',
+  'FINANCE',
+  'GROCERY',
+  'GOVT',
+  'HOTEL',
+  'HEALTH',
+  'NONPROFIT',
+  'PROF_SERVICES',
+  'RETAIL',
+  'TRAVEL',
+  'RESTAURANT',
+  'NOT_A_BIZ',
+] as const
+
+export type BusinessVertical = (typeof BUSINESS_VERTICALS)[number]
+
+export interface WhatsAppBusinessProfile {
+  about?: string
+  address?: string
+  description?: string
+  email?: string
+  /** Short-lived Meta CDN URL — only present on reads, never written. */
+  profile_picture_url?: string
+  vertical?: string
+  websites?: string[]
+}
+
+export interface GetBusinessProfileArgs {
+  phoneNumberId: string
+  accessToken: string
+}
+
+/**
+ * Fetch the current WhatsApp business profile for a phone number.
+ * Meta wraps the single profile object in a `{ data: [ … ] }` array;
+ * this unwraps it (or returns `{}` when the profile is empty).
+ */
+export async function getBusinessProfile(
+  args: GetBusinessProfileArgs,
+): Promise<WhatsAppBusinessProfile> {
+  const { phoneNumberId, accessToken } = args
+  const fields =
+    'about,address,description,email,profile_picture_url,vertical,websites'
+  const url = `${META_API_BASE}/${phoneNumberId}/whatsapp_business_profile?fields=${fields}`
+  const response = await metaFetch(
+    url,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+    { op: 'getBusinessProfile' },
+  )
+  if (!response.ok) {
+    await throwMetaError(response, `Meta API error: ${response.status}`)
+  }
+  const data = (await response.json()) as { data?: WhatsAppBusinessProfile[] }
+  return data.data?.[0] ?? {}
+}
+
+export interface UpdateBusinessProfileArgs {
+  phoneNumberId: string
+  accessToken: string
+  /**
+   * Only the provided keys are sent to Meta (which patches, not
+   * replaces). `profilePictureHandle` comes from `uploadResumableMedia`
+   * and sets the photo; omit it to leave the current photo untouched.
+   */
+  profile: {
+    about?: string
+    address?: string
+    description?: string
+    email?: string
+    vertical?: string
+    websites?: string[]
+    profilePictureHandle?: string
+  }
+}
+
+/**
+ * Update the WhatsApp business profile. Meta patches only the fields
+ * present in the body, so callers can send a partial object (e.g. just
+ * a photo handle, or just the text fields).
+ */
+export async function updateBusinessProfile(
+  args: UpdateBusinessProfileArgs,
+): Promise<void> {
+  const { phoneNumberId, accessToken, profile } = args
+  const body: Record<string, unknown> = { messaging_product: 'whatsapp' }
+  if (profile.about !== undefined) body.about = profile.about
+  if (profile.address !== undefined) body.address = profile.address
+  if (profile.description !== undefined) body.description = profile.description
+  if (profile.email !== undefined) body.email = profile.email
+  if (profile.vertical !== undefined) body.vertical = profile.vertical
+  if (profile.websites !== undefined) body.websites = profile.websites
+  if (profile.profilePictureHandle !== undefined) {
+    body.profile_picture_handle = profile.profilePictureHandle
+  }
+  const url = `${META_API_BASE}/${phoneNumberId}/whatsapp_business_profile`
+  const response = await metaFetch(
+    url,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(body),
+    },
+    { op: 'updateBusinessProfile' },
+  )
+  if (!response.ok) {
+    await throwMetaError(response, `Meta API error: ${response.status}`)
+  }
+}
+
+// ============================================================
+// Commerce — catalog + product management
+// ============================================================
+//
+// A WhatsApp Business Account can have ONE product catalog connected to
+// it (created/owned in Meta Commerce Manager). Three different nodes are
+// involved, each needing a different permission:
+//
+//   - `GET /{waba-id}/product_catalogs`  → the connected catalog's id +
+//     name. Uses whatsapp_business_management (which the Embedded Signup
+//     token already carries).
+//   - `GET|POST /{phone-number-id}/whatsapp_commerce_settings` → whether
+//     the catalog is shown in-chat and whether the cart is enabled.
+//     Also whatsapp_business_management.
+//   - `GET|POST /{catalog-id}/products`, `DELETE /{product-id}` → the
+//     products themselves. These need the `catalog_management`
+//     permission, which a WhatsApp-only token often does NOT have — the
+//     callers treat a permission failure here as a soft, explained state
+//     rather than a hard error.
+
+export interface ProductCatalogSummary {
+  id: string
+  name?: string
+  product_count?: number
+}
+
+export interface CommerceSettings {
+  is_cart_enabled?: boolean
+  is_catalog_visible?: boolean
+}
+
+export interface CatalogProduct {
+  id: string
+  retailer_id?: string
+  name?: string
+  description?: string
+  /** Meta returns this pre-formatted on read (e.g. "$9.99"). */
+  price?: string
+  currency?: string
+  availability?: string
+  image_url?: string
+  url?: string
+}
+
+/**
+ * List the product catalog(s) connected to a WABA. In practice a WABA
+ * has at most one, but Meta returns an array.
+ */
+export async function getConnectedCatalogs(args: {
+  wabaId: string
+  accessToken: string
+}): Promise<ProductCatalogSummary[]> {
+  const { wabaId, accessToken } = args
+  const url = `${META_API_BASE}/${wabaId}/product_catalogs?fields=id,name,product_count`
+  const response = await metaFetch(
+    url,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+    { op: 'getConnectedCatalogs' },
+  )
+  if (!response.ok) {
+    await throwMetaError(response, `Meta API error: ${response.status}`)
+  }
+  const data = (await response.json()) as { data?: ProductCatalogSummary[] }
+  return data.data ?? []
+}
+
+/**
+ * Read the phone number's WhatsApp commerce settings (cart on/off,
+ * catalog visible in chat). Returns null when Meta has no settings row
+ * for the number yet.
+ */
+export async function getCommerceSettings(args: {
+  phoneNumberId: string
+  accessToken: string
+}): Promise<CommerceSettings | null> {
+  const { phoneNumberId, accessToken } = args
+  const url = `${META_API_BASE}/${phoneNumberId}/whatsapp_commerce_settings`
+  const response = await metaFetch(
+    url,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+    { op: 'getCommerceSettings' },
+  )
+  if (!response.ok) {
+    await throwMetaError(response, `Meta API error: ${response.status}`)
+  }
+  const data = (await response.json()) as { data?: CommerceSettings[] }
+  return data.data?.[0] ?? null
+}
+
+/**
+ * Update the phone number's commerce settings. Meta takes these as
+ * query params (not a JSON body); only the provided flags are changed.
+ */
+export async function updateCommerceSettings(args: {
+  phoneNumberId: string
+  accessToken: string
+  isCartEnabled?: boolean
+  isCatalogVisible?: boolean
+}): Promise<void> {
+  const { phoneNumberId, accessToken, isCartEnabled, isCatalogVisible } = args
+  const params = new URLSearchParams()
+  if (isCartEnabled !== undefined) params.set('is_cart_enabled', String(isCartEnabled))
+  if (isCatalogVisible !== undefined) {
+    params.set('is_catalog_visible', String(isCatalogVisible))
+  }
+  const url = `${META_API_BASE}/${phoneNumberId}/whatsapp_commerce_settings?${params.toString()}`
+  const response = await metaFetch(
+    url,
+    { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` } },
+    { op: 'updateCommerceSettings' },
+  )
+  if (!response.ok) {
+    await throwMetaError(response, `Meta API error: ${response.status}`)
+  }
+}
+
+export interface GetCatalogProductsResult {
+  products: CatalogProduct[]
+  /** Opaque cursor for the next page, or null when there are no more. */
+  nextAfter: string | null
+}
+
+/**
+ * List products in a catalog (paginated). Needs `catalog_management`.
+ */
+export async function getCatalogProducts(args: {
+  catalogId: string
+  accessToken: string
+  after?: string
+  limit?: number
+}): Promise<GetCatalogProductsResult> {
+  const { catalogId, accessToken, after, limit = 30 } = args
+  const params = new URLSearchParams({
+    fields:
+      'id,retailer_id,name,description,price,currency,availability,image_url,url',
+    limit: String(limit),
+  })
+  if (after) params.set('after', after)
+  const url = `${META_API_BASE}/${catalogId}/products?${params.toString()}`
+  const response = await metaFetch(
+    url,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+    { op: 'getCatalogProducts' },
+  )
+  if (!response.ok) {
+    await throwMetaError(response, `Meta API error: ${response.status}`)
+  }
+  const data = (await response.json()) as {
+    data?: CatalogProduct[]
+    paging?: { cursors?: { after?: string }; next?: string }
+  }
+  return {
+    products: data.data ?? [],
+    // Only expose the cursor when Meta says there's a next page.
+    nextAfter: data.paging?.next ? data.paging?.cursors?.after ?? null : null,
+  }
+}
+
+export interface CreateCatalogProductArgs {
+  catalogId: string
+  accessToken: string
+  product: {
+    /** Your SKU — unique within the catalog. */
+    retailerId: string
+    name: string
+    description?: string
+    /** Integer in the currency's minor unit (e.g. cents). 999 = 9.99. */
+    priceMinorUnits: number
+    currency: string
+    availability: 'in stock' | 'out of stock'
+    /** Publicly reachable image URL — Meta fetches it. */
+    imageUrl: string
+    url?: string
+  }
+}
+
+/**
+ * Create a product in a catalog. Needs `catalog_management`.
+ * Returns Meta's assigned product id.
+ */
+export async function createCatalogProduct(
+  args: CreateCatalogProductArgs,
+): Promise<{ id: string }> {
+  const { catalogId, accessToken, product } = args
+  const body: Record<string, unknown> = {
+    retailer_id: product.retailerId,
+    name: product.name,
+    price: product.priceMinorUnits,
+    currency: product.currency,
+    availability: product.availability,
+    image_url: product.imageUrl,
+  }
+  if (product.description) body.description = product.description
+  if (product.url) body.url = product.url
+  const url = `${META_API_BASE}/${catalogId}/products`
+  const response = await metaFetch(
+    url,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(body),
+    },
+    { op: 'createCatalogProduct' },
+  )
+  if (!response.ok) {
+    await throwMetaError(response, `Meta API error: ${response.status}`)
+  }
+  const data = await response.json()
+  if (!data?.id) {
+    throw new Error('Meta accepted the product but returned no id.')
+  }
+  return { id: String(data.id) }
+}
+
+/**
+ * Delete a product by its Meta product id. Needs `catalog_management`.
+ * A 404 is treated as already-gone (no-op).
+ */
+export async function deleteCatalogProduct(args: {
+  productId: string
+  accessToken: string
+}): Promise<void> {
+  const { productId, accessToken } = args
+  const response = await metaFetch(
+    `${META_API_BASE}/${productId}`,
+    { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } },
+    { op: 'deleteCatalogProduct' },
+  )
+  if (response.status === 404) return
+  if (!response.ok) {
+    await throwMetaError(response, `Meta API error: ${response.status}`)
+  }
+}
+
+// ============================================================
 // Cloud API registration (subscription for inbound webhooks)
 // ============================================================
 //

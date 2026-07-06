@@ -174,6 +174,46 @@ export interface ContactNote {
   created_at: string;
 }
 
+export type ListStatus = 'active' | 'archived';
+
+/**
+ * A named, manually-managed collection of contacts for campaign
+ * targeting (migration 042). Contact<->list is many-to-many via
+ * `ContactList`; a list stores only references — no filter logic
+ * (that's the separate, not-yet-built Segments module).
+ */
+export interface List {
+  id: string;
+  account_id: string;
+  name: string;
+  description?: string | null;
+  color?: string | null;
+  status: ListStatus;
+  /** Denormalized count of contact_lists rows, kept in sync by a DB
+   *  trigger (migration 042) — avoids an N+1 count query per row on
+   *  the list-of-lists page. */
+  total_contacts: number;
+  /** auth.users.id of whoever created the list. Null if that user was
+   *  later removed (ON DELETE SET NULL). */
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * One contact's membership in one list (migration 042). Deleting a
+ * row removes the contact from the list only — the contact record
+ * itself is untouched. `(contact_id, list_id)` is unique.
+ */
+export interface ContactList {
+  id: string;
+  contact_id: string;
+  list_id: string;
+  added_at: string;
+  added_by: string | null;
+  contact?: Contact;
+}
+
 export type ConversationStatus = 'open' | 'pending' | 'closed';
 
 export interface Conversation {

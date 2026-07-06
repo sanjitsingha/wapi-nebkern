@@ -2,6 +2,8 @@ import {
   Coins,
   KeyRound,
   PlugZap,
+  ShoppingBag,
+  Store,
   Tags,
   User,
   UsersRound,
@@ -21,6 +23,8 @@ import {
 export const SETTINGS_SECTIONS = [
   'profile',
   'whatsapp',
+  'business-profile',
+  'catalog',
   'api-access',
   'integrations',
   'fields',
@@ -51,6 +55,18 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     id: 'whatsapp',
     label: 'WhatsApp',
     icon: PlugZap,
+    group: 'workspace',
+  },
+  'business-profile': {
+    id: 'business-profile',
+    label: 'Business Profile',
+    icon: Store,
+    group: 'workspace',
+  },
+  catalog: {
+    id: 'catalog',
+    label: 'Catalogue',
+    icon: ShoppingBag,
     group: 'workspace',
   },
   'api-access': {

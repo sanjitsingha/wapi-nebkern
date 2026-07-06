@@ -1,42 +1,66 @@
-"use client"
+'use client';
 
-import * as React from "react"
-import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox"
-import { Check, Minus } from "lucide-react"
+import * as React from 'react';
 
-import { cn } from "@/lib/utils"
+import { cn } from '@/lib/utils';
 
-// Root: primary token when checked or indeterminate (responds to the active
-// color theme), input border when unchecked. Mirrors switch.tsx conventions.
+type CheckboxProps = Omit<React.ComponentProps<'input'>, 'checked' | 'type'> & {
+  checked?: boolean | 'indeterminate';
+  defaultChecked?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
+  indeterminate?: boolean;
+};
+
 function Checkbox({
   className,
+  checked,
+  defaultChecked,
+  onCheckedChange,
+  indeterminate,
+  disabled,
+  onChange,
   ...props
-}: React.ComponentProps<typeof CheckboxPrimitive.Root>) {
+}: CheckboxProps) {
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.indeterminate = Boolean(indeterminate);
+    }
+  }, [indeterminate]);
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    onCheckedChange?.(event.target.checked);
+    onChange?.(event);
+  };
+
   return (
-    <CheckboxPrimitive.Root
+    <input
+      ref={inputRef}
+      type="checkbox"
       data-slot="checkbox"
       className={cn(
-        "peer size-4 shrink-0 cursor-pointer rounded-[4px] border border-input bg-card shadow-sm transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        "disabled:cursor-not-allowed disabled:opacity-50",
-        "data-[checked]:border-primary data-[checked]:bg-primary data-[checked]:text-primary-foreground",
-        "data-[indeterminate]:border-primary data-[indeterminate]:bg-primary data-[indeterminate]:text-primary-foreground",
-        className,
+        'peer border-input bg-background accent-primary size-4 shrink-0 cursor-pointer rounded border transition-colors',
+        'focus-visible:ring-primary focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
+        'disabled:cursor-not-allowed disabled:opacity-50',
+        className
       )}
+      checked={checked === undefined ? undefined : checked === true}
+      defaultChecked={defaultChecked}
+      disabled={disabled}
+      aria-checked={
+        indeterminate
+          ? 'mixed'
+          : checked === true
+            ? 'true'
+            : checked === false
+              ? 'false'
+              : undefined
+      }
+      onChange={handleChange}
       {...props}
-    >
-      <CheckboxPrimitive.Indicator
-        data-slot="checkbox-indicator"
-        className="flex items-center justify-center text-current"
-      >
-        {props.indeterminate ? (
-          <Minus className="size-3.5" />
-        ) : (
-          <Check className="size-3.5" />
-        )}
-      </CheckboxPrimitive.Indicator>
-    </CheckboxPrimitive.Root>
-  )
+    />
+  );
 }
 
-export { Checkbox }
+export { Checkbox };

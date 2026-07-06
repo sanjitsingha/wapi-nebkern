@@ -188,7 +188,9 @@ export default function ContactsPage() {
 
       if (term) {
         const like = `%${term}%`;
-        query = query.or(`name.ilike.${like},phone.ilike.${like},email.ilike.${like}`);
+        query = query.or(
+          `name.ilike.${like},phone.ilike.${like},email.ilike.${like}`
+        );
       }
       if (createdFrom) {
         query = query.gte('created_at', createdFrom);
@@ -301,7 +303,6 @@ export default function ContactsPage() {
 
   const allOnPageSelected =
     contacts.length > 0 && contacts.every((c) => selected.has(c.id));
-  const someOnPageSelected = contacts.some((c) => selected.has(c.id));
 
   function toggleSelectAll() {
     setSelected((prev) => {
@@ -334,7 +335,9 @@ export default function ContactsPage() {
     if (error) {
       toast.error('Failed to delete contacts');
     } else {
-      toast.success(`${ids.length} contact${ids.length === 1 ? '' : 's'} deleted`);
+      toast.success(
+        `${ids.length} contact${ids.length === 1 ? '' : 's'} deleted`
+      );
       setSelected(new Set());
       fetchContacts();
     }
@@ -384,11 +387,12 @@ export default function ContactsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Contacts</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage your contact list. {totalCount > 0 && `${totalCount} total contacts.`}
+          <h1 className="text-foreground text-2xl font-bold">Contacts</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Manage your contact list.{' '}
+            {totalCount > 0 && `${totalCount} total contacts.`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -396,7 +400,7 @@ export default function ContactsPage() {
             <Button
               variant="outline"
               onClick={() => setCustomFieldsOpen(true)}
-              className="h-11 border-border text-muted-foreground hover:bg-muted"
+              className="border-border text-muted-foreground hover:bg-muted h-11"
             >
               <SlidersHorizontal className="size-4" />
               Custom fields
@@ -407,7 +411,7 @@ export default function ContactsPage() {
             canAct={canEdit}
             gateReason="add or import contacts"
             onClick={() => setImportOpen(true)}
-            className="h-11 border-border text-muted-foreground hover:bg-muted"
+            className="border-border text-muted-foreground hover:bg-muted h-11"
           >
             <Upload className="size-4" />
             Import
@@ -416,7 +420,7 @@ export default function ContactsPage() {
             canAct={canEdit}
             gateReason="add or import contacts"
             onClick={openAddForm}
-            className="h-11 bg-primary hover:bg-primary/90 text-primary-foreground"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground h-11"
           >
             <Plus className="size-4" />
             Add Contact
@@ -426,9 +430,9 @@ export default function ContactsPage() {
 
       {/* Search + tag filter */}
       <div className="space-y-2">
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <div className="relative w-full max-w-sm">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Search className="text-muted-foreground absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
             <Input
               value={search}
               onChange={(e) => {
@@ -438,7 +442,7 @@ export default function ContactsPage() {
                 setPage(0);
               }}
               placeholder="Search by name, phone, or email..."
-              className="h-11 pl-8 bg-card border-border text-foreground placeholder:text-muted-foreground"
+              className="bg-card border-border text-foreground placeholder:text-muted-foreground h-11 pl-8"
             />
           </div>
 
@@ -447,34 +451,34 @@ export default function ContactsPage() {
               render={
                 <Button
                   variant="outline"
-                  className="h-11 border-border text-muted-foreground hover:bg-muted shrink-0"
+                  className="border-border text-muted-foreground hover:bg-muted h-11 shrink-0"
                 />
               }
             >
               <Filter className="size-4" />
               Filter by tags
               {selectedTagIds.length > 0 && (
-                <span className="ml-1 inline-flex items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                <span className="bg-primary text-primary-foreground ml-1 inline-flex items-center justify-center rounded-full px-1.5 text-[10px] font-semibold">
                   {selectedTagIds.length}
                 </span>
               )}
             </PopoverTrigger>
             <PopoverContent align="start" className="w-64 p-0">
-              <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-                <span className="text-sm font-medium text-popover-foreground">
+              <div className="border-border flex items-center justify-between border-b px-3 py-2">
+                <span className="text-popover-foreground text-sm font-medium">
                   Filter by tags
                 </span>
                 {selectedTagIds.length > 0 && (
                   <button
                     onClick={clearTagFilters}
-                    className="text-xs text-muted-foreground hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground text-xs"
                   >
                     Clear all
                   </button>
                 )}
               </div>
               {allTags.length === 0 ? (
-                <p className="px-3 py-4 text-sm text-muted-foreground text-center">
+                <p className="text-muted-foreground px-3 py-4 text-center text-sm">
                   No tags yet.
                 </p>
               ) : (
@@ -482,7 +486,7 @@ export default function ContactsPage() {
                   {allTags.map((tag) => (
                     <label
                       key={tag.id}
-                      className="flex items-center gap-2.5 px-3 py-1.5 cursor-pointer hover:bg-muted/50"
+                      className="hover:bg-muted/50 flex cursor-pointer items-center gap-2.5 px-3 py-1.5"
                     >
                       <Checkbox
                         checked={selectedTagIds.includes(tag.id)}
@@ -493,7 +497,7 @@ export default function ContactsPage() {
                         className="size-2.5 shrink-0 rounded-full"
                         style={{ backgroundColor: tag.color }}
                       />
-                      <span className="text-sm text-popover-foreground truncate">
+                      <span className="text-popover-foreground truncate text-sm">
                         {tag.name}
                       </span>
                     </label>
@@ -506,8 +510,10 @@ export default function ContactsPage() {
           <Button
             variant="outline"
             onClick={() => setDateFilterOpen(true)}
-            className={`h-11 shrink-0 border-border hover:bg-muted ${
-              hasDateFilter ? 'text-primary border-primary/40' : 'text-muted-foreground'
+            className={`border-border hover:bg-muted h-11 shrink-0 ${
+              hasDateFilter
+                ? 'text-primary border-primary/40'
+                : 'text-muted-foreground'
             }`}
           >
             <CalendarDays className="size-4" />
@@ -515,6 +521,36 @@ export default function ContactsPage() {
               ? `${createdFrom ? formatDateLabel(createdFrom) : 'Any'} – ${createdTo ? formatDateLabel(createdTo) : 'Any'}`
               : 'Created at'}
           </Button>
+
+          {selected.size > 0 && (
+            <div className="border-border bg-muted/40 flex h-11 shrink-0 items-center justify-between gap-2 rounded-lg border px-3">
+              <p className="text-foreground text-sm">
+                <span className="font-medium">{selected.size}</span>{' '}
+                {selected.size === 1 ? 'contact' : 'contacts'} selected
+              </p>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelected(new Set())}
+                  className="text-muted-foreground hover:text-foreground h-8 px-2"
+                >
+                  Clear
+                </Button>
+                <GatedButton
+                  variant="destructive"
+                  size="sm"
+                  canAct={canEdit}
+                  gateReason="delete contacts"
+                  onClick={() => setBulkDeleteOpen(true)}
+                  className="h-8 px-2"
+                >
+                  <Trash2 className="size-4" />
+                  Delete selected
+                </GatedButton>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Active filter chips */}
@@ -544,7 +580,7 @@ export default function ContactsPage() {
               );
             })}
             {hasDateFilter && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+              <span className="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium">
                 <CalendarDays className="size-3" />
                 {createdFrom ? formatDateLabel(createdFrom) : 'Any'} –{' '}
                 {createdTo ? formatDateLabel(createdTo) : 'Any'}
@@ -559,7 +595,7 @@ export default function ContactsPage() {
             )}
             <button
               onClick={clearAllFilters}
-              className="text-xs text-muted-foreground hover:text-foreground px-1"
+              className="text-muted-foreground hover:text-foreground px-1 text-xs"
             >
               Clear all
             </button>
@@ -567,75 +603,68 @@ export default function ContactsPage() {
         )}
       </div>
 
-      {/* Bulk action bar */}
-      {selected.size > 0 && (
-        <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-muted/40 px-4 py-2">
-          <p className="text-sm text-foreground">
-            <span className="font-medium">{selected.size}</span>{' '}
-            {selected.size === 1 ? 'contact' : 'contacts'} selected
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSelected(new Set())}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              Clear
-            </Button>
-            <GatedButton
-              variant="destructive"
-              size="sm"
-              canAct={canEdit}
-              gateReason="delete contacts"
-              onClick={() => setBulkDeleteOpen(true)}
-            >
-              <Trash2 className="size-4" />
-              Delete selected
-            </GatedButton>
-          </div>
-        </div>
-      )}
-
       {/* Table */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="border-border bg-card overflow-hidden rounded-xl border">
         <Table>
           <TableHeader>
             <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
-              <TableHead className="w-10">
-                <Checkbox
-                  checked={allOnPageSelected}
-                  indeterminate={!allOnPageSelected && someOnPageSelected}
-                  onCheckedChange={toggleSelectAll}
-                  disabled={contacts.length === 0}
-                  aria-label="Select all contacts on this page"
-                />
+              <TableHead className="w-12 min-w-12 px-2">
+                <div
+                  className={`flex items-center justify-center rounded-md py-1 transition-colors ${
+                    contacts.length === 0
+                      ? 'opacity-50'
+                      : 'hover:bg-background cursor-pointer'
+                  }`}
+                  onClick={() => {
+                    if (contacts.length > 0) toggleSelectAll();
+                  }}
+                >
+                  <span onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={allOnPageSelected}
+                      onCheckedChange={toggleSelectAll}
+                      disabled={contacts.length === 0}
+                      aria-label="Select all contacts on this page"
+                      className="ml-2 size-3.5"
+                    />
+                  </span>
+                </div>
               </TableHead>
               <TableHead className="text-muted-foreground">Name</TableHead>
               <TableHead className="text-muted-foreground">Phone</TableHead>
-              <TableHead className="text-muted-foreground hidden md:table-cell">Email</TableHead>
-              <TableHead className="text-muted-foreground hidden lg:table-cell">Company</TableHead>
-              <TableHead className="text-muted-foreground hidden md:table-cell">Tags</TableHead>
-              <TableHead className="text-muted-foreground hidden lg:table-cell">Created</TableHead>
+              <TableHead className="text-muted-foreground hidden md:table-cell">
+                Email
+              </TableHead>
+              <TableHead className="text-muted-foreground hidden lg:table-cell">
+                Company
+              </TableHead>
+              <TableHead className="text-muted-foreground hidden md:table-cell">
+                Tags
+              </TableHead>
+              <TableHead className="text-muted-foreground hidden lg:table-cell">
+                Created
+              </TableHead>
               <TableHead className="text-muted-foreground w-12" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow className="border-border">
-                <TableCell colSpan={8} className="text-center py-12">
+                <TableCell colSpan={8} className="py-12 text-center">
                   <div className="flex flex-col items-center gap-2">
-                    <Loader2 className="size-6 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">Loading contacts...</p>
+                    <Loader2 className="text-primary size-6 animate-spin" />
+                    <p className="text-muted-foreground text-sm">
+                      Loading contacts...
+                    </p>
                   </div>
                 </TableCell>
               </TableRow>
             ) : contacts.length === 0 ? (
               <TableRow className="border-border">
-                <TableCell colSpan={8} className="text-center py-12">
+                <TableCell colSpan={8} className="py-12 text-center">
                   <div className="flex flex-col items-center gap-2">
-                    <Users className="size-8 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">
+                    <Users className="text-muted-foreground size-8" />
+                    <p className="text-muted-foreground text-sm">
                       {hasActiveFilters
                         ? 'No contacts match your filters.'
                         : 'No contacts yet.'}
@@ -645,7 +674,7 @@ export default function ContactsPage() {
                         variant="outline"
                         size="sm"
                         onClick={openAddForm}
-                        className="mt-2 border-border text-muted-foreground hover:bg-muted"
+                        className="border-border text-muted-foreground hover:bg-muted mt-2"
                       >
                         <Plus className="size-3.5" />
                         Add your first contact
@@ -658,27 +687,40 @@ export default function ContactsPage() {
               contacts.map((contact) => (
                 <TableRow
                   key={contact.id}
+                  data-state={selected.has(contact.id) ? 'selected' : undefined}
                   className="border-border hover:bg-muted/50 cursor-pointer"
                   onClick={() => router.push(`/contacts/${contact.id}`)}
                 >
-                  <TableCell onClick={(e) => e.stopPropagation()}>
+                  <TableCell
+                    className="w-12 min-w-12 px-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <Checkbox
                       checked={selected.has(contact.id)}
                       onCheckedChange={() => toggleSelect(contact.id)}
                       aria-label={`Select ${contact.name || contact.phone}`}
+                      className="ml-3 size-3.5"
                     />
                   </TableCell>
                   <TableCell className="text-foreground font-medium">
-                    {contact.name || <span className="text-muted-foreground italic">Unnamed</span>}
+                    {contact.name || (
+                      <span className="text-muted-foreground italic">
+                        Unnamed
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-muted-foreground font-mono text-xs">
                     {contact.phone}
                   </TableCell>
-                  <TableCell className="text-muted-foreground hidden md:table-cell text-sm">
-                    {contact.email || <span className="text-muted-foreground">-</span>}
+                  <TableCell className="text-muted-foreground hidden text-sm md:table-cell">
+                    {contact.email || (
+                      <span className="text-muted-foreground">-</span>
+                    )}
                   </TableCell>
-                  <TableCell className="text-muted-foreground hidden lg:table-cell text-sm">
-                    {contact.company || <span className="text-muted-foreground">-</span>}
+                  <TableCell className="text-muted-foreground hidden text-sm lg:table-cell">
+                    {contact.company || (
+                      <span className="text-muted-foreground">-</span>
+                    )}
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     <div className="flex flex-wrap gap-1">
@@ -699,13 +741,13 @@ export default function ContactsPage() {
                         <span className="text-muted-foreground text-xs">-</span>
                       )}
                       {contact.tags && contact.tags.length > 3 && (
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-muted-foreground text-[10px]">
                           +{contact.tags.length - 3}
                         </span>
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-xs hidden lg:table-cell">
+                  <TableCell className="text-muted-foreground hidden text-xs lg:table-cell">
                     {new Date(contact.created_at).toLocaleDateString('en-US', {
                       month: 'short',
                       day: 'numeric',
@@ -764,9 +806,9 @@ export default function ContactsPage() {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
-            Showing {page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, totalCount)} of{' '}
-            {totalCount}
+          <p className="text-muted-foreground text-xs">
+            Showing {page * PAGE_SIZE + 1}-
+            {Math.min((page + 1) * PAGE_SIZE, totalCount)} of {totalCount}
           </p>
           <div className="flex items-center gap-1">
             <Button
@@ -778,7 +820,7 @@ export default function ContactsPage() {
             >
               <ChevronLeft className="size-4" />
             </Button>
-            <span className="text-xs text-muted-foreground px-2">
+            <span className="text-muted-foreground px-2 text-xs">
               Page {page + 1} of {totalPages}
             </span>
             <Button
@@ -842,7 +884,9 @@ export default function ContactsPage() {
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <DialogContent className="bg-popover border-border text-popover-foreground sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-popover-foreground">Delete Contact</DialogTitle>
+            <DialogTitle className="text-popover-foreground">
+              Delete Contact
+            </DialogTitle>
             <DialogDescription className="text-muted-foreground">
               Are you sure you want to delete{' '}
               <span className="text-popover-foreground font-medium">
@@ -876,7 +920,8 @@ export default function ContactsPage() {
         <DialogContent className="bg-popover border-border text-popover-foreground sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-popover-foreground">
-              Delete {selected.size} {selected.size === 1 ? 'Contact' : 'Contacts'}
+              Delete {selected.size}{' '}
+              {selected.size === 1 ? 'Contact' : 'Contacts'}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
               Are you sure you want to delete{' '}

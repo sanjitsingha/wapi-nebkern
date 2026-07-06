@@ -239,11 +239,11 @@ export default function FlowsPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold text-foreground">Flows</h1>
+            <h1 className="text-2xl font-bold text-foreground">Flows</h1>
             <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-300">
               Beta
             </span>

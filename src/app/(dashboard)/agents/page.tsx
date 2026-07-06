@@ -81,7 +81,7 @@ export default function AgentsPage() {
         };
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className="mx-auto max-w-4xl">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
@@ -90,7 +90,7 @@ export default function AgentsPage() {
           </span>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+              <h1 className="text-2xl font-bold text-foreground">
                 AI Agents
               </h1>
               <span className="inline-flex items-center rounded-full border border-violet-500/40 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-300">

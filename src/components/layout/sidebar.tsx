@@ -18,6 +18,7 @@ import {
   GitBranch,
   Home,
   Image as ImageIcon,
+  List,
   Megaphone,
   MessageSquare,
   Users,
@@ -71,13 +72,20 @@ const agentsLink: NavLink = {
 
 const quickLinks: NavLink[] = [
   { label: 'Inbox', icon: MessageSquare, href: '/inbox', unread: true },
-  { label: 'Contacts', icon: Users, href: '/contacts' },
   { label: 'Campaigns', icon: Megaphone, href: '/campaigns' },
 ];
 
 // Expandable groups. Settings fans out into the real `?tab=` sections
 // (settings-sections.ts), so every child is a live page — no stubs.
 const groups: NavGroup[] = [
+  {
+    label: 'Contacts',
+    icon: Users,
+    children: [
+      { label: 'All Contacts', icon: Users, href: '/contacts' },
+      { label: 'Lists', icon: List, href: '/lists' },
+    ],
+  },
   {
     label: 'Market',
     icon: Megaphone,
@@ -326,7 +334,7 @@ export function Sidebar({
         aria-label="Close menu"
         onClick={onClose}
         className={cn(
-          'bg-black/50 fixed inset-0 z-30 transition-opacity lg:hidden',
+          'fixed inset-0 z-30 bg-black/50 transition-opacity lg:hidden',
           open
             ? 'pointer-events-auto opacity-100'
             : 'pointer-events-none opacity-0'
