@@ -7,7 +7,7 @@ import { findExistingContact, isUniqueViolation } from '@/lib/contacts/dedupe'
 import { verifyMetaWebhookSignature } from '@/lib/whatsapp/webhook-signature'
 import { runAutomationsForTrigger } from '@/lib/automations/engine'
 import { dispatchInboundToFlows } from '@/lib/flows/engine'
-import { dispatchInboundToAiReply } from '@/lib/ai/auto-reply'
+import { triggerAiReplyEngine } from '@/lib/ai/dispatch'
 import {
   handleTemplateWebhookChange,
   isTemplateWebhookField,
@@ -205,7 +205,14 @@ export async function POST(request: Request) {
   // within Meta's webhook timeout; on the rare timeout Meta simply
   // retries, which is safe here.
   try {
-    await processWebhook(body)
+    // Public origin of THIS deployment, used to self-invoke the AI
+    // reply engine (its LLM work must run in its own invocation — see
+    // /api/ai/reply-engine). Prefer the configured canonical URL; fall
+    // back to the request's own origin.
+    const origin =
+      process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, '') ||
+      new URL(request.url).origin
+    await processWebhook(body, origin)
   } catch (error) {
     console.error('Error processing webhook:', error)
   }
@@ -213,7 +220,10 @@ export async function POST(request: Request) {
   return NextResponse.json({ status: 'received' }, { status: 200 })
 }
 
-async function processWebhook(body: { entry?: WhatsAppWebhookEntry[] }) {
+async function processWebhook(
+  body: { entry?: WhatsAppWebhookEntry[] },
+  origin: string,
+) {
   if (!body.entry) return
 
   for (const entry of body.entry) {
@@ -298,7 +308,8 @@ async function processWebhook(body: { entry?: WhatsAppWebhookEntry[] }) {
           // inserts that need it for NOT NULL FK compliance. Always
           // the admin who saved the WhatsApp config.
           config.user_id,
-          decryptedAccessToken
+          decryptedAccessToken,
+          origin
         )
       }
     }
@@ -532,7 +543,10 @@ async function processMessage(
   // (contacts, conversations). Always the admin who saved the
   // WhatsApp config; the choice is arbitrary post-017 but stable.
   configOwnerUserId: string,
-  accessToken: string
+  accessToken: string,
+  // Public origin of this deployment — used to self-invoke the AI
+  // reply engine so its LLM call isn't tied to this invocation.
+  origin: string
 ) {
   const senderPhone = normalizePhone(message.from)
   const contactName = contact.profile.name
@@ -740,19 +754,19 @@ async function processMessage(
   }
 
   // AI auto-reply — last, and only when no deterministic Flow consumed
-  // the message (Flows win). Fire-and-forget: the bot owns its own
-  // try/catch and never throws, and its internal gates (AI off, a human
-  // is assigned, an active message-automation exists, the per-thread cap
-  // is hit, a prior handoff) make it a cheap no-op for accounts that
-  // don't use it.
+  // the message (Flows win). Runs in its OWN invocation via the reply
+  // engine (see /api/ai/reply-engine): a fire-and-forget promise here
+  // would be frozen with this instance the moment the webhook 200s, so
+  // the LLM call would stall until the next request thawed it. The
+  // trigger waits ≤2s for the hand-off, then this webhook acks Meta.
   if (!flowConsumed) {
-    dispatchInboundToAiReply({
+    await triggerAiReplyEngine(origin, {
       accountId,
       conversationId: conversation.id,
       contactId: contactRecord.id,
       configOwnerUserId,
       messageText: inboundText,
-    }).catch((err) => console.error('[ai auto-reply] dispatch failed:', err))
+    })
   }
 }
 

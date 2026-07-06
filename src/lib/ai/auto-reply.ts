@@ -1,15 +1,17 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabaseAdmin } from '@/lib/flows/admin-client'
 import { engineSendText } from '@/lib/flows/meta-send'
 import { matchesKeywordTrigger } from '@/lib/automations/engine'
 import type { KeywordMatchTriggerConfig } from '@/types'
+import { AiError } from './types'
 import { loadAiConfig } from './config'
 import { buildConversationContext } from './context'
 import { retrieveKnowledge } from './knowledge'
-import { generateReply } from './generate'
+import { generateReply, type GenerateArgs } from './generate'
 import { buildSystemPrompt } from './defaults'
 import { latestUserMessage } from './query'
 
-interface DispatchArgs {
+export interface DispatchArgs {
   /** Tenancy key — drives config, contact, and conversation lookups. */
   accountId: string
   conversationId: string
@@ -110,6 +112,11 @@ export async function dispatchInboundToAiReply(
     const messages = await buildConversationContext(db, conversationId)
     if (messages.length === 0) return
 
+    // Anchor for the burst guard below: the newest customer message our
+    // context covers. Captured after context-build so the context always
+    // includes it.
+    const anchorMessageId = await latestCustomerMessageId(db, conversationId)
+
     // Ground the reply in the account's knowledge base (best-effort).
     const knowledge = await retrieveKnowledge(
       db,
@@ -124,22 +131,41 @@ export async function dispatchInboundToAiReply(
       knowledge,
     })
 
-    const { text, handoff } = await generateReply({
+    const { text, handoff } = await generateWithRetry({
       config,
       systemPrompt,
       messages,
     })
 
-    if (handoff || !text) {
-      // The model can't (or shouldn't) answer — stop auto-replying on
-      // this thread and leave the inbound unanswered so it surfaces in
-      // the inbox for a human. Sticky until an admin re-enables. An
-      // assigned AI resigns its assignment too, so the conversation
-      // shows as unassigned and a teammate knows to pick it up.
+    if (handoff) {
+      // The model explicitly signalled it can't (or shouldn't) answer —
+      // stop auto-replying on this thread and leave the inbound
+      // unanswered so it surfaces in the inbox for a human. Sticky until
+      // re-enabled. An assigned AI resigns its assignment too, so the
+      // conversation shows as unassigned and a teammate picks it up.
       await db
         .from('conversations')
         .update({ ai_autoreply_disabled: true, ai_agent_assigned: false })
         .eq('id', conversationId)
+      return
+    }
+    if (!text) {
+      // Empty output without a handoff signal is a provider glitch
+      // (reasoning models, truncation), not a decision — skip this turn
+      // but do NOT mute the thread or drop the assignment.
+      console.warn(
+        `[ai auto-reply] empty generation for conversation ${conversationId} — skipped (state unchanged)`,
+      )
+      return
+    }
+
+    // Burst guard: if the customer sent ANOTHER message while we were
+    // generating, drop this now-stale reply. The newer message's own
+    // webhook invocation is generating with the fuller context and will
+    // answer the whole burst with one coherent reply — instead of the
+    // customer getting N overlapping answers out of order.
+    const latestNow = await latestCustomerMessageId(db, conversationId)
+    if (anchorMessageId && latestNow && latestNow !== anchorMessageId) {
       return
     }
 
@@ -170,4 +196,45 @@ export async function dispatchInboundToAiReply(
   } catch (err) {
     console.error('[ai auto-reply] dispatch failed:', err)
   }
+}
+
+/** Codes worth one retry — momentary provider hiccups, common on free
+ *  OpenRouter tiers. Anything else (invalid key, bad model) fails fast. */
+const TRANSIENT_AI_CODES = new Set([
+  'timeout',
+  'rate_limited',
+  'network_error',
+  'empty_response',
+  'provider_error',
+])
+
+/** One bounded retry over `generateReply` so a single flaky provider
+ *  response doesn't swallow a customer's reply. */
+async function generateWithRetry(args: GenerateArgs) {
+  try {
+    return await generateReply(args)
+  } catch (err) {
+    if (!(err instanceof AiError) || !TRANSIENT_AI_CODES.has(err.code)) throw err
+    console.warn(
+      `[ai auto-reply] transient provider error (${err.code}) — retrying once`,
+    )
+    await new Promise((r) => setTimeout(r, 1500))
+    return await generateReply(args)
+  }
+}
+
+/** Id of the newest customer message in a conversation (burst guard). */
+async function latestCustomerMessageId(
+  db: SupabaseClient,
+  conversationId: string,
+): Promise<string | null> {
+  const { data } = await db
+    .from('messages')
+    .select('id')
+    .eq('conversation_id', conversationId)
+    .eq('sender_type', 'customer')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return (data?.id as string | undefined) ?? null
 }
