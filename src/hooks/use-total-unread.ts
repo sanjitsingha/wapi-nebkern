@@ -42,8 +42,12 @@ export function useTotalUnread(): number {
       setTotal(sum);
     })();
 
+    const channelName = `total-unread-realtime:${Date.now()}:${Math.random()
+      .toString(36)
+      .slice(2)}`;
+
     const channel = supabase
-      .channel("total-unread-realtime")
+      .channel(channelName)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "conversations" },
