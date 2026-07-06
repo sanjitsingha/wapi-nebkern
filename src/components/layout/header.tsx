@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
 import { PresenceDot } from '@/components/presence/presence-dot';
+import { NotificationsBell } from '@/components/layout/notifications-bell';
 
 interface HeaderProps {
   /** Wired to the shell's drawer state. Used only on mobile — the
@@ -61,6 +62,8 @@ export function Header({ onOpenSidebar }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-1 sm:gap-2">
+        <NotificationsBell />
+
         <Link
           href="/settings"
           aria-label="Settings"
