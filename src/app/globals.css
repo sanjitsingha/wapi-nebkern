@@ -92,6 +92,72 @@
   --sidebar-ring: oklch(0.446 0.127 146);
 }
 
+/* Gentle floating motion for the marketing hero avatars. */
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+
+.animate-floaty {
+  animation: floaty 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-floaty {
+    animation: none;
+  }
+}
+
+/* ── Custom thin scrollbar ──────────────────────────────────────────
+   Replaces the chunky default OS scrollbar with a slim, theme-aware one
+   across the whole app.
+
+   Chrome 121+ and Firefox honour the *standard* `scrollbar-width` /
+   `scrollbar-color` props and ignore `::-webkit-scrollbar` once
+   `scrollbar-width` is set — so the standard props carry the real
+   styling and the WebKit rules are just a fallback for older Safari.
+   Colours are plain oklch-with-alpha (not color-mix, which isn't
+   reliably parsed inside `scrollbar-color`). */
+:root {
+  --scrollbar-thumb: oklch(0.5 0.018 258 / 0.4);
+  --scrollbar-thumb-hover: oklch(0.5 0.018 258 / 0.65);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+/* Don't paint a scrollbar in the dead corner where two bars meet. */
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

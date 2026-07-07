@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   ArrowLeft,
+  ArrowUpDown,
   ChevronLeft,
   ChevronRight,
   Copy,
@@ -28,7 +29,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select';
 import {
   Table,
@@ -279,100 +279,101 @@ export default function ListDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push('/lists')}
-          className="mb-2 text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" />
-          Back to lists
-        </Button>
-
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2.5">
-              <span
-                className="size-3 shrink-0 rounded-full"
-                style={{ backgroundColor: list.color || '#94a3b8' }}
-              />
-              <h1 className="truncate text-2xl font-bold text-foreground">
-                {list.name}
-              </h1>
-              {status && (
-                <Badge className={`border text-xs ${status.classes}`}>
-                  {status.label}
-                </Badge>
-              )}
-            </div>
-            {list.description && (
-              <p className="mt-1 text-sm text-muted-foreground">
-                {list.description}
-              </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          {/* Back link + list name on one line, split by a dot. */}
+          <div className="flex min-w-0 items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push('/lists')}
+              className="-ml-2 h-8 shrink-0 px-2 text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="size-4" />
+              Back
+            </Button>
+            <span className="shrink-0 text-muted-foreground/40 select-none">
+              •
+            </span>
+            <span
+              className="size-3 shrink-0 rounded-full"
+              style={{ backgroundColor: list.color || '#94a3b8' }}
+            />
+            <h1 className="truncate text-2xl font-bold text-foreground">
+              {list.name}
+            </h1>
+            {status && (
+              <Badge className={`shrink-0 border text-xs ${status.classes}`}>
+                {status.label}
+              </Badge>
             )}
           </div>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button variant="outline" className="shrink-0 border-border" />
-              }
-            >
-              <MoreHorizontal className="size-4" />
-              Actions
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="border-border bg-popover">
-              <DropdownMenuItem
-                disabled={!canEditSettings}
-                onClick={() => setEditOpen(true)}
-                className="text-popover-foreground focus:bg-muted focus:text-foreground"
-              >
-                <Pencil className="size-4" />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                disabled={!canEditSettings}
-                onClick={() => setDuplicateOpen(true)}
-                className="text-popover-foreground focus:bg-muted focus:text-foreground"
-              >
-                <Copy className="size-4" />
-                Duplicate
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                disabled={!canEditSettings}
-                onClick={async () => {
-                  const nextStatus = list.status === 'active' ? 'archived' : 'active';
-                  const { error } = await supabase
-                    .from('lists')
-                    .update({ status: nextStatus })
-                    .eq('id', list.id);
-                  if (error) {
-                    toast.error('Failed to update list');
-                    return;
-                  }
-                  toast.success(
-                    nextStatus === 'archived' ? 'List archived' : 'List restored'
-                  );
-                  setList({ ...list, status: nextStatus });
-                }}
-                className="text-popover-foreground focus:bg-muted focus:text-foreground"
-              >
-                <Users className="size-4" />
-                {list.status === 'active' ? 'Archive' : 'Restore'}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-border" />
-              <DropdownMenuItem
-                variant="destructive"
-                disabled={!canEditSettings}
-                onClick={() => setDeleteOpen(true)}
-              >
-                <Trash2 className="size-4" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {list.description && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              {list.description}
+            </p>
+          )}
         </div>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button variant="outline" className="shrink-0 border-border" />
+            }
+          >
+            <MoreHorizontal className="size-4" />
+            Actions
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="border-border bg-popover">
+            <DropdownMenuItem
+              disabled={!canEditSettings}
+              onClick={() => setEditOpen(true)}
+              className="text-popover-foreground focus:bg-muted focus:text-foreground"
+            >
+              <Pencil className="size-4" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={!canEditSettings}
+              onClick={() => setDuplicateOpen(true)}
+              className="text-popover-foreground focus:bg-muted focus:text-foreground"
+            >
+              <Copy className="size-4" />
+              Duplicate
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={!canEditSettings}
+              onClick={async () => {
+                const nextStatus = list.status === 'active' ? 'archived' : 'active';
+                const { error } = await supabase
+                  .from('lists')
+                  .update({ status: nextStatus })
+                  .eq('id', list.id);
+                if (error) {
+                  toast.error('Failed to update list');
+                  return;
+                }
+                toast.success(
+                  nextStatus === 'archived' ? 'List archived' : 'List restored'
+                );
+                setList({ ...list, status: nextStatus });
+              }}
+              className="text-popover-foreground focus:bg-muted focus:text-foreground"
+            >
+              <Users className="size-4" />
+              {list.status === 'active' ? 'Archive' : 'Restore'}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="bg-border" />
+            <DropdownMenuItem
+              variant="destructive"
+              disabled={!canEditSettings}
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2 className="size-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -411,8 +412,9 @@ export default function ListDetailPage() {
               setPage(0);
             }}
           >
-            <SelectTrigger className="h-11 w-44 border-border bg-background">
-              <SelectValue />
+            <SelectTrigger className="h-11 w-auto gap-2 border-border bg-background">
+              <ArrowUpDown className="size-4 text-muted-foreground" />
+              Sort
             </SelectTrigger>
             <SelectContent>
               {SORT_OPTIONS.map((opt) => (

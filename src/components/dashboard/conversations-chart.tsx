@@ -5,16 +5,13 @@ import { MessageSquare } from 'lucide-react'
 import type { ConversationsSeriesPoint } from '@/lib/dashboard/types'
 import { EmptyState } from './empty-state'
 import { Skeleton } from './skeleton'
-import { cn } from '@/lib/utils'
-
-type RangeDays = 7 | 30 | 90
 
 interface ConversationsChartProps {
-  /** Per-range data, so switching tabs never re-fetches. */
-  series: Record<RangeDays, ConversationsSeriesPoint[] | null>
+  /** Daily points for the currently-selected date range. */
+  data: ConversationsSeriesPoint[] | null
   loading: boolean
-  range: RangeDays
-  onRangeChange: (r: RangeDays) => void
+  /** Human-readable range, shown in the card header (e.g. "Last 30 days"). */
+  rangeLabel: string
 }
 
 // ------------------------------------------------------------
@@ -27,9 +24,7 @@ const VB_W = 760
 const VB_H = 240
 const PADDING = { top: 16, right: 16, bottom: 28, left: 40 }
 
-export function ConversationsChart({ series, loading, range, onRangeChange }: ConversationsChartProps) {
-  const data = series[range]
-
+export function ConversationsChart({ data, loading, rangeLabel }: ConversationsChartProps) {
   // Memoise the max so per-day hover math doesn't recompute it.
   const { maxY, niceTicks } = useMemo(() => {
     const arr = data ?? []
@@ -52,23 +47,9 @@ export function ConversationsChart({ series, loading, range, onRangeChange }: Co
           <h2 className="text-sm font-semibold text-foreground">Conversations Over Time</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">Daily message volume by direction</p>
         </div>
-        <div className="flex items-center gap-1 rounded-lg bg-muted/60 p-1">
-          {[7, 30, 90].map((r) => (
-            <button
-              key={r}
-              type="button"
-              onClick={() => onRangeChange(r as RangeDays)}
-              className={cn(
-                'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
-                range === r
-                  ? 'bg-secondary text-secondary-foreground'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {r} days
-            </button>
-          ))}
-        </div>
+        <span className="rounded-md bg-muted/60 px-2.5 py-1 text-xs font-medium text-muted-foreground">
+          {rangeLabel}
+        </span>
       </header>
 
       <div className="p-5">
@@ -124,7 +105,10 @@ function LineSvg({
   const stepX = data.length > 1 ? chartW / (data.length - 1) : 0
   const yFor = (v: number) =>
     maxY === 0 ? PADDING.top + chartH : PADDING.top + chartH - (v / maxY) * chartH
-  const xFor = (i: number) => PADDING.left + i * stepX
+  // A single point has no step, so center it in the plot area rather
+  // than pinning it to the left axis.
+  const xFor = (i: number) =>
+    data.length === 1 ? PADDING.left + chartW / 2 : PADDING.left + i * stepX
 
   const incomingPath = data.map((p, i) => `${i === 0 ? 'M' : 'L'}${xFor(i)},${yFor(p.incoming)}`).join(' ')
   const outgoingPath = data.map((p, i) => `${i === 0 ? 'M' : 'L'}${xFor(i)},${yFor(p.outgoing)}`).join(' ')
@@ -256,6 +240,16 @@ function LineSvg({
           strokeLinecap="round"
           strokeLinejoin="round"
         />
+
+        {/* Single-day ranges have one point per series, so the polylines
+            above draw nothing (a line needs two ends). Render dots so a
+            one-day selection still shows its values. */}
+        {data.length === 1 && (
+          <>
+            <circle cx={xFor(0)} cy={yFor(data[0].outgoing)} r={4} fill="#7c3aed" />
+            <circle cx={xFor(0)} cy={yFor(data[0].incoming)} r={4} fill="#3b82f6" />
+          </>
+        )}
 
         {/* Hover crosshair */}
         {hover !== null && (

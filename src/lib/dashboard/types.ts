@@ -7,12 +7,26 @@ export interface MetricDelta {
   previous: number
 }
 
+/**
+ * A concrete, inclusive local-day window the dashboard is scoped to.
+ * `from`/`to` are both start-of-local-day dates; `to` is inclusive
+ * (the query layer extends it to the end of that day).
+ */
+export interface DashboardDateRange {
+  from: Date
+  to: Date
+}
+
 export interface MetricsBundle {
-  activeConversations: MetricDelta
-  newContactsToday: MetricDelta
+  // Range-scoped counts. `current` covers the selected window; `previous`
+  // covers the immediately-preceding window of equal length, so the cards
+  // can show a "vs previous period" delta.
+  newConversations: MetricDelta
+  newContacts: MetricDelta
+  messagesSent: MetricDelta
+  // Open-deals value is current pipeline state (live), not range-scoped.
   openDealsValue: number
   openDealsCount: number
-  messagesSentToday: MetricDelta
 }
 
 export interface ConversationsSeriesPoint {

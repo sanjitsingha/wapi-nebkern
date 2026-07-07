@@ -36,7 +36,6 @@ export default function LandingPage() {
       <SiteHeader />
       <main className="flex-1">
         <Hero />
-        <PeopleSplash />
         <TrustStrip />
         <Features />
         <Spotlight />
@@ -120,21 +119,84 @@ function Hero() {
         className="bg-primary/10 pointer-events-none absolute -top-40 left-1/2 -z-10 h-96 w-[42rem] -translate-x-1/2 rounded-full blur-3xl"
       />
 
-      <div className="mx-auto max-w-6xl px-4 pt-16 pb-12 text-center sm:px-6 sm:pt-24">
+      {/* Floating avatars + chat bubbles — decorative, live in the side
+          margins on large screens so they frame the headline like the
+          conversations they represent. Hidden on smaller screens where they'd
+          collide with the copy. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-0 mx-auto hidden max-w-6xl lg:block"
+      >
+        {/* left column */}
+        <FloatAvatar
+          initials="AD"
+          gradient="from-emerald-400 to-emerald-600"
+          size={56}
+          delay={0}
+          online
+          className="top-28 left-2"
+        />
+        <div className="animate-floaty bg-card text-foreground ring-border absolute top-[6.5rem] left-20 rounded-2xl rounded-bl-sm px-3 py-1.5 text-xs font-medium shadow-md ring-1">
+          New order received! 🎉
+        </div>
+        <FloatAvatar
+          initials="LT"
+          gradient="from-rose-400 to-pink-600"
+          size={48}
+          delay={2.4}
+          className="top-64 left-16"
+        />
+        <FloatAvatar
+          initials="KP"
+          gradient="from-amber-400 to-orange-600"
+          size={52}
+          delay={1.8}
+          className="top-[26rem] left-6"
+        />
+
+        {/* right column */}
+        <FloatAvatar
+          initials="MJ"
+          gradient="from-sky-400 to-blue-600"
+          size={54}
+          delay={1.2}
+          online
+          className="top-24 right-4"
+        />
+        <FloatAvatar
+          initials="SR"
+          gradient="from-violet-400 to-indigo-600"
+          size={50}
+          delay={0.6}
+          className="top-60 right-16"
+        />
+        <FloatAvatar
+          initials="PT"
+          gradient="from-teal-400 to-emerald-600"
+          size={58}
+          delay={3}
+          className="top-[25rem] right-6"
+        />
+        <div className="animate-floaty bg-primary text-primary-foreground absolute top-[24rem] right-24 rounded-2xl rounded-br-sm px-3 py-1.5 text-xs font-medium shadow-md">
+          I want a black T-shirt…
+        </div>
+      </div>
+
+      <div className="relative z-10 mx-auto max-w-6xl px-4 pt-16 pb-12 text-center sm:px-6 sm:pt-24">
         <span className="border-border bg-card text-muted-foreground inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium">
           <span className="bg-primary flex h-1.5 w-1.5 rounded-full" />
           Built on the official WhatsApp Business API
         </span>
 
         <h1 className="mx-auto mt-6 max-w-3xl text-4xl font-bold tracking-tight text-balance sm:text-5xl md:text-6xl">
-          The WhatsApp CRM your <span className="text-primary">whole team</span>{' '}
-          runs on
+          Increase orders, secure more bookings, and delight every customer{' '}
+          <span className="text-primary">effortlessly</span>
         </h1>
 
         <p className="text-muted-foreground mx-auto mt-5 max-w-xl text-base text-pretty sm:text-lg">
-          Manage contacts, send broadcast campaigns, and reply to every
-          conversation from one shared inbox. Simple to set up, powerful enough
-          to scale.
+          wacrm brings your contacts, broadcast campaigns, and every WhatsApp
+          conversation into one shared inbox — so your whole team can sell and
+          support without switching apps.
         </p>
 
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -263,71 +325,42 @@ function ProductMock() {
   );
 }
 
-/* ─── People splash (marketing hero visual) ───────────────────────── */
+/* ─── Hero floating avatar ────────────────────────────────────────── */
 
-function PeopleSplash() {
+// Floating avatar for the marketing hero. `delay` staggers the drift so the
+// group never bobs in unison; `online` adds the WhatsApp-style green dot.
+function FloatAvatar({
+  initials,
+  gradient,
+  size = 56,
+  delay = 0,
+  online = false,
+  className = '',
+}: {
+  initials: string;
+  gradient: string;
+  size?: number;
+  delay?: number;
+  online?: boolean;
+  className?: string;
+}) {
   return (
-    <section className="mx-auto mt-10 max-w-6xl px-4 sm:px-6">
-      <div className="relative overflow-visible rounded-lg bg-transparent py-16 text-center">
-        <h2 className="text-foreground mx-auto max-w-3xl text-3xl font-bold tracking-tight sm:text-4xl">
-          Increase orders, secure more bookings, and streamline customer
-          interactions <span className="text-primary">effortlessly</span>
-        </h2>
-
-        {/* floating avatars */}
-        <div className="pointer-events-none relative mx-auto mt-10 h-40 w-full max-w-3xl">
-          {/* Center area for text; avatars positioned absolutely around */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-            {/* empty center - text is above */}
-          </div>
-
-          {/* avatar: top-left */}
-          <div className="absolute -top-6 -left-6">
-            <div className="flex items-center gap-2">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-emerald-200 to-emerald-400 text-sm font-semibold text-emerald-900 shadow-md">
-                AD
-              </div>
-              <div className="bg-card text-muted-foreground ml-2 hidden rounded-md px-3 py-1 text-xs sm:block">
-                New order received!
-              </div>
-            </div>
-          </div>
-
-          {/* avatar: top-right */}
-          <div className="absolute -top-10 right-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-sky-200 to-sky-400 text-sm font-semibold text-sky-900 shadow-md">
-              MJ
-            </div>
-          </div>
-
-          {/* avatar: right-center */}
-          <div className="absolute top-1/2 right-0 -translate-y-1/2">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-rose-200 to-rose-400 text-sm font-semibold text-rose-900 shadow-md">
-              LT
-            </div>
-          </div>
-
-          {/* avatar: bottom-left */}
-          <div className="absolute bottom-0 left-10">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-indigo-200 to-indigo-400 text-sm font-semibold text-indigo-900 shadow-md">
-              SR
-            </div>
-          </div>
-
-          {/* avatar: bottom-right with small bubble */}
-          <div className="absolute -right-6 bottom-2">
-            <div className="flex items-center gap-2">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-lime-200 to-lime-400 text-sm font-semibold text-lime-900 shadow-md">
-                PT
-              </div>
-              <div className="bg-card text-muted-foreground hidden rounded-md px-3 py-1 text-xs sm:block">
-                I want a black T-s...
-              </div>
-            </div>
-          </div>
+    <div
+      className={`animate-floaty absolute ${className}`}
+      style={{ animationDelay: `${delay}s` }}
+    >
+      <div className="relative">
+        <div
+          className={`ring-background flex items-center justify-center rounded-full bg-gradient-to-br ${gradient} font-semibold text-white shadow-lg ring-4`}
+          style={{ height: size, width: size, fontSize: size * 0.32 }}
+        >
+          {initials}
         </div>
+        {online && (
+          <span className="ring-background absolute right-0 bottom-0 h-3.5 w-3.5 rounded-full bg-emerald-500 ring-2" />
+        )}
       </div>
-    </section>
+    </div>
   );
 }
 

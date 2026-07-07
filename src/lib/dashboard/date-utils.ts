@@ -40,6 +40,40 @@ export function lastNDayKeys(n: number): string[] {
   return keys
 }
 
+/** Return a new date `n` local days after `d` (n may be negative). */
+export function addLocalDays(d: Date, n: number): Date {
+  const out = startOfLocalDay(d)
+  out.setDate(out.getDate() + n)
+  return out
+}
+
+/**
+ * Inclusive count of local calendar days spanned by [from, to].
+ * `round` absorbs the ±1h wobble a DST boundary would otherwise add.
+ */
+export function daysInRangeInclusive(from: Date, to: Date): number {
+  const a = startOfLocalDay(from).getTime()
+  const b = startOfLocalDay(to).getTime()
+  return Math.round((b - a) / 86_400_000) + 1
+}
+
+/**
+ * Inclusive list of local-day keys (YYYY-MM-DD) spanning [from, to] in
+ * chronological order. The arbitrary-range analogue of lastNDayKeys —
+ * used to seed chart buckets so zero-activity days still render a point.
+ */
+export function dayKeysBetween(from: Date, to: Date): string[] {
+  const keys: string[] = []
+  const start = startOfLocalDay(from)
+  const count = daysInRangeInclusive(from, to)
+  for (let i = 0; i < count; i++) {
+    const d = new Date(start)
+    d.setDate(d.getDate() + i)
+    keys.push(localDayKey(d))
+  }
+  return keys
+}
+
 /**
  * ISO day-of-week where 0 = Monday … 6 = Sunday. JavaScript's native
  * getDay() uses 0 = Sunday which is awkward for most business charts.

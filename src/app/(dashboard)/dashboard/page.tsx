@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from 'react'
+import { subDays, startOfDay } from 'date-fns'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { formatCurrency } from '@/lib/currency'
@@ -18,9 +19,11 @@ import {
   loadPipelineDonut,
   loadResponseTime,
 } from '@/lib/dashboard/queries'
+import { daysInRangeInclusive } from '@/lib/dashboard/date-utils'
 import type {
   ActivityItem,
   ConversationsSeriesPoint,
+  DashboardDateRange,
   MetricsBundle,
   PipelineDonutData,
   ResponseTimeSummary,
@@ -33,23 +36,20 @@ import { ConversationsChart } from '@/components/dashboard/conversations-chart'
 import { PipelineDonut } from '@/components/dashboard/pipeline-donut'
 import { ResponseTimeChart } from '@/components/dashboard/response-time-chart'
 import { ActivityFeed } from '@/components/dashboard/activity-feed'
+import { DateRangeSelector } from '@/components/dashboard/date-range-selector'
 
-type RangeDays = 7 | 30 | 90
+// Default window: the last 30 local days (inclusive of today).
+function defaultRange(): DashboardDateRange {
+  return { from: subDays(startOfDay(new Date()), 29), to: startOfDay(new Date()) }
+}
 
 export default function DashboardPage() {
   const { defaultCurrency } = useAuth()
   const [metrics, setMetrics] = useState<MetricsBundle | null>(null)
   const [metricsLoading, setMetricsLoading] = useState(true)
 
-  const [range, setRange] = useState<RangeDays>(30)
-  // Keep a cache per range so switching tabs doesn't re-fetch what we
-  // already have. Ranges the user hasn't opened yet stay null and
-  // trigger a fetch on first view.
-  const [series, setSeries] = useState<Record<RangeDays, ConversationsSeriesPoint[] | null>>({
-    7: null,
-    30: null,
-    90: null,
-  })
+  const [range, setRange] = useState<DashboardDateRange>(defaultRange)
+  const [series, setSeries] = useState<ConversationsSeriesPoint[] | null>(null)
   const [seriesLoading, setSeriesLoading] = useState(true)
 
   const [pipeline, setPipeline] = useState<PipelineDonutData | null>(null)
@@ -61,31 +61,37 @@ export default function DashboardPage() {
   const [activity, setActivity] = useState<ActivityItem[] | null>(null)
   const [activityLoading, setActivityLoading] = useState(true)
 
-  const loadAll = useCallback(() => {
+  // Load everything that depends on the selected date range: the metric
+  // cards and the conversations series. Each block owns its skeleton so a
+  // slow query never blocks a faster one.
+  const loadRangeScoped = useCallback((r: DashboardDateRange) => {
     const db = createClient()
 
-    // Kick everything off in parallel. Each block has its own
-    // setState + finally so a slow query doesn't hold up faster
-    // sections — each widget shows its own skeleton independently.
-    void loadMetrics(db)
+    setMetricsLoading(true)
+    void loadMetrics(db, r)
       .then((m) => setMetrics(m))
       .catch((err) => console.error('[dashboard] metrics failed:', err))
       .finally(() => setMetricsLoading(false))
 
-    void loadConversationsSeries(db, 30)
-      .then((s) => setSeries((prev) => ({ ...prev, 30: s })))
+    setSeriesLoading(true)
+    void loadConversationsSeries(db, r)
+      .then((s) => setSeries(s))
       .catch((err) => console.error('[dashboard] series failed:', err))
       .finally(() => setSeriesLoading(false))
+  }, [])
+
+  const loadRangeIndependent = useCallback(() => {
+    const db = createClient()
+
+    void loadResponseTime(db)
+      .then((rt) => setResponseTime(rt))
+      .catch((err) => console.error('[dashboard] response time failed:', err))
+      .finally(() => setResponseTimeLoading(false))
 
     void loadPipelineDonut(db)
       .then((p) => setPipeline(p))
       .catch((err) => console.error('[dashboard] pipeline failed:', err))
       .finally(() => setPipelineLoading(false))
-
-    void loadResponseTime(db)
-      .then((r) => setResponseTime(r))
-      .catch((err) => console.error('[dashboard] response time failed:', err))
-      .finally(() => setResponseTimeLoading(false))
 
     // Fetch up to 50 so the biggest page-size option in the feed
     // (50 rows) is already in memory — switching sizes then becomes
@@ -97,35 +103,46 @@ export default function DashboardPage() {
   }, [])
 
   useEffect(() => {
-    loadAll()
-  }, [loadAll])
+    // Initial load uses the default range.
+    loadRangeScoped(range)
+    loadRangeIndependent()
+    // Mount-only: the selector's onChange handles subsequent range
+    // switches so the setState calls stay out of the
+    // set-state-in-effect rule's way.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  // Range switch handler — kept in an event callback (not an effect)
-  // so the setState calls stay out of the react-hooks/set-state-in-effect
-  // rule's way. The cached bucket check means switching back to a
-  // previously-viewed range is instant and doesn't re-fetch.
+  // Range switch handler — kept in an event callback (not an effect) so
+  // the setState calls stay clear of react-hooks/set-state-in-effect.
   const handleRangeChange = useCallback(
-    (r: RangeDays) => {
+    (r: DashboardDateRange) => {
       setRange(r)
-      if (series[r] !== null) return
-      setSeriesLoading(true)
-      const db = createClient()
-      loadConversationsSeries(db, r)
-        .then((s) => setSeries((prev) => ({ ...prev, [r]: s })))
-        .catch((err) => console.error('[dashboard] series failed:', err))
-        .finally(() => setSeriesLoading(false))
+      loadRangeScoped(r)
     },
-    [series],
+    [loadRangeScoped],
   )
+
+  // Delta comparison copy, e.g. "vs previous 30 days".
+  const rangeDayCount = daysInRangeInclusive(range.from, range.to)
+  const prevPeriodSuffix = `vs previous ${rangeDayCount} days`
+  const rangeLabel =
+    rangeDayCount === 1 ? '1 day' : `${rangeDayCount} days`
 
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Live analytics across conversations, contacts, deals, broadcasts, and automations.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Live analytics across conversations, contacts, deals, broadcasts, and automations.
+          </p>
+        </div>
+        <DateRangeSelector
+          value={range}
+          onChange={handleRangeChange}
+          disabled={metricsLoading || seriesLoading}
+        />
       </div>
 
       {/* Metric cards */}
@@ -135,24 +152,28 @@ export default function DashboardPage() {
         ) : (
           <>
             <MetricCard
-              title="Active Conversations"
-              value={metrics.activeConversations.current.toLocaleString()}
+              title="New Conversations"
+              value={metrics.newConversations.current.toLocaleString()}
               icon={MessageSquare}
               delta={{
-                sign: metrics.activeConversations.previous,
-                label: deltaLabel(metrics.activeConversations.previous, 'new today vs yesterday'),
+                sign:
+                  metrics.newConversations.current - metrics.newConversations.previous,
+                label: deltaLabel(
+                  metrics.newConversations.current - metrics.newConversations.previous,
+                  prevPeriodSuffix,
+                ),
               }}
             />
             <MetricCard
-              title="New Contacts Today"
-              value={metrics.newContactsToday.current.toLocaleString()}
+              title="New Contacts"
+              value={metrics.newContacts.current.toLocaleString()}
               icon={UserPlus}
               delta={{
                 sign:
-                  metrics.newContactsToday.current - metrics.newContactsToday.previous,
+                  metrics.newContacts.current - metrics.newContacts.previous,
                 label: deltaLabel(
-                  metrics.newContactsToday.current - metrics.newContactsToday.previous,
-                  'vs yesterday',
+                  metrics.newContacts.current - metrics.newContacts.previous,
+                  prevPeriodSuffix,
                 ),
               }}
             />
@@ -163,15 +184,15 @@ export default function DashboardPage() {
               subtitle={`${metrics.openDealsCount} open deal${metrics.openDealsCount === 1 ? '' : 's'}`}
             />
             <MetricCard
-              title="Messages Sent Today"
-              value={metrics.messagesSentToday.current.toLocaleString()}
+              title="Messages Sent"
+              value={metrics.messagesSent.current.toLocaleString()}
               icon={Send}
               delta={{
                 sign:
-                  metrics.messagesSentToday.current - metrics.messagesSentToday.previous,
+                  metrics.messagesSent.current - metrics.messagesSent.previous,
                 label: deltaLabel(
-                  metrics.messagesSentToday.current - metrics.messagesSentToday.previous,
-                  'vs yesterday',
+                  metrics.messagesSent.current - metrics.messagesSent.previous,
+                  prevPeriodSuffix,
                 ),
               }}
             />
@@ -192,10 +213,9 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <div className="h-full lg:col-span-3">
           <ConversationsChart
-            series={series}
+            data={series}
             loading={seriesLoading}
-            range={range}
-            onRangeChange={handleRangeChange}
+            rangeLabel={`Last ${rangeLabel}`}
           />
         </div>
         <div className="h-full lg:col-span-2">

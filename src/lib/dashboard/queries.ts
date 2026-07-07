@@ -1,8 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
+  addLocalDays,
+  dayKeysBetween,
   daysAgoStart,
+  daysInRangeInclusive,
   DOW_SHORT_MON_FIRST,
-  lastNDayKeys,
   localDayKey,
   mondayIndex,
   startOfLocalDay,
@@ -10,6 +12,7 @@ import {
 import type {
   ActivityItem,
   ConversationsSeriesPoint,
+  DashboardDateRange,
   MetricsBundle,
   PipelineDonutData,
   PipelineStageSlice,
@@ -29,56 +32,62 @@ type DB = SupabaseClient;
 
 // --- 1. Metric cards ---------------------------------------------------
 
-export async function loadMetrics(db: DB): Promise<MetricsBundle> {
-  const todayStart = startOfLocalDay().toISOString();
-  const yesterdayStart = daysAgoStart(1).toISOString();
+export async function loadMetrics(
+  db: DB,
+  range: DashboardDateRange
+): Promise<MetricsBundle> {
+  // The selected window is [from, to] inclusive. We extend `to` to the
+  // start of the following day so the upper bound is exclusive and
+  // captures everything that happened on the `to` day. The previous
+  // window is the equal-length span immediately before `from`, so each
+  // card can show a like-for-like "vs previous period" delta.
+  const dayCount = daysInRangeInclusive(range.from, range.to);
+  const rangeStart = startOfLocalDay(range.from).toISOString();
+  const rangeEnd = addLocalDays(range.to, 1).toISOString();
+  const prevStart = addLocalDays(range.from, -dayCount).toISOString();
 
   const [
-    openConvCur,
-    newConvToday,
-    newConvYesterday,
-    newContactsToday,
-    newContactsYesterday,
+    newConvCur,
+    newConvPrev,
+    newContactsCur,
+    newContactsPrev,
+    messagesCur,
+    messagesPrev,
     openDeals,
-    messagesToday,
-    messagesYesterday,
   ] = await Promise.all([
     db
       .from('conversations')
       .select('id', { count: 'exact', head: true })
-      .eq('status', 'open'),
+      .gte('created_at', rangeStart)
+      .lt('created_at', rangeEnd),
     db
       .from('conversations')
       .select('id', { count: 'exact', head: true })
-      .eq('status', 'open')
-      .gte('created_at', todayStart),
-    db
-      .from('conversations')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'open')
-      .gte('created_at', yesterdayStart)
-      .lt('created_at', todayStart),
+      .gte('created_at', prevStart)
+      .lt('created_at', rangeStart),
     db
       .from('contacts')
       .select('id', { count: 'exact', head: true })
-      .gte('created_at', todayStart),
+      .gte('created_at', rangeStart)
+      .lt('created_at', rangeEnd),
     db
       .from('contacts')
       .select('id', { count: 'exact', head: true })
-      .gte('created_at', yesterdayStart)
-      .lt('created_at', todayStart),
+      .gte('created_at', prevStart)
+      .lt('created_at', rangeStart),
+    db
+      .from('messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('sender_type', 'agent')
+      .gte('created_at', rangeStart)
+      .lt('created_at', rangeEnd),
+    db
+      .from('messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('sender_type', 'agent')
+      .gte('created_at', prevStart)
+      .lt('created_at', rangeStart),
     db.from('deals').select('value, status').eq('status', 'open'),
-    db
-      .from('messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('sender_type', 'agent')
-      .gte('created_at', todayStart),
-    db
-      .from('messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('sender_type', 'agent')
-      .gte('created_at', yesterdayStart)
-      .lt('created_at', todayStart),
   ]);
 
   const openDealsRows = (openDeals.data ?? []) as { value: number | null }[];
@@ -88,23 +97,20 @@ export async function loadMetrics(db: DB): Promise<MetricsBundle> {
   );
 
   return {
-    activeConversations: {
-      current: openConvCur.count ?? 0,
-      // "vs yesterday" on a current-state count has no clean answer
-      // without snapshots — we show the delta in NEW open conversations
-      // today vs yesterday. That's the business-meaningful daily signal.
-      previous: (newConvToday.count ?? 0) - (newConvYesterday.count ?? 0),
+    newConversations: {
+      current: newConvCur.count ?? 0,
+      previous: newConvPrev.count ?? 0,
     },
-    newContactsToday: {
-      current: newContactsToday.count ?? 0,
-      previous: newContactsYesterday.count ?? 0,
+    newContacts: {
+      current: newContactsCur.count ?? 0,
+      previous: newContactsPrev.count ?? 0,
+    },
+    messagesSent: {
+      current: messagesCur.count ?? 0,
+      previous: messagesPrev.count ?? 0,
     },
     openDealsValue,
     openDealsCount: openDealsRows.length,
-    messagesSentToday: {
-      current: messagesToday.count ?? 0,
-      previous: messagesYesterday.count ?? 0,
-    },
   };
 }
 
@@ -112,17 +118,19 @@ export async function loadMetrics(db: DB): Promise<MetricsBundle> {
 
 export async function loadConversationsSeries(
   db: DB,
-  rangeDays: number
+  range: DashboardDateRange
 ): Promise<ConversationsSeriesPoint[]> {
-  const start = daysAgoStart(rangeDays - 1).toISOString();
+  const start = startOfLocalDay(range.from).toISOString();
+  const end = addLocalDays(range.to, 1).toISOString();
   const { data, error } = await db
     .from('messages')
     .select('created_at, sender_type')
     .gte('created_at', start)
+    .lt('created_at', end)
     .order('created_at', { ascending: true });
   if (error) throw error;
 
-  const keys = lastNDayKeys(rangeDays);
+  const keys = dayKeysBetween(range.from, range.to);
   const buckets = new Map<string, { incoming: number; outgoing: number }>();
   for (const k of keys) buckets.set(k, { incoming: 0, outgoing: 0 });
 
@@ -196,9 +204,10 @@ export async function loadPipelineDonut(db: DB): Promise<PipelineDonutData> {
 export async function loadResponseTime(db: DB): Promise<ResponseTimeSummary> {
   // Pull the last 14 days of messages in one shot, then walk per
   // conversation to find each "first inbound" → "first subsequent
-  // outbound" pair. 14 days gives us both "this week" + "last week"
-  // with enough overlap if the user opens the dashboard late on a
-  // Monday.
+  // outbound" pair. This widget is a rolling "this week vs last week"
+  // health check anchored to the current calendar week, so it stays
+  // independent of the dashboard's selected date range (which drives the
+  // metric cards + conversations chart instead).
   const fourteenDaysAgo = daysAgoStart(13).toISOString();
   const { data, error } = await db
     .from('messages')
