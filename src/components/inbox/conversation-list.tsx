@@ -6,14 +6,14 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Conversation, ConversationStatus, Profile, Tag } from "@/types";
 import {
+  AtSign,
   Search,
   ChevronDown,
   Tag as TagIcon,
   X,
   Bot,
   Check,
-  Sparkles,
-  User,
+  SlidersHorizontal,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  InboxFiltersDialog,
+  type AssigneeFilter,
+} from "@/components/inbox/inbox-filters-dialog";
 
 interface FlowOption {
   id: string;
@@ -35,7 +39,8 @@ interface FlowOption {
 interface ContactWithTags {
   id: string;
   name?: string;
-  phone?: string;
+  phone?: string | null;
+  instagram_id?: string | null;
   avatar_url?: string;
   is_spam?: boolean;
   contact_tags?: { tag_id: string }[];
@@ -55,6 +60,14 @@ interface ConversationListProps {
   resyncToken?: number;
 }
 
+/** 'YYYY-MM-DD' → the ISO date of the following day (UTC), used as an
+ *  exclusive upper bound so a "to" date filter includes the whole day. */
+function nextDayISO(dateStr: string): string {
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
 const STATUS_COLORS: Record<ConversationStatus, string> = {
   open: "bg-primary",
   pending: "bg-amber-500",
@@ -69,15 +82,6 @@ const FILTER_OPTIONS: { label: string; value: InboxFilter }[] = [
   { label: "Open", value: "open" },
   { label: "Pending", value: "pending" },
   { label: "Closed", value: "closed" },
-];
-
-// Who is currently handling the conversation. `null` = no assignee filter.
-type AssigneeFilter = "ai" | "bot" | "user" | null;
-
-// AI / Bot are simple on/off chips; User is a dropdown (pick an agent).
-const ASSIGNEE_CHIPS = [
-  { label: "AI Agent", value: "ai" as const, icon: Sparkles },
-  { label: "Bot", value: "bot" as const, icon: Bot },
 ];
 
 // Shared pill-chip styling so every filter control reads as one family.
@@ -100,6 +104,11 @@ export function ConversationList({
   // When the assignee filter is "user", optionally narrow to one agent.
   const [assignedUserId, setAssignedUserId] = useState<string | null>(null);
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
+  // Conversation-started date range ('yyyy-MM-dd' or '' for unset), edited
+  // via InboxFiltersDialog alongside the assignee filter.
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [flows, setFlows] = useState<FlowOption[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -259,18 +268,42 @@ export function ConversationList({
       );
     }
 
+    if (createdFrom) {
+      result = result.filter((c) => c.created_at >= createdFrom);
+    }
+    if (createdTo) {
+      // Exclusive upper bound (start of the day after) so the whole
+      // "to" day is included, not just its midnight instant.
+      result = result.filter((c) => c.created_at < nextDayISO(createdTo));
+    }
+
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter((c) => {
         const name = c.contact?.name?.toLowerCase() ?? "";
         const phone = c.contact?.phone?.toLowerCase() ?? "";
+        const instagramId = c.contact?.instagram_id?.toLowerCase() ?? "";
         const lastMsg = c.last_message_text?.toLowerCase() ?? "";
-        return name.includes(q) || phone.includes(q) || lastMsg.includes(q);
+        return (
+          name.includes(q) ||
+          phone.includes(q) ||
+          instagramId.includes(q) ||
+          lastMsg.includes(q)
+        );
       });
     }
 
     return result;
-  }, [conversations, filter, assignee, assignedUserId, selectedTagId, search]);
+  }, [
+    conversations,
+    filter,
+    assignee,
+    assignedUserId,
+    selectedTagId,
+    createdFrom,
+    createdTo,
+    search,
+  ]);
 
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value),
@@ -284,8 +317,9 @@ export function ConversationList({
 
   const activeFilter = FILTER_OPTIONS.find((o) => o.value === filter);
   const activeTag = availableTags.find((t) => t.id === selectedTagId);
-  const activeUser = profiles.find((p) => p.user_id === assignedUserId);
-  const userFilterActive = assignee === "user";
+  // Badge count on the "Filter" chip — assignee and date-range together.
+  const secondaryFilterCount =
+    (assignee !== null ? 1 : 0) + (createdFrom || createdTo ? 1 : 0);
 
   return (
     <div className="flex h-full w-full flex-col border-r border-border bg-card lg:w-96">
@@ -367,93 +401,40 @@ export function ConversationList({
             )
           )}
 
-          {/* Assignee chips — AI Agent / Bot. Click to show only chats that
-              entity is handling; click again to clear. Single-select. */}
-          {ASSIGNEE_CHIPS.map((opt) => {
-            const active = assignee === opt.value;
-            const Icon = opt.icon;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setAssignee(active ? null : opt.value)}
-                className={cn(CHIP, active ? CHIP_ON : CHIP_OFF)}
-              >
-                <Icon className="h-3 w-3" />
-                {opt.label}
-              </button>
-            );
-          })}
-
-          {/* User filter — a dropdown so a specific agent can be picked. */}
-          <DropdownMenu>
-            <DropdownMenuTrigger className={cn(CHIP, userFilterActive ? CHIP_ON : CHIP_OFF)}>
-              <User className="h-3 w-3" />
-              <span className="max-w-24 truncate">
-                {userFilterActive ? activeUser?.full_name ?? "Anyone" : "User"}
+          {/* Secondary filters — assignee (AI Agent / Bot / team member) and
+              conversation date range — live in a modal rather than more
+              inline chips, which is where they used to crowd this row. */}
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(true)}
+            className={cn(CHIP, secondaryFilterCount > 0 ? CHIP_ON : CHIP_OFF)}
+          >
+            <SlidersHorizontal className="h-3 w-3" />
+            Filter
+            {secondaryFilterCount > 0 && (
+              <span className="ml-0.5 inline-flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
+                {secondaryFilterCount}
               </span>
-              <ChevronDown className="h-3 w-3" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="border-border bg-popover min-w-44">
-              <DropdownMenuItem
-                onClick={() => {
-                  setAssignee("user");
-                  setAssignedUserId(null);
-                }}
-                className={cn(
-                  "text-sm",
-                  userFilterActive && !assignedUserId
-                    ? "text-primary"
-                    : "text-popover-foreground",
-                )}
-              >
-                <User className="size-4 shrink-0 text-muted-foreground" />
-                <span className="flex-1 truncate">Anyone</span>
-                {userFilterActive && !assignedUserId && <Check className="size-3.5" />}
-              </DropdownMenuItem>
-              {profiles.length === 0 ? (
-                <DropdownMenuItem disabled className="text-xs text-muted-foreground">
-                  No teammates
-                </DropdownMenuItem>
-              ) : (
-                profiles.map((p) => {
-                  const selected = userFilterActive && assignedUserId === p.user_id;
-                  return (
-                    <DropdownMenuItem
-                      key={p.id}
-                      onClick={() => {
-                        setAssignee("user");
-                        setAssignedUserId(p.user_id);
-                      }}
-                      className={cn(
-                        "text-sm",
-                        selected ? "text-primary" : "text-popover-foreground",
-                      )}
-                    >
-                      <span className="flex-1 truncate">{p.full_name}</span>
-                      {selected && <Check className="size-3.5" />}
-                    </DropdownMenuItem>
-                  );
-                })
-              )}
-              {userFilterActive && (
-                <>
-                  <DropdownMenuSeparator className="bg-border" />
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setAssignee(null);
-                      setAssignedUserId(null);
-                    }}
-                    className="text-sm text-muted-foreground"
-                  >
-                    Clear
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            )}
+          </button>
         </div>
       </div>
+
+      <InboxFiltersDialog
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+        appliedAssignee={assignee}
+        appliedAssignedUserId={assignedUserId}
+        appliedCreatedFrom={createdFrom}
+        appliedCreatedTo={createdTo}
+        profiles={profiles}
+        onApply={(next) => {
+          setAssignee(next.assignee);
+          setAssignedUserId(next.assignedUserId);
+          setCreatedFrom(next.createdFrom);
+          setCreatedTo(next.createdTo);
+        }}
+      />
 
       {/* Conversation Items */}
       <ScrollArea className="min-h-0 flex-1">
@@ -551,7 +532,8 @@ function ConversationItem({
   onAssignFlow,
 }: ConversationItemProps) {
   const contact = conversation.contact as ContactWithTags | undefined;
-  const displayName = contact?.name || contact?.phone || "Unknown";
+  const displayName =
+    contact?.name || contact?.phone || contact?.instagram_id || "Unknown";
   const initials = displayName.charAt(0).toUpperCase();
 
   const handleClick = useCallback(() => {
@@ -587,16 +569,30 @@ function ConversationItem({
       )}
     >
       {/* Avatar */}
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-foreground">
-        {contact?.avatar_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={contact.avatar_url}
-            alt={displayName}
-            className="h-11 w-11 rounded-full object-cover"
-          />
-        ) : (
-          initials
+      <div className="relative shrink-0">
+        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-muted text-sm font-medium text-foreground">
+          {contact?.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={contact.avatar_url}
+              alt={displayName}
+              className="h-11 w-11 rounded-full object-cover"
+            />
+          ) : (
+            initials
+          )}
+        </div>
+        {/* Channel badge — only Instagram gets one; a bare avatar reads
+            as WhatsApp (the default/majority channel), so this stays
+            visually unchanged for every conversation until a second
+            channel is actually in play. */}
+        {conversation.channel === "instagram" && (
+          <span
+            title="Instagram"
+            className="absolute -right-0.5 -bottom-0.5 flex size-4 items-center justify-center rounded-full bg-card text-foreground ring-2 ring-card"
+          >
+            <AtSign className="size-3" />
+          </span>
         )}
       </div>
 

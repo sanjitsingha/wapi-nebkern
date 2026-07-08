@@ -354,7 +354,7 @@ export function ContactPicker({
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={contact.avatar_url}
-                          alt={contact.name || contact.phone}
+                          alt={contact.name || contact.phone || "Contact"}
                           className="size-9 rounded-full object-cover"
                         />
                       ) : (

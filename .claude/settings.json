@@ -6,7 +6,24 @@
       "mcp__claude_ai_Supabase__list_projects",
       "mcp__claude_ai_Supabase__execute_sql",
       "mcp__claude_ai_Supabase__get_advisors",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/lists)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/lists)",
+      "Bash(curl -s -o /dev/null -w \"inbox -> %{http_code} \\(redirect %{redirect_url}\\)\\\\n\" http://localhost:3000/inbox)",
+      "WebSearch",
+      "WebFetch(domain:playwright.dev)",
+      "mcp__claude_ai_Supabase__apply_migration",
+      "Bash(curl -s -o /dev/null -w \"  /settings/instagram -> %{http_code} \\(redirect %{redirect_url}\\)\\\\n\" http://localhost:3000/settings/instagram)",
+      "Bash(curl -s -o /dev/null -w \"  /inbox -> %{http_code}\\\\n\" http://localhost:3000/inbox)",
+      "Bash(curl -s -w \"\\\\n  config GET status=%{http_code}\\\\n\" http://localhost:3000/api/instagram/config)",
+      "Bash(curl -s -X POST -H \"Content-Type: application/json\" -d '{}' -w \"\\\\n  send POST status=%{http_code}\\\\n\" http://localhost:3000/api/instagram/send)",
+      "Bash(curl -s -w \"\\\\n  status=%{http_code}\\\\n\" http://localhost:3000/api/instagram/webhook)",
+      "Bash(curl -s -w \"\\\\n  status=%{http_code}\\\\n\" \"http://localhost:3000/api/instagram/webhook?hub.mode=subscribe&hub.challenge=abc123&hub.verify_token=wrong\")",
+      "Bash(curl -s -X POST -H \"Content-Type: application/json\" -d '{}' -w \"\\\\n  status=%{http_code}\\\\n\" http://localhost:3000/api/instagram/webhook)",
+      "Bash(curl -s -o /dev/null -w \"/segments/some-id -> %{http_code} \\(redirect %{redirect_url}\\)\\\\n\" http://localhost:3000/segments/00000000-0000-0000-0000-000000000000)",
+      "Bash(MSYS_NO_PATHCONV=1 curl -s -o /dev/null -w \"status=%{http_code} redirect=%{redirect_url}\\\\n\" \"http://localhost:3000/segments/00000000-0000-0000-0000-000000000000\")",
+      "Bash(MSYS_NO_PATHCONV=1 curl -s -o /dev/null -w \"root status=%{http_code} redirect=%{redirect_url}\\\\n\" \"http://localhost:3000/\")",
+      "Bash(MSYS_NO_PATHCONV=1 curl -s -o /dev/null -w \"inbox status=%{http_code} redirect=%{redirect_url}\\\\n\" \"http://localhost:3000/inbox\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

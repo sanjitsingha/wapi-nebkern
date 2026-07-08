@@ -91,7 +91,7 @@ function getPreviewText(
       } else if (mapping.type === 'field' && mapping.value) {
         const fieldMap: Record<string, string | undefined> = {
           name: c.name,
-          phone: c.phone,
+          phone: c.phone ?? undefined,
           email: c.email,
           company: c.company,
         };

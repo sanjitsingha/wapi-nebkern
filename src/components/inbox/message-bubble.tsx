@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import type { Message, MessageReaction } from "@/types";
+import type { ConversationChannel, Message, MessageReaction } from "@/types";
 import {
   Clock,
   Check,
@@ -25,10 +25,26 @@ interface MessageBubbleProps {
   reactions?: MessageReaction[];
   currentUserId?: string;
   onToggleReaction?: (emoji: string) => void;
+  /** Which channel this message's conversation belongs to. Defaults to
+   *  'whatsapp'-shaped status rendering when omitted, so any call site
+   *  that hasn't been updated keeps working unchanged. */
+  channel?: ConversationChannel;
 }
 
-function StatusIcon({ status }: { status: Message["status"] }) {
-  switch (status) {
+function StatusIcon({
+  status,
+  channel,
+}: {
+  status: Message["status"];
+  channel: ConversationChannel;
+}) {
+  // Instagram's send API doesn't hand back delivered/read granularity —
+  // collapse to sent/failed only rather than showing a misleading tick.
+  const displayStatus =
+    channel === "instagram" && status !== "failed" && status !== "sending"
+      ? "sent"
+      : status;
+  switch (displayStatus) {
     case "sending":
       return <Clock className="h-3 w-3 text-muted-foreground" />;
     case "sent":
@@ -247,6 +263,7 @@ export function MessageBubble({
   reactions,
   currentUserId,
   onToggleReaction,
+  channel = "whatsapp",
 }: MessageBubbleProps) {
   const isAgent = message.sender_type === "agent" || message.sender_type === "bot";
   const time = format(new Date(message.created_at), "HH:mm");
@@ -294,7 +311,7 @@ export function MessageBubble({
           >
             {time}
           </span>
-          {isAgent && <StatusIcon status={message.status} />}
+          {isAgent && <StatusIcon status={message.status} channel={channel} />}
         </div>
       </div>
       {reactions && reactions.length > 0 && onToggleReaction && (

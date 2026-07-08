@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useCan } from "@/hooks/use-can";
 import { cn } from "@/lib/utils";
+import type { ConversationChannel } from "@/types";
 import { toast } from "sonner";
 import {
   uploadAccountMedia,
@@ -99,6 +100,9 @@ interface MessageComposerProps {
   onOpenTemplates: () => void;
   replyTo?: ReplyDraft | null;
   onClearReply?: () => void;
+  /** Instagram has no templates and (for now) no document/voice-note
+   *  attachments — those affordances are hidden on that channel. */
+  channel: ConversationChannel;
 }
 
 function formatDuration(seconds: number): string {
@@ -120,6 +124,7 @@ export function MessageComposer({
   onOpenTemplates,
   replyTo,
   onClearReply,
+  channel,
 }: MessageComposerProps) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -164,8 +169,12 @@ export function MessageComposer({
   // every capability — so the disabled branch is a no-op there.
   const canSend = useCan("send-messages");
   const readOnly = !canSend;
-  // Media (like free-form text) is only allowed inside the 24h window.
-  const inputsDisabled = readOnly || sessionExpired;
+  // Media (like free-form text) is only allowed inside the 24h window —
+  // WhatsApp-only. Instagram has no window enforcement in this MVP; the
+  // parent already passes sessionExpired=false for it, this is a
+  // belt-and-suspenders redundant guard so the component is correct in
+  // isolation too.
+  const inputsDisabled = readOnly || (channel === "whatsapp" && sessionExpired);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -557,28 +566,34 @@ export function MessageComposer({
                 <Video className="mr-2 h-4 w-4" />
                 Video
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => documentInputRef.current?.click()}>
-                <FileText className="mr-2 h-4 w-4" />
-                Document
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => void startRecording()}>
-                <Mic className="mr-2 h-4 w-4" />
-                Voice note
-              </DropdownMenuItem>
+              {channel === "whatsapp" && (
+                <>
+                  <DropdownMenuItem onClick={() => documentInputRef.current?.click()}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Document
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => void startRecording()}>
+                    <Mic className="mr-2 h-4 w-4" />
+                    Voice note
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <GatedButton
-            variant="ghost"
-            size="sm"
-            canAct={!readOnly}
-            gateReason="send messages"
-            title={readOnly ? undefined : "Send template"}
-            className="h-10 w-10 shrink-0 p-0 text-muted-foreground hover:text-foreground"
-            onClick={onOpenTemplates}
-          >
-            <LayoutTemplate className="h-5 w-5" />
-          </GatedButton>
+          {channel === "whatsapp" && (
+            <GatedButton
+              variant="ghost"
+              size="sm"
+              canAct={!readOnly}
+              gateReason="send messages"
+              title={readOnly ? undefined : "Send template"}
+              className="h-10 w-10 shrink-0 p-0 text-muted-foreground hover:text-foreground"
+              onClick={onOpenTemplates}
+            >
+              <LayoutTemplate className="h-5 w-5" />
+            </GatedButton>
+          )}
 
           {aiActive && (
             <Button

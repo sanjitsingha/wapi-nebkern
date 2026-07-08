@@ -252,7 +252,7 @@ export default function ContactDetailPage() {
   }, [fetchContact, fetchTags, fetchNotes, fetchCustomFields, fetchDeals, fetchMediaLinks]);
 
   async function copyPhone() {
-    if (!contact) return;
+    if (!contact?.phone) return;
     await navigator.clipboard.writeText(contact.phone);
     setCopiedPhone(true);
     setTimeout(() => setCopiedPhone(false), 2000);

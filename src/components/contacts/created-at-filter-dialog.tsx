@@ -69,6 +69,10 @@ interface CreatedAtFilterDialogProps {
   appliedFrom: string;
   appliedTo: string;
   onApply: (from: string, to: string) => void;
+  /** Overrides for non-contacts callers (e.g. the inbox's conversation
+   *  date filter). Default copy targets the Contacts page. */
+  title?: string;
+  description?: string;
 }
 
 /**
@@ -85,6 +89,8 @@ export function CreatedAtFilterDialog({
   appliedFrom,
   appliedTo,
   onApply,
+  title = 'Filter by created at',
+  description = 'Show contacts created within a date range.',
 }: CreatedAtFilterDialogProps) {
   const [from, setFrom] = useState<Date | null>(null);
   const [to, setTo] = useState<Date | null>(null);
@@ -155,10 +161,10 @@ export function CreatedAtFilterDialog({
       <DialogContent className="border-border bg-popover text-popover-foreground sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-popover-foreground">
-            Filter by created at
+            {title}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Show contacts created within a date range.
+            {description}
           </DialogDescription>
         </DialogHeader>
 

@@ -458,13 +458,16 @@ export function MessageThread({
     // Send a WhatsApp read receipt (blue ticks) so the customer sees the
     // agent has read their message. Resetting unread_count above is
     // local-only — it never reaches Meta. Best-effort: fire-and-forget,
-    // a failure must not affect opening the thread.
-    fetch("/api/whatsapp/mark-read", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversation_id: conversationId }),
-    }).catch((err) => console.error("mark-read request failed:", err));
-  }, [conversationId, hasUnread]);
+    // a failure must not affect opening the thread. Instagram has no
+    // read-receipt-send in this MVP — skip entirely for that channel.
+    if (conversation?.channel !== "instagram") {
+      fetch("/api/whatsapp/mark-read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversation_id: conversationId }),
+      }).catch((err) => console.error("mark-read request failed:", err));
+    }
+  }, [conversationId, hasUnread, conversation?.channel]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -495,16 +498,28 @@ export function MessageThread({
       setReplyTo(null);
 
       try {
-        const res = await fetch("/api/whatsapp/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            conversation_id: conversation.id,
-            message_type: "text",
-            content_text: text,
-            reply_to_message_id: replyToId,
-          }),
-        });
+        const isInstagram = conversation.channel === "instagram";
+        const res = await fetch(
+          isInstagram ? "/api/instagram/send" : "/api/whatsapp/send",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(
+              isInstagram
+                ? {
+                    conversation_id: conversation.id,
+                    message_type: "text",
+                    content_text: text,
+                  }
+                : {
+                    conversation_id: conversation.id,
+                    message_type: "text",
+                    content_text: text,
+                    reply_to_message_id: replyToId,
+                  },
+            ),
+          },
+        );
 
         const payload = await res.json().catch(() => ({}));
 
@@ -559,18 +574,31 @@ export function MessageThread({
       setReplyTo(null);
 
       try {
-        const res = await fetch("/api/whatsapp/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            conversation_id: conversation.id,
-            message_type: payload.kind,
-            media_url: payload.mediaUrl,
-            content_text: contentText,
-            filename: payload.filename,
-            reply_to_message_id: payload.replyToId,
-          }),
-        });
+        const isInstagram = conversation.channel === "instagram";
+        const res = await fetch(
+          isInstagram ? "/api/instagram/send" : "/api/whatsapp/send",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(
+              isInstagram
+                ? {
+                    conversation_id: conversation.id,
+                    message_type: payload.kind,
+                    media_url: payload.mediaUrl,
+                    content_text: contentText,
+                  }
+                : {
+                    conversation_id: conversation.id,
+                    message_type: payload.kind,
+                    media_url: payload.mediaUrl,
+                    content_text: contentText,
+                    filename: payload.filename,
+                    reply_to_message_id: payload.replyToId,
+                  },
+            ),
+          },
+        );
 
         const data = await res.json().catch(() => ({}));
 
@@ -705,7 +733,8 @@ export function MessageThread({
     return map;
   }, [reactions]);
 
-  const contactDisplayName = contact?.name || contact?.phone || "Customer";
+  const contactDisplayName =
+    contact?.name || contact?.phone || contact?.instagram_id || "Customer";
 
   // Author label for a quoted message: "You" when we sent the parent,
   // contact name when the customer sent it.
@@ -860,7 +889,9 @@ export function MessageThread({
     );
   }
 
-  const displayName = contact.name || contact.phone;
+  const displayName =
+    contact.name || contact.phone || contact.instagram_id || "Customer";
+  const isInstagramConversation = conversation.channel === "instagram";
   const messageGroups = groupMessagesByDate(messages);
   const currentStatus = STATUS_OPTIONS.find(
     (s) => s.value === conversation.status
@@ -902,20 +933,25 @@ export function MessageThread({
           </div>
           <div className="min-w-0">
             <h2 className="truncate text-base font-semibold text-foreground">{displayName}</h2>
-            <p className="truncate text-sm text-muted-foreground">{contact.phone}</p>
+            <p className="truncate text-sm text-muted-foreground">
+              {contact.phone || contact.instagram_id || ""}
+            </p>
           </div>
-          {/* Session timer badge — hidden on the narrowest phones so
-              the name + back arrow keep their room. */}
-          <Badge
-            variant="outline"
-            className={cn(
-              "ml-1 hidden gap-1 border-border text-[10px] sm:inline-flex sm:ml-2",
-              sessionInfo.expired ? "text-red-400" : "text-primary"
-            )}
-          >
-            <Clock className="h-3 w-3" />
-            {sessionInfo.remaining}
-          </Badge>
+          {/* Session timer badge — WhatsApp's 24h window only; Instagram
+              has no window enforcement in this MVP. Hidden on the
+              narrowest phones so the name + back arrow keep their room. */}
+          {!isInstagramConversation && (
+            <Badge
+              variant="outline"
+              className={cn(
+                "ml-1 hidden gap-1 border-border text-[10px] sm:inline-flex sm:ml-2",
+                sessionInfo.expired ? "text-red-400" : "text-primary"
+              )}
+            >
+              <Clock className="h-3 w-3" />
+              {sessionInfo.remaining}
+            </Badge>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -970,82 +1006,90 @@ export function MessageThread({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* AI Agent toggle — the BYO-key assistant handles this chat on
-              its own (KB-grounded replies to every inbound, no cap, even
-              with the account-wide auto-reply toggle off). Kept as a
-              stand-alone switch since it's a distinct mode, not a person or
-              a bot to pick from a list. Turning it on takes over the chat;
-              turning it off unassigns. */}
-          <label
-            className={cn(
-              "inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-md border px-2.5 transition-colors",
-              aiAssigned
-                ? "border-primary/30 bg-primary-soft text-primary"
-                : "border-border text-muted-foreground hover:bg-muted"
-            )}
-            title="Let the AI Agent handle this conversation"
-          >
-            <Sparkles className="h-4 w-4" />
-            <span className="hidden text-sm font-medium sm:inline">AI Agent</span>
-            <Switch
-              checked={aiAssigned}
-              onCheckedChange={(on) => assign({ type: on ? "ai" : "none" })}
-              aria-label="Toggle AI Agent for this conversation"
-            />
-          </label>
+          {/* AI Agent toggle + Bot dropdown — neither does anything for
+              Instagram yet (the webhook never dispatches to the AI reply
+              engine or the Flows engine for that channel in this MVP), so
+              hide both rather than offer a control that silently no-ops. */}
+          {!isInstagramConversation && (
+            <>
+              {/* AI Agent toggle — the BYO-key assistant handles this chat
+                  on its own (KB-grounded replies to every inbound, no cap,
+                  even with the account-wide auto-reply toggle off). Kept as
+                  a stand-alone switch since it's a distinct mode, not a
+                  person or a bot to pick from a list. Turning it on takes
+                  over the chat; turning it off unassigns. */}
+              <label
+                className={cn(
+                  "inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-md border px-2.5 transition-colors",
+                  aiAssigned
+                    ? "border-primary/30 bg-primary-soft text-primary"
+                    : "border-border text-muted-foreground hover:bg-muted"
+                )}
+                title="Let the AI Agent handle this conversation"
+              >
+                <Sparkles className="h-4 w-4" />
+                <span className="hidden text-sm font-medium sm:inline">AI Agent</span>
+                <Switch
+                  checked={aiAssigned}
+                  onCheckedChange={(on) => assign({ type: on ? "ai" : "none" })}
+                  aria-label="Toggle AI Agent for this conversation"
+                />
+              </label>
 
-          {/* Bot dropdown — pick one of the active flows to drive the chat. */}
-          <DropdownMenu>
-            <DropdownMenuTrigger className={cn(
-              "inline-flex items-center justify-center h-9 gap-1.5 px-3 text-sm font-medium rounded-md border border-border hover:bg-muted transition-colors",
-              assignedFlowId ? "text-primary border-primary/30" : "text-muted-foreground"
-            )}>
-              <Bot className="h-4 w-4" />
-              <span className="hidden max-w-32 truncate sm:inline">
-                {assignedFlow?.name ?? "Bot"}
-              </span>
-              <ChevronDown className="h-3.5 w-3.5" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="border-border bg-popover">
-              <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Bots
-              </div>
-              {flows.length === 0 ? (
-                <DropdownMenuItem disabled className="text-sm text-muted-foreground">
-                  No bots available
-                </DropdownMenuItem>
-              ) : (
-                flows.map((f) => {
-                  const isSelected = f.id === assignedFlowId;
-                  return (
-                    <DropdownMenuItem
-                      key={f.id}
-                      onClick={() => assign({ type: "flow", flowId: f.id })}
-                      className={cn(
-                        "text-sm",
-                        isSelected ? "text-primary" : "text-popover-foreground"
-                      )}
-                    >
-                      <Bot className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
-                      <span className="flex-1 truncate">{f.name}</span>
-                      {isSelected && <Check className="ml-2 h-3 w-3" />}
+              {/* Bot dropdown — pick one of the active flows to drive the chat. */}
+              <DropdownMenu>
+                <DropdownMenuTrigger className={cn(
+                  "inline-flex items-center justify-center h-9 gap-1.5 px-3 text-sm font-medium rounded-md border border-border hover:bg-muted transition-colors",
+                  assignedFlowId ? "text-primary border-primary/30" : "text-muted-foreground"
+                )}>
+                  <Bot className="h-4 w-4" />
+                  <span className="hidden max-w-32 truncate sm:inline">
+                    {assignedFlow?.name ?? "Bot"}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="border-border bg-popover">
+                  <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Bots
+                  </div>
+                  {flows.length === 0 ? (
+                    <DropdownMenuItem disabled className="text-sm text-muted-foreground">
+                      No bots available
                     </DropdownMenuItem>
-                  );
-                })
-              )}
-              {assignedFlowId && (
-                <>
-                  <DropdownMenuSeparator className="bg-border" />
-                  <DropdownMenuItem
-                    onClick={() => assign({ type: "none" })}
-                    className="text-sm text-muted-foreground"
-                  >
-                    Remove bot
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  ) : (
+                    flows.map((f) => {
+                      const isSelected = f.id === assignedFlowId;
+                      return (
+                        <DropdownMenuItem
+                          key={f.id}
+                          onClick={() => assign({ type: "flow", flowId: f.id })}
+                          className={cn(
+                            "text-sm",
+                            isSelected ? "text-primary" : "text-popover-foreground"
+                          )}
+                        >
+                          <Bot className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                          <span className="flex-1 truncate">{f.name}</span>
+                          {isSelected && <Check className="ml-2 h-3 w-3" />}
+                        </DropdownMenuItem>
+                      );
+                    })
+                  )}
+                  {assignedFlowId && (
+                    <>
+                      <DropdownMenuSeparator className="bg-border" />
+                      <DropdownMenuItem
+                        onClick={() => assign({ type: "none" })}
+                        className="text-sm text-muted-foreground"
+                      >
+                        Remove bot
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
 
           {/* Assign to a user (agent) */}
           <DropdownMenu>
@@ -1137,7 +1181,9 @@ export function MessageThread({
           <div className="flex flex-col items-center justify-center py-12">
             <p className="text-sm text-muted-foreground">No messages yet</p>
             <p className="text-xs text-muted-foreground">
-              Send a template to start the conversation
+              {isInstagramConversation
+                ? "Send a message to start the conversation"
+                : "Send a template to start the conversation"}
             </p>
           </div>
         ) : (
@@ -1179,16 +1225,23 @@ export function MessageThread({
                         key={msg.id}
                         message={msg}
                         onReply={() => handleStartReply(msg)}
-                        onReact={(emoji) => {
-                          if (emoji) void postReaction(msg.id, emoji);
-                        }}
+                        onReact={
+                          isInstagramConversation
+                            ? undefined
+                            : (emoji) => {
+                                if (emoji) void postReaction(msg.id, emoji);
+                              }
+                        }
                       >
                         <MessageBubble
                           message={msg}
                           reply={reply}
                           reactions={msgReactions}
                           currentUserId={user?.id}
-                          onToggleReaction={handlePillToggle}
+                          onToggleReaction={
+                            isInstagramConversation ? undefined : handlePillToggle
+                          }
+                          channel={conversation.channel}
                         />
                       </MessageActions>
                     );
@@ -1203,19 +1256,22 @@ export function MessageThread({
       {/* Composer */}
       <MessageComposer
         conversationId={conversation.id}
-        sessionExpired={sessionInfo.expired}
+        sessionExpired={!isInstagramConversation && sessionInfo.expired}
         onSend={handleSend}
         onSendMedia={handleSendMedia}
         onOpenTemplates={handleOpenTemplates}
         replyTo={replyTo}
         onClearReply={() => setReplyTo(null)}
+        channel={conversation.channel}
       />
 
-      <TemplatePicker
-        open={templateModalOpen}
-        onOpenChange={setTemplateModalOpen}
-        onSelect={handleSendTemplate}
-      />
+      {!isInstagramConversation && (
+        <TemplatePicker
+          open={templateModalOpen}
+          onOpenChange={setTemplateModalOpen}
+          onSelect={handleSendTemplate}
+        />
+      )}
     </div>
   );
 }

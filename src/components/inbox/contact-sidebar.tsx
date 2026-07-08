@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import type { Contact, Deal, ContactNote, Tag } from "@/types";
 import {
+  AtSign,
   Phone,
   Mail,
   Copy,
@@ -163,6 +164,13 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
     // fixes the `preserve-manual-memoization` lint error.
   }, [contact]);
 
+  const handleCopyInstagramId = useCallback(async () => {
+    if (!contact?.instagram_id) return;
+    await navigator.clipboard.writeText(contact.instagram_id);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [contact]);
+
   const handleAddNote = useCallback(async () => {
     if (!contact || !newNote.trim()) return;
     if (!accountId) return;
@@ -233,7 +241,8 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
     );
   }
 
-  const displayName = contact.name || contact.phone;
+  const displayName =
+    contact.name || contact.phone || contact.instagram_id || "Unknown";
   const initials = displayName.charAt(0).toUpperCase();
 
   return (
@@ -291,18 +300,37 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
 
           {/* Phone */}
           <div className="mt-4 space-y-2">
-            <button
-              onClick={handleCopyPhone}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"
-            >
-              <Phone className="h-4 w-4 text-muted-foreground" />
-              <span className="flex-1 text-left">{contact.phone}</span>
-              {copied ? (
-                <Check className="h-3 w-3 text-primary" />
-              ) : (
-                <Copy className="h-3 w-3 text-muted-foreground" />
-              )}
-            </button>
+            {contact.phone && (
+              <button
+                onClick={handleCopyPhone}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"
+              >
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                <span className="flex-1 text-left">{contact.phone}</span>
+                {copied ? (
+                  <Check className="h-3 w-3 text-primary" />
+                ) : (
+                  <Copy className="h-3 w-3 text-muted-foreground" />
+                )}
+              </button>
+            )}
+
+            {contact.instagram_id && (
+              <button
+                onClick={handleCopyInstagramId}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"
+              >
+                <AtSign className="h-4 w-4 text-muted-foreground" />
+                <span className="flex-1 truncate text-left">
+                  {contact.instagram_id}
+                </span>
+                {copied ? (
+                  <Check className="h-3 w-3 text-primary" />
+                ) : (
+                  <Copy className="h-3 w-3 text-muted-foreground" />
+                )}
+              </button>
+            )}
 
             {contact.email && (
               <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground">
