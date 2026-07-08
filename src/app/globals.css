@@ -128,34 +128,40 @@
   --scrollbar-thumb-hover: oklch(0.5 0.018 258 / 0.65);
 }
 
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) transparent;
-}
+/* Kept inside @layer base so per-element Tailwind utilities
+   (`scrollbar-none`, `[&::-webkit-scrollbar]:hidden`, …) can override the
+   app-wide default. Unlayered rules would beat every utility regardless of
+   specificity and make hiding a scrollbar impossible. */
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
 
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
 
-*::-webkit-scrollbar-track {
-  background: transparent;
-}
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
-*::-webkit-scrollbar-thumb {
-  background-color: var(--scrollbar-thumb);
-  border-radius: 9999px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
 
-*::-webkit-scrollbar-thumb:hover {
-  background-color: var(--scrollbar-thumb-hover);
-}
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+  }
 
-/* Don't paint a scrollbar in the dead corner where two bars meet. */
-*::-webkit-scrollbar-corner {
-  background: transparent;
+  /* Don't paint a scrollbar in the dead corner where two bars meet. */
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 }
 
 @layer base {

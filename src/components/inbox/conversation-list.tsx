@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import type { Conversation, ConversationStatus, Tag } from "@/types";
+import type { Conversation, ConversationStatus, Profile, Tag } from "@/types";
 import {
   Search,
   ChevronDown,
@@ -12,6 +12,8 @@ import {
   X,
   Bot,
   Check,
+  Sparkles,
+  User,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { Input } from "@/components/ui/input";
@@ -69,6 +71,22 @@ const FILTER_OPTIONS: { label: string; value: InboxFilter }[] = [
   { label: "Closed", value: "closed" },
 ];
 
+// Who is currently handling the conversation. `null` = no assignee filter.
+type AssigneeFilter = "ai" | "bot" | "user" | null;
+
+// AI / Bot are simple on/off chips; User is a dropdown (pick an agent).
+const ASSIGNEE_CHIPS = [
+  { label: "AI Agent", value: "ai" as const, icon: Sparkles },
+  { label: "Bot", value: "bot" as const, icon: Bot },
+];
+
+// Shared pill-chip styling so every filter control reads as one family.
+const CHIP =
+  "inline-flex h-7 shrink-0 items-center gap-1 rounded-full border px-2.5 text-xs font-medium transition-colors";
+const CHIP_ON = "border-primary/30 bg-primary-soft text-primary";
+const CHIP_OFF =
+  "border-border text-muted-foreground hover:bg-muted hover:text-foreground";
+
 export function ConversationList({
   activeConversationId,
   onSelect,
@@ -78,9 +96,13 @@ export function ConversationList({
 }: ConversationListProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<InboxFilter>("all");
+  const [assignee, setAssignee] = useState<AssigneeFilter>(null);
+  // When the assignee filter is "user", optionally narrow to one agent.
+  const [assignedUserId, setAssignedUserId] = useState<string | null>(null);
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [flows, setFlows] = useState<FlowOption[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
 
   const onConversationsLoadedRef = useRef(onConversationsLoaded);
@@ -102,6 +124,23 @@ export function ConversationList({
         );
       })
       .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Team members — for the "User" assignee filter dropdown.
+  useEffect(() => {
+    let cancelled = false;
+    const supabase = createClient();
+    supabase
+      .from("profiles")
+      .select("*")
+      .order("full_name")
+      .then(({ data }) => {
+        if (cancelled) return;
+        setProfiles((data as Profile[]) ?? []);
+      });
     return () => {
       cancelled = true;
     };
@@ -200,6 +239,20 @@ export function ConversationList({
       result = result.filter((c) => c.status === filter);
     }
 
+    // Assignee (who's handling the chat): AI Agent / Bot / User. The user
+    // filter can be "any assigned agent" or narrowed to a specific one.
+    if (assignee === "ai") {
+      result = result.filter((c) => c.ai_agent_assigned === true);
+    } else if (assignee === "bot") {
+      result = result.filter((c) => !!c.assigned_flow_id);
+    } else if (assignee === "user") {
+      result = result.filter((c) =>
+        assignedUserId
+          ? c.assigned_agent_id === assignedUserId
+          : !!c.assigned_agent_id,
+      );
+    }
+
     if (selectedTagId) {
       result = result.filter((c) =>
         c.contact?.contact_tags?.some((ct) => ct.tag_id === selectedTagId)
@@ -217,7 +270,7 @@ export function ConversationList({
     }
 
     return result;
-  }, [conversations, filter, selectedTagId, search]);
+  }, [conversations, filter, assignee, assignedUserId, selectedTagId, search]);
 
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value),
@@ -231,6 +284,8 @@ export function ConversationList({
 
   const activeFilter = FILTER_OPTIONS.find((o) => o.value === filter);
   const activeTag = availableTags.find((t) => t.id === selectedTagId);
+  const activeUser = profiles.find((p) => p.user_id === assignedUserId);
+  const userFilterActive = assignee === "user";
 
   return (
     <div className="flex h-full w-full flex-col border-r border-border bg-card lg:w-96">
@@ -246,10 +301,10 @@ export function ConversationList({
           />
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto py-1.5 scrollbar-none [&::-webkit-scrollbar]:hidden">
           {/* Status filter */}
           <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex items-center justify-center h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-muted">
+            <DropdownMenuTrigger className={cn(CHIP, filter !== "all" ? CHIP_ON : CHIP_OFF)}>
               {activeFilter?.label ?? "All"}
               <ChevronDown className="h-3 w-3" />
             </DropdownMenuTrigger>
@@ -276,7 +331,7 @@ export function ConversationList({
               <button
                 type="button"
                 onClick={() => setSelectedTagId(null)}
-                className="inline-flex items-center gap-1 h-7 rounded-md px-2 text-xs font-medium transition-colors"
+                className={cn(CHIP, "border-transparent")}
                 style={{ background: `${activeTag.color}20`, color: activeTag.color }}
               >
                 <span
@@ -288,7 +343,7 @@ export function ConversationList({
               </button>
             ) : (
               <DropdownMenu>
-                <DropdownMenuTrigger className="inline-flex items-center justify-center h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-muted">
+                <DropdownMenuTrigger className={cn(CHIP, CHIP_OFF)}>
                   <TagIcon className="h-3 w-3" />
                   Tag
                   <ChevronDown className="h-3 w-3" />
@@ -311,6 +366,92 @@ export function ConversationList({
               </DropdownMenu>
             )
           )}
+
+          {/* Assignee chips — AI Agent / Bot. Click to show only chats that
+              entity is handling; click again to clear. Single-select. */}
+          {ASSIGNEE_CHIPS.map((opt) => {
+            const active = assignee === opt.value;
+            const Icon = opt.icon;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setAssignee(active ? null : opt.value)}
+                className={cn(CHIP, active ? CHIP_ON : CHIP_OFF)}
+              >
+                <Icon className="h-3 w-3" />
+                {opt.label}
+              </button>
+            );
+          })}
+
+          {/* User filter — a dropdown so a specific agent can be picked. */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className={cn(CHIP, userFilterActive ? CHIP_ON : CHIP_OFF)}>
+              <User className="h-3 w-3" />
+              <span className="max-w-24 truncate">
+                {userFilterActive ? activeUser?.full_name ?? "Anyone" : "User"}
+              </span>
+              <ChevronDown className="h-3 w-3" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="border-border bg-popover min-w-44">
+              <DropdownMenuItem
+                onClick={() => {
+                  setAssignee("user");
+                  setAssignedUserId(null);
+                }}
+                className={cn(
+                  "text-sm",
+                  userFilterActive && !assignedUserId
+                    ? "text-primary"
+                    : "text-popover-foreground",
+                )}
+              >
+                <User className="size-4 shrink-0 text-muted-foreground" />
+                <span className="flex-1 truncate">Anyone</span>
+                {userFilterActive && !assignedUserId && <Check className="size-3.5" />}
+              </DropdownMenuItem>
+              {profiles.length === 0 ? (
+                <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+                  No teammates
+                </DropdownMenuItem>
+              ) : (
+                profiles.map((p) => {
+                  const selected = userFilterActive && assignedUserId === p.user_id;
+                  return (
+                    <DropdownMenuItem
+                      key={p.id}
+                      onClick={() => {
+                        setAssignee("user");
+                        setAssignedUserId(p.user_id);
+                      }}
+                      className={cn(
+                        "text-sm",
+                        selected ? "text-primary" : "text-popover-foreground",
+                      )}
+                    >
+                      <span className="flex-1 truncate">{p.full_name}</span>
+                      {selected && <Check className="size-3.5" />}
+                    </DropdownMenuItem>
+                  );
+                })
+              )}
+              {userFilterActive && (
+                <>
+                  <DropdownMenuSeparator className="bg-border" />
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setAssignee(null);
+                      setAssignedUserId(null);
+                    }}
+                    className="text-sm text-muted-foreground"
+                  >
+                    Clear
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

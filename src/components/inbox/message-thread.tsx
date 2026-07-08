@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { format, isToday, isYesterday, differenceInHours } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -869,16 +870,6 @@ export function MessageThread({
   const aiAssigned = conversation.ai_agent_assigned === true;
   const currentAssignee = profiles.find((p) => p.user_id === assignedAgentId);
   const assignedFlow = flows.find((f) => f.id === assignedFlowId);
-  const isAssigned = !!assignedAgentId || !!assignedFlowId || aiAssigned;
-  const assignLabel = aiAssigned
-    ? "AI Agent"
-    : assignedFlow
-      ? assignedFlow.name
-      : assignedFlowId
-        ? "Bot"
-        : assignedAgentId
-          ? (currentAssignee?.full_name ?? "Assigned")
-          : "Assign";
 
   return (
     // `min-w-0` is load-bearing: the page already puts min-w-0 on the
@@ -979,69 +970,96 @@ export function MessageThread({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Assign dropdown */}
+          {/* AI Agent toggle — the BYO-key assistant handles this chat on
+              its own (KB-grounded replies to every inbound, no cap, even
+              with the account-wide auto-reply toggle off). Kept as a
+              stand-alone switch since it's a distinct mode, not a person or
+              a bot to pick from a list. Turning it on takes over the chat;
+              turning it off unassigns. */}
+          <label
+            className={cn(
+              "inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-md border px-2.5 transition-colors",
+              aiAssigned
+                ? "border-primary/30 bg-primary-soft text-primary"
+                : "border-border text-muted-foreground hover:bg-muted"
+            )}
+            title="Let the AI Agent handle this conversation"
+          >
+            <Sparkles className="h-4 w-4" />
+            <span className="hidden text-sm font-medium sm:inline">AI Agent</span>
+            <Switch
+              checked={aiAssigned}
+              onCheckedChange={(on) => assign({ type: on ? "ai" : "none" })}
+              aria-label="Toggle AI Agent for this conversation"
+            />
+          </label>
+
+          {/* Bot dropdown — pick one of the active flows to drive the chat. */}
           <DropdownMenu>
             <DropdownMenuTrigger className={cn(
               "inline-flex items-center justify-center h-9 gap-1.5 px-3 text-sm font-medium rounded-md border border-border hover:bg-muted transition-colors",
-              isAssigned ? "text-primary border-primary/30" : "text-muted-foreground"
+              assignedFlowId ? "text-primary border-primary/30" : "text-muted-foreground"
             )}>
-              {aiAssigned ? (
-                <Sparkles className="h-4 w-4" />
-              ) : assignedFlowId ? (
-                <Bot className="h-4 w-4" />
-              ) : (
-                <UserPlus className="h-4 w-4" />
-              )}
-              <span className="hidden max-w-32 truncate sm:inline">{assignLabel}</span>
+              <Bot className="h-4 w-4" />
+              <span className="hidden max-w-32 truncate sm:inline">
+                {assignedFlow?.name ?? "Bot"}
+              </span>
               <ChevronDown className="h-3.5 w-3.5" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="border-border bg-popover">
-              {/* AI Agent — the BYO-key assistant handles this chat on its
-                  own: replies to every inbound (KB-grounded), no cap, even
-                  with the account-wide auto-reply toggle off. */}
               <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                AI
+                Bots
               </div>
-              <DropdownMenuItem
-                onClick={() => assign({ type: "ai" })}
-                className={cn(
-                  "text-sm",
-                  aiAssigned ? "text-primary" : "text-popover-foreground",
-                )}
-              >
-                <Sparkles className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className="flex-1 truncate">AI Agent</span>
-                {aiAssigned && <Check className="ml-2 h-3 w-3" />}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-border" />
-              {/* Bots (Flows) */}
-              {flows.length > 0 && (
+              {flows.length === 0 ? (
+                <DropdownMenuItem disabled className="text-sm text-muted-foreground">
+                  No bots available
+                </DropdownMenuItem>
+              ) : (
+                flows.map((f) => {
+                  const isSelected = f.id === assignedFlowId;
+                  return (
+                    <DropdownMenuItem
+                      key={f.id}
+                      onClick={() => assign({ type: "flow", flowId: f.id })}
+                      className={cn(
+                        "text-sm",
+                        isSelected ? "text-primary" : "text-popover-foreground"
+                      )}
+                    >
+                      <Bot className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="flex-1 truncate">{f.name}</span>
+                      {isSelected && <Check className="ml-2 h-3 w-3" />}
+                    </DropdownMenuItem>
+                  );
+                })
+              )}
+              {assignedFlowId && (
                 <>
-                  <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Bots
-                  </div>
-                  {flows.map((f) => {
-                    const isSelected = f.id === assignedFlowId;
-                    return (
-                      <DropdownMenuItem
-                        key={f.id}
-                        onClick={() => assign({ type: "flow", flowId: f.id })}
-                        className={cn(
-                          "text-sm",
-                          isSelected ? "text-primary" : "text-popover-foreground"
-                        )}
-                      >
-                        <Bot className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
-                        <span className="flex-1 truncate">{f.name}</span>
-                        {isSelected && <Check className="ml-2 h-3 w-3" />}
-                      </DropdownMenuItem>
-                    );
-                  })}
                   <DropdownMenuSeparator className="bg-border" />
+                  <DropdownMenuItem
+                    onClick={() => assign({ type: "none" })}
+                    className="text-sm text-muted-foreground"
+                  >
+                    Remove bot
+                  </DropdownMenuItem>
                 </>
               )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-              {/* Agents */}
+          {/* Assign to a user (agent) */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className={cn(
+              "inline-flex items-center justify-center h-9 gap-1.5 px-3 text-sm font-medium rounded-md border border-border hover:bg-muted transition-colors",
+              assignedAgentId ? "text-primary border-primary/30" : "text-muted-foreground"
+            )}>
+              <UserPlus className="h-4 w-4" />
+              <span className="hidden max-w-32 truncate sm:inline">
+                {currentAssignee?.full_name ?? "Assign"}
+              </span>
+              <ChevronDown className="h-3.5 w-3.5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="border-border bg-popover">
               <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Agents
               </div>
@@ -1080,7 +1098,7 @@ export function MessageThread({
                   );
                 })
               )}
-              {isAssigned && (
+              {assignedAgentId && (
                 <>
                   <DropdownMenuSeparator className="bg-border" />
                   <DropdownMenuItem
