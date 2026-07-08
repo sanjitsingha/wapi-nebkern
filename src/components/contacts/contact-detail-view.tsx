@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Phone,
@@ -209,6 +210,23 @@ export function ContactDetailView({
       onUpdated();
     }
     setSavingDetails(false);
+  }
+
+  // Marketing consent — toggled immediately (not part of the details
+  // form save) so it reads like a switch, not a staged edit. `enabled`
+  // is the opted-IN state, stored inverted as marketing_opt_out.
+  async function toggleMarketing(enabled: boolean) {
+    if (!contactId) return;
+    const { error } = await supabase
+      .from('contacts')
+      .update({ marketing_opt_out: !enabled, updated_at: new Date().toISOString() })
+      .eq('id', contactId);
+    if (error) {
+      toast.error('Failed to update marketing consent');
+      return;
+    }
+    setContact((prev) => (prev ? { ...prev, marketing_opt_out: !enabled } : prev));
+    onUpdated();
   }
 
   async function toggleTag(tagId: string) {
@@ -456,6 +474,27 @@ export function ContactDetailView({
                       className="bg-muted border-border text-foreground h-8 text-sm"
                     />
                   </div>
+
+                  {/* Marketing consent — drives Segment rules + campaign
+                      exclusion. Saved immediately, independent of the form. */}
+                  <div className="border-border bg-muted/40 flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="text-foreground text-sm font-medium">
+                        Marketing messages
+                      </p>
+                      <p className="text-muted-foreground text-xs">
+                        {contact?.marketing_opt_out
+                          ? 'Opted out — excluded from campaigns'
+                          : 'Opted in'}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={!contact?.marketing_opt_out}
+                      onCheckedChange={(v) => toggleMarketing(v)}
+                      aria-label="Marketing consent"
+                    />
+                  </div>
+
                   <Button
                     onClick={saveDetails}
                     disabled={savingDetails}

@@ -110,6 +110,10 @@ export interface Contact {
   is_muted?: boolean;
   /** Contact blocked (migration 034). */
   is_blocked?: boolean;
+  /** Marketing consent (migration 043). FALSE/absent = opted in
+   *  ("marketing enabled"); TRUE = opted out. Drives Segment marketing
+   *  rules and campaign exclusion. */
+  marketing_opt_out?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -212,6 +216,54 @@ export interface ContactList {
   added_at: string;
   added_by: string | null;
   contact?: Contact;
+}
+
+// ── Segments (dynamic, rule-based audiences — migration 043) ──────────
+// A Segment stores ONLY filter rules; matching contacts are evaluated on
+// demand server-side, so membership is always current. Contrast with
+// List, which stores explicit membership.
+
+export type SegmentCombinator = 'and' | 'or';
+
+/** One leaf condition, e.g. { field: 'city', op: 'equals', value: 'Kolkata' }.
+ *  `field` is a catalog key (see lib/segments/fields) or 'custom:<uuid>'. */
+export interface SegmentRule {
+  field: string;
+  op: string;
+  value?: string;
+}
+
+/** A nested group of rules/subgroups joined by AND or OR. */
+export interface SegmentGroup {
+  combinator: SegmentCombinator;
+  rules: SegmentNode[];
+}
+
+export type SegmentNode = SegmentGroup | SegmentRule;
+
+/** Narrowing helper — a node is a group iff it carries `rules`. */
+export function isSegmentGroup(node: SegmentNode): node is SegmentGroup {
+  return (node as SegmentGroup).rules !== undefined;
+}
+
+export type SegmentStatus = 'active' | 'archived';
+
+export interface Segment {
+  id: string;
+  account_id: string;
+  name: string;
+  description?: string | null;
+  color?: string | null;
+  status: SegmentStatus;
+  /** Root rule group. Evaluated by the `segment_count` /
+   *  `segment_contacts_page` RPCs — never stores contacts. */
+  rules: SegmentGroup;
+  /** Cached estimate for the list page; NULL until first computed. */
+  estimated_count: number | null;
+  count_computed_at: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export type ConversationStatus = 'open' | 'pending' | 'closed';

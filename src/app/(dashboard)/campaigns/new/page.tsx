@@ -24,7 +24,7 @@ import { Button } from '@/components/ui/button';
 const SECTIONS = ['template', 'audience', 'personalize', 'send'] as const;
 
 function audienceSummary(audience: {
-  type: 'all' | 'tags' | 'custom_field' | 'csv';
+  type: 'all' | 'tags' | 'custom_field' | 'segment' | 'csv';
   tagIds?: string[];
   csvContacts?: { phone: string; name?: string }[];
 }): string {
@@ -35,6 +35,8 @@ function audienceSummary(audience: {
       return `${audience.tagIds?.length ?? 0} tag${(audience.tagIds?.length ?? 0) === 1 ? '' : 's'} selected`;
     case 'custom_field':
       return 'Custom field filter';
+    case 'segment':
+      return 'Segment';
     case 'csv':
       return `${audience.csvContacts?.length ?? 0} CSV contact${(audience.csvContacts?.length ?? 0) === 1 ? '' : 's'}`;
   }
@@ -52,13 +54,14 @@ export default function NewBroadcastPage() {
   const [openSections, setOpenSections] = useState<string[]>([...SECTIONS]);
   const [template, setTemplate] = useState<MessageTemplate | null>(null);
   const [audience, setAudience] = useState<{
-    type: 'all' | 'tags' | 'custom_field' | 'csv';
+    type: 'all' | 'tags' | 'custom_field' | 'segment' | 'csv';
     tagIds?: string[];
     customField?: {
       fieldId: string;
       operator: 'is' | 'is_not' | 'contains';
       value: string;
     };
+    segmentId?: string;
     csvContacts?: { phone: string; name?: string }[];
     excludeTagIds?: string[];
   }>({ type: 'all' });
@@ -92,8 +95,11 @@ export default function NewBroadcastPage() {
       const af = bc.audience_filter as Record<string, unknown> | null;
       if (af) {
         setAudience({
-          type: (af.type as 'all' | 'tags' | 'custom_field' | 'csv') ?? 'all',
+          type:
+            (af.type as 'all' | 'tags' | 'custom_field' | 'segment' | 'csv') ??
+            'all',
           tagIds: af.tagIds as string[] | undefined,
+          segmentId: af.segmentId as string | undefined,
         });
       }
 
@@ -131,6 +137,7 @@ export default function NewBroadcastPage() {
           type: audience.type,
           tagIds: audience.tagIds,
           customField: audience.customField,
+          segmentId: audience.segmentId,
           csvContacts: audience.csvContacts,
           excludeTagIds: audience.excludeTagIds,
         },

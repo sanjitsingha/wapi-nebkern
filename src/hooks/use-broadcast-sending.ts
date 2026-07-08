@@ -14,9 +14,11 @@ export interface CustomFieldFilter {
 }
 
 export interface AudienceConfig {
-  type: 'all' | 'tags' | 'custom_field' | 'csv';
+  type: 'all' | 'tags' | 'custom_field' | 'segment' | 'csv';
   tagIds?: string[];
   customField?: CustomFieldFilter;
+  /** Saved dynamic segment; recipients are evaluated from its rules. */
+  segmentId?: string;
   csvContacts?: { phone: string; name?: string }[];
   /** Contacts carrying any of these tags are subtracted from the result. */
   excludeTagIds?: string[];
@@ -180,6 +182,30 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
       }
     } else if (audience.type === 'custom_field' && audience.customField) {
       contacts = await resolveCustomFieldAudience(supabase, audience.customField);
+    } else if (audience.type === 'segment' && audience.segmentId) {
+      // Re-evaluate the segment's rules at send time so the audience is
+      // current. A single large page covers the codebase's scale (low
+      // thousands); the RPC applies RLS + the account scope.
+      const { data: seg, error: segError } = await supabase
+        .from('segments')
+        .select('rules')
+        .eq('id', audience.segmentId)
+        .maybeSingle();
+      if (segError)
+        throw new Error(`Failed to load segment: ${segError.message}`);
+      if (seg && accountId) {
+        const { data, error } = await supabase.rpc('segment_contacts_page', {
+          p_account_id: accountId,
+          p_rules: (seg as { rules: unknown }).rules,
+          p_search: null,
+          p_sort: 'created_desc',
+          p_limit: 100000,
+          p_offset: 0,
+        });
+        if (error)
+          throw new Error(`Failed to evaluate segment: ${error.message}`);
+        contacts = ((data ?? []) as { contact: Contact }[]).map((r) => r.contact);
+      }
     } else if (audience.type === 'csv' && audience.csvContacts) {
       contacts = await upsertCsvContacts(supabase, audience.csvContacts);
     }
@@ -359,6 +385,7 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
             type: payload.audience.type,
             tagIds: payload.audience.tagIds,
             customField: payload.audience.customField,
+            segmentId: payload.audience.segmentId,
             excludeTagIds: payload.audience.excludeTagIds,
           },
           status: 'sending',

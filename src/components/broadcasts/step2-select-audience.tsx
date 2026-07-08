@@ -2,12 +2,14 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { CustomField, Tag } from '@/types';
+import { useAuth } from '@/hooks/use-auth';
+import { CustomField, Tag, SegmentGroup } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
   Users,
   Tags,
   Filter,
+  Target,
   Upload,
   Loader2,
   ArrowRight,
@@ -15,7 +17,13 @@ import {
   X,
 } from 'lucide-react';
 
-type AudienceType = 'all' | 'tags' | 'custom_field' | 'csv';
+type AudienceType = 'all' | 'tags' | 'custom_field' | 'segment' | 'csv';
+
+interface SegmentOption {
+  id: string;
+  name: string;
+  rules: SegmentGroup;
+}
 type CustomFieldOperator = 'is' | 'is_not' | 'contains';
 
 interface CustomFieldFilter {
@@ -28,6 +36,7 @@ interface AudienceConfig {
   type: AudienceType;
   tagIds?: string[];
   customField?: CustomFieldFilter;
+  segmentId?: string;
   csvContacts?: { phone: string; name?: string }[];
   excludeTagIds?: string[];
 }
@@ -65,6 +74,12 @@ const audienceOptions: {
     icon: Filter,
   },
   {
+    type: 'segment',
+    label: 'Segment',
+    description: 'Target a saved dynamic segment',
+    icon: Target,
+  },
+  {
     type: 'csv',
     label: 'Upload CSV',
     description: 'Upload a list of phone numbers',
@@ -85,8 +100,10 @@ export function Step2SelectAudience({
   onBack,
   embedded = false,
 }: Step2Props) {
+  const { accountId } = useAuth();
   const [tags, setTags] = useState<Tag[]>([]);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [segments, setSegments] = useState<SegmentOption[]>([]);
   const [loadingTags, setLoadingTags] = useState(false);
   const [loadingFields, setLoadingFields] = useState(false);
   const [estimatedCount, setEstimatedCount] = useState<number | null>(null);
@@ -107,6 +124,21 @@ export function Step2SelectAudience({
     }
     fetchTags();
   }, []);
+
+  // Lazy-load active segments only when that audience type is active.
+  useEffect(() => {
+    if (audience.type !== 'segment') return;
+    async function fetchSegments() {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('segments')
+        .select('id, name, rules')
+        .eq('status', 'active')
+        .order('name');
+      setSegments((data as SegmentOption[]) ?? []);
+    }
+    fetchSegments();
+  }, [audience.type]);
 
   // Lazy-load custom fields only when that audience type is active.
   useEffect(() => {
@@ -135,7 +167,20 @@ export function Step2SelectAudience({
       // Base query — produces the superset before exclude is applied.
       let baseIds: Set<string> | null = null; // null means "all contacts"
 
-      if (audience.type === 'all') {
+      if (audience.type === 'segment') {
+        // Dynamic segment: evaluate its rules via the RPC.
+        const seg = segments.find((s) => s.id === audience.segmentId);
+        if (!seg || !accountId) {
+          setEstimatedCount(null);
+          return;
+        }
+        const { data: countData } = await supabase.rpc('segment_count', {
+          p_account_id: accountId,
+          p_rules: seg.rules,
+        });
+        setEstimatedCount(Number(countData ?? 0));
+        return;
+      } else if (audience.type === 'all') {
         // Handled below — full-table count adjusted by excludes.
       } else if (
         audience.type === 'tags' &&
@@ -205,8 +250,11 @@ export function Step2SelectAudience({
     audience.type,
     audience.tagIds,
     audience.customField,
+    audience.segmentId,
     audience.csvContacts,
     audience.excludeTagIds,
+    segments,
+    accountId,
   ]);
 
   useEffect(() => {
@@ -244,6 +292,7 @@ export function Step2SelectAudience({
     (audience.type === 'custom_field' &&
       !!audience.customField?.fieldId &&
       audience.customField.value.length > 0) ||
+    (audience.type === 'segment' && !!audience.segmentId) ||
     (audience.type === 'csv' &&
       audience.csvContacts &&
       audience.csvContacts.length > 0);
@@ -277,6 +326,8 @@ export function Step2SelectAudience({
                     option.type === 'custom_field'
                       ? audience.customField
                       : undefined,
+                  segmentId:
+                    option.type === 'segment' ? audience.segmentId : undefined,
                   csvContacts:
                     option.type === 'csv' ? audience.csvContacts : undefined,
                 })
@@ -390,6 +441,33 @@ export function Step2SelectAudience({
               />
             </div>
           )}
+        </div>
+      )}
+
+      {audience.type === 'segment' && (
+        <div className="space-y-3 rounded-xl border border-border bg-card/50 p-4">
+          <p className="text-sm font-medium text-foreground">Select Segment</p>
+          {segments.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              No active segments. Create one under Contacts → Segments.
+            </p>
+          ) : (
+            <select
+              value={audience.segmentId ?? ''}
+              onChange={(e) => onUpdate({ ...audience, segmentId: e.target.value })}
+              className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            >
+              <option value="">Select segment…</option>
+              {segments.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Recipients are re-evaluated from the segment&apos;s rules at send time.
+          </p>
         </div>
       )}
 

@@ -23,6 +23,8 @@ interface ListPropertiesFormProps {
   color: string;
   onColorChange: (value: string) => void;
   disabled?: boolean;
+  /** Placeholder for the name field — defaults to "List name". */
+  namePlaceholder?: string;
 }
 
 /**
@@ -37,13 +39,14 @@ export function ListPropertiesForm({
   color,
   onColorChange,
   disabled,
+  namePlaceholder = 'List name',
 }: ListPropertiesFormProps) {
   return (
     <div className="space-y-3">
       <Input
         value={name}
         onChange={(e) => onNameChange(e.target.value)}
-        placeholder="List name"
+        placeholder={namePlaceholder}
         className="h-11"
         disabled={disabled}
         autoFocus

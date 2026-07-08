@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Coins,
   FileText,
+  Filter,
   GitBranch,
   Home,
   Image as ImageIcon,
@@ -84,6 +85,7 @@ const groups: NavGroup[] = [
     children: [
       { label: 'All Contacts', icon: Users, href: '/contacts' },
       { label: 'Lists', icon: List, href: '/lists' },
+      { label: 'Segments', icon: Filter, href: '/segments' },
     ],
   },
   {
