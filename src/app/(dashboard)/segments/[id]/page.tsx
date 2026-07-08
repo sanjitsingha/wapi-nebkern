@@ -273,7 +273,7 @@ export default function SegmentDetailPage() {
   const status = listStatusConfig[segment.status];
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-6">
       {/* Header: Back • name */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
@@ -313,29 +313,50 @@ export default function SegmentDetailPage() {
           />
         </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={<Button variant="outline" className="shrink-0 border-border" />}
-          >
-            <MoreHorizontal className="size-4" />
-            Actions
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="border-border bg-popover">
-            <DropdownMenuItem disabled={!canEdit} onClick={handleDuplicate}>
-              <Copy className="size-4" />
-              Duplicate
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled={!canEdit} onClick={handleArchiveToggle}>
-              <Archive className="size-4" />
-              {segment.status === 'active' ? 'Archive' : 'Restore'}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-border" />
-            <DropdownMenuItem variant="destructive" disabled={!canEdit} onClick={handleDelete}>
-              <Trash2 className="size-4" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex shrink-0 flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 text-sm">
+            <Users className="size-4 text-primary" />
+            {countLoading ? (
+              <span className="text-muted-foreground">Counting…</span>
+            ) : (
+              <span className="text-foreground">
+                <span className="font-semibold tabular-nums">
+                  {(count ?? 0).toLocaleString()}
+                </span>{' '}
+                matching {count === 1 ? 'contact' : 'contacts'}
+              </span>
+            )}
+          </div>
+
+          <Button onClick={handleSave} disabled={!canEdit || saving}>
+            <Save className="size-4" />
+            {saving ? 'Saving…' : 'Save segment'}
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={<Button variant="outline" className="shrink-0 border-border" />}
+            >
+              <MoreHorizontal className="size-4" />
+              Actions
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="border-border bg-popover">
+              <DropdownMenuItem disabled={!canEdit} onClick={handleDuplicate}>
+                <Copy className="size-4" />
+                Duplicate
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={!canEdit} onClick={handleArchiveToggle}>
+                <Archive className="size-4" />
+                {segment.status === 'active' ? 'Archive' : 'Restore'}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-border" />
+              <DropdownMenuItem variant="destructive" disabled={!canEdit} onClick={handleDelete}>
+                <Trash2 className="size-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Builder */}
@@ -459,29 +480,6 @@ export default function SegmentDetailPage() {
             </div>
           </div>
         )}
-      </div>
-
-      {/* Sticky save bar with live count */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur lg:left-64">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-2 text-sm">
-            <Users className="size-4 text-primary" />
-            {countLoading ? (
-              <span className="text-muted-foreground">Counting…</span>
-            ) : (
-              <span className="text-foreground">
-                <span className="font-semibold tabular-nums">
-                  {(count ?? 0).toLocaleString()}
-                </span>{' '}
-                matching {count === 1 ? 'contact' : 'contacts'}
-              </span>
-            )}
-          </div>
-          <Button onClick={handleSave} disabled={!canEdit || saving}>
-            <Save className="size-4" />
-            {saving ? 'Saving…' : 'Save segment'}
-          </Button>
-        </div>
       </div>
     </div>
   );
