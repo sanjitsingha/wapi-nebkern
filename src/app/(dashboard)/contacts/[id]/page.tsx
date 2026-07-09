@@ -26,6 +26,13 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
@@ -35,7 +42,9 @@ import {
 import {
   Phone,
   Mail,
+  MessageSquare,
   Building2,
+  Cake,
   MapPin,
   Copy,
   Check,
@@ -74,6 +83,8 @@ const TABS = [
   { value: 'custom', label: 'Custom Fields', icon: SlidersHorizontal },
   { value: 'deals', label: 'Deals', icon: Briefcase },
 ] as const;
+
+const MARITAL_OPTIONS = ['Single', 'Married', 'Divorced', 'Widowed'] as const;
 
 function getInitials(name?: string | null) {
   if (!name) return '?';
@@ -120,6 +131,9 @@ export default function ContactDetailPage() {
   const [editPhone, setEditPhone] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editCompany, setEditCompany] = useState('');
+  const [editDob, setEditDob] = useState('');
+  const [editMarital, setEditMarital] = useState('');
+  const [editSpouse, setEditSpouse] = useState('');
   const [editStreet, setEditStreet] = useState('');
   const [editLocality, setEditLocality] = useState('');
   const [editCity, setEditCity] = useState('');
@@ -148,6 +162,8 @@ export default function ContactDetailPage() {
   const [mediaMessages, setMediaMessages] = useState<Message[]>([]);
   const [linkItems, setLinkItems] = useState<LinkItem[]>([]);
   const [loadingMedia, setLoadingMedia] = useState(false);
+  // Most-recent conversation for this contact, for the "Open chat" jump.
+  const [conversationId, setConversationId] = useState<string | null>(null);
 
   const fetchContact = useCallback(async () => {
     setLoading(true);
@@ -158,6 +174,9 @@ export default function ContactDetailPage() {
       setEditPhone(data.phone);
       setEditEmail(data.email ?? '');
       setEditCompany(data.company ?? '');
+      setEditDob(data.date_of_birth ?? '');
+      setEditMarital(data.marital_status ?? '');
+      setEditSpouse(data.spouse_name ?? '');
       setEditStreet(data.street ?? '');
       setEditLocality(data.locality ?? '');
       setEditCity(data.city ?? '');
@@ -221,8 +240,10 @@ export default function ContactDetailPage() {
     const { data: convs } = await supabase
       .from('conversations')
       .select('id')
-      .eq('contact_id', contactId);
+      .eq('contact_id', contactId)
+      .order('last_message_at', { ascending: false, nullsFirst: false });
     const convIds = (convs ?? []).map((c) => c.id);
+    setConversationId(convIds[0] ?? null);
     if (convIds.length === 0) {
       setMediaMessages([]);
       setLinkItems([]);
@@ -266,6 +287,11 @@ export default function ContactDetailPage() {
       phone: editPhone.trim(),
       email: editEmail.trim() || null,
       company: editCompany.trim() || null,
+      date_of_birth: editDob || null,
+      marital_status: editMarital || null,
+      // Spouse is only meaningful when married — clear it otherwise so a
+      // status change doesn't leave a stale name behind.
+      spouse_name: editMarital === 'Married' ? editSpouse.trim() || null : null,
       street: editStreet.trim() || null,
       locality: editLocality.trim() || null,
       city: editCity.trim() || null,
@@ -559,6 +585,30 @@ export default function ContactDetailPage() {
                   <Building2 className="size-3.5" /> {contact.company}
                 </span>
               )}
+              {contact.date_of_birth && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground">
+                  <Cake className="size-3.5" />{' '}
+                  {new Date(`${contact.date_of_birth}T00:00:00`).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </span>
+              )}
+              <button
+                type="button"
+                disabled={!conversationId}
+                onClick={() => conversationId && router.push(`/inbox?c=${conversationId}`)}
+                title={
+                  conversationId
+                    ? "Open this contact's chat in the inbox"
+                    : 'No conversation yet — it appears once they message you'
+                }
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary-soft px-3 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/15 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <MessageSquare className="size-3.5" />
+                Open chat
+              </button>
             </div>
 
             {/* Tags — active pills + inline "add tag" popover */}
@@ -699,6 +749,34 @@ export default function ContactDetailPage() {
                 <Input value={editCompany} onChange={(e) => setEditCompany(e.target.value)}
                   className="bg-background border-border text-foreground" />
               </div>
+              <div className="space-y-1.5">
+                <Label className="text-muted-foreground text-xs">Date of birth</Label>
+                <Input type="date" value={editDob} onChange={(e) => setEditDob(e.target.value)}
+                  max={new Date().toISOString().slice(0, 10)}
+                  className="bg-background border-border text-foreground" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-muted-foreground text-xs">Marital status</Label>
+                <Select value={editMarital} onValueChange={(v) => setEditMarital(v ?? '')}>
+                  <SelectTrigger className="h-11 w-full bg-background border-border text-foreground">
+                    <SelectValue placeholder="Select…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MARITAL_OPTIONS.map((opt) => (
+                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* Spouse name — revealed only when married. */}
+              {editMarital === 'Married' && (
+                <div className="space-y-1.5">
+                  <Label className="text-muted-foreground text-xs">Spouse name</Label>
+                  <Input value={editSpouse} onChange={(e) => setEditSpouse(e.target.value)}
+                    placeholder="Spouse's name"
+                    className="bg-background border-border text-foreground placeholder:text-muted-foreground" />
+                </div>
+              )}
             </div>
 
             {/* Address */}

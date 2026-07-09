@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { Input } from "@/components/ui/input";
+import { avatarColor } from "@/lib/avatar-color";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -535,6 +536,7 @@ function ConversationItem({
   const displayName =
     contact?.name || contact?.phone || contact?.instagram_id || "Unknown";
   const initials = displayName.charAt(0).toUpperCase();
+  const avatar = avatarColor(contact?.id || displayName);
 
   const handleClick = useCallback(() => {
     onSelect(conversation);
@@ -568,9 +570,13 @@ function ConversationItem({
         isActive && "border-l-2 border-primary bg-muted/70",
       )}
     >
-      {/* Avatar */}
+      {/* Avatar — WhatsApp-style tonal colour: deep bg + brighter initial
+          of the same hue, stable per contact. */}
       <div className="relative shrink-0">
-        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-muted text-sm font-medium text-foreground">
+        <div
+          className="flex h-11 w-11 items-center justify-center rounded-full text-sm font-semibold"
+          style={{ backgroundColor: avatar.bg, color: avatar.fg }}
+        >
           {contact?.avatar_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img

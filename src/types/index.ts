@@ -104,6 +104,12 @@ export interface Contact {
   name?: string;
   email?: string;
   company?: string;
+  /** Date of birth (migration 044). ISO 'YYYY-MM-DD' or null. */
+  date_of_birth?: string | null;
+  /** Marital status + spouse (migration 045). `spouse_name` is only
+   *  populated when `marital_status` is 'Married'. */
+  marital_status?: string | null;
+  spouse_name?: string | null;
   avatar_url?: string;
   /** Structured postal address (migration 033). All nullable. */
   street?: string;
