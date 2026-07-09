@@ -16,6 +16,9 @@ import {
   Trash2,
   UserPlus,
   Users,
+  User,
+  Phone,
+  CalendarDays,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useCan } from '@/hooks/use-can';
@@ -477,9 +480,9 @@ export default function ListDetailPage() {
                   className="ml-3 size-3.5"
                 />
               </TableHead>
-              <TableHead className="text-muted-foreground">Name</TableHead>
-              <TableHead className="text-muted-foreground">Phone</TableHead>
-              <TableHead className="hidden text-muted-foreground md:table-cell">
+              <TableHead className="text-muted-foreground" icon={User}>Name</TableHead>
+              <TableHead className="text-muted-foreground" icon={Phone}>Phone</TableHead>
+              <TableHead className="hidden text-muted-foreground md:table-cell" icon={CalendarDays}>
                 Added
               </TableHead>
               <TableHead className="w-12 text-muted-foreground" />

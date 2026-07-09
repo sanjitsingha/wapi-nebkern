@@ -37,6 +37,10 @@ import {
   FolderOpen,
   LayoutGrid,
   List,
+  FileType,
+  HardDrive,
+  Ruler,
+  CalendarDays,
 } from 'lucide-react';
 import {
   Table,
@@ -386,15 +390,15 @@ export default function MediaPage() {
             <TableHeader>
               <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
                 <TableHead className="w-14" />
-                <TableHead className="text-muted-foreground">Name</TableHead>
-                <TableHead className="text-muted-foreground">Type</TableHead>
-                <TableHead className="text-muted-foreground hidden sm:table-cell">
+                <TableHead className="text-muted-foreground" icon={FileText}>Name</TableHead>
+                <TableHead className="text-muted-foreground" icon={FileType}>Type</TableHead>
+                <TableHead className="text-muted-foreground hidden sm:table-cell" icon={HardDrive}>
                   Size
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden lg:table-cell">
+                <TableHead className="text-muted-foreground hidden lg:table-cell" icon={Ruler}>
                   Dimensions
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden md:table-cell">
+                <TableHead className="text-muted-foreground hidden md:table-cell" icon={CalendarDays}>
                   Added
                 </TableHead>
                 <TableHead className="text-muted-foreground text-right">

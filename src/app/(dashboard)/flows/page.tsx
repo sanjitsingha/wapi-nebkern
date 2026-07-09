@@ -19,6 +19,8 @@ import {
   Search,
   Filter,
   ChevronDown,
+  CircleDot,
+  Zap,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -283,17 +285,17 @@ export default function FlowsPage() {
               />
             </div>
             <DropdownMenu>
-              <DropdownMenuTrigger>
-                <Button variant="outline" className="h-11 gap-2">
-                  <Filter className="h-4 w-4" />
-                  Status
-                  {statusFilter.length > 0 && (
-                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
-                      {statusFilter.length}
-                    </span>
-                  )}
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
+              <DropdownMenuTrigger
+                render={<Button variant="outline" className="h-11 gap-2" />}
+              >
+                <Filter className="h-4 w-4" />
+                Status
+                {statusFilter.length > 0 && (
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                    {statusFilter.length}
+                  </span>
+                )}
+                <ChevronDown className="h-4 w-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44">
                 {(Object.keys(STATUS_LABELS) as FlowRow["status"][]).map(
@@ -346,15 +348,15 @@ export default function FlowsPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
-                    <TableHead className="text-muted-foreground">Flow</TableHead>
-                    <TableHead className="text-muted-foreground">Status</TableHead>
-                    <TableHead className="hidden text-muted-foreground md:table-cell">
+                    <TableHead className="text-muted-foreground" icon={Workflow}>Flow</TableHead>
+                    <TableHead className="text-muted-foreground" icon={CircleDot}>Status</TableHead>
+                    <TableHead className="hidden text-muted-foreground md:table-cell" icon={Zap}>
                       Trigger
                     </TableHead>
-                    <TableHead className="hidden text-muted-foreground lg:table-cell">
+                    <TableHead className="hidden text-muted-foreground lg:table-cell" icon={History}>
                       Last run
                     </TableHead>
-                    <TableHead className="text-muted-foreground">Runs</TableHead>
+                    <TableHead className="text-muted-foreground" icon={PlayCircle}>Runs</TableHead>
                     <TableHead className="w-10 text-muted-foreground" />
                   </TableRow>
                 </TableHeader>

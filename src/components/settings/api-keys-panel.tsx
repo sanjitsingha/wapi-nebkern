@@ -11,6 +11,10 @@ import {
   Eye,
   EyeOff,
   CheckCircle2,
+  Hash,
+  ShieldCheck,
+  Clock,
+  CalendarDays,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -338,11 +342,11 @@ export function ApiKeysPanel() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[200px]">Name</TableHead>
-                <TableHead>Prefix</TableHead>
-                <TableHead>Scopes</TableHead>
-                <TableHead>Last used</TableHead>
-                <TableHead>Created</TableHead>
+                <TableHead className="w-[200px]" icon={Key}>Name</TableHead>
+                <TableHead icon={Hash}>Prefix</TableHead>
+                <TableHead icon={ShieldCheck}>Scopes</TableHead>
+                <TableHead icon={Clock}>Last used</TableHead>
+                <TableHead icon={CalendarDays}>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>

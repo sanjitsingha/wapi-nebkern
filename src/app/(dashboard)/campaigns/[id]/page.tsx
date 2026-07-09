@@ -33,6 +33,9 @@ import {
   ChevronDown,
   Trash2,
   Pencil,
+  User,
+  Phone,
+  CircleDot,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -485,13 +488,13 @@ export default function BroadcastDetailPage() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-muted-foreground">Contact</TableHead>
-                  <TableHead className="text-muted-foreground">Phone</TableHead>
-                  <TableHead className="text-muted-foreground">Status</TableHead>
-                  <TableHead className="text-muted-foreground">Sent</TableHead>
-                  <TableHead className="text-muted-foreground">Delivered</TableHead>
-                  <TableHead className="text-muted-foreground">Read</TableHead>
-                  <TableHead className="text-muted-foreground">Error</TableHead>
+                  <TableHead className="text-muted-foreground" icon={User}>Contact</TableHead>
+                  <TableHead className="text-muted-foreground" icon={Phone}>Phone</TableHead>
+                  <TableHead className="text-muted-foreground" icon={CircleDot}>Status</TableHead>
+                  <TableHead className="text-muted-foreground" icon={Send}>Sent</TableHead>
+                  <TableHead className="text-muted-foreground" icon={CheckCheck}>Delivered</TableHead>
+                  <TableHead className="text-muted-foreground" icon={Eye}>Read</TableHead>
+                  <TableHead className="text-muted-foreground" icon={AlertCircle}>Error</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

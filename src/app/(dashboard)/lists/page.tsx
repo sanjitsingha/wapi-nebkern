@@ -12,6 +12,10 @@ import {
   Plus,
   Search,
   Trash2,
+  AlignLeft,
+  Users,
+  CircleDot,
+  CalendarDays,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useCan } from '@/hooks/use-can';
@@ -157,11 +161,11 @@ export default function ListsPage() {
         <Table>
           <TableHeader>
             <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
-              <TableHead className="text-muted-foreground">Name</TableHead>
-              <TableHead className="text-muted-foreground">Description</TableHead>
-              <TableHead className="text-muted-foreground">Contacts</TableHead>
-              <TableHead className="text-muted-foreground">Status</TableHead>
-              <TableHead className="text-muted-foreground">Created</TableHead>
+              <TableHead className="text-muted-foreground" icon={ListIcon}>Name</TableHead>
+              <TableHead className="text-muted-foreground" icon={AlignLeft}>Description</TableHead>
+              <TableHead className="text-muted-foreground" icon={Users}>Contacts</TableHead>
+              <TableHead className="text-muted-foreground" icon={CircleDot}>Status</TableHead>
+              <TableHead className="text-muted-foreground" icon={CalendarDays}>Created</TableHead>
               <TableHead className="w-12 text-muted-foreground" />
             </TableRow>
           </TableHeader>

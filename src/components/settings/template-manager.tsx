@@ -16,6 +16,11 @@ import {
   Filter,
   ChevronDown,
   MoreVertical,
+  FileText,
+  Tag,
+  CircleDot,
+  Languages,
+  User,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { softBadge } from '@/lib/badge-colors';
@@ -385,13 +390,13 @@ export function TemplateManager() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
-                  <TableHead className="text-muted-foreground">Name</TableHead>
-                  <TableHead className="text-muted-foreground">Category</TableHead>
-                  <TableHead className="text-muted-foreground">Status</TableHead>
-                  <TableHead className="text-muted-foreground hidden md:table-cell">
+                  <TableHead className="text-muted-foreground" icon={FileText}>Name</TableHead>
+                  <TableHead className="text-muted-foreground" icon={Tag}>Category</TableHead>
+                  <TableHead className="text-muted-foreground" icon={CircleDot}>Status</TableHead>
+                  <TableHead className="text-muted-foreground hidden md:table-cell" icon={Languages}>
                     Language
                   </TableHead>
-                  <TableHead className="text-muted-foreground hidden lg:table-cell">
+                  <TableHead className="text-muted-foreground hidden lg:table-cell" icon={User}>
                     Created by
                   </TableHead>
                   <TableHead className="text-muted-foreground text-right">Actions</TableHead>

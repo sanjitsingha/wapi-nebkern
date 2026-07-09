@@ -50,6 +50,13 @@ import {
   Filter,
   X,
   CalendarDays,
+  User,
+  Phone,
+  Mail,
+  Building2,
+  Tag as TagIcon,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import { ContactForm } from '@/components/contacts/contact-form';
 import { ImportModal } from '@/components/contacts/import-modal';
@@ -92,6 +99,7 @@ export default function ContactsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
+  const [createdSort, setCreatedSort] = useState<'desc' | 'asc'>('desc');
   const [totalCount, setTotalCount] = useState(0);
   // Tag filter — contacts shown must have ANY of these tags (OR).
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
@@ -183,7 +191,7 @@ export default function ContactsPage() {
       let query = supabase
         .from('contacts')
         .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: createdSort === 'asc' })
         .range(from, to);
 
       if (term) {
@@ -243,7 +251,7 @@ export default function ContactsPage() {
 
     setContacts(enriched);
     setLoading(false);
-  }, [supabase, page, search, selectedTagIds, createdFrom, createdTo, tagsMap]);
+  }, [supabase, page, search, selectedTagIds, createdFrom, createdTo, createdSort, tagsMap]);
 
   // Load-once-on-mount-ish data fetches. Each setter inside runs
   // inside an async promise completion (Supabase await), not
@@ -603,7 +611,7 @@ export default function ContactsPage() {
         )}
       </div>
 
-      {/* Table */}
+      {/* Table — column dividers + padding come from the shared Table. */}
       <div className="border-border bg-card overflow-hidden rounded-xl border">
         <Table>
           <TableHeader>
@@ -630,19 +638,48 @@ export default function ContactsPage() {
                   </span>
                 </div>
               </TableHead>
-              <TableHead className="text-muted-foreground">Name</TableHead>
-              <TableHead className="text-muted-foreground">Phone</TableHead>
+              <TableHead className="text-muted-foreground w-36">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCreatedSort((s) => (s === 'desc' ? 'asc' : 'desc'));
+                    setPage(0);
+                  }}
+                  className="hover:text-foreground flex w-full items-center gap-1.5 transition-colors"
+                  title="Sort by created date"
+                >
+                  <CalendarDays className="size-3.5" /> Created
+                  {createdSort === 'desc' ? (
+                    <ArrowDown className="ml-auto size-3.5" />
+                  ) : (
+                    <ArrowUp className="ml-auto size-3.5" />
+                  )}
+                </button>
+              </TableHead>
+              <TableHead className="text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <User className="size-3.5" /> Name
+                </span>
+              </TableHead>
+              <TableHead className="text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <Phone className="size-3.5" /> Phone
+                </span>
+              </TableHead>
               <TableHead className="text-muted-foreground hidden md:table-cell">
-                Email
+                <span className="flex items-center gap-1.5">
+                  <Mail className="size-3.5" /> Email
+                </span>
               </TableHead>
               <TableHead className="text-muted-foreground hidden lg:table-cell">
-                Company
+                <span className="flex items-center gap-1.5">
+                  <Building2 className="size-3.5" /> Company
+                </span>
               </TableHead>
               <TableHead className="text-muted-foreground hidden md:table-cell">
-                Tags
-              </TableHead>
-              <TableHead className="text-muted-foreground hidden lg:table-cell">
-                Created
+                <span className="flex items-center gap-1.5">
+                  <TagIcon className="size-3.5" /> Tags
+                </span>
               </TableHead>
               <TableHead className="text-muted-foreground w-12" />
             </TableRow>
@@ -702,6 +739,13 @@ export default function ContactsPage() {
                       className="ml-3 size-3.5"
                     />
                   </TableCell>
+                  <TableCell className="text-muted-foreground w-36 text-xs">
+                    {new Date(contact.created_at).toLocaleDateString('en-GB', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                    })}
+                  </TableCell>
                   <TableCell className="text-foreground font-medium">
                     {contact.name || (
                       <span className="text-muted-foreground italic">
@@ -746,13 +790,6 @@ export default function ContactsPage() {
                         </span>
                       )}
                     </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground hidden text-xs lg:table-cell">
-                    {new Date(contact.created_at).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>

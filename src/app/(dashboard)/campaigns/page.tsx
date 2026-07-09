@@ -31,6 +31,11 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  CalendarDays,
+  FileText,
+  Send,
+  Eye,
+  CircleDot,
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { useCan } from '@/hooks/use-can';
@@ -322,12 +327,12 @@ export default function BroadcastsPage() {
               className="max-w-xl flex-1 h-11"
             />
             <DropdownMenu>
-              <DropdownMenuTrigger>
-                <Button variant="outline" className="h-11 gap-2">
-                  <Tag className="h-4 w-4" />
-                  Category
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
+              <DropdownMenuTrigger
+                render={<Button variant="outline" className="h-11 gap-2" />}
+              >
+                <Tag className="h-4 w-4" />
+                Category
+                <ChevronDown className="h-4 w-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-48">
                 {categoryOptions.map((category) => (
@@ -350,12 +355,12 @@ export default function BroadcastsPage() {
               </DropdownMenuContent>
             </DropdownMenu>
             <DropdownMenu>
-              <DropdownMenuTrigger>
-                <Button variant="outline" className="h-11 gap-2">
-                  <Filter className="h-4 w-4" />
-                  Status
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
+              <DropdownMenuTrigger
+                render={<Button variant="outline" className="h-11 gap-2" />}
+              >
+                <Filter className="h-4 w-4" />
+                Status
+                <ChevronDown className="h-4 w-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-48">
                 {statusOptions.map((status) => (
@@ -442,6 +447,7 @@ export default function BroadcastsPage() {
                       )
                     }
                   >
+                    <CalendarDays className="size-3.5" />
                     Date
                     {dateSortDirection === 'asc' ? (
                       <ArrowUp className="h-3.5 w-3.5" />
@@ -450,23 +456,23 @@ export default function BroadcastsPage() {
                     )}
                   </button>
                 </TableHead>
-                <TableHead className="text-muted-foreground">Name</TableHead>
-                <TableHead className="text-muted-foreground hidden md:table-cell">
+                <TableHead className="text-muted-foreground" icon={Radio}>Name</TableHead>
+                <TableHead className="text-muted-foreground hidden md:table-cell" icon={FileText}>
                   Template
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden md:table-cell">
+                <TableHead className="text-muted-foreground hidden md:table-cell" icon={Tag}>
                   Category
                 </TableHead>
                 <TableHead className="text-muted-foreground hidden text-right sm:table-cell">
                   Recipients
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden lg:table-cell">
+                <TableHead className="text-muted-foreground hidden lg:table-cell" icon={Send}>
                   Delivery
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden lg:table-cell">
+                <TableHead className="text-muted-foreground hidden lg:table-cell" icon={Eye}>
                   Read
                 </TableHead>
-                <TableHead className="text-muted-foreground">Status</TableHead>
+                <TableHead className="text-muted-foreground" icon={CircleDot}>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

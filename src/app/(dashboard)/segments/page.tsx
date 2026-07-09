@@ -12,6 +12,11 @@ import {
   Search,
   Trash2,
   Archive,
+  AlignLeft,
+  SlidersHorizontal,
+  Users,
+  CircleDot,
+  CalendarDays,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useCan } from '@/hooks/use-can';
@@ -162,12 +167,12 @@ export default function SegmentsPage() {
         <Table>
           <TableHeader>
             <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
-              <TableHead className="text-muted-foreground">Name</TableHead>
-              <TableHead className="text-muted-foreground">Description</TableHead>
-              <TableHead className="text-muted-foreground">Rules</TableHead>
-              <TableHead className="text-muted-foreground">Est. Contacts</TableHead>
-              <TableHead className="text-muted-foreground">Status</TableHead>
-              <TableHead className="text-muted-foreground">Created</TableHead>
+              <TableHead className="text-muted-foreground" icon={Filter}>Name</TableHead>
+              <TableHead className="text-muted-foreground" icon={AlignLeft}>Description</TableHead>
+              <TableHead className="text-muted-foreground" icon={SlidersHorizontal}>Rules</TableHead>
+              <TableHead className="text-muted-foreground" icon={Users}>Est. Contacts</TableHead>
+              <TableHead className="text-muted-foreground" icon={CircleDot}>Status</TableHead>
+              <TableHead className="text-muted-foreground" icon={CalendarDays}>Created</TableHead>
               <TableHead className="w-12 text-muted-foreground" />
             </TableRow>
           </TableHeader>

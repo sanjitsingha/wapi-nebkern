@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import type { LucideIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -12,7 +13,17 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
     >
       <table
         data-slot="table"
-        className={cn("w-full caption-bottom text-sm", className)}
+        className={cn(
+          "w-full caption-bottom text-sm",
+          // App-wide column styling: soft vertical dividers between
+          // columns (dropped on the last), plus a little left padding on
+          // every column after the first so content doesn't hug the
+          // divider. First column keeps its own padding (e.g. checkboxes).
+          "[&_td]:border-r [&_th]:border-r [&_td]:border-border/50 [&_th]:border-border/50",
+          "[&_td:last-child]:border-r-0 [&_th:last-child]:border-r-0",
+          "[&_td:not(:first-child)]:pl-4 [&_th:not(:first-child)]:pl-4",
+          className
+        )}
         {...props}
       />
     </div>
@@ -65,7 +76,12 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
   )
 }
 
-function TableHead({ className, ...props }: React.ComponentProps<"th">) {
+function TableHead({
+  className,
+  icon: Icon,
+  children,
+  ...props
+}: React.ComponentProps<"th"> & { icon?: LucideIcon }) {
   return (
     <th
       data-slot="table-head"
@@ -74,7 +90,16 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
         className
       )}
       {...props}
-    />
+    >
+      {Icon ? (
+        <span className="flex items-center gap-1.5">
+          <Icon className="size-3.5 shrink-0" />
+          {children}
+        </span>
+      ) : (
+        children
+      )}
+    </th>
   )
 }
 

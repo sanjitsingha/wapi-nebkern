@@ -15,6 +15,10 @@ import {
   Trash2,
   Users,
   Archive,
+  User,
+  Phone,
+  Mail,
+  MapPin,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -398,10 +402,10 @@ export default function SegmentDetailPage() {
           <Table>
             <TableHeader>
               <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
-                <TableHead className="text-muted-foreground">Name</TableHead>
-                <TableHead className="text-muted-foreground">Phone</TableHead>
-                <TableHead className="hidden text-muted-foreground sm:table-cell">Email</TableHead>
-                <TableHead className="hidden text-muted-foreground md:table-cell">City</TableHead>
+                <TableHead className="text-muted-foreground" icon={User}>Name</TableHead>
+                <TableHead className="text-muted-foreground" icon={Phone}>Phone</TableHead>
+                <TableHead className="hidden text-muted-foreground sm:table-cell" icon={Mail}>Email</TableHead>
+                <TableHead className="hidden text-muted-foreground md:table-cell" icon={MapPin}>City</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
