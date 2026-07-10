@@ -2,6 +2,7 @@ import {
   AtSign,
   Coins,
   KeyRound,
+  Phone,
   PlugZap,
   ShoppingBag,
   Store,
@@ -24,6 +25,7 @@ import {
 export const SETTINGS_SECTIONS = [
   'profile',
   'whatsapp',
+  'calling',
   'instagram',
   'business-profile',
   'catalog',
@@ -57,6 +59,12 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     id: 'whatsapp',
     label: 'WhatsApp',
     icon: PlugZap,
+    group: 'workspace',
+  },
+  calling: {
+    id: 'calling',
+    label: 'Calling',
+    icon: Phone,
     group: 'workspace',
   },
   instagram: {

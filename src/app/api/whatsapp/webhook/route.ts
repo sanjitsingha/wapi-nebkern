@@ -54,6 +54,35 @@ interface WhatsAppMessage {
   context?: { id: string }
 }
 
+/**
+ * WhatsApp Business Calling event (webhook `value.calls[]`).
+ *
+ * The Calling API is new and its exact webhook shape isn't fully nailed
+ * down in the docs, so this is deliberately permissive: only `id` is
+ * relied on, everything else is read defensively and the whole object is
+ * persisted to `call_logs.raw` for forensics. The two events Layer A
+ * cares about are `connect` (call started — carries a WebRTC SDP offer we
+ * don't use yet) and `terminate` (call ended — carries status/duration).
+ */
+interface WhatsAppCall {
+  id: string
+  from?: string
+  to?: string
+  /** 'connect' | 'terminate' | … */
+  event?: string
+  /** 'USER_INITIATED' (inbound) | 'BUSINESS_INITIATED' (outbound). */
+  direction?: string
+  /** Unix seconds, like message timestamps. */
+  timestamp?: string
+  /** Terminate outcome, e.g. 'COMPLETED' | 'MISSED' | 'REJECTED' | 'FAILED'. */
+  status?: string
+  /** Call length in seconds (terminate). */
+  duration?: number
+  /** WebRTC session on connect — the SDP offer. Unused in Layer A. */
+  session?: { sdp_type?: string; sdp?: string }
+  [key: string]: unknown
+}
+
 interface WhatsAppWebhookEntry {
   id: string
   changes: Array<{
@@ -68,6 +97,7 @@ interface WhatsAppWebhookEntry {
         wa_id: string
       }>
       messages?: WhatsAppMessage[]
+      calls?: WhatsAppCall[]
       statuses?: Array<{
         id: string
         status: string
@@ -250,8 +280,12 @@ async function processWebhook(
         }
       }
 
-      // Handle incoming messages
-      if (!value.messages || !value.contacts) continue
+      // Below applies only to inbound messages OR call events. (Statuses
+      // were handled above.) A `calls` change carries no `contacts`, so
+      // it must not be gated behind the messages+contacts guard.
+      const hasMessages = Boolean(value.messages && value.contacts)
+      const hasCalls = Array.isArray(value.calls) && value.calls.length > 0
+      if (!hasMessages && !hasCalls) continue
 
       const phoneNumberId = value.metadata.phone_number_id
 
@@ -292,25 +326,36 @@ async function processWebhook(
 
       const config = configRows[0]
 
-      const decryptedAccessToken = decrypt(config.access_token)
+      // Inbound WhatsApp calls (connect / terminate). Handled separately
+      // from the message loop below: a call event is NOT in value.messages
+      // and must never run through the message engines (flows / automations
+      // / AI auto-reply) — it's a voice call, not a text to reply to.
+      if (hasCalls) {
+        for (const call of value.calls!) {
+          await processCall(call, config.account_id, config.user_id)
+        }
+      }
 
-      for (let i = 0; i < value.messages.length; i++) {
-        const message = value.messages[i]
-        const contact = value.contacts[i] || value.contacts[0]
+      if (hasMessages) {
+        const decryptedAccessToken = decrypt(config.access_token)
+        for (let i = 0; i < value.messages!.length; i++) {
+          const message = value.messages![i]
+          const contact = value.contacts![i] || value.contacts![0]
 
-        await processMessage(
-          message,
-          contact,
-          // Tenancy — drives every contact / conversation lookup
-          // and the engines' active-row dispatch.
-          config.account_id,
-          // Audit / sender-of-record — used as the user_id on row
-          // inserts that need it for NOT NULL FK compliance. Always
-          // the admin who saved the WhatsApp config.
-          config.user_id,
-          decryptedAccessToken,
-          origin
-        )
+          await processMessage(
+            message,
+            contact,
+            // Tenancy — drives every contact / conversation lookup
+            // and the engines' active-row dispatch.
+            config.account_id,
+            // Audit / sender-of-record — used as the user_id on row
+            // inserts that need it for NOT NULL FK compliance. Always
+            // the admin who saved the WhatsApp config.
+            config.user_id,
+            decryptedAccessToken,
+            origin
+          )
+        }
       }
     }
   }
@@ -780,6 +825,176 @@ async function processMessage(
       messageText: inboundText,
     })
   }
+}
+
+// ============================================================
+// Inbound call handling (WhatsApp Business Calling — Layer A)
+//
+// Records call events into `call_logs` and, on terminate, drops one
+// `content_type='call'` message into the thread so the call shows up in
+// the inbox. Deliberately does NOT touch the flow / automation / AI
+// engines — a call is a voice event, not a text to respond to. Layer A
+// cannot answer calls (that needs the WebRTC softphone), so a call
+// effectively rings and is logged as received/missed.
+// ============================================================
+async function processCall(
+  call: WhatsAppCall,
+  accountId: string,
+  configOwnerUserId: string,
+) {
+  const waCallId = call.id
+  if (!waCallId) {
+    console.warn('[webhook] call event without id — skipping')
+    return
+  }
+  if (!call.from) {
+    console.warn('[webhook] call event without `from` — skipping', waCallId)
+    return
+  }
+
+  const fromPhone = normalizePhone(call.from)
+
+  // Name is unknown for a call — pass '' so an existing contact's name
+  // isn't overwritten and a new one falls back to the phone number.
+  const contactOutcome = await findOrCreateContact(
+    accountId,
+    configOwnerUserId,
+    fromPhone,
+    '',
+  )
+  if (!contactOutcome) return
+  const contactRecord = contactOutcome.contact
+
+  const conversation = await findOrCreateConversation(
+    accountId,
+    configOwnerUserId,
+    contactRecord.id,
+  )
+  if (!conversation) return
+
+  const event = (call.event ?? '').toLowerCase()
+  // USER_INITIATED = customer called us (inbound). Anything else (incl.
+  // BUSINESS_INITIATED) is outbound. Layer A only expects inbound.
+  const direction = call.direction === 'BUSINESS_INITIATED' ? 'outbound' : 'inbound'
+  const eventTs = call.timestamp
+    ? new Date(parseInt(call.timestamp, 10) * 1000).toISOString()
+    : new Date().toISOString()
+
+  if (event === 'terminate') {
+    // Guard against Meta redelivering the terminate: only the first one
+    // inserts the inbox message + bumps the conversation.
+    const { data: existing } = await supabaseAdmin()
+      .from('call_logs')
+      .select('id, ended_at')
+      .eq('account_id', accountId)
+      .eq('wa_call_id', waCallId)
+      .maybeSingle()
+    if (existing?.ended_at) return // already finalized
+
+    const duration = typeof call.duration === 'number' ? call.duration : null
+    const status = mapTerminateStatus(call.status, duration)
+    const label = callLabel(status, duration)
+
+    // Upsert finalizes the row created by `connect` (or creates it if we
+    // never saw connect). started_at is omitted so a prior connect's
+    // value is preserved on conflict.
+    const { error: logErr } = await supabaseAdmin()
+      .from('call_logs')
+      .upsert(
+        {
+          account_id: accountId,
+          conversation_id: conversation.id,
+          contact_id: contactRecord.id,
+          wa_call_id: waCallId,
+          direction,
+          status,
+          ended_at: eventTs,
+          duration_seconds: duration,
+          raw: call as Record<string, unknown>,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'account_id,wa_call_id' },
+      )
+    if (logErr) console.error('[webhook] call_logs upsert (terminate) failed:', logErr)
+
+    // One inbox message for the finished call. content_type='call' is
+    // allowed as of migration 050; message-bubble renders it as a chip.
+    const { error: msgErr } = await supabaseAdmin().from('messages').insert({
+      conversation_id: conversation.id,
+      sender_type: 'customer',
+      content_type: 'call',
+      content_text: label,
+      message_id: waCallId,
+      status: 'delivered',
+      created_at: eventTs,
+    })
+    if (msgErr) console.error('[webhook] call message insert failed:', msgErr)
+
+    const now = new Date().toISOString()
+    await supabaseAdmin()
+      .from('conversations')
+      .update({
+        last_message_text: label,
+        last_message_at: eventTs,
+        customer_replied_at: eventTs,
+        unread_count: (conversation.unread_count || 0) + 1,
+        updated_at: now,
+      })
+      .eq('id', conversation.id)
+    return
+  }
+
+  // connect (or any other pre-terminate event): record/refresh as
+  // 'ringing'. No inbox message yet — that lands on terminate with the
+  // final outcome. Upsert so a redelivered connect is a no-op.
+  const { error: logErr } = await supabaseAdmin()
+    .from('call_logs')
+    .upsert(
+      {
+        account_id: accountId,
+        conversation_id: conversation.id,
+        contact_id: contactRecord.id,
+        wa_call_id: waCallId,
+        direction,
+        status: 'ringing',
+        started_at: eventTs,
+        raw: call as Record<string, unknown>,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'account_id,wa_call_id' },
+    )
+  if (logErr) console.error('[webhook] call_logs upsert (connect) failed:', logErr)
+}
+
+/** Map Meta's terminate status (+ duration) to our stored status. */
+function mapTerminateStatus(
+  raw: string | undefined,
+  duration: number | null,
+): 'completed' | 'missed' | 'declined' | 'failed' {
+  if (duration && duration > 0) return 'completed'
+  const s = (raw ?? '').toUpperCase()
+  if (s.includes('REJECT') || s.includes('DECLINE')) return 'declined'
+  if (s.includes('FAIL') || s.includes('ERROR')) return 'failed'
+  // NO_ANSWER / MISSED / CANCELED / unknown-with-no-duration → missed
+  return 'missed'
+}
+
+/** Human-readable duration, e.g. "2m 14s" or "9s". */
+function formatCallDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return m > 0 ? `${m}m ${s}s` : `${s}s`
+}
+
+/** Inbox/thread label for a finished call. */
+function callLabel(
+  status: 'completed' | 'missed' | 'declined' | 'failed',
+  duration: number | null,
+): string {
+  if (status === 'completed' && duration) return `Call · ${formatCallDuration(duration)}`
+  if (status === 'declined') return 'Declined call'
+  if (status === 'failed') return 'Call failed'
+  return 'Missed call'
 }
 
 async function parseMessageContent(

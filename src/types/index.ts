@@ -320,7 +320,10 @@ export type ContentType =
   | 'location'
   | 'template'
   /** Customer tapped a reply button or list row on a message we sent. */
-  | 'interactive';
+  | 'interactive'
+  /** A WhatsApp voice-call event (inbound), surfaced inline in the thread
+   *  as a call chip. The structured record lives in `call_logs`. */
+  | 'call';
 export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
 
 export interface Message {
@@ -343,6 +346,32 @@ export interface Message {
    * cue (renders with a "↩ button reply" affordance).
    */
   interactive_reply_id?: string;
+}
+
+export type CallDirection = 'inbound' | 'outbound';
+/** Free-text in the DB (Meta's terminate statuses for this new API aren't
+ *  finalized); these are the values the webhook currently maps to. */
+export type CallStatus =
+  | 'ringing'
+  | 'completed'
+  | 'missed'
+  | 'declined'
+  | 'failed';
+
+export interface CallLog {
+  id: string;
+  account_id: string;
+  conversation_id?: string | null;
+  contact_id?: string | null;
+  /** Meta's call id. */
+  wa_call_id: string;
+  direction: CallDirection;
+  status: CallStatus | string;
+  started_at?: string | null;
+  ended_at?: string | null;
+  duration_seconds?: number | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export type ReactionActor = 'customer' | 'agent';

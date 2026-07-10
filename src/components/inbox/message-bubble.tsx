@@ -13,6 +13,8 @@ import {
   LayoutTemplate,
   ImageOff,
   CornerDownLeft,
+  PhoneIncoming,
+  PhoneMissed,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ReplyQuote } from "./reply-quote";
@@ -244,6 +246,25 @@ function MessageContent({ message }: { message: Message }) {
           <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
             {message.content_text || "[Interactive reply]"}
           </p>
+        </div>
+      );
+    }
+
+    case "call": {
+      // A WhatsApp voice call event (see webhook processCall). The label
+      // is already in content_text, e.g. "Missed call" / "Call · 2m 14s".
+      const label = message.content_text || "Call";
+      const answered = label.startsWith("Call ·");
+      const Icon = answered ? PhoneIncoming : PhoneMissed;
+      return (
+        <div className="flex items-center gap-2 text-[15px]">
+          <Icon
+            className={cn(
+              "h-4 w-4 shrink-0",
+              answered ? "text-muted-foreground" : "text-red-400",
+            )}
+          />
+          <span>{label}</span>
         </div>
       );
     }

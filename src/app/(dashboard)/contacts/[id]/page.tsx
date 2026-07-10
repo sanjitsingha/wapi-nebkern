@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { formatCurrency } from '@/lib/currency';
 import { toast } from 'sonner';
-import type { Contact, Tag, ContactNote, CustomField, Deal, Message } from '@/types';
+import type { Contact, Tag, ContactNote, CustomField, Deal, Message, CallLog } from '@/types';
 import {
   ContactMedia,
   ContactLinks,
@@ -73,6 +73,8 @@ import {
   Ban,
   CircleCheck,
   MessageCircleOff,
+  PhoneIncoming,
+  PhoneMissed,
 } from 'lucide-react';
 
 const TABS = [
@@ -86,6 +88,13 @@ const TABS = [
 ] as const;
 
 const MARITAL_OPTIONS = ['Single', 'Married', 'Divorced', 'Widowed'] as const;
+
+/** "2m 14s" / "9s" — mirrors the webhook's call label formatting. */
+function formatCallDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
 
 function getInitials(name?: string | null) {
   if (!name) return '?';
@@ -163,6 +172,7 @@ export default function ContactDetailPage() {
   const [mediaMessages, setMediaMessages] = useState<Message[]>([]);
   const [linkItems, setLinkItems] = useState<LinkItem[]>([]);
   const [loadingMedia, setLoadingMedia] = useState(false);
+  const [callLogs, setCallLogs] = useState<CallLog[]>([]);
   // Most-recent conversation for this contact, for the "Open chat" jump.
   const [conversationId, setConversationId] = useState<string | null>(null);
 
@@ -233,6 +243,15 @@ export default function ContactDetailPage() {
     setLoadingDeals(false);
   }, [contactId, supabase]);
 
+  const fetchCalls = useCallback(async () => {
+    const { data } = await supabase
+      .from('call_logs')
+      .select('*')
+      .eq('contact_id', contactId)
+      .order('created_at', { ascending: false });
+    setCallLogs((data ?? []) as CallLog[]);
+  }, [contactId, supabase]);
+
   // Media + links live in this contact's message history. Resolve the
   // contact's conversations first, then pull their messages once and
   // split them into shared media and extracted links (both newest-first).
@@ -271,7 +290,8 @@ export default function ContactDetailPage() {
     fetchCustomFields();
     fetchDeals();
     fetchMediaLinks();
-  }, [fetchContact, fetchTags, fetchNotes, fetchCustomFields, fetchDeals, fetchMediaLinks]);
+    fetchCalls();
+  }, [fetchContact, fetchTags, fetchNotes, fetchCustomFields, fetchDeals, fetchMediaLinks, fetchCalls]);
 
   async function copyPhone() {
     if (!contact?.phone) return;
@@ -424,11 +444,32 @@ export default function ContactDetailPage() {
         date: d.created_at,
       }),
     );
+    callLogs.forEach((c) => {
+      const answered = c.status === 'completed';
+      events.push({
+        id: `call-${c.id}`,
+        icon: answered ? PhoneIncoming : PhoneMissed,
+        iconClass: answered
+          ? 'bg-primary/10 text-primary'
+          : 'bg-red-500/10 text-red-600',
+        title:
+          c.direction === 'outbound' ? 'Outgoing call' : 'Incoming call',
+        detail:
+          answered && c.duration_seconds
+            ? `Answered · ${formatCallDuration(c.duration_seconds)}`
+            : c.status === 'declined'
+              ? 'Declined'
+              : c.status === 'failed'
+                ? 'Failed'
+                : 'Missed',
+        date: c.started_at ?? c.ended_at ?? c.created_at,
+      });
+    });
 
     return events.sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     );
-  }, [contact, notes, deals, defaultCurrency]);
+  }, [contact, notes, deals, callLogs, defaultCurrency]);
 
   if (loading) {
     return (
