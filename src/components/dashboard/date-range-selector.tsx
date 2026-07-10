@@ -312,23 +312,17 @@ function DateRangeDialog({
                 const outsideMonth = !isSameMonth(day, viewMonth)
                 const isStart = !!bandStart && isSameDay(day, bandStart)
                 const isEnd = !!bandEnd && isSameDay(day, bandEnd)
+                const isEndpoint = isStart || isEnd
                 const inBand =
                   !!bandStart &&
                   !!bandEnd &&
                   isWithinInterval(day, { start: bandStart, end: bandEnd })
-                const isEndpoint = isStart || isEnd
                 const isFuture = isAfter(day, today())
                 const isToday = isSameDay(day, today())
 
                 return (
                   <div
                     key={day.toISOString()}
-                    className={cn(
-                      // Continuous band behind the days between endpoints.
-                      !outsideMonth && inBand && !isEndpoint && 'bg-primary-soft',
-                      !outsideMonth && inBand && isStart && !isEnd && 'bg-primary-soft rounded-l-full',
-                      !outsideMonth && inBand && isEnd && !isStart && 'bg-primary-soft rounded-r-full',
-                    )}
                     onMouseEnter={() => setHoverDay(day)}
                   >
                     <button
@@ -342,7 +336,13 @@ function DateRangeDialog({
                         !isFuture &&
                           !outsideMonth &&
                           !isEndpoint &&
+                          !inBand &&
                           'text-foreground hover:bg-muted',
+                        !isFuture &&
+                          !outsideMonth &&
+                          !isEndpoint &&
+                          inBand &&
+                          'bg-primary text-primary-foreground hover:bg-primary',
                         isEndpoint &&
                           !outsideMonth &&
                           'bg-primary text-primary-foreground hover:bg-primary font-semibold shadow-sm',
