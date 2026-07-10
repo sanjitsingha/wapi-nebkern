@@ -156,6 +156,22 @@ export async function POST(request: Request) {
       )
     }
 
+    // Opted out via STOP (contacts.marketing_opt_out) — block every
+    // agent-initiated send to this contact, not just template/campaign
+    // sends. Automation- and Flow-engine sends do NOT go through this
+    // route (they call meta-api.ts directly via meta-send.ts), so a
+    // STOP-triggered automation's own closing confirmation still goes
+    // out even though this contact is now blocked here.
+    if (contact.marketing_opt_out) {
+      return NextResponse.json(
+        {
+          error:
+            'This contact has opted out of messages (replied STOP) and cannot be sent to.',
+        },
+        { status: 403 }
+      )
+    }
+
     // Sanitize and validate phone
     const sanitizedPhone = sanitizePhoneForMeta(contact.phone)
     if (!isValidE164(sanitizedPhone)) {

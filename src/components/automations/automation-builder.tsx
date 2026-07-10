@@ -30,6 +30,8 @@ import {
   Loader2,
   ArrowDown,
   ArrowUp,
+  MousePointerClick,
+  X,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -90,6 +92,7 @@ interface StepMeta {
 const STEP_META: Record<AutomationStepType, StepMeta> = {
   send_message: { label: "Send Message", icon: MessageSquare, border: "border-l-primary" },
   send_template: { label: "Send Template", icon: FileText, border: "border-l-primary" },
+  send_buttons: { label: "Send Buttons", icon: MousePointerClick, border: "border-l-primary" },
   add_tag: { label: "Add Tag", icon: Tag, border: "border-l-primary" },
   remove_tag: { label: "Remove Tag", icon: TagIcon, border: "border-l-primary" },
   assign_conversation: { label: "Assign Conversation", icon: UserCheck, border: "border-l-primary" },
@@ -104,6 +107,7 @@ const STEP_META: Record<AutomationStepType, StepMeta> = {
 const ADDABLE_STEPS: AutomationStepType[] = [
   "send_message",
   "send_template",
+  "send_buttons",
   "add_tag",
   "remove_tag",
   "assign_conversation",
@@ -144,6 +148,8 @@ function blankConfig(type: AutomationStepType): Record<string, unknown> {
       return { text: "" }
     case "send_template":
       return { template_name: "", language: "en_US" }
+    case "send_buttons":
+      return { text: "", header_text: "", footer_text: "", buttons: [{ id: cid(), title: "" }] }
     case "add_tag":
     case "remove_tag":
       return { tag_id: "" }
@@ -326,6 +332,7 @@ function ContactFieldSelect({
       <option value="name">Name</option>
       <option value="email">Email</option>
       <option value="company">Company</option>
+      <option value="marketing_opt_out">Marketing Opt-Out</option>
       {customFields.length > 0 && (
         <optgroup label="Custom fields">
           {customFields.map((f) => (
@@ -455,6 +462,95 @@ function SendTemplateFields({
         )}
       </select>
     </FieldBlock>
+  )
+}
+
+/** Body/header/footer text + a 1-3 row button list editor for the
+ *  "Send Buttons" step. Meta caps button titles at 20 chars and the
+ *  message to 3 buttons total — enforced both here (input maxLength +
+ *  disabled "Add button" at 3) and again in validate.ts at activation. */
+function SendButtonsFields({
+  text,
+  headerText,
+  footerText,
+  buttons,
+  onChange,
+}: {
+  text: string
+  headerText: string
+  footerText: string
+  buttons: { id: string; title: string }[]
+  onChange: (patch: Record<string, unknown>) => void
+}) {
+  const updateButton = (i: number, title: string) => {
+    onChange({ buttons: buttons.map((b, bi) => (bi === i ? { ...b, title } : b)) })
+  }
+  const addButton = () => {
+    if (buttons.length >= 3) return
+    onChange({ buttons: [...buttons, { id: cid(), title: "" }] })
+  }
+  const removeButton = (i: number) => {
+    onChange({ buttons: buttons.filter((_, bi) => bi !== i) })
+  }
+
+  return (
+    <>
+      <FieldBlock label="Header (optional)">
+        <Input
+          value={headerText}
+          onChange={(e) => onChange({ header_text: e.target.value })}
+          placeholder="Short header line"
+          maxLength={60}
+          className="bg-muted text-foreground"
+        />
+      </FieldBlock>
+      <FieldBlock label="Message text">
+        <Textarea
+          value={text}
+          onChange={(e) => onChange({ text: e.target.value })}
+          placeholder="Would you like to proceed?"
+          className="min-h-20 bg-muted text-foreground"
+        />
+      </FieldBlock>
+      <FieldBlock label="Footer (optional)">
+        <Input
+          value={footerText}
+          onChange={(e) => onChange({ footer_text: e.target.value })}
+          placeholder="Small grey line under the buttons"
+          maxLength={60}
+          className="bg-muted text-foreground"
+        />
+      </FieldBlock>
+      <FieldBlock label={`Buttons (${buttons.length}/3)`}>
+        <div className="space-y-1.5">
+          {buttons.map((b, i) => (
+            <div key={b.id} className="flex items-center gap-1.5">
+              <Input
+                value={b.title}
+                onChange={(e) => updateButton(i, e.target.value)}
+                placeholder={`Button ${i + 1} label`}
+                maxLength={20}
+                className="bg-muted text-foreground"
+              />
+              <button
+                type="button"
+                onClick={() => removeButton(i)}
+                aria-label={`Remove button ${i + 1}`}
+                className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+          {buttons.length < 3 && (
+            <Button type="button" variant="outline" size="sm" onClick={addButton} className="w-full">
+              <Plus className="h-3.5 w-3.5" />
+              Add button
+            </Button>
+          )}
+        </div>
+      </FieldBlock>
+    </>
   )
 }
 
@@ -1070,6 +1166,16 @@ function StepEditor({
           onChange={(patch) => set(patch)}
         />
       )
+    case "send_buttons":
+      return (
+        <SendButtonsFields
+          text={(cfg.text as string) ?? ""}
+          headerText={(cfg.header_text as string) ?? ""}
+          footerText={(cfg.footer_text as string) ?? ""}
+          buttons={(cfg.buttons as { id: string; title: string }[]) ?? []}
+          onChange={(patch) => set(patch)}
+        />
+      )
     case "add_tag":
     case "remove_tag":
       return (
@@ -1113,12 +1219,23 @@ function StepEditor({
             />
           </FieldBlock>
           <FieldBlock label="Value">
-            <Input
-              value={(cfg.value as string) ?? ""}
-              onChange={(e) => set({ value: e.target.value })}
-              placeholder="Text or {{ vars.x }} / {{ message.text }}"
-              className="bg-muted text-foreground"
-            />
+            {cfg.field === "marketing_opt_out" ? (
+              <select
+                value={(cfg.value as string) === "true" ? "true" : "false"}
+                onChange={(e) => set({ value: e.target.value })}
+                className={SELECT_CLASS}
+              >
+                <option value="true">Opted out (stop sending)</option>
+                <option value="false">Opted in (resume sending)</option>
+              </select>
+            ) : (
+              <Input
+                value={(cfg.value as string) ?? ""}
+                onChange={(e) => set({ value: e.target.value })}
+                placeholder="Text or {{ vars.x }} / {{ message.text }}"
+                className="bg-muted text-foreground"
+              />
+            )}
           </FieldBlock>
         </>
       )
@@ -1274,6 +1391,11 @@ function previewFor(step: BuilderStep): string {
       return (step.step_config.text as string) || "no text yet"
     case "send_template":
       return (step.step_config.template_name as string) || "pick a template"
+    case "send_buttons": {
+      const buttons = (step.step_config.buttons as { title: string }[] | undefined) ?? []
+      const titles = buttons.map((b) => b.title).filter(Boolean)
+      return titles.length > 0 ? titles.join(" / ") : "no buttons yet"
+    }
     case "wait":
       return `${step.step_config.amount ?? "?"} ${step.step_config.unit ?? ""}`
     case "condition":

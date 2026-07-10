@@ -719,8 +719,18 @@ async function processMessage(
   // Fire any automations that react to this webhook event. All dispatches
   // run here (not earlier) so the contact, conversation, and inbound
   // message all exist before any step — including send_message — runs.
-  // Fire-and-forget: a slow or failing automation must not block the
-  // webhook's 200 OK response to Meta.
+  //
+  // Awaited (not fire-and-forget), and run concurrently across trigger
+  // types via Promise.all rather than one-at-a-time: on Vercel serverless,
+  // work left running after the response is sent gets frozen when the
+  // instance suspends and only resumes whenever the next unrelated
+  // request happens to thaw that same warm instance — which is exactly
+  // what made automation sends look "randomly very slow" (delivered
+  // seconds-to-minutes late, whenever the next request woke them up)
+  // instead of merely slow. Same reasoning already applied to the rest
+  // of this function — see the top-of-POST comment. Each per-automation
+  // failure is still caught so one broken automation can't fail the
+  // whole dispatch or delay the webhook's ack past the others.
   const inboundText = contentText ?? message.text?.body ?? ''
   const automationTriggers: (
     | 'new_contact_created'
@@ -741,17 +751,19 @@ async function processMessage(
   // listens to only one trigger runs only when that trigger matches.
   if (contactOutcome.wasCreated) automationTriggers.unshift('new_contact_created')
   if (isFirstInboundMessage) automationTriggers.unshift('first_inbound_message')
-  for (const triggerType of automationTriggers) {
-    runAutomationsForTrigger({
-      accountId,
-      triggerType,
-      contactId: contactRecord.id,
-      context: {
-        message_text: inboundText,
-        conversation_id: conversation.id,
-      },
-    }).catch((err) => console.error('[automations] dispatch failed:', err))
-  }
+  await Promise.all(
+    automationTriggers.map((triggerType) =>
+      runAutomationsForTrigger({
+        accountId,
+        triggerType,
+        contactId: contactRecord.id,
+        context: {
+          message_text: inboundText,
+          conversation_id: conversation.id,
+        },
+      }).catch((err) => console.error('[automations] dispatch failed:', err)),
+    ),
+  )
 
   // AI auto-reply — last, and only when no deterministic Flow consumed
   // the message (Flows win). Runs in its OWN invocation via the reply

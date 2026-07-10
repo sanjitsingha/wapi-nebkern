@@ -221,6 +221,13 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
       contacts = contacts.filter((c) => !excludedIds.has(c.id));
     }
 
+    // Never include a contact who's opted out (replied STOP) in a
+    // campaign audience — matches the same check re-enforced
+    // server-side in /api/whatsapp/broadcast, so this is what keeps
+    // the audience *count* shown in the campaign wizard accurate
+    // rather than overcounting by the number of opted-out contacts.
+    contacts = contacts.filter((c) => !c.marketing_opt_out);
+
     return contacts;
   }
 

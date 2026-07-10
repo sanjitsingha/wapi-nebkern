@@ -63,6 +63,33 @@ function validateOne(step: StepLike, path: string, issues: ValidationIssue[]): v
         issues.push({ path: `${path}.template_name`, message: 'template name is required' })
       }
       break
+    case 'send_buttons': {
+      if (!nonEmpty(c.text)) {
+        issues.push({ path: `${path}.text`, message: 'message text is required' })
+      }
+      const buttons = Array.isArray(c.buttons) ? c.buttons : []
+      if (buttons.length === 0) {
+        issues.push({ path: `${path}.buttons`, message: 'at least 1 button is required' })
+      } else if (buttons.length > 3) {
+        issues.push({ path: `${path}.buttons`, message: 'a maximum of 3 buttons is allowed' })
+      } else {
+        buttons.forEach((b, bi) => {
+          const title = (b as { title?: unknown } | null)?.title
+          if (typeof title !== 'string' || title.trim() === '') {
+            issues.push({
+              path: `${path}.buttons[${bi}].title`,
+              message: 'button title is required',
+            })
+          } else if (title.length > 20) {
+            issues.push({
+              path: `${path}.buttons[${bi}].title`,
+              message: 'button title must be 20 characters or fewer',
+            })
+          }
+        })
+      }
+      break
+    }
     case 'add_tag':
     case 'remove_tag':
       if (!nonEmpty(c.tag_id)) {

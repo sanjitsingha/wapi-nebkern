@@ -175,11 +175,42 @@ export async function POST(request: Request) {
     }
     const templateRow = rawTemplateRow ?? null
 
+    // Defensive re-check: the campaign wizard already excludes opted-out
+    // (STOP) contacts when it resolves the audience client-side, but
+    // this route is the actual enforcement boundary — a caller hitting
+    // this API directly, or a contact opting out mid-send during a
+    // large batch, must not slip through. Scoped to this account and
+    // to exactly the phones in this request, so it stays cheap
+    // regardless of how many contacts the account has overall.
+    const { data: optedOutRows } = await supabase
+      .from('contacts')
+      .select('phone')
+      .eq('account_id', accountId)
+      .eq('marketing_opt_out', true)
+      .in(
+        'phone',
+        recipients.map((r) => r.phone),
+      )
+    const optedOutPhones = new Set(
+      (optedOutRows ?? []).map((r) => r.phone).filter(Boolean),
+    )
+
     const results: BroadcastResult[] = []
     let sentCount = 0
     let failedCount = 0
+    let skippedCount = 0
 
     for (const recipient of recipients) {
+      if (optedOutPhones.has(recipient.phone)) {
+        results.push({
+          phone: recipient.phone,
+          status: 'failed',
+          error: 'Contact has opted out of messages (STOP) — not sent',
+        })
+        skippedCount++
+        continue
+      }
+
       const sanitized = sanitizePhoneForMeta(recipient.phone)
 
       if (!isValidE164(sanitized)) {
@@ -250,7 +281,12 @@ export async function POST(request: Request) {
       success: true,
       total: recipients.length,
       sent: sentCount,
-      failed: failedCount,
+      // `failed` intentionally includes opted-out skips too — the
+      // client's BroadcastApiResult union only has 'sent'|'failed', so
+      // `skipped` below is purely an extra observability count on top,
+      // not a status recipients.status itself ever takes.
+      failed: failedCount + skippedCount,
+      skipped: skippedCount,
       results,
     })
   } catch (error) {

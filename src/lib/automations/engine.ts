@@ -7,6 +7,7 @@ import type {
   KeywordMatchTriggerConfig,
   SendMessageStepConfig,
   SendTemplateStepConfig,
+  SendButtonsStepConfig,
   SendWebhookStepConfig,
   TagStepConfig,
   UpdateContactFieldStepConfig,
@@ -15,7 +16,7 @@ import type {
   AssignConversationStepConfig,
 } from '@/types'
 import { supabaseAdmin } from './admin-client'
-import { engineSendText, engineSendTemplate } from './meta-send'
+import { engineSendText, engineSendTemplate, engineSendInteractiveButtons } from './meta-send'
 
 // ------------------------------------------------------------
 // Public API
@@ -392,6 +393,27 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
       return `template sent via Meta (${whatsapp_message_id})`
     }
 
+    case 'send_buttons': {
+      const cfg = step.step_config as SendButtonsStepConfig
+      if (!args.contactId) throw new Error('send_buttons needs a contact')
+      const text = interpolate(cfg.text, args)
+      if (!text.trim()) throw new Error('send_buttons has empty text')
+      const buttons = Array.isArray(cfg.buttons) ? cfg.buttons : []
+      if (buttons.length === 0) throw new Error('send_buttons needs at least 1 button')
+      const conversationId = await resolveConversationId(args)
+      const { whatsapp_message_id } = await engineSendInteractiveButtons({
+        accountId: args.automation.account_id,
+        userId: args.automation.user_id,
+        conversationId,
+        contactId: args.contactId,
+        bodyText: text,
+        buttons: buttons.map((b) => ({ id: b.id, title: b.title })),
+        headerText: cfg.header_text ? interpolate(cfg.header_text, args) : undefined,
+        footerText: cfg.footer_text ? interpolate(cfg.footer_text, args) : undefined,
+      })
+      return `buttons sent via Meta (${whatsapp_message_id})`
+    }
+
     case 'add_tag': {
       // contact_tags has no account_id column; cross-tenant protection for
       // the attacker-supplied contactId comes from the ownership guard in
@@ -481,16 +503,25 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
         return `custom field updated`
       }
 
-      const allowed = new Set(['name', 'email', 'company'])
+      // marketing_opt_out is boolean — the builder's value picker only
+      // ever sends the literal strings "true"/"false" for it (see
+      // ContactFieldSelect's boolean mode), coerced here rather than
+      // trusting Postgres/PostgREST to implicitly cast an arbitrary
+      // interpolated string.
+      const BOOLEAN_FIELDS = new Set(['marketing_opt_out'])
+      const allowed = new Set(['name', 'email', 'company', 'marketing_opt_out'])
       if (!allowed.has(cfg.field)) {
         return `field ${cfg.field} not writable from automations`
       }
+      const writeValue: string | boolean = BOOLEAN_FIELDS.has(cfg.field)
+        ? value.trim().toLowerCase() === 'true'
+        : value
       // Defense in depth: scope the service-role write to the account so
       // a future caller that skips the entry-point ownership guard still
       // cannot write across tenants.
       await db
         .from('contacts')
-        .update({ [cfg.field]: value, updated_at: new Date().toISOString() })
+        .update({ [cfg.field]: writeValue, updated_at: new Date().toISOString() })
         .eq('id', args.contactId)
         .eq('account_id', args.automation.account_id)
       return `${cfg.field} updated`
@@ -679,23 +710,16 @@ async function appendResults(
   errorMessage: string | null,
 ) {
   if (!logId) return
-  const db = supabaseAdmin()
-  const { data: existing } = await db
-    .from('automation_logs')
-    .select('steps_executed, status')
-    .eq('id', logId)
-    .single()
-  const merged = [
-    ...((existing?.steps_executed as AutomationLogStepResult[] | undefined) ?? []),
-    ...newItems,
-  ]
-  const update: Record<string, unknown> = { steps_executed: merged }
-  // Only overwrite status on the outermost scope — nested branches pass null.
-  if (status !== null) {
-    update.status = status
-  }
-  if (errorMessage) update.error_message = errorMessage
-  await db.from('automation_logs').update(update).eq('id', logId)
+  // Single atomic UPDATE (JSONB concat, migration 048) instead of a
+  // SELECT-then-merge-then-UPDATE — this runs on the hot path of every
+  // automation step scope, inline before the webhook can ack Meta, so
+  // the extra round trip was pure added latency.
+  await supabaseAdmin().rpc('append_automation_log_steps', {
+    p_log_id: logId,
+    p_new_items: newItems as unknown as Record<string, unknown>[],
+    p_status: status,
+    p_error_message: errorMessage,
+  })
 }
 
 async function finalizeLog(

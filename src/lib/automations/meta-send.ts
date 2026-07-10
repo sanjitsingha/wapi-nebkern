@@ -1,4 +1,9 @@
-import { sendTextMessage, sendTemplateMessage } from '@/lib/whatsapp/meta-api'
+import {
+  sendTextMessage,
+  sendTemplateMessage,
+  sendInteractiveButtons,
+  type InteractiveButton,
+} from '@/lib/whatsapp/meta-api'
 import { decrypt } from '@/lib/whatsapp/encryption'
 import {
   sanitizePhoneForMeta,
@@ -43,6 +48,19 @@ interface SendTemplateArgs {
   params?: string[]
 }
 
+interface SendButtonsArgs {
+  accountId: string
+  userId: string
+  conversationId: string
+  contactId: string
+  /** The body text — what the customer reads above the buttons. */
+  bodyText: string
+  /** 1-3 buttons. Validated against Meta's limits before sending. */
+  buttons: InteractiveButton[]
+  headerText?: string
+  footerText?: string
+}
+
 export async function engineSendText(args: SendTextArgs): Promise<{ whatsapp_message_id: string }> {
   return sendViaMeta({ ...args, kind: 'text' })
 }
@@ -53,9 +71,22 @@ export async function engineSendTemplate(
   return sendViaMeta({ ...args, kind: 'template' })
 }
 
+/**
+ * Send an interactive message with up to 3 inline reply buttons from
+ * the Automations engine. Mirrors engineSendInteractiveButtons in
+ * src/lib/flows/meta-send.ts — kept separate per-engine for the same
+ * reason engineSendText/engineSendTemplate are, see file banner.
+ */
+export async function engineSendInteractiveButtons(
+  args: SendButtonsArgs,
+): Promise<{ whatsapp_message_id: string }> {
+  return sendViaMeta({ ...args, kind: 'buttons' })
+}
+
 type SendInput =
   | (SendTextArgs & { kind: 'text' })
   | (SendTemplateArgs & { kind: 'template' })
+  | (SendButtonsArgs & { kind: 'buttons' })
 
 async function sendViaMeta(input: SendInput): Promise<{ whatsapp_message_id: string }> {
   const db = supabaseAdmin()
@@ -106,6 +137,18 @@ async function sendViaMeta(input: SendInput): Promise<{ whatsapp_message_id: str
       })
       return r.messageId
     }
+    if (input.kind === 'buttons') {
+      const r = await sendInteractiveButtons({
+        phoneNumberId: config.phone_number_id,
+        accessToken,
+        to: phone,
+        bodyText: input.bodyText,
+        buttons: input.buttons,
+        headerText: input.headerText,
+        footerText: input.footerText,
+      })
+      return r.messageId
+    }
     const r = await sendTextMessage({
       phoneNumberId: config.phone_number_id,
       accessToken,
@@ -142,9 +185,12 @@ async function sendViaMeta(input: SendInput): Promise<{ whatsapp_message_id: str
 
   // Persist the sent message so it appears in the inbox with a real
   // Meta message id. sender_type='bot' distinguishes automation sends
-  // from manual agent sends.
-  const content_type = input.kind === 'template' ? 'template' : 'text'
-  const content_text = input.kind === 'text' ? input.text : null
+  // from manual agent sends. content_type='interactive' is supported
+  // as of migration 010 (Flows) — reused as-is here.
+  const content_type =
+    input.kind === 'template' ? 'template' : input.kind === 'buttons' ? 'interactive' : 'text'
+  const content_text =
+    input.kind === 'text' ? input.text : input.kind === 'buttons' ? input.bodyText : null
   const template_name = input.kind === 'template' ? input.templateName : null
 
   const { error: msgErr } = await db.from('messages').insert({
@@ -162,11 +208,17 @@ async function sendViaMeta(input: SendInput): Promise<{ whatsapp_message_id: str
     throw new Error(`sent to Meta but DB insert failed: ${msgErr.message}`)
   }
 
+  const lastMessageText =
+    input.kind === 'template'
+      ? `[template:${input.templateName}]`
+      : input.kind === 'buttons'
+        ? input.bodyText
+        : input.text
+
   await db
     .from('conversations')
     .update({
-      last_message_text:
-        input.kind === 'template' ? `[template:${input.templateName}]` : input.text,
+      last_message_text: lastMessageText,
       last_message_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })

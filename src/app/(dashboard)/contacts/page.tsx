@@ -57,6 +57,7 @@ import {
   Tag as TagIcon,
   ArrowUp,
   ArrowDown,
+  MessageCircleOff,
 } from 'lucide-react';
 import { ContactForm } from '@/components/contacts/contact-form';
 import { ImportModal } from '@/components/contacts/import-modal';
@@ -103,6 +104,10 @@ export default function ContactsPage() {
   const [totalCount, setTotalCount] = useState(0);
   // Tag filter — contacts shown must have ANY of these tags (OR).
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+
+  // Opt-out filter — when true, only contacts who've replied STOP
+  // (marketing_opt_out = true) are shown.
+  const [optedOutOnly, setOptedOutOnly] = useState(false);
 
   // Created-at filter — applied range (both inclusive, 'YYYY-MM-DD' or
   // '' for unset). Edited via CreatedAtFilterDialog, which owns its
@@ -177,6 +182,7 @@ export default function ContactsPage() {
         p_offset: from,
         p_created_from: createdFrom || null,
         p_created_to: createdTo || null,
+        p_opted_out: optedOutOnly ? true : null,
       });
       if (seq !== fetchSeq.current) return; // superseded by a newer fetch
       if (error) {
@@ -207,6 +213,9 @@ export default function ContactsPage() {
         // Exclusive upper bound (start of the day after) so the whole
         // "to" day is included, not just its midnight instant.
         query = query.lt('created_at', nextDayISO(createdTo));
+      }
+      if (optedOutOnly) {
+        query = query.eq('marketing_opt_out', true);
       }
 
       const { data, count: exactCount, error } = await query;
@@ -251,7 +260,7 @@ export default function ContactsPage() {
 
     setContacts(enriched);
     setLoading(false);
-  }, [supabase, page, search, selectedTagIds, createdFrom, createdTo, createdSort, tagsMap]);
+  }, [supabase, page, search, selectedTagIds, optedOutOnly, createdFrom, createdTo, createdSort, tagsMap]);
 
   // Load-once-on-mount-ish data fetches. Each setter inside runs
   // inside an async promise completion (Supabase await), not
@@ -364,8 +373,9 @@ export default function ContactsPage() {
     a.name.localeCompare(b.name)
   );
   const hasDateFilter = createdFrom !== '' || createdTo !== '';
+  const filterCount = selectedTagIds.length + (optedOutOnly ? 1 : 0);
   const hasActiveFilters =
-    search.trim().length > 0 || selectedTagIds.length > 0 || hasDateFilter;
+    search.trim().length > 0 || filterCount > 0 || hasDateFilter;
 
   function toggleTagFilter(tagId: string) {
     setSelectedTagIds((prev) =>
@@ -381,6 +391,11 @@ export default function ContactsPage() {
     setPage(0);
   }
 
+  function clearOptOutFilter() {
+    setOptedOutOnly(false);
+    setPage(0);
+  }
+
   function clearDateFilter() {
     setCreatedFrom('');
     setCreatedTo('');
@@ -389,6 +404,7 @@ export default function ContactsPage() {
 
   function clearAllFilters() {
     clearTagFilters();
+    clearOptOutFilter();
     clearDateFilter();
   }
 
@@ -464,26 +480,50 @@ export default function ContactsPage() {
               }
             >
               <Filter className="size-4" />
-              Filter by tags
-              {selectedTagIds.length > 0 && (
+              Filter
+              {filterCount > 0 && (
                 <span className="bg-primary text-primary-foreground ml-1 inline-flex items-center justify-center rounded-full px-1.5 text-[10px] font-semibold">
-                  {selectedTagIds.length}
+                  {filterCount}
                 </span>
               )}
             </PopoverTrigger>
             <PopoverContent align="start" className="w-64 p-0">
               <div className="border-border flex items-center justify-between border-b px-3 py-2">
                 <span className="text-popover-foreground text-sm font-medium">
-                  Filter by tags
+                  Filter
                 </span>
-                {selectedTagIds.length > 0 && (
+                {filterCount > 0 && (
                   <button
-                    onClick={clearTagFilters}
+                    onClick={() => {
+                      clearTagFilters();
+                      clearOptOutFilter();
+                    }}
                     className="text-muted-foreground hover:text-foreground text-xs"
                   >
                     Clear all
                   </button>
                 )}
+              </div>
+
+              <div className="border-border border-b py-1">
+                <label className="hover:bg-muted/50 flex cursor-pointer items-center gap-2.5 px-3 py-1.5">
+                  <Checkbox
+                    checked={optedOutOnly}
+                    onCheckedChange={(checked) => {
+                      setOptedOutOnly(checked);
+                      setPage(0);
+                    }}
+                    aria-label="Opted-out contacts only"
+                  />
+                  <MessageCircleOff className="text-muted-foreground size-3.5 shrink-0" />
+                  <span className="text-popover-foreground truncate text-sm">
+                    Opted-out contacts only
+                  </span>
+                </label>
+              </div>
+
+              <div className="text-muted-foreground px-3 pt-2 pb-1 text-xs font-medium">
+                Tags
               </div>
               {allTags.length === 0 ? (
                 <p className="text-muted-foreground px-3 py-4 text-center text-sm">
@@ -562,8 +602,21 @@ export default function ContactsPage() {
         </div>
 
         {/* Active filter chips */}
-        {(selectedTagIds.length > 0 || hasDateFilter) && (
+        {(filterCount > 0 || hasDateFilter) && (
           <div className="flex flex-wrap items-center gap-1.5">
+            {optedOutOnly && (
+              <span className="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium">
+                <MessageCircleOff className="size-3" />
+                Opted out
+                <button
+                  onClick={clearOptOutFilter}
+                  aria-label="Remove opted-out filter"
+                  className="hover:opacity-70"
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            )}
             {selectedTagIds.map((id) => {
               const tag = tagsMap[id];
               if (!tag) return null;
@@ -747,11 +800,24 @@ export default function ContactsPage() {
                     })}
                   </TableCell>
                   <TableCell className="text-foreground font-medium">
-                    {contact.name || (
-                      <span className="text-muted-foreground italic">
-                        Unnamed
+                    <div className="flex items-center gap-1.5">
+                      <span>
+                        {contact.name || (
+                          <span className="text-muted-foreground italic">
+                            Unnamed
+                          </span>
+                        )}
                       </span>
-                    )}
+                      {contact.marketing_opt_out && (
+                        <span
+                          className="inline-flex shrink-0 items-center gap-1 rounded-full border border-red-500/30 bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium text-red-600"
+                          title="Opted out of marketing messages (replied STOP)"
+                        >
+                          <MessageCircleOff className="size-2.5" />
+                          Opted out
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground font-mono text-xs">
                     {contact.phone}

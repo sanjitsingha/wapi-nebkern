@@ -251,3 +251,152 @@ export async function sendInstagramMedia(
   const data = await response.json()
   return { messageId: String(data.message_id ?? data.id) }
 }
+
+// ============================================================
+// Instagram Business Login (OAuth "Connect with Instagram")
+// ============================================================
+//
+// A separate, simpler integration path from the manual Page-token flow
+// above — see https://developers.facebook.com/docs/instagram-platform.
+// The user logs in directly with their Instagram Professional account
+// (no Facebook Page involved at all) and grants permissions; we get an
+// authorization code, exchange it for a short-lived token, exchange
+// THAT for a 60-day long-lived token, then read the account id off the
+// token itself. Every call in this section targets graph.instagram.com
+// / api.instagram.com (NOT graph.facebook.com — that host is the
+// legacy Page-token path above and does not accept these tokens).
+//
+// VERIFY AT IMPLEMENTATION TIME against Meta's current docs: exact
+// scope names (`instagram_business_basic`,
+// `instagram_business_manage_messages` used below match Meta's 2024+
+// naming, but this surface has changed before) and the exact shape of
+// the token-exchange responses.
+
+const INSTAGRAM_OAUTH_AUTHORIZE_URL = 'https://www.instagram.com/oauth/authorize'
+const INSTAGRAM_OAUTH_TOKEN_URL = 'https://api.instagram.com/oauth/access_token'
+const INSTAGRAM_GRAPH_BASE = 'https://graph.instagram.com'
+const INSTAGRAM_OAUTH_SCOPES = [
+  'instagram_business_basic',
+  'instagram_business_manage_messages',
+].join(',')
+
+export interface BuildInstagramAuthorizeUrlArgs {
+  appId: string
+  redirectUri: string
+  /** CSRF nonce — round-tripped by Instagram and checked on callback. */
+  state: string
+}
+
+/** Build the URL that starts Instagram Business Login. */
+export function buildInstagramAuthorizeUrl(args: BuildInstagramAuthorizeUrlArgs): string {
+  const { appId, redirectUri, state } = args
+  const params = new URLSearchParams({
+    client_id: appId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: INSTAGRAM_OAUTH_SCOPES,
+    state,
+  })
+  return `${INSTAGRAM_OAUTH_AUTHORIZE_URL}?${params.toString()}`
+}
+
+export interface ExchangeInstagramLoginCodeArgs {
+  appId: string
+  appSecret: string
+  redirectUri: string
+  code: string
+}
+
+export interface ExchangeInstagramLoginCodeResult {
+  accessToken: string
+  /** IGSID of the connected account — this becomes
+   *  `instagram_business_account_id`. */
+  userId: string
+}
+
+/**
+ * Step 1 — exchange the authorization code for a short-lived (1 hour)
+ * access token. POST, form-encoded (not JSON), per Meta's spec.
+ */
+export async function exchangeInstagramLoginCode(
+  args: ExchangeInstagramLoginCodeArgs,
+): Promise<ExchangeInstagramLoginCodeResult> {
+  const { appId, appSecret, redirectUri, code } = args
+  const body = new URLSearchParams({
+    client_id: appId,
+    client_secret: appSecret,
+    grant_type: 'authorization_code',
+    redirect_uri: redirectUri,
+    code,
+  })
+  const response = await metaFetch(
+    INSTAGRAM_OAUTH_TOKEN_URL,
+    { method: 'POST', body },
+    { op: 'exchangeInstagramLoginCode' },
+  )
+  if (!response.ok) {
+    await throwMetaError(response, `Code exchange failed: ${response.status}`)
+  }
+  const data = await response.json()
+  // Meta's docs show a bare {access_token, user_id} object for a
+  // single-app exchange; some SDKs report a {data: [...]} wrapper.
+  // Handle both defensively rather than assuming one shape.
+  const record = Array.isArray(data?.data) ? data.data[0] : data
+  if (!record?.access_token || !record?.user_id) {
+    throw new Error('Instagram token exchange succeeded but returned no access_token/user_id.')
+  }
+  return { accessToken: String(record.access_token), userId: String(record.user_id) }
+}
+
+export interface ExchangeForLongLivedTokenArgs {
+  appSecret: string
+  shortLivedToken: string
+}
+
+export interface ExchangeForLongLivedTokenResult {
+  accessToken: string
+  /** Seconds until expiry — long-lived tokens last ~60 days. */
+  expiresIn: number
+}
+
+/**
+ * Step 2 — exchange the short-lived token for a 60-day long-lived one.
+ * GET request against graph.instagram.com (not the oauth token host).
+ */
+export async function exchangeForLongLivedInstagramToken(
+  args: ExchangeForLongLivedTokenArgs,
+): Promise<ExchangeForLongLivedTokenResult> {
+  const { appSecret, shortLivedToken } = args
+  const params = new URLSearchParams({
+    grant_type: 'ig_exchange_token',
+    client_secret: appSecret,
+    access_token: shortLivedToken,
+  })
+  const url = `${INSTAGRAM_GRAPH_BASE}/access_token?${params.toString()}`
+  const response = await metaFetch(url, undefined, { op: 'exchangeForLongLivedInstagramToken' })
+  if (!response.ok) {
+    await throwMetaError(response, `Long-lived token exchange failed: ${response.status}`)
+  }
+  const data = await response.json()
+  if (!data?.access_token) {
+    throw new Error('Long-lived token exchange succeeded but returned no access_token.')
+  }
+  return { accessToken: String(data.access_token), expiresIn: Number(data.expires_in ?? 0) }
+}
+
+/**
+ * Read back the connected account's profile — used right after
+ * connecting to confirm the token works and to show a friendly
+ * "@username" in the settings UI instead of a bare numeric id.
+ */
+export async function getInstagramLoginAccountInfo(args: {
+  accessToken: string
+}): Promise<InstagramAccountInfo> {
+  const { accessToken } = args
+  const url = `${INSTAGRAM_GRAPH_BASE}/me?fields=id,username,name&access_token=${encodeURIComponent(accessToken)}`
+  const response = await metaFetch(url, undefined, { op: 'getInstagramLoginAccountInfo' })
+  if (!response.ok) {
+    await throwMetaError(response, `Meta API error: ${response.status}`)
+  }
+  return response.json()
+}

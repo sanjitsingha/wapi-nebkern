@@ -393,21 +393,30 @@ export interface WhatsAppConfig {
  * dance or WABA-subscribe step, since those are WhatsApp Cloud
  * API-specific with no Instagram equivalent.
  */
+/** Which flow produced an `InstagramConfig` row (migration 046). The
+ *  two mint tokens from different Meta API hosts — graph.instagram.com
+ *  for 'oauth' vs graph.facebook.com for the legacy 'manual' Page-token
+ *  path — so this matters for troubleshooting. */
+export type InstagramConnectMethod = 'manual' | 'oauth';
+
 export interface InstagramConfig {
   id: string;
   account_id: string;
   created_by?: string | null;
-  /** Facebook Page id linked to the Instagram Professional account. */
-  page_id: string;
+  /** Facebook Page id linked to the Instagram Professional account.
+   *  Null for 'oauth' rows — Instagram Business Login (migration 046)
+   *  connects directly, with no linked Page at all. */
+  page_id?: string | null;
   /** The IG business account node id — used as the sender identity
    *  for outbound sends and to resolve inbound webhook events. */
   instagram_business_account_id: string;
   access_token: string;
   verify_token?: string | null;
   status: 'connected' | 'disconnected';
+  connect_method: InstagramConnectMethod;
   connected_at?: string | null;
   /** Set when POST /{page_id}/subscribed_apps last succeeded
-   *  (best-effort, non-fatal on failure). */
+   *  (best-effort, non-fatal on failure). Only applies to 'manual' rows. */
   subscribed_at?: string | null;
   last_verification_error?: string | null;
   created_at: string;
@@ -593,6 +602,7 @@ export type AutomationTriggerType =
 export type AutomationStepType =
   | 'send_message'
   | 'send_template'
+  | 'send_buttons'
   | 'add_tag'
   | 'remove_tag'
   | 'assign_conversation'
@@ -636,6 +646,22 @@ export interface SendTemplateStepConfig {
   template_name: string;
   language?: string;
   variables?: Record<string, string>;
+}
+
+export interface SendButtonsStepConfig {
+  /** Body text; can interpolate {{ vars.* }} / {{ message.text }}. */
+  text: string;
+  /** Optional plain-text header (≤ 60 chars per Meta). */
+  header_text?: string;
+  /** Optional grey footer line under the buttons (≤ 60 chars per Meta). */
+  footer_text?: string;
+  /** 1-3 buttons; Meta's interactive-button cap. */
+  buttons: Array<{
+    /** Stable id sent back by Meta when this button is tapped. */
+    id: string;
+    /** Visible label (≤ 20 chars per Meta). */
+    title: string;
+  }>;
 }
 
 export interface TagStepConfig {
@@ -695,6 +721,7 @@ export interface SendWebhookStepConfig {
 export type AutomationStepConfig =
   | SendMessageStepConfig
   | SendTemplateStepConfig
+  | SendButtonsStepConfig
   | TagStepConfig
   | AssignConversationStepConfig
   | UpdateContactFieldStepConfig

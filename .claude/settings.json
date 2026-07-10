@@ -23,7 +23,10 @@
       "Bash(MSYS_NO_PATHCONV=1 curl -s -o /dev/null -w \"root status=%{http_code} redirect=%{redirect_url}\\\\n\" \"http://localhost:3000/\")",
       "Bash(MSYS_NO_PATHCONV=1 curl -s -o /dev/null -w \"inbox status=%{http_code} redirect=%{redirect_url}\\\\n\" \"http://localhost:3000/inbox\")",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git fetch *)",
+      "Bash(git pull *)"
     ]
   }
 }

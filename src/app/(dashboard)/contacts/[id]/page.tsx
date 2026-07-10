@@ -72,6 +72,7 @@ import {
   ShieldCheck,
   Ban,
   CircleCheck,
+  MessageCircleOff,
 } from 'lucide-react';
 
 const TABS = [
@@ -309,7 +310,7 @@ export default function ContactDetailPage() {
   // on error. `updatingStatus` guards against overlapping clicks.
   const [updatingStatus, setUpdatingStatus] = useState(false);
   async function toggleStatus(
-    field: 'is_muted' | 'is_spam' | 'is_blocked',
+    field: 'is_muted' | 'is_spam' | 'is_blocked' | 'marketing_opt_out',
     labels: { on: string; off: string },
   ) {
     if (!contact || updatingStatus) return;
@@ -515,6 +516,25 @@ export default function ContactDetailPage() {
                   </>
                 )}
               </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  toggleStatus('marketing_opt_out', {
+                    on: 'Contact opted out — messages blocked',
+                    off: 'Contact opted back in',
+                  })
+                }
+                disabled={updatingStatus}
+              >
+                {contact.marketing_opt_out ? (
+                  <>
+                    <MessageSquare className="size-4" /> Opt back in
+                  </>
+                ) : (
+                  <>
+                    <MessageCircleOff className="size-4" /> Mark opted out (STOP)
+                  </>
+                )}
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 variant={contact.is_blocked ? 'default' : 'destructive'}
@@ -559,6 +579,9 @@ export default function ContactDetailPage() {
               )}
               {contact.is_muted && (
                 <StatusBadge icon={BellOff} label="Muted" tone="muted" />
+              )}
+              {contact.marketing_opt_out && (
+                <StatusBadge icon={MessageCircleOff} label="Opted out" tone="red" />
               )}
             </div>
 

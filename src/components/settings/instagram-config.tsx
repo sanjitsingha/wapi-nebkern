@@ -1,10 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   AlertTriangle,
+  AtSign,
   CheckCircle2,
+  ChevronDown,
   Copy,
   Eye,
   EyeOff,
@@ -18,6 +21,7 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { useCan } from '@/hooks/use-can';
 import { createClient } from '@/lib/supabase/client';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,13 +37,18 @@ import { SettingsPanelHead } from './settings-panel-head';
 import type { InstagramConfig as InstagramConfigRow } from '@/types';
 
 const MASKED_TOKEN = '••••••••••••••••';
+const OAUTH_CONFIGURED = Boolean(process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID);
 
 type ConnectionStatus = 'connected' | 'disconnected' | 'unknown';
 
 export function InstagramConfig() {
   const supabase = createClient();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, accountId, loading: authLoading, profileLoading } = useAuth();
   const canEdit = useCan('edit-settings');
+  const [manualOpen, setManualOpen] = useState(false);
+  const [connecting, setConnecting] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -124,6 +133,31 @@ export function InstagramConfig() {
     }
     fetchConfig(accountId);
   }, [authLoading, profileLoading, user, accountId, fetchConfig]);
+
+  // The OAuth callback redirects back here with ?ig_connected=1 or
+  // ?ig_error=... (a full page navigation, not an XHR) — surface that
+  // as a toast once, then strip the params so a refresh doesn't
+  // re-fire it.
+  useEffect(() => {
+    const connected = searchParams.get('ig_connected');
+    const username = searchParams.get('ig_username');
+    const error = searchParams.get('ig_error');
+    if (!connected && !error) return;
+
+    if (connected) {
+      toast.success(username ? `Connected — @${username}` : 'Instagram connected.');
+      if (accountId) fetchConfig(accountId);
+    } else if (error) {
+      toast.error(error, { duration: 10000 });
+    }
+    router.replace('/settings/instagram');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  function handleConnectClick() {
+    setConnecting(true);
+    window.location.href = '/api/instagram/oauth/start';
+  }
 
   async function handleSave() {
     if (!pageId.trim() || !igBusinessAccountId.trim()) {
@@ -276,41 +310,45 @@ export function InstagramConfig() {
         </Alert>
       )}
 
-      {/* Setup steps — the manual-entry flow has real prerequisites in
-          Meta's dashboard that aren't obvious from a bare form. */}
+      {/* Quick connect — log in with Instagram, grant permissions, done.
+          No Page, no Access Token to copy-paste. This is the path
+          everyone should use; the manual form below is a fallback for
+          when OAuth isn't set up on this server yet. */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-foreground">Before you connect</CardTitle>
+          <CardTitle className="text-foreground">Connect your account</CardTitle>
+          <CardDescription className="text-muted-foreground">
+            Log in with Instagram and approve the permission screen —
+            that&apos;s the whole flow.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <ol className="list-decimal space-y-1.5 pl-5 text-sm text-muted-foreground">
-            <li>
-              Add the Instagram product to your Meta App and link a Facebook
-              Page to an Instagram Professional (Business/Creator) account.
-            </li>
-            <li>
-              Generate a Page Access Token with the{' '}
-              <code className="rounded bg-muted px-1 py-0.5 text-[11px]">
-                instagram_basic
-              </code>{' '}
+          {OAUTH_CONFIGURED ? (
+            <Button
+              onClick={handleConnectClick}
+              disabled={!canEdit || connecting}
+              className="bg-gradient-to-tr from-[#feda75] via-[#d62976] to-[#4f5bd5] text-white hover:opacity-90"
+            >
+              {connecting ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <AtSign className="size-4" />
+              )}
+              {connecting ? 'Redirecting…' : 'Connect with Instagram'}
+            </Button>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              One-click login is unavailable: this server hasn&apos;t been
+              given an Instagram app to log in with. Set{' '}
+              <code className="text-foreground">INSTAGRAM_APP_ID</code>,{' '}
+              <code className="text-foreground">NEXT_PUBLIC_INSTAGRAM_APP_ID</code>,
               and{' '}
-              <code className="rounded bg-muted px-1 py-0.5 text-[11px]">
-                instagram_manage_messages
-              </code>{' '}
-              permissions.
-            </li>
-            <li>
-              In Meta&apos;s App Dashboard → Webhooks, register the callback
-              URL shown below against the Page/Instagram webhook product and
-              subscribe to the{' '}
-              <code className="rounded bg-muted px-1 py-0.5 text-[11px]">
-                messages
-              </code>{' '}
-              field — this step happens in Meta&apos;s dashboard and can&apos;t
-              be done for you from here.
-            </li>
-            <li>Paste the credentials below and save.</li>
-          </ol>
+              <code className="text-foreground">INSTAGRAM_APP_SECRET</code>{' '}
+              (Meta for Developers → your App → Instagram → Business
+              Login) to enable it. Use manual setup below in the
+              meantime.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -358,11 +396,64 @@ export function InstagramConfig() {
         </div>
         <AlertDescription className="text-muted-foreground">
           {connectionStatus === 'connected'
-            ? 'Your access token is valid and Meta can see this Instagram account.'
+            ? `Your access token is valid and Meta can see this Instagram account${config?.connect_method === 'oauth' ? ' — connected via Instagram Login' : config?.connect_method === 'manual' ? ' — connected via manual credentials' : ''}.`
             : statusMessage ||
-              'Enter your Instagram credentials below to connect.'}
+              'Use "Connect with Instagram" above, or set up manually below.'}
         </AlertDescription>
       </Alert>
+
+      {/* Manual fallback — same shape as WhatsApp's own settings page:
+          a collapsible "advanced" path for when one-click login isn't
+          set up on this server, or the account needs the older
+          Page-Access-Token integration specifically. */}
+      <button
+        type="button"
+        onClick={() => setManualOpen((v) => !v)}
+        className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ChevronDown
+          className={cn('size-4 transition-transform', manualOpen && 'rotate-180')}
+        />
+        Advanced: connect manually
+      </button>
+
+      {manualOpen && (
+        <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-foreground">Before you connect manually</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ol className="list-decimal space-y-1.5 pl-5 text-sm text-muted-foreground">
+            <li>
+              Add the Instagram product to your Meta App and link a Facebook
+              Page to an Instagram Professional (Business/Creator) account.
+            </li>
+            <li>
+              Generate a Page Access Token with the{' '}
+              <code className="rounded bg-muted px-1 py-0.5 text-[11px]">
+                instagram_basic
+              </code>{' '}
+              and{' '}
+              <code className="rounded bg-muted px-1 py-0.5 text-[11px]">
+                instagram_manage_messages
+              </code>{' '}
+              permissions.
+            </li>
+            <li>
+              In Meta&apos;s App Dashboard → Webhooks, register the callback
+              URL shown below against the Page/Instagram webhook product and
+              subscribe to the{' '}
+              <code className="rounded bg-muted px-1 py-0.5 text-[11px]">
+                messages
+              </code>{' '}
+              field — this step happens in Meta&apos;s dashboard and can&apos;t
+              be done for you from here.
+            </li>
+            <li>Paste the credentials below and save.</li>
+          </ol>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -500,6 +591,8 @@ export function InstagramConfig() {
             Test API Connection
           </Button>
         </div>
+      )}
+        </>
       )}
     </section>
   );
