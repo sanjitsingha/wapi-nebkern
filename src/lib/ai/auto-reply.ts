@@ -11,6 +11,24 @@ import { generateReply, type GenerateArgs } from './generate'
 import { buildSystemPrompt } from './defaults'
 import { latestUserMessage } from './query'
 
+// How long a conversation must go quiet (no new customer message)
+// before the bot actually replies — gives a customer typing several
+// short messages back-to-back ("Hii" / "Hey" / "How are you") time to
+// finish before the bot answers, so they get ONE reply covering the
+// whole burst instead of one reply per message. Comfortably inside the
+// reply-engine invocation's 60s budget (see reply-engine/route.ts).
+//
+// Coalescing is done through a monotonic per-conversation sequence in
+// the DB (migration 049), NOT by comparing message timestamps: each
+// eligible inbound bumps the sequence and resets the deadline, and only
+// the holder of the highest sequence can atomically claim the reply
+// once the deadline passes. That's immune to the two things that broke
+// the timestamp approach — insertion latency (several invocations
+// anchoring on the same "latest" message and all replying) and
+// second-granularity WhatsApp timestamps (ties with no stable order).
+const QUIET_PERIOD_MS = 8_000
+const QUIET_POLL_INTERVAL_MS = 2_000
+
 export interface DispatchArgs {
   /** Tenancy key — drives config, contact, and conversation lookups. */
   accountId: string
@@ -39,6 +57,11 @@ export interface DispatchArgs {
  *   - auto-reply was disabled for this conversation (prior handoff)
  *   - the per-conversation reply cap is reached
  *   - there's nothing to reply to
+ *
+ * After the gates pass it waits for the conversation to go quiet for
+ * QUIET_PERIOD_MS before building context and generating, so a customer
+ * sending several short messages in a row gets one reply covering all
+ * of them instead of one reply per message — see waitForBurstToSettle.
  *
  * The 24h WhatsApp session window is inherently open here — we're
  * reacting to a customer message that just landed — so no separate
@@ -109,13 +132,27 @@ export async function dispatchInboundToAiReply(
       if (conv.ai_reply_count >= config.autoReplyMaxPerConversation) return
     }
 
+    // Debounce: register this inbound in the per-conversation sequence
+    // and wait for the conversation to go quiet before building context
+    // and generating. My `seq` is unique and monotonic — every other
+    // message in the burst holds a different one, and only the holder of
+    // the CURRENT (highest) seq can claim the reply below. If a newer
+    // message bumps past me while I wait, I stand down silently; the
+    // latest message's invocation proceeds, reading the whole burst out
+    // of the DB for one coherent reply. Turns "3 messages in → 3 replies
+    // out" into "3 messages in → 1 reply out" with no in-memory
+    // buffering (each invocation is a separate serverless call).
+    const mySeq = await bumpDebounce(db, conversationId)
+    if (mySeq === null) return // conversation vanished — nothing to reply to
+    const stillMine = await waitForQuietPeriod(db, conversationId, mySeq)
+    if (!stillMine) return
+    // Atomic: only the holder of the current seq wins, and only once the
+    // deadline has elapsed. Everyone else — including ties — loses here.
+    const won = await claimDebounce(db, conversationId, mySeq)
+    if (!won) return
+
     const messages = await buildConversationContext(db, conversationId)
     if (messages.length === 0) return
-
-    // Anchor for the burst guard below: the newest customer message our
-    // context covers. Captured after context-build so the context always
-    // includes it.
-    const anchorMessageId = await latestCustomerMessageId(db, conversationId)
 
     // Ground the reply in the account's knowledge base (best-effort).
     const knowledge = await retrieveKnowledge(
@@ -160,14 +197,12 @@ export async function dispatchInboundToAiReply(
     }
 
     // Burst guard: if the customer sent ANOTHER message while we were
-    // generating, drop this now-stale reply. The newer message's own
-    // webhook invocation is generating with the fuller context and will
-    // answer the whole burst with one coherent reply — instead of the
-    // customer getting N overlapping answers out of order.
-    const latestNow = await latestCustomerMessageId(db, conversationId)
-    if (anchorMessageId && latestNow && latestNow !== anchorMessageId) {
-      return
-    }
+    // generating (after we claimed), drop this now-stale reply. That
+    // message bumped the sequence past `mySeq` and started its own
+    // debounce; it will answer the fuller burst with one coherent reply
+    // — instead of the customer getting overlapping answers out of order.
+    const currentSeq = await currentDebounceSeq(db, conversationId)
+    if (currentSeq !== null && currentSeq > mySeq) return
 
     // Atomically claim a reply slot: the cap check + increment happen in
     // one UPDATE, so concurrent inbounds can never overshoot the cap. If
@@ -223,18 +258,73 @@ async function generateWithRetry(args: GenerateArgs) {
   }
 }
 
-/** Id of the newest customer message in a conversation (burst guard). */
-async function latestCustomerMessageId(
+/** Register this inbound in the conversation's debounce sequence and
+ *  (re)set the quiet-period deadline. Returns the new, unique sequence
+ *  value to hold, or null if the conversation row is gone. */
+async function bumpDebounce(
   db: SupabaseClient,
   conversationId: string,
-): Promise<string | null> {
-  const { data } = await db
-    .from('messages')
-    .select('id')
-    .eq('conversation_id', conversationId)
-    .eq('sender_type', 'customer')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  return (data?.id as string | undefined) ?? null
+): Promise<number | null> {
+  const { data, error } = await db.rpc('bump_ai_reply_debounce', {
+    p_conversation_id: conversationId,
+    p_delay_ms: QUIET_PERIOD_MS,
+  })
+  if (error || data == null) return null
+  return Number(data)
+}
+
+/** Current (highest) debounce sequence for a conversation, or null. */
+async function currentDebounceSeq(
+  db: SupabaseClient,
+  conversationId: string,
+): Promise<number | null> {
+  const { data, error } = await db.rpc('current_ai_reply_debounce_seq', {
+    p_conversation_id: conversationId,
+  })
+  if (error || data == null) return null
+  return Number(data)
+}
+
+/** Atomically claim the reply for `seq`. True only for the holder of
+ *  the current sequence, once the deadline has elapsed — exactly one
+ *  caller per burst can win. */
+async function claimDebounce(
+  db: SupabaseClient,
+  conversationId: string,
+  seq: number,
+): Promise<boolean> {
+  const { data, error } = await db.rpc('claim_ai_reply_debounce', {
+    p_conversation_id: conversationId,
+    p_seq: seq,
+  })
+  return !error && data === true
+}
+
+/**
+ * Wait out the quiet period for `mySeq`. Polls in short increments so a
+ * superseding message (which bumps the sequence past mine) is noticed
+ * quickly and this invocation stands down early instead of sleeping the
+ * whole window. Returns true if `mySeq` is still current when the window
+ * elapses (proceed to claim), false the moment it's been superseded.
+ *
+ * This is only an optimization — the atomic claimDebounce is what
+ * actually guarantees a single reply — so a plain seq read per poll is
+ * fine. The window is a fixed wall-clock duration here; the DB deadline
+ * set by bumpDebounce is the authoritative gate the claim checks.
+ */
+async function waitForQuietPeriod(
+  db: SupabaseClient,
+  conversationId: string,
+  mySeq: number,
+): Promise<boolean> {
+  const deadline = Date.now() + QUIET_PERIOD_MS
+  for (;;) {
+    const remaining = deadline - Date.now()
+    if (remaining <= 0) return true
+    await new Promise((resolve) =>
+      setTimeout(resolve, Math.min(remaining, QUIET_POLL_INTERVAL_MS)),
+    )
+    const seq = await currentDebounceSeq(db, conversationId)
+    if (seq !== null && seq > mySeq) return false
+  }
 }
