@@ -50,7 +50,7 @@ export async function GET() {
       supabase
         .from('conversations')
         .select(
-          'id, unread_count, last_message_text, last_message_at, contact:contacts(name, phone)',
+          'id, unread_count, last_message_at, contact:contacts(name, phone)',
         )
         .gt('unread_count', 0)
         .order('last_message_at', { ascending: false })
@@ -82,11 +82,17 @@ export async function GET() {
     const items: NotificationItem[] = []
 
     for (const row of unread.data ?? []) {
+      // Inbound-only by construction: unread_count is bumped only when an
+      // inbound message arrives (never on send). We intentionally do NOT
+      // surface last_message_text here — it can be overwritten by an
+      // outbound reply, which would leak a sent message into the feed and
+      // expose message content. Show a generic, count-based summary instead.
+      const unread = row.unread_count ?? 0
       items.push({
         id: `msg-${row.id}`,
         type: 'message',
         title: contactLabel(row.contact as ContactJoin | ContactJoin[] | null),
-        body: row.last_message_text || 'New message',
+        body: unread > 1 ? `${unread} new messages` : 'New message',
         at: row.last_message_at ?? new Date().toISOString(),
         href: `/inbox?c=${row.id}`,
       })

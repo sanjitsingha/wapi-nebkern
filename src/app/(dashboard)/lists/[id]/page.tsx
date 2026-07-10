@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
@@ -8,10 +8,7 @@ import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
-  Copy,
   Loader2,
-  MoreHorizontal,
-  Pencil,
   Search,
   Trash2,
   UserPlus,
@@ -41,16 +38,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
-import { EditListDialog } from '@/components/lists/edit-list-dialog';
-import { DeleteListDialog } from '@/components/lists/delete-list-dialog';
-import { DuplicateListDialog } from '@/components/lists/duplicate-list-dialog';
 import { AddContactsDialog } from '@/components/lists/add-contacts-dialog';
 import { listStatusConfig } from '@/lib/list-status';
 import type { Contact, List } from '@/types';
@@ -72,22 +59,15 @@ interface ListContactRow {
   total_count: number;
 }
 
-interface CreatedByProfile {
-  full_name: string | null;
-  email: string;
-}
-
 export default function ListDetailPage() {
   const params = useParams<{ id: string }>();
   const listId = params.id;
   const router = useRouter();
   const supabase = createClient();
-  const canEditSettings = useCan('edit-settings');
   const canManageMembers = useCan('send-messages');
 
   const [list, setList] = useState<List | null>(null);
   const [listLoading, setListLoading] = useState(true);
-  const [createdBy, setCreatedBy] = useState<CreatedByProfile | null>(null);
 
   const [rows, setRows] = useState<ListContactRow[]>([]);
   const [rowsLoading, setRowsLoading] = useState(true);
@@ -97,9 +77,6 @@ export default function ListDetailPage() {
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const [editOpen, setEditOpen] = useState(false);
-  const [duplicateOpen, setDuplicateOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
   const [addContactsOpen, setAddContactsOpen] = useState(false);
   const [existingContactIds, setExistingContactIds] = useState<Set<string>>(
     new Set()
@@ -119,20 +96,8 @@ export default function ListDetailPage() {
       return;
     }
 
-    const row = data as List;
-    setList(row);
+    setList(data as List);
     setListLoading(false);
-
-    if (row.created_by) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, email')
-        .eq('user_id', row.created_by)
-        .maybeSingle();
-      setCreatedBy((profile as CreatedByProfile) ?? null);
-    } else {
-      setCreatedBy(null);
-    }
   }, [supabase, listId]);
 
   const fetchPage = useCallback(async () => {
@@ -234,33 +199,6 @@ export default function ListDetailPage() {
 
   const status = list ? listStatusConfig[list.status] : null;
 
-  const statTiles = useMemo(() => {
-    if (!list) return [];
-    return [
-      { label: 'Total Contacts', value: String(list.total_contacts) },
-      {
-        label: 'Created By',
-        value: createdBy?.full_name || createdBy?.email || '—',
-      },
-      {
-        label: 'Created Date',
-        value: new Date(list.created_at).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        }),
-      },
-      {
-        label: 'Last Updated',
-        value: new Date(list.updated_at).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        }),
-      },
-    ];
-  }, [list, createdBy]);
-
   if (listLoading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -282,7 +220,7 @@ export default function ListDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4">
         <div className="min-w-0">
           {/* Back link + list name on one line, split by a dot. */}
           <div className="flex min-w-0 items-center gap-2">
@@ -317,80 +255,6 @@ export default function ListDetailPage() {
             </p>
           )}
         </div>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button variant="outline" className="shrink-0 border-border" />
-            }
-          >
-            <MoreHorizontal className="size-4" />
-            Actions
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="border-border bg-popover">
-            <DropdownMenuItem
-              disabled={!canEditSettings}
-              onClick={() => setEditOpen(true)}
-              className="text-popover-foreground focus:bg-muted focus:text-foreground"
-            >
-              <Pencil className="size-4" />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              disabled={!canEditSettings}
-              onClick={() => setDuplicateOpen(true)}
-              className="text-popover-foreground focus:bg-muted focus:text-foreground"
-            >
-              <Copy className="size-4" />
-              Duplicate
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              disabled={!canEditSettings}
-              onClick={async () => {
-                const nextStatus = list.status === 'active' ? 'archived' : 'active';
-                const { error } = await supabase
-                  .from('lists')
-                  .update({ status: nextStatus })
-                  .eq('id', list.id);
-                if (error) {
-                  toast.error('Failed to update list');
-                  return;
-                }
-                toast.success(
-                  nextStatus === 'archived' ? 'List archived' : 'List restored'
-                );
-                setList({ ...list, status: nextStatus });
-              }}
-              className="text-popover-foreground focus:bg-muted focus:text-foreground"
-            >
-              <Users className="size-4" />
-              {list.status === 'active' ? 'Archive' : 'Restore'}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-border" />
-            <DropdownMenuItem
-              variant="destructive"
-              disabled={!canEditSettings}
-              onClick={() => setDeleteOpen(true)}
-            >
-              <Trash2 className="size-4" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {statTiles.map((tile) => (
-          <div
-            key={tile.label}
-            className="rounded-xl border border-border bg-card p-4"
-          >
-            <p className="text-xs text-muted-foreground">{tile.label}</p>
-            <p className="mt-1 truncate text-lg font-semibold text-foreground">
-              {tile.value}
-            </p>
-          </div>
-        ))}
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -415,11 +279,11 @@ export default function ListDetailPage() {
               setPage(0);
             }}
           >
-            <SelectTrigger className="h-11 w-auto gap-2 border-border bg-background">
+            <SelectTrigger className="w-auto gap-2 border-border bg-background data-[size=default]:h-11">
               <ArrowUpDown className="size-4 text-muted-foreground" />
               Sort
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent alignItemWithTrigger={false}>
               {SORT_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
@@ -600,27 +464,6 @@ export default function ListDetailPage() {
           </div>
         </div>
       )}
-
-      <EditListDialog
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        list={list}
-        onSaved={(updated) => setList(updated)}
-      />
-
-      <DuplicateListDialog
-        open={duplicateOpen}
-        onOpenChange={setDuplicateOpen}
-        list={list}
-        onDuplicated={(created) => router.push(`/lists/${created.id}`)}
-      />
-
-      <DeleteListDialog
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        list={list}
-        onDeleted={() => router.push('/lists')}
-      />
 
       <AddContactsDialog
         open={addContactsOpen}

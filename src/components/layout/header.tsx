@@ -4,13 +4,11 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useAvailability } from '@/hooks/use-availability';
 import { useWhatsAppInfo } from '@/hooks/use-whatsapp-info';
-import { LogOut, Menu, MessageSquare, Settings as SettingsIcon, User, MessageCircle } from 'lucide-react';
+import { Menu, MessageSquare, Settings as SettingsIcon, MessageCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
@@ -24,7 +22,7 @@ interface HeaderProps {
 }
 
 export function Header({ onOpenSidebar }: HeaderProps) {
-  const { profile, signOut } = useAuth();
+  const { profile } = useAuth();
   const { available, setAvailable } = useAvailability();
   const waInfo = useWhatsAppInfo();
 
@@ -104,29 +102,6 @@ export function Header({ onOpenSidebar }: HeaderProps) {
             sideOffset={6}
             className="bg-popover text-popover-foreground ring-border min-w-80 p-2"
           >
-            {/* Identity block */}
-            <div className="flex items-center gap-3 px-2 py-2.5">
-              <Avatar className="size-10">
-                {profile?.avatar_url ? (
-                  <AvatarImage
-                    src={profile.avatar_url}
-                    alt={profile.full_name ?? 'Avatar'}
-                  />
-                ) : null}
-                <AvatarFallback className="bg-primary/10 text-primary text-base font-medium">
-                  {initial}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0">
-                <p className="text-foreground truncate text-sm font-semibold">
-                  {profile?.full_name ?? 'User'}
-                </p>
-                <p className="text-muted-foreground truncate text-xs">
-                  {profile?.email ?? ''}
-                </p>
-              </div>
-            </div>
-
             {/* Availability toggle — not a menu item, so clicking the
                 switch flips presence without closing the menu. */}
             <div className="bg-muted/40 mx-1 mb-1 flex items-center justify-between gap-3 rounded-lg px-2.5 py-2">
@@ -152,57 +127,23 @@ export function Header({ onOpenSidebar }: HeaderProps) {
 
             {/* WhatsApp connected account */}
             {waInfo && (
-              <>
-                <div className="mx-1 mb-1 flex items-center gap-3 rounded-lg border border-border px-2.5 py-2">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#25D366]/10">
-                    <MessageCircle className="h-4 w-4 text-[#25D366]" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {waInfo.verified_name ?? 'WhatsApp Business'}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {waInfo.display_phone_number}
-                    </p>
-                  </div>
-                  <span className="ml-auto shrink-0 rounded-full bg-[#25D366]/10 px-1.5 py-0.5 text-[10px] font-medium text-[#25D366]">
-                    Connected
-                  </span>
+              <div className="mx-1 flex items-center gap-3 rounded-lg border border-border px-2.5 py-2">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#25D366]/10">
+                  <MessageCircle className="h-4 w-4 text-[#25D366]" />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {waInfo.verified_name ?? 'WhatsApp Business'}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {waInfo.display_phone_number}
+                  </p>
                 </div>
-              </>
+                <span className="ml-auto shrink-0 rounded-full bg-[#25D366]/10 px-1.5 py-0.5 text-[10px] font-medium text-[#25D366]">
+                  Connected
+                </span>
+              </div>
             )}
-
-            <DropdownMenuSeparator className="bg-border" />
-            <DropdownMenuItem
-              render={
-                <Link
-                  href="/settings/profile"
-                  className="text-popover-foreground focus:bg-accent focus:text-accent-foreground py-2"
-                />
-              }
-            >
-              <User className="size-4" />
-              Profile
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              render={
-                <Link
-                  href="/settings/whatsapp"
-                  className="text-popover-foreground focus:bg-accent focus:text-accent-foreground py-2"
-                />
-              }
-            >
-              <SettingsIcon className="size-4" />
-              Settings
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-border" />
-            <DropdownMenuItem
-              onClick={signOut}
-              className="text-popover-foreground focus:bg-accent focus:text-accent-foreground py-2"
-            >
-              <LogOut className="size-4" />
-              Sign out
-            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

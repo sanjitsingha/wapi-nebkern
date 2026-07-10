@@ -16,6 +16,8 @@ import {
   Users,
   CircleDot,
   CalendarDays,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useCan } from '@/hooks/use-can';
@@ -57,6 +59,7 @@ export default function ListsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<StatusTab>('all');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<List | null>(null);
@@ -105,14 +108,20 @@ export default function ListsPage() {
 
   const filteredLists = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return lists.filter((list) => {
-      const matchesTab = activeTab === 'all' || list.status === activeTab;
-      const matchesSearch =
-        !term ||
-        [list.name, list.description].filter(Boolean).join(' ').toLowerCase().includes(term);
-      return matchesTab && matchesSearch;
-    });
-  }, [lists, search, activeTab]);
+    return lists
+      .filter((list) => {
+        const matchesTab = activeTab === 'all' || list.status === activeTab;
+        const matchesSearch =
+          !term ||
+          [list.name, list.description].filter(Boolean).join(' ').toLowerCase().includes(term);
+        return matchesTab && matchesSearch;
+      })
+      .sort((a, b) => {
+        const diff =
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        return sortDir === 'asc' ? diff : -diff;
+      });
+  }, [lists, search, activeTab, sortDir]);
 
   return (
     <div className="space-y-6">
@@ -165,7 +174,24 @@ export default function ListsPage() {
               <TableHead className="text-muted-foreground" icon={AlignLeft}>Description</TableHead>
               <TableHead className="text-muted-foreground" icon={Users}>Contacts</TableHead>
               <TableHead className="text-muted-foreground" icon={CircleDot}>Status</TableHead>
-              <TableHead className="text-muted-foreground" icon={CalendarDays}>Created</TableHead>
+              <TableHead className="text-muted-foreground">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))
+                  }
+                  className="flex items-center gap-1.5 font-medium transition-colors hover:text-foreground"
+                  title={`Sort by created date (${sortDir === 'desc' ? 'newest first' : 'oldest first'})`}
+                >
+                  <CalendarDays className="size-3.5 shrink-0" />
+                  Created
+                  {sortDir === 'desc' ? (
+                    <ArrowDown className="size-3.5 shrink-0" />
+                  ) : (
+                    <ArrowUp className="size-3.5 shrink-0" />
+                  )}
+                </button>
+              </TableHead>
               <TableHead className="w-12 text-muted-foreground" />
             </TableRow>
           </TableHeader>
