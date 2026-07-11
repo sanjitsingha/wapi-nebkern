@@ -36,6 +36,8 @@ import {
   User,
   Phone,
   CircleDot,
+  TrendingUp,
+  XCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -110,6 +112,335 @@ function FunnelChart({ steps }: { steps: FunnelStep[] }) {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Series colours for the multi-series engagement chart. Validated with
+ * the dataviz palette checker (CVD-safe + ≥3:1 contrast) in BOTH light and
+ * dark surfaces — do not swap for the softer teal/blue/indigo used on the
+ * count cards, which fail adjacent-CVD separation when overlaid in one plot.
+ * `failed` is a reserved status colour, only used in the error breakdown.
+ */
+const SERIES = {
+  delivered: '#0d9488',
+  read: '#3b82f6',
+  replied: '#d97706',
+  failed: '#ef4444',
+} as const;
+
+interface RateTile {
+  label: string;
+  pct: number;
+  detail: string;
+  color: string;
+}
+
+/** Headline conversion rates with a thin meter under each. */
+function RateTiles({ tiles }: { tiles: RateTile[] }) {
+  return (
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {tiles.map((t) => (
+        <div key={t.label} className="rounded-xl border border-border bg-card p-4">
+          <p className="text-xs text-muted-foreground">{t.label}</p>
+          <p className="mt-1 text-2xl font-bold text-foreground tabular-nums">
+            {t.pct}%
+          </p>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full transition-[width] duration-500"
+              style={{ width: `${t.pct}%`, backgroundColor: t.color }}
+            />
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground">{t.detail}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+interface TimelinePoint {
+  delivered: number;
+  read: number;
+  replied: number;
+}
+interface TimelineData {
+  points: TimelinePoint[];
+  yMax: number;
+  startMs: number;
+  endMs: number;
+}
+
+function parseMs(s?: string): number | null {
+  if (!s) return null;
+  const t = Date.parse(s);
+  return Number.isNaN(t) ? null : t;
+}
+
+/**
+ * Build cumulative delivered/read/replied series over the send window from
+ * per-recipient timestamps. Returns null when there aren't at least two
+ * distinct events to plot (e.g. a draft, or an instant test send) so the
+ * caller can skip the chart rather than draw a degenerate line.
+ */
+function buildTimeline(recipients: BroadcastRecipient[]): TimelineData | null {
+  const delivered: number[] = [];
+  const read: number[] = [];
+  const replied: number[] = [];
+  const sent: number[] = [];
+  for (const r of recipients) {
+    const s = parseMs(r.sent_at);
+    if (s != null) sent.push(s);
+    const d = parseMs(r.delivered_at);
+    if (d != null) delivered.push(d);
+    const rd = parseMs(r.read_at);
+    if (rd != null) read.push(rd);
+    const rp = parseMs(r.replied_at);
+    if (rp != null) replied.push(rp);
+  }
+  const all = [...delivered, ...read, ...replied];
+  if (all.length < 2) return null;
+  const startMs = Math.min(...(sent.length ? sent : all));
+  const endMs = Math.max(...all);
+  if (endMs <= startMs) return null;
+
+  const buckets = 24;
+  const step = (endMs - startMs) / buckets;
+  const countLE = (arr: number[], t: number) =>
+    arr.reduce((c, x) => (x <= t ? c + 1 : c), 0);
+  const points: TimelinePoint[] = [];
+  for (let i = 0; i <= buckets; i++) {
+    const t = startMs + step * i;
+    points.push({
+      delivered: countLE(delivered, t),
+      read: countLE(read, t),
+      replied: countLE(replied, t),
+    });
+  }
+  const yMax = Math.max(points[points.length - 1].delivered, 1);
+  return { points, yMax, startMs, endMs };
+}
+
+function formatTick(ms: number): string {
+  return new Date(ms).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+const TIMELINE_SERIES = [
+  { key: 'delivered' as const, label: 'Delivered', color: SERIES.delivered },
+  { key: 'read' as const, label: 'Read', color: SERIES.read },
+  { key: 'replied' as const, label: 'Replied', color: SERIES.replied },
+];
+
+/**
+ * Cumulative engagement line chart (SVG). Three CVD-safe series with a
+ * legend, endpoint dots, and a hover crosshair + tooltip driven by
+ * invisible per-bucket hit rects (avoids viewBox↔screen coordinate math).
+ */
+function EngagementTimeline({ data }: { data: TimelineData }) {
+  const [hover, setHover] = useState<number | null>(null);
+  const W = 720;
+  const H = 220;
+  const padL = 12;
+  const padR = 12;
+  const padT = 14;
+  const padB = 24;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  const n = data.points.length;
+
+  const x = (i: number) => padL + (n <= 1 ? 0 : (i / (n - 1)) * plotW);
+  const y = (v: number) =>
+    padT + plotH - (data.yMax > 0 ? (v / data.yMax) * plotH : 0);
+  const path = (key: keyof TimelinePoint) =>
+    data.points
+      .map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(p[key]).toFixed(1)}`)
+      .join(' ');
+
+  const hoverPoint = hover != null ? data.points[hover] : null;
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="flex items-center gap-2 text-sm font-medium text-foreground">
+          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          Engagement over time
+        </h3>
+        <div className="flex items-center gap-3">
+          {TIMELINE_SERIES.map((s) => (
+            <span
+              key={s.key}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground"
+            >
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: s.color }}
+                aria-hidden
+              />
+              {s.label}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="relative">
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className="w-full"
+          role="img"
+          aria-label="Cumulative delivered, read, and replied counts over time"
+          onMouseLeave={() => setHover(null)}
+        >
+          {/* Baseline + midline gridlines (recessive) */}
+          {[0, 0.5, 1].map((f) => (
+            <line
+              key={f}
+              x1={padL}
+              x2={W - padR}
+              y1={padT + plotH - f * plotH}
+              y2={padT + plotH - f * plotH}
+              stroke="var(--border)"
+              strokeWidth={1}
+              strokeDasharray={f === 0 ? undefined : '3 4'}
+              opacity={f === 0 ? 0.8 : 0.4}
+            />
+          ))}
+          {/* y-axis end labels */}
+          <text x={padL} y={padT - 4} className="fill-muted-foreground text-[10px]">
+            {data.yMax.toLocaleString()}
+          </text>
+
+          {/* Series lines */}
+          {TIMELINE_SERIES.map((s) => (
+            <path
+              key={s.key}
+              d={path(s.key)}
+              fill="none"
+              stroke={s.color}
+              strokeWidth={2}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+          ))}
+
+          {/* Hover crosshair */}
+          {hover != null && (
+            <line
+              x1={x(hover)}
+              x2={x(hover)}
+              y1={padT}
+              y2={padT + plotH}
+              stroke="var(--muted-foreground)"
+              strokeWidth={1}
+              opacity={0.5}
+            />
+          )}
+
+          {/* Endpoint / hover dots */}
+          {TIMELINE_SERIES.map((s) => {
+            const idx = hover ?? n - 1;
+            return (
+              <circle
+                key={s.key}
+                cx={x(idx)}
+                cy={y(data.points[idx][s.key])}
+                r={3}
+                fill={s.color}
+                stroke="var(--card)"
+                strokeWidth={1.5}
+              />
+            );
+          })}
+
+          {/* Invisible hit targets — one per bucket */}
+          {data.points.map((_, i) => (
+            <rect
+              key={i}
+              x={x(i) - (n > 1 ? plotW / (n - 1) / 2 : plotW / 2)}
+              y={padT}
+              width={n > 1 ? plotW / (n - 1) : plotW}
+              height={plotH}
+              fill="transparent"
+              onMouseEnter={() => setHover(i)}
+            />
+          ))}
+        </svg>
+
+        {/* Tooltip */}
+        {hoverPoint && hover != null && (
+          <div
+            className="pointer-events-none absolute top-0 z-10 -translate-x-1/2 rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-md"
+            style={{ left: `${(x(hover) / W) * 100}%` }}
+          >
+            <p className="mb-1 font-medium text-popover-foreground">
+              {formatTick(data.startMs + ((data.endMs - data.startMs) / (n - 1)) * hover)}
+            </p>
+            {TIMELINE_SERIES.map((s) => (
+              <p
+                key={s.key}
+                className="flex items-center gap-1.5 text-muted-foreground tabular-nums"
+              >
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: s.color }}
+                  aria-hidden
+                />
+                {s.label}: {hoverPoint[s.key].toLocaleString()}
+              </p>
+            ))}
+          </div>
+        )}
+
+        {/* x-axis range labels */}
+        <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
+          <span>{formatTick(data.startMs)}</span>
+          <span>{formatTick(data.endMs)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface ErrorGroup {
+  reason: string;
+  count: number;
+}
+
+/** Top failure reasons as horizontal bars (reserved status colour + labels). */
+function ErrorBreakdown({ groups }: { groups: ErrorGroup[] }) {
+  const max = Math.max(...groups.map((g) => g.count), 1);
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <h3 className="mb-4 flex items-center gap-2 text-sm font-medium text-foreground">
+        <XCircle className="h-4 w-4 text-red-500" />
+        Failure reasons
+      </h3>
+      <div className="space-y-2.5">
+        {groups.map((g) => (
+          <div key={g.reason} className="flex items-center gap-3">
+            <span
+              className="w-48 shrink-0 truncate text-xs text-muted-foreground"
+              title={g.reason}
+            >
+              {g.reason}
+            </span>
+            <div className="relative h-6 flex-1 rounded-md bg-muted">
+              <div
+                className="h-6 rounded-md bg-red-500/80 transition-[width] duration-500"
+                style={{ width: `${Math.max(4, Math.round((g.count / max) * 100))}%` }}
+              />
+              <span className="absolute inset-0 flex items-center px-2 text-xs font-medium text-foreground">
+                {g.count.toLocaleString()}
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -200,6 +531,21 @@ export default function BroadcastDetailPage() {
     [recipients, statusFilter],
   );
 
+  const timeline = useMemo(() => buildTimeline(recipients), [recipients]);
+
+  const errorGroups = useMemo<ErrorGroup[]>(() => {
+    const map = new Map<string, number>();
+    for (const r of recipients) {
+      if (r.status !== 'failed') continue;
+      const reason = r.error_message?.trim() || 'Unknown error';
+      map.set(reason, (map.get(reason) ?? 0) + 1);
+    }
+    return Array.from(map.entries())
+      .map(([reason, count]) => ({ reason, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+  }, [recipients]);
+
   function handleExport() {
     if (!broadcast) return;
     const header = [
@@ -272,7 +618,39 @@ export default function BroadcastDetailPage() {
     { label: 'Sent', value: broadcast.sent_count, color: 'bg-primary' },
     { label: 'Delivered', value: broadcast.delivered_count, color: 'bg-teal-500' },
     { label: 'Read', value: broadcast.read_count, color: 'bg-blue-500' },
-    { label: 'Replied', value: broadcast.replied_count, color: 'bg-indigo-500' },
+    { label: 'Replied', value: broadcast.replied_count, color: 'bg-amber-500' },
+  ];
+
+  // Conversion rates — each relative to the meaningful denominator in the
+  // funnel (delivery of what was sent, opens of what was delivered, etc.),
+  // not raw % of total, so the numbers answer "how well did it perform".
+  const rate = (num: number, den: number) =>
+    den > 0 ? Math.round((num / den) * 100) : 0;
+  const rateTiles: RateTile[] = [
+    {
+      label: 'Delivery rate',
+      pct: rate(broadcast.delivered_count, broadcast.sent_count),
+      detail: `${broadcast.delivered_count.toLocaleString()} of ${broadcast.sent_count.toLocaleString()} sent`,
+      color: SERIES.delivered,
+    },
+    {
+      label: 'Open rate',
+      pct: rate(broadcast.read_count, broadcast.delivered_count),
+      detail: `${broadcast.read_count.toLocaleString()} of ${broadcast.delivered_count.toLocaleString()} delivered`,
+      color: SERIES.read,
+    },
+    {
+      label: 'Response rate',
+      pct: rate(broadcast.replied_count, broadcast.delivered_count),
+      detail: `${broadcast.replied_count.toLocaleString()} of ${broadcast.delivered_count.toLocaleString()} delivered`,
+      color: SERIES.replied,
+    },
+    {
+      label: 'Failure rate',
+      pct: rate(broadcast.failed_count, broadcast.total_recipients),
+      detail: `${broadcast.failed_count.toLocaleString()} of ${broadcast.total_recipients.toLocaleString()} total`,
+      color: SERIES.failed,
+    },
   ];
 
   return (
@@ -400,7 +778,7 @@ export default function BroadcastDetailPage() {
           value={broadcast.replied_count}
           total={broadcast.total_recipients}
           icon={<MessageCircle className="h-4 w-4" />}
-          color="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+          color="bg-amber-500/10 text-amber-600 dark:text-amber-400"
         />
         <StatCard
           label="Failed"
@@ -411,7 +789,30 @@ export default function BroadcastDetailPage() {
         />
       </div>
 
-      <FunnelChart steps={funnelSteps} />
+      {/* Conversion rates */}
+      <RateTiles tiles={rateTiles} />
+
+      {/* Funnel + engagement timeline */}
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <FunnelChart steps={funnelSteps} />
+        {timeline ? (
+          <EngagementTimeline data={timeline} />
+        ) : (
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card p-4 text-center">
+            <TrendingUp className="h-6 w-6 text-muted-foreground/60" />
+            <p className="mt-2 text-sm text-muted-foreground">
+              Not enough delivery timing yet
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              The engagement timeline appears once messages start being
+              delivered and read.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Failure reasons — only when there are failures to explain */}
+      {errorGroups.length > 0 && <ErrorBreakdown groups={errorGroups} />}
 
       {/* Recipients Table */}
       <div className="rounded-xl border border-border bg-card">
