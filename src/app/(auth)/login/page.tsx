@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MessageSquare, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { AuthBrandPanel } from "@/components/auth/brand-panel";
+import { GoogleAuthButton, AuthDivider } from "@/components/auth/google-button";
 
 // `useSearchParams` opts the component out of static prerendering
 // unless it sits under a Suspense boundary. We split the form into
@@ -85,6 +86,11 @@ function LoginPageInner() {
                 ? "Sign in and we'll take you to the invitation."
                 : "Sign in to your account to continue."}
             </p>
+          </div>
+
+          <div className="mb-6 flex flex-col gap-5">
+            <GoogleAuthButton label="Continue with Google" />
+            <AuthDivider />
           </div>
 
           <form onSubmit={handleLogin} className="flex flex-col gap-5">

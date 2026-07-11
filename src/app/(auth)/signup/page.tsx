@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthBrandPanel } from "@/components/auth/brand-panel";
+import { GoogleAuthButton, AuthDivider } from "@/components/auth/google-button";
 import {
   MessageSquare,
   CheckCircle,
@@ -154,6 +155,11 @@ function SignupPageInner() {
                 ? "Verify your email, then accept the invitation to join your team."
                 : "Get started with your WhatsApp CRM in minutes."}
             </p>
+          </div>
+
+          <div className="mb-6 flex flex-col gap-5">
+            <GoogleAuthButton label="Sign up with Google" />
+            <AuthDivider />
           </div>
 
           <form onSubmit={handleSignup} className="flex flex-col gap-5">
