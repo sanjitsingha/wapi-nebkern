@@ -15,6 +15,7 @@ import {
   rateLimitResponse,
   RATE_LIMITS,
 } from '@/lib/rate-limit'
+import { assertActiveSubscription } from '@/lib/billing/guard'
 
 interface BroadcastResult {
   phone: string
@@ -95,6 +96,10 @@ export async function POST(request: Request) {
         { status: 403 },
       )
     }
+
+    // Block broadcasts once the free trial has expired (subscription gate).
+    const blocked = await assertActiveSubscription(supabase, accountId)
+    if (blocked) return blocked
 
     const body = await request.json()
     const {

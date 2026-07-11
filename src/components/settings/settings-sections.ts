@@ -5,10 +5,12 @@ import {
   Phone,
   PlugZap,
   ShoppingBag,
+  Sparkles,
   Store,
   Tags,
   User,
   UsersRound,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -24,11 +26,13 @@ import {
  */
 export const SETTINGS_SECTIONS = [
   'profile',
+  'plan',
   'whatsapp',
   'calling',
   'instagram',
   'business-profile',
   'catalog',
+  'billing',
   'api-access',
   'integrations',
   'fields',
@@ -53,6 +57,12 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     id: 'profile',
     label: 'Profile & security',
     icon: User,
+    group: 'account',
+  },
+  plan: {
+    id: 'plan',
+    label: 'Plan',
+    icon: Sparkles,
     group: 'account',
   },
   whatsapp: {
@@ -83,6 +93,12 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     id: 'catalog',
     label: 'Catalogue',
     icon: ShoppingBag,
+    group: 'workspace',
+  },
+  billing: {
+    id: 'billing',
+    label: 'Billing & usage',
+    icon: Wallet,
     group: 'workspace',
   },
   'api-access': {

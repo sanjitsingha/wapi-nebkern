@@ -7,6 +7,7 @@ import { AvailabilityProvider } from '@/hooks/use-availability';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { PresenceHeartbeat } from '@/components/presence/presence-heartbeat';
+import { TrialBanner } from '@/components/billing/trial-banner';
 
 // Auth-gated dashboard shell. Extracted from the layout so the layout
 // itself can stay a server component and export metadata (noindex) —
@@ -29,6 +30,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
   // lazy initializer) to keep server and first client render in sync.
   const [collapsed, setCollapsed] = useState(false);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCollapsed(localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1');
   }, []);
 
@@ -56,6 +58,8 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
       <PresenceHeartbeat />
       {/* Header spans the full width at the top */}
       <Header onOpenSidebar={() => setSidebarOpen(true)} />
+      {/* Trial/subscription status bar, directly under the header */}
+      <TrialBanner />
       {/* Sidebar + main content side-by-side below the header */}
       <div className="flex flex-1 overflow-hidden">
         <Suspense fallback={null}>

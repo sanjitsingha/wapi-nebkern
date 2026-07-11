@@ -19,6 +19,7 @@ import {
   rateLimitResponse,
   RATE_LIMITS,
 } from '@/lib/rate-limit'
+import { assertActiveSubscription } from '@/lib/billing/guard'
 import type { MessageTemplate } from '@/types'
 import { isMessageTemplate } from '@/lib/whatsapp/template-row-guard'
 
@@ -61,6 +62,10 @@ export async function POST(request: Request) {
         { status: 403 },
       )
     }
+
+    // Block sends once the free trial has expired (subscription gate).
+    const blocked = await assertActiveSubscription(supabase, accountId)
+    if (blocked) return blocked
 
     const body = await request.json()
     const {
