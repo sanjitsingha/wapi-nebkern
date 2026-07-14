@@ -5,6 +5,7 @@ import {
   useRef,
   useCallback,
   useEffect,
+  useMemo,
   KeyboardEvent,
 } from "react";
 import {
@@ -30,7 +31,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useCan } from "@/hooks/use-can";
 import { cn } from "@/lib/utils";
-import type { ConversationChannel } from "@/types";
+import { createClient } from "@/lib/supabase/client";
+import type { ConversationChannel, QuickReply } from "@/types";
 import { toast } from "sonner";
 import {
   uploadAccountMedia,
@@ -129,6 +131,35 @@ export function MessageComposer({
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // ---- Quick replies (migration 052) --------------------------------
+  // Canned snippets expanded by typing `/shortcut` as the whole draft.
+  // Loaded once per mount; if the table doesn't exist yet (migration not
+  // applied) the query errors, the list stays empty, and the `/` menu
+  // simply never opens — no crash.
+  const [quickReplies, setQuickReplies] = useState<
+    Pick<QuickReply, "id" | "shortcut" | "body">[]
+  >([]);
+  const [qrIndex, setQrIndex] = useState(0);
+  // Escape hides the menu without clearing the draft; typing re-opens it.
+  const [qrDismissed, setQrDismissed] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    let cancelled = false;
+    void supabase
+      .from("quick_replies")
+      .select("id, shortcut, body")
+      .order("shortcut", { ascending: true })
+      .then(({ data }) => {
+        if (!cancelled && data) {
+          setQuickReplies(data as Pick<QuickReply, "id" | "shortcut" | "body">[]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // "Draft with AI" — only surfaced when the account has an active AI
   // config (checked once on mount). `drafting` covers the request window.
@@ -271,19 +302,87 @@ export function MessageComposer({
     }
   }, [text, sending, sessionExpired, onSend, replyTo?.id]);
 
+  // The `/` menu is only armed while the WHOLE draft is a bare shortcut
+  // token (`/th`, `/thanks`) — never mid-sentence, so a stray slash in a
+  // real message can't hijack the composer.
+  const qrQuery = useMemo(() => {
+    const m = /^\/([A-Za-z0-9_-]*)$/.exec(text);
+    return m ? m[1].toLowerCase() : null;
+  }, [text]);
+
+  const qrMatches = useMemo(() => {
+    if (qrQuery === null) return [];
+    return quickReplies
+      .filter((r) => r.shortcut.toLowerCase().startsWith(qrQuery))
+      .slice(0, 8);
+  }, [qrQuery, quickReplies]);
+
+  const qrOpen =
+    qrQuery !== null &&
+    qrMatches.length > 0 &&
+    !qrDismissed &&
+    !readOnly &&
+    !sessionExpired;
+  // Clamp: qrIndex is reset on every keystroke, but the list can shrink
+  // between renders, so never index past the end.
+  const qrActive = Math.min(qrIndex, qrMatches.length - 1);
+
+  const applyQuickReply = useCallback(
+    (reply: Pick<QuickReply, "id" | "shortcut" | "body">) => {
+      setText(reply.body);
+      setQrIndex(0);
+      setQrDismissed(false);
+      // Let the value land before measuring, then restore focus/caret.
+      requestAnimationFrame(() => {
+        textareaRef.current?.focus();
+        adjustHeight();
+      });
+    },
+    [adjustHeight]
+  );
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      // Quick-reply menu owns these keys while it's open — checked before
+      // the Enter-to-send branch so Enter picks the highlighted snippet
+      // instead of sending "/thanks" literally.
+      if (qrOpen) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setQrIndex((i) => (i + 1) % qrMatches.length);
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setQrIndex((i) => (i - 1 + qrMatches.length) % qrMatches.length);
+          return;
+        }
+        if (e.key === "Enter" || e.key === "Tab") {
+          e.preventDefault();
+          applyQuickReply(qrMatches[qrActive]);
+          return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setQrDismissed(true);
+          return;
+        }
+      }
+
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         handleSend();
       }
     },
-    [handleSend]
+    [handleSend, qrOpen, qrMatches, qrActive, applyQuickReply]
   );
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setText(e.target.value);
+      // Any edit re-arms the menu and resets the highlight to the top.
+      setQrIndex(0);
+      setQrDismissed(false);
       adjustHeight();
     },
     [adjustHeight]
@@ -444,7 +543,40 @@ export function MessageComposer({
   // ---- Render --------------------------------------------------------
 
   return (
-    <div className="border-t border-border bg-card p-3">
+    <div className="relative border-t border-border bg-card p-3">
+      {/* Quick-reply menu — floats above the composer while the draft is a
+          bare `/shortcut` token. Mouse hover mirrors keyboard highlight. */}
+      {qrOpen && (
+        <div className="absolute right-3 bottom-full left-3 z-20 mb-2 overflow-hidden rounded-xl border border-border bg-popover shadow-lg">
+          <ul className="max-h-56 overflow-y-auto py-1 scrollbar-thin">
+            {qrMatches.map((r, i) => (
+              <li key={r.id}>
+                <button
+                  type="button"
+                  onMouseEnter={() => setQrIndex(i)}
+                  onMouseDown={(e) => e.preventDefault()} // keep textarea focus
+                  onClick={() => applyQuickReply(r)}
+                  className={cn(
+                    "flex w-full items-start gap-2 px-3 py-2 text-left transition-colors",
+                    i === qrActive ? "bg-muted" : "hover:bg-muted/60"
+                  )}
+                >
+                  <code className="mt-0.5 shrink-0 rounded bg-primary-soft px-1.5 py-0.5 text-[11px] font-medium text-primary">
+                    /{r.shortcut}
+                  </code>
+                  <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                    {r.body}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="border-t border-border px-3 py-1.5 text-[10px] text-muted-foreground">
+            ↑↓ to navigate · Enter to insert · Esc to dismiss
+          </div>
+        </div>
+      )}
+
       {replyTo && (
         <div className="mb-2">
           <ReplyQuote
@@ -653,7 +785,7 @@ export function MessageComposer({
       {/* Hint sits outside the flex row so its height doesn't push
           `items-end` buttons below the textarea. Indented to line up
           under the textarea left edge. */}
-      {!draft && !recording && (
+      {!draft && !recording && quickReplies.length > 0 && (
         <p className="mt-1 pl-[5.5rem] text-[10px] text-muted-foreground">
           Type &apos;/&apos; for quick replies
         </p>

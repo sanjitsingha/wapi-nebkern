@@ -2,6 +2,7 @@ import {
   AtSign,
   Coins,
   KeyRound,
+  MessageSquareText,
   Phone,
   PlugZap,
   ShoppingBag,
@@ -31,6 +32,7 @@ export const SETTINGS_SECTIONS = [
   'calling',
   'instagram',
   'business-profile',
+  'quick-replies',
   'catalog',
   'billing',
   'api-access',
@@ -87,6 +89,12 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     id: 'business-profile',
     label: 'Business Profile',
     icon: Store,
+    group: 'workspace',
+  },
+  'quick-replies': {
+    id: 'quick-replies',
+    label: 'Quick replies',
+    icon: MessageSquareText,
     group: 'workspace',
   },
   catalog: {

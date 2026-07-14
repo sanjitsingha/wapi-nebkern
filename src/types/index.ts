@@ -616,6 +616,28 @@ export interface BroadcastRecipient {
 }
 
 // ============================================================
+// Quick replies (migration 052)
+// ============================================================
+
+/**
+ * A canned agent reply, expanded in the composer by typing `/shortcut`.
+ * Account-scoped and shared across the team. Unrelated to Meta's template
+ * QUICK_REPLY *button* type — these are plain text, never sent to Meta as
+ * a template.
+ */
+export interface QuickReply {
+  id: string;
+  account_id: string;
+  /** Creator (audit only); null once that user is deleted. */
+  user_id: string | null;
+  /** Token typed after '/'. Matches ^[A-Za-z0-9_-]{1,32}$, unique per account. */
+  shortcut: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
 // Automations (migration 006)
 // ============================================================
 
