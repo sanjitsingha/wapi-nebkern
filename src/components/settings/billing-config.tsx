@@ -263,6 +263,9 @@ export function BillingConfig() {
             </Button>
             <Button
               variant="outline"
+              // Rendering as an <a>, not a native <button> — base-ui needs
+              // this flag or it warns about losing button semantics.
+              nativeButton={false}
               render={
                 <a
                   href={WHATSAPP_MANAGER_URL}

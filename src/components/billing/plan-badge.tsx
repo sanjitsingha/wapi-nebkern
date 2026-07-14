@@ -17,7 +17,8 @@ const TIER_LABELS: Record<string, string> = {
 
 /**
  * Compact plan/trial pill for the header, beside the notification bell.
- * Clickable → Settings → Plan. Self-fetches from the tolerant
+ * Clickable → Settings → Profile, where the Plan section lives.
+ * Self-fetches from the tolerant
  * /api/account/subscription endpoint (fails open pre-migration → renders
  * "Active"), so it can never break the header.
  */
@@ -63,7 +64,7 @@ export function PlanBadge() {
 
   return (
     <Link
-      href="/settings/plan"
+      href="/settings/profile"
       title="View plan"
       aria-label={`Plan: ${label}`}
       className={cn(

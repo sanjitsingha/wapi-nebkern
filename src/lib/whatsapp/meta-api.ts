@@ -167,6 +167,48 @@ async function metaFetch(
 // Phone number / account
 // ============================================================
 
+export interface PhoneHealth {
+  /** GREEN | YELLOW | RED | UNKNOWN — Meta's rolling quality signal. */
+  qualityRating: string | null
+  /** TIER_50 | TIER_250 | TIER_1K | TIER_10K | TIER_100K | TIER_UNLIMITED. */
+  messagingLimitTier: string | null
+}
+
+/**
+ * Read the number's health signals: quality rating + messaging limit tier.
+ *
+ * Deliberately SEPARATE from verifyPhoneNumber() even though both hit the
+ * phone-number node. verifyPhoneNumber guards the config save/verify path;
+ * if Meta ever rejected `messaging_limit_tier` as a field there, connecting
+ * WhatsApp at all would break. Keeping this isolated means a bad field only
+ * costs us the header badges, not onboarding.
+ *
+ * Callers treat any failure as "unknown" rather than an error.
+ */
+export async function getPhoneHealth(args: {
+  phoneNumberId: string
+  accessToken: string
+}): Promise<PhoneHealth> {
+  const { phoneNumberId, accessToken } = args
+  const url = `${META_API_BASE}/${phoneNumberId}?fields=quality_rating,messaging_limit_tier`
+  const response = await metaFetch(
+    url,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+    { op: 'getPhoneHealth' },
+  )
+  if (!response.ok) {
+    await throwMetaError(response, `Meta API error: ${response.status}`)
+  }
+  const data = (await response.json()) as {
+    quality_rating?: string
+    messaging_limit_tier?: string
+  }
+  return {
+    qualityRating: data.quality_rating ?? null,
+    messagingLimitTier: data.messaging_limit_tier ?? null,
+  }
+}
+
 export interface VerifyPhoneNumberArgs {
   phoneNumberId: string
   accessToken: string

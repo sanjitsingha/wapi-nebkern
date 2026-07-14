@@ -1,14 +1,10 @@
 import {
   AtSign,
-  Coins,
   KeyRound,
-  MessageSquareText,
   Phone,
   PlugZap,
-  ShoppingBag,
-  Sparkles,
+  SlidersHorizontal,
   Store,
-  Tags,
   User,
   UsersRound,
   Wallet,
@@ -27,18 +23,14 @@ import {
  */
 export const SETTINGS_SECTIONS = [
   'profile',
-  'plan',
   'whatsapp',
   'calling',
   'instagram',
   'business-profile',
-  'quick-replies',
-  'catalog',
   'billing',
   'api-access',
   'integrations',
-  'fields',
-  'deals',
+  'customization',
   'members',
 ] as const;
 
@@ -57,14 +49,8 @@ export interface SectionMeta {
 export const SECTION_META: Record<SettingsSection, SectionMeta> = {
   profile: {
     id: 'profile',
-    label: 'Profile & security',
+    label: 'Profile',
     icon: User,
-    group: 'account',
-  },
-  plan: {
-    id: 'plan',
-    label: 'Plan',
-    icon: Sparkles,
     group: 'account',
   },
   whatsapp: {
@@ -91,18 +77,6 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     icon: Store,
     group: 'workspace',
   },
-  'quick-replies': {
-    id: 'quick-replies',
-    label: 'Quick replies',
-    icon: MessageSquareText,
-    group: 'workspace',
-  },
-  catalog: {
-    id: 'catalog',
-    label: 'Catalogue',
-    icon: ShoppingBag,
-    group: 'workspace',
-  },
   billing: {
     id: 'billing',
     label: 'Billing & usage',
@@ -121,16 +95,10 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     icon: PlugZap,
     group: 'workspace',
   },
-  fields: {
-    id: 'fields',
-    label: 'Fields & tags',
-    icon: Tags,
-    group: 'workspace',
-  },
-  deals: {
-    id: 'deals',
-    label: 'Deals & currency',
-    icon: Coins,
+  customization: {
+    id: 'customization',
+    label: 'Customization',
+    icon: SlidersHorizontal,
     group: 'workspace',
   },
   members: {
@@ -160,13 +128,23 @@ export function sectionHref(section: SettingsSection): string {
 
 /**
  * Resolve a raw `?tab=` value to a section. Legacy tabs collapse onto
- * their new homes (Tags + Custom fields → "Fields & tags"; Security and
- * the removed Overview → "Profile & security"). Anything unknown falls
- * back to the default section.
+ * their new homes:
+ *   - Tags / Custom fields / Fields / Deals → "Customization" (tabs)
+ *   - Security / Overview / Plan            → "Profile" (Plan is a card there)
+ *   - Quick replies / Catalogue             → "Business Profile" (tabs)
+ * Anything unknown falls back to the default section.
  */
 export function resolveSection(raw: string | null): SettingsSection {
-  if (raw === 'tags' || raw === 'custom-fields') return 'fields';
-  if (raw === 'security' || raw === 'overview') return 'profile';
+  if (
+    raw === 'tags' ||
+    raw === 'custom-fields' ||
+    raw === 'fields' ||
+    raw === 'deals'
+  ) {
+    return 'customization';
+  }
+  if (raw === 'security' || raw === 'overview' || raw === 'plan') return 'profile';
+  if (raw === 'quick-replies' || raw === 'catalog') return 'business-profile';
   if (isSection(raw)) return raw;
   return DEFAULT_SECTION;
 }

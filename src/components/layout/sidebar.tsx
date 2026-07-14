@@ -103,10 +103,11 @@ const groups: NavGroup[] = [
     children: [
       { label: 'Pipelines', icon: GitBranch, href: '/pipelines' },
       {
+        // Deals & currency now lives as a tab inside Settings → Customization.
         label: 'Deals',
         icon: Coins,
-        href: '/settings/deals',
-        tab: 'deals',
+        href: '/settings/customization?tab=deals',
+        tab: 'customization',
       },
     ],
   },

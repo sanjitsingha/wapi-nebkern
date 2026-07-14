@@ -3,8 +3,19 @@
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useAvailability } from '@/hooks/use-availability';
-import { useWhatsAppInfo } from '@/hooks/use-whatsapp-info';
-import { Menu, MessageSquare, Settings as SettingsIcon, MessageCircle } from 'lucide-react';
+import {
+  useWhatsAppInfo,
+  qualityRatingLabel,
+  messagingTierLabel,
+} from '@/hooks/use-whatsapp-info';
+import {
+  Menu,
+  MessageSquare,
+  Settings as SettingsIcon,
+  MessageCircle,
+  Gauge,
+  ShieldCheck,
+} from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -26,6 +37,11 @@ export function Header({ onOpenSidebar }: HeaderProps) {
   const { profile } = useAuth();
   const { available, setAvailable } = useAvailability();
   const waInfo = useWhatsAppInfo();
+
+  // Meta health signals. Both resolve to null when Meta didn't return them
+  // (or the health call failed), in which case the rows are omitted.
+  const quality = qualityRatingLabel(waInfo?.quality_rating);
+  const tier = messagingTierLabel(waInfo?.messaging_limit_tier);
 
   const initial =
     profile?.full_name?.charAt(0)?.toUpperCase() ??
@@ -144,6 +160,37 @@ export function Header({ onOpenSidebar }: HeaderProps) {
                 <span className="ml-auto shrink-0 rounded-full bg-[#25D366]/10 px-1.5 py-0.5 text-[10px] font-medium text-[#25D366]">
                   Connected
                 </span>
+              </div>
+            )}
+
+            {/* Meta health signals for the number. Each row only renders once
+                Meta actually returns it — /api/whatsapp/phone-health degrades
+                to "unknown" silently, so a missing row means "not available",
+                never an error. */}
+            {waInfo && (quality || tier) && (
+              <div className="mx-1 mt-1 rounded-lg border border-border px-2.5 py-2">
+                {tier && (
+                  <div className="flex items-center justify-between gap-3 py-0.5">
+                    <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Gauge className="h-3.5 w-3.5" />
+                      Messaging tier
+                    </span>
+                    <span className="text-xs font-medium text-foreground tabular-nums">
+                      {tier}
+                    </span>
+                  </div>
+                )}
+                {quality && (
+                  <div className="flex items-center justify-between gap-3 py-0.5">
+                    <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      Quality rating
+                    </span>
+                    <span className={`text-xs font-medium ${quality.tone}`}>
+                      {quality.label}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </DropdownMenuContent>
