@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProfileForm } from '@/components/settings/profile-form';
 import { PlanSection } from '@/components/settings/plan-config';
 import { PasswordForm } from '@/components/settings/password-form';
+import { ConnectedAccountsCard } from '@/components/settings/connected-accounts-card';
 import { SessionsCard } from '@/components/settings/sessions-card';
 
 const TABS = ['profile', 'plan', 'security'] as const;
@@ -49,6 +50,7 @@ function ProfilePageInner() {
       <TabsContent value="security">
         <div className="flex flex-col gap-6">
           <PasswordForm />
+          <ConnectedAccountsCard />
           <SessionsCard />
         </div>
       </TabsContent>

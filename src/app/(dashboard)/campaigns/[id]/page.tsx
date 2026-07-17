@@ -38,12 +38,14 @@ import {
   CircleDot,
   TrendingUp,
   XCircle,
+  CalendarClock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   getBroadcastStatus,
   getRecipientStatus,
 } from '@/lib/broadcast-status';
+import { DeleteCampaignDialog } from '@/components/broadcasts/delete-campaign-dialog';
 
 interface StatCardProps {
   label: string;
@@ -667,13 +669,28 @@ export default function BroadcastDetailPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-2xl font-bold text-foreground">{broadcast.name}</h1>
-              <span
-                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${status.classes}`}
-              >
-                {status.label}
-              </span>
+              {broadcast.status === 'scheduled' && broadcast.scheduled_at ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300">
+                  <CalendarClock className="h-3.5 w-3.5" />
+                  Scheduled
+                  <span className="text-blue-400 dark:text-blue-500/70">|</span>
+                  {new Date(broadcast.scheduled_at).toLocaleString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              ) : (
+                <span
+                  className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${status.classes}`}
+                >
+                  {status.label}
+                </span>
+              )}
             </div>
             <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
               <span>Template: {broadcast.template_name}</span>
@@ -698,50 +715,35 @@ export default function BroadcastDetailPage() {
             </Button>
           )}
 
-        {/* Delete — inline-confirm pattern matches the pipeline-settings
-            "Delete Pipeline" flow. Mid-send broadcasts can't be deleted
-            because orphaning in-flight Meta messages would leave the
+        {/* Delete — type-to-confirm modal. Mid-send broadcasts can't be
+            deleted because orphaning in-flight Meta messages would leave the
             funnel inconsistent. */}
-        {confirmDelete ? (
-          <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-sm dark:border-red-500/30 dark:bg-red-500/10">
-            <span className="text-red-700 dark:text-red-300">Delete this campaign?</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setConfirmDelete(false)}
-              disabled={deleting}
-              className="h-7 border-border bg-transparent text-muted-foreground hover:bg-muted"
-            >
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleDelete}
-              disabled={deleting}
-              className="h-7 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-            >
-              {deleting ? 'Deleting…' : 'Confirm'}
-            </Button>
-          </div>
-        ) : (
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={broadcast.status === 'sending'}
-            onClick={() => setConfirmDelete(true)}
-            title={
-              broadcast.status === 'sending'
-                ? 'Cannot delete while a campaign is actively sending'
-                : 'Delete this campaign'
-            }
-            className="border-red-200 bg-transparent text-red-700 hover:bg-red-50 disabled:opacity-40 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            Delete
-          </Button>
-        )}
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={broadcast.status === 'sending'}
+          onClick={() => setConfirmDelete(true)}
+          title={
+            broadcast.status === 'sending'
+              ? 'Cannot delete while a campaign is actively sending'
+              : 'Delete this campaign'
+          }
+          className="border-red-200 bg-transparent text-red-700 hover:bg-red-50 disabled:opacity-40 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          Delete
+        </Button>
         </div>
       </div>
+
+      <DeleteCampaignDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        campaignName={broadcast.name}
+        statusLabel={status.label}
+        onConfirm={handleDelete}
+        deleting={deleting}
+      />
 
       {/* Stats — 6 cards: Total / Sent / Delivered / Read / Replied / Failed */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">

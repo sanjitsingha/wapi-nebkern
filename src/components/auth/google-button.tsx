@@ -49,7 +49,7 @@ export function AuthDivider({ label = "or" }: { label?: string }) {
 }
 
 /** Official multicolor Google "G" mark. Inlined so it needs no asset. */
-function GoogleIcon() {
+export function GoogleIcon() {
   return (
     <svg className="size-4.5" viewBox="0 0 48 48" aria-hidden="true">
       <path

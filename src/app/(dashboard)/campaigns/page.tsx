@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Broadcast, MessageTemplate } from '@/types';
+import { Broadcast } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -40,6 +40,7 @@ import {
 import { FaWhatsapp } from 'react-icons/fa';
 import { useCan } from '@/hooks/use-can';
 import { GatedButton } from '@/components/ui/gated-button';
+import { TemplatePickerDialog } from '@/components/broadcasts/template-picker-dialog';
 import { getBroadcastStatus } from '@/lib/broadcast-status';
 import {
   sortBroadcastsByDate,
@@ -97,6 +98,7 @@ function isDraftBroadcast(broadcast: Broadcast) {
 export default function BroadcastsPage() {
   const router = useRouter();
   const canCreate = useCan('send-messages');
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [activeTab, setActiveTab] = useState<BroadcastTab>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -307,7 +309,7 @@ export default function BroadcastsPage() {
           <GatedButton
             canAct={canCreate}
             gateReason="create campaigns"
-            onClick={() => router.push('/campaigns/new')}
+            onClick={() => setTemplatePickerOpen(true)}
             className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 gap-2"
           >
             <FaWhatsapp className="h-4 w-4" />
@@ -424,7 +426,7 @@ export default function BroadcastsPage() {
           <GatedButton
             canAct={canCreate}
             gateReason="create campaigns"
-            onClick={() => router.push('/campaigns/new')}
+            onClick={() => setTemplatePickerOpen(true)}
             className="bg-primary text-primary-foreground hover:bg-primary/90 mt-4 h-11 gap-2"
           >
             <FaWhatsapp className="h-4 w-4" />
@@ -535,6 +537,15 @@ export default function BroadcastsPage() {
           </Table>
         </div>
       )}
+
+      <TemplatePickerDialog
+        open={templatePickerOpen}
+        onOpenChange={setTemplatePickerOpen}
+        onConfirm={(template) => {
+          setTemplatePickerOpen(false);
+          router.push(`/campaigns/new?template=${encodeURIComponent(template.id)}`);
+        }}
+      />
     </div>
   );
 }

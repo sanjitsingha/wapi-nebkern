@@ -14,7 +14,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Send, Loader2, Users, Save } from 'lucide-react';
+import { ScheduleBroadcastDialog } from '@/components/broadcasts/schedule-broadcast-dialog';
+import { ArrowLeft, Send, Loader2, Users, Save, CalendarClock } from 'lucide-react';
 
 interface AudienceConfig {
   type: string;
@@ -29,6 +30,13 @@ interface Step4Props {
   audience: AudienceConfig;
   onSend: () => void;
   onSaveDraft?: () => void;
+  /**
+   * Persist a scheduled send. When provided, a "Schedule" button appears
+   * next to "Send Broadcast". Must resolve on success / throw on failure.
+   */
+  onSchedule?: (scheduledAtIso: string) => Promise<void>;
+  /** Primary action on the schedule success screen (e.g. go to campaigns). */
+  onScheduleDone?: () => void;
   onBack?: () => void;
   isProcessing: boolean;
   progress: number;
@@ -42,12 +50,15 @@ export function Step4ScheduleSend({
   audience,
   onSend,
   onSaveDraft,
+  onSchedule,
+  onScheduleDone,
   onBack,
   isProcessing,
   progress,
   embedded = false,
 }: Step4Props) {
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showSchedule, setShowSchedule] = useState(false);
   const [estimatedReach, setEstimatedReach] = useState<number>(0);
   const [loadingReach, setLoadingReach] = useState(true);
 
@@ -195,6 +206,18 @@ export function Step4ScheduleSend({
             </Button>
           )}
 
+          {onSchedule && (
+            <Button
+              variant="outline"
+              onClick={() => setShowSchedule(true)}
+              disabled={!name.trim() || isProcessing}
+              className="border-border text-foreground hover:bg-muted disabled:opacity-50"
+            >
+              <CalendarClock className="h-4 w-4" />
+              Schedule
+            </Button>
+          )}
+
           <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
           <DialogTrigger
             render={
@@ -241,6 +264,19 @@ export function Step4ScheduleSend({
         </Dialog>
         </div>
       </div>
+
+      {onSchedule && (
+        <ScheduleBroadcastDialog
+          open={showSchedule}
+          onOpenChange={setShowSchedule}
+          campaignName={name}
+          templateName={template.name}
+          estimatedReach={estimatedReach}
+          disabled={isProcessing}
+          onSchedule={onSchedule}
+          onDone={onScheduleDone}
+        />
+      )}
     </div>
   );
 }

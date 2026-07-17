@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { FileText } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 import { MessageTemplate } from '@/types';
-import { Step1ChooseTemplate } from '@/components/broadcasts/step1-choose-template';
+import { TemplatePickerDialog } from '@/components/broadcasts/template-picker-dialog';
 import { Step2SelectAudience } from '@/components/broadcasts/step2-select-audience';
 import { Step3Personalize } from '@/components/broadcasts/step3-personalize';
 import { Step4ScheduleSend } from '@/components/broadcasts/step4-schedule-send';
@@ -46,13 +47,15 @@ export default function NewBroadcastPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const draftId = searchParams.get('draft');
+  const templateId = searchParams.get('template');
   const { accountId } = useAuth();
-  const { createAndSendBroadcast, isProcessing, progress } =
+  const { createAndSendBroadcast, createScheduledBroadcast, isProcessing, progress } =
     useBroadcastSending();
   const waInfo = useWhatsAppInfo();
 
   const [openSections, setOpenSections] = useState<string[]>([...SECTIONS]);
   const [template, setTemplate] = useState<MessageTemplate | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [audience, setAudience] = useState<{
     type: 'all' | 'tags' | 'custom_field' | 'segment' | 'csv';
     tagIds?: string[];
@@ -115,6 +118,26 @@ export default function NewBroadcastPage() {
     loadDraft();
   }, [draftId]);
 
+  // Preselect the template passed from the campaign list's picker
+  // (`/campaigns/new?template=<id>`). Applied once, so re-choosing via the
+  // "Browse templates" button below isn't clobbered by the stale URL param.
+  // Drafts win — they load their own template above.
+  const templateParamApplied = useRef(false);
+  useEffect(() => {
+    if (draftId || !templateId || templateParamApplied.current) return;
+    templateParamApplied.current = true;
+    async function loadTemplate() {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('message_templates')
+        .select('*')
+        .eq('id', templateId)
+        .maybeSingle();
+      if (data) setTemplate(data as MessageTemplate);
+    }
+    loadTemplate();
+  }, [templateId, draftId]);
+
   const unmappedVariableCount = useMemo(() => {
     if (!template) return 0;
     const placeholders = template.body_text.match(/\{\{(\d+)\}\}/g);
@@ -154,6 +177,34 @@ export default function NewBroadcastPage() {
       const message = err instanceof Error ? err.message : 'Broadcast failed';
       console.error('Broadcast failed:', err);
       toast.error(message);
+    }
+  }
+
+  async function handleSchedule(scheduledAtIso: string) {
+    if (!template) throw new Error('Choose a template first.');
+
+    // Let errors propagate — the schedule dialog surfaces them inline
+    // and stays on its form instead of switching to the success screen.
+    await createScheduledBroadcast(
+      {
+        name,
+        template,
+        audience: {
+          type: audience.type,
+          tagIds: audience.tagIds,
+          customField: audience.customField,
+          segmentId: audience.segmentId,
+          csvContacts: audience.csvContacts,
+          excludeTagIds: audience.excludeTagIds,
+        },
+        variables,
+      },
+      scheduledAtIso,
+    );
+
+    if (draftId) {
+      const supabase = createClient();
+      await supabase.from('broadcasts').delete().eq('id', draftId);
     }
   }
 
@@ -274,11 +325,39 @@ export default function NewBroadcastPage() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pb-4">
-                  <Step1ChooseTemplate
-                    embedded
-                    selectedTemplate={template}
-                    onSelect={setTemplate}
-                  />
+                  <div className="flex flex-col gap-4">
+                    {template ? (
+                      <div className="rounded-xl border border-border bg-card/50 p-4">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-medium text-foreground">
+                            {template.name}
+                          </h3>
+                          <span className="border-border bg-muted text-muted-foreground inline-flex rounded-full border px-2 py-0.5 text-[10px]">
+                            {template.category}
+                          </span>
+                        </div>
+                        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                          {template.body_text}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="rounded-xl border border-dashed border-border bg-card/50 p-6 text-center">
+                        <FileText className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          No template selected yet.
+                        </p>
+                      </div>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setPickerOpen(true)}
+                      className="self-start gap-2"
+                    >
+                      <FileText className="h-4 w-4" />
+                      {template ? 'Browse templates' : 'Choose a template'}
+                    </Button>
+                  </div>
                 </AccordionContent>
               </AccordionItem>
 
@@ -363,6 +442,8 @@ export default function NewBroadcastPage() {
                       audience={audience}
                       onSend={handleSend}
                       onSaveDraft={handleSaveDraft}
+                      onSchedule={handleSchedule}
+                      onScheduleDone={() => router.push('/campaigns')}
                       isProcessing={isProcessing}
                       progress={progress}
                     />
@@ -385,6 +466,17 @@ export default function NewBroadcastPage() {
           />
         </aside>
       </div>
+
+      <TemplatePickerDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        initialTemplate={template}
+        confirmLabel="Use template"
+        onConfirm={(picked) => {
+          setTemplate(picked);
+          setPickerOpen(false);
+        }}
+      />
     </div>
   );
 }

@@ -638,6 +638,57 @@ export interface QuickReply {
 }
 
 // ============================================================
+// Support tickets (migration 053)
+// ============================================================
+
+export type SupportTicketCategory =
+  | 'general'
+  | 'billing'
+  | 'technical'
+  | 'feature'
+  | 'other';
+
+export type SupportTicketPriority = 'low' | 'normal' | 'high';
+
+export type SupportTicketStatus = 'open' | 'pending' | 'resolved' | 'closed';
+
+/** Who wrote a ticket message — the customer, or the product support team. */
+export type SupportMessageAuthorRole = 'user' | 'support';
+
+/**
+ * An in-app support ticket. Account-scoped and shared across the team.
+ * The unread signal compares `last_support_reply_at` against
+ * `user_last_read_at` (both maintained by migration 053).
+ */
+export interface SupportTicket {
+  id: string;
+  account_id: string;
+  /** Creator (audit only); null once that user is deleted. */
+  user_id: string | null;
+  subject: string;
+  category: SupportTicketCategory;
+  priority: SupportTicketPriority;
+  status: SupportTicketStatus;
+  last_message_at: string | null;
+  last_support_reply_at: string | null;
+  user_last_read_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** One message in a support ticket thread. */
+export interface SupportTicketMessage {
+  id: string;
+  ticket_id: string;
+  account_id: string;
+  author_role: SupportMessageAuthorRole;
+  /** Author (audit only); null for support messages / deleted users. */
+  user_id: string | null;
+  body: string;
+  created_at: string;
+}
+
+// ============================================================
 // Automations (migration 006)
 // ============================================================
 
