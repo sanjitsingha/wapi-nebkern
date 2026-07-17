@@ -34,10 +34,37 @@ function LoginPageInner() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Seed the error from the query so an OAuth failure bounced back from
+  // /auth/callback (e.g. the user cancelled Google consent) is shown.
+  const [error, setError] = useState<string | null>(
+    searchParams.get("error"),
+  );
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+
+  const handleGoogle = async () => {
+    setError(null);
+    setGoogleLoading(true);
+    // Carry the invite token through the OAuth round-trip so the user lands
+    // on the join page after Google sends them back, not /dashboard.
+    const next = inviteToken
+      ? `/join/${encodeURIComponent(inviteToken)}`
+      : "/dashboard";
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      },
+    });
+    // On success the browser is already navigating to Google; we only reach
+    // here if the request itself failed to start.
+    if (error) {
+      setError(error.message);
+      setGoogleLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,7 +116,11 @@ function LoginPageInner() {
           </div>
 
           <div className="mb-6 flex flex-col gap-5">
-            <GoogleAuthButton label="Continue with Google" />
+            <GoogleAuthButton
+              label="Continue with Google"
+              onClick={handleGoogle}
+              disabled={googleLoading || loading}
+            />
             <AuthDivider />
           </div>
 

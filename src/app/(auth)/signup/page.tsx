@@ -45,8 +45,29 @@ function SignupPageInner() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const supabase = createClient();
+
+  const handleGoogle = async () => {
+    setError(null);
+    setGoogleLoading(true);
+    // Carry the invite token through so a Google sign-up started from an
+    // invite link lands on the join page afterwards.
+    const next = inviteToken
+      ? `/join/${encodeURIComponent(inviteToken)}`
+      : "/dashboard";
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      },
+    });
+    if (error) {
+      setError(error.message);
+      setGoogleLoading(false);
+    }
+  };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,7 +179,11 @@ function SignupPageInner() {
           </div>
 
           <div className="mb-6 flex flex-col gap-5">
-            <GoogleAuthButton label="Sign up with Google" />
+            <GoogleAuthButton
+              label="Sign up with Google"
+              onClick={handleGoogle}
+              disabled={googleLoading || loading}
+            />
             <AuthDivider />
           </div>
 

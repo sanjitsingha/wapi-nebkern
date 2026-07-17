@@ -6,14 +6,15 @@ interface GoogleAuthButtonProps {
   /** Button text — e.g. "Continue with Google" / "Sign up with Google". */
   label?: string;
   disabled?: boolean;
-  /** Wired to Supabase OAuth in a later step; unset for now (UI only). */
+  /** Starts the Supabase Google OAuth flow — supplied by the login/signup
+   *  page (`supabase.auth.signInWithOAuth({ provider: 'google' })`). */
   onClick?: () => void;
 }
 
 /**
- * "Continue with Google" button for the auth screens. Purely presentational
- * right now — the actual `supabase.auth.signInWithOAuth({ provider: 'google' })`
- * call gets wired up in a follow-up step.
+ * "Continue with Google" button for the auth screens. The OAuth call itself
+ * lives on the page (it needs the invite-token context) and is passed in via
+ * `onClick`; this component is the presentation + the Google mark.
  */
 export function GoogleAuthButton({
   label = "Continue with Google",
