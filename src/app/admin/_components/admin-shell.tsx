@@ -8,6 +8,7 @@ import {
   UserCog,
   CreditCard,
   Bell,
+  Megaphone,
   MonitorPlay,
   LifeBuoy,
   LogOut,
@@ -24,6 +25,7 @@ const NAV = [
   { label: 'Users', href: '/admin/users', icon: UserCog },
   { label: 'Plans', href: '/admin/plans', icon: CreditCard },
   { label: 'Notifications', href: '/admin/notifications', icon: Bell },
+  { label: 'Announcements', href: '/admin/announcements', icon: Megaphone },
   { label: 'Popups', href: '/admin/popups', icon: MonitorPlay },
   { label: 'Tickets', href: '/admin/tickets', icon: LifeBuoy },
 ] as const;

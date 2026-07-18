@@ -9,6 +9,7 @@ import { Header } from '@/components/layout/header';
 import { PresenceHeartbeat } from '@/components/presence/presence-heartbeat';
 import { TrialBanner } from '@/components/billing/trial-banner';
 import { AppPopup } from '@/components/layout/app-popup';
+import { AnnouncementBar } from '@/components/layout/announcement-bar';
 
 // Auth-gated dashboard shell. Extracted from the layout so the layout
 // itself can stay a server component and export metadata (noindex) —
@@ -60,7 +61,9 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
       <AppPopup />
       {/* Header spans the full width at the top */}
       <Header onOpenSidebar={() => setSidebarOpen(true)} />
-      {/* Trial/subscription status bar, directly under the header */}
+      {/* Admin-managed announcement bar, directly under the navbar */}
+      <AnnouncementBar />
+      {/* Trial/subscription status bar, below the announcement bar */}
       <TrialBanner />
       {/* Sidebar + main content side-by-side below the header */}
       <div className="flex flex-1 overflow-hidden">
