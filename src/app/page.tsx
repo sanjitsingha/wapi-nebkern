@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
-  MessageSquare,
   Inbox,
   Send,
   Users,
@@ -13,7 +12,11 @@ import {
   Quote,
   Image as ImageIcon,
 } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
+import { publicDb } from '@/lib/blog';
+import { formatMoney } from '@/lib/billing/plans';
+import { SiteHeader, SiteFooter } from '@/components/marketing/site-chrome';
 
 // The public marketing landing page. Unlike the rest of the app (which
 // is noindex — it's a private product surface), this page is the front
@@ -25,6 +28,9 @@ export const metadata: Metadata = {
     'Run every customer conversation, broadcast campaign, and follow-up from one shared inbox — on the official WhatsApp Business API. Self-hostable and easy to set up.',
   robots: { index: true, follow: true },
 };
+
+// Pricing is read live from billing_plans — refresh every 5 minutes.
+export const revalidate = 300;
 
 const btnPrimary =
   'inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary-hover';
@@ -42,58 +48,13 @@ export default function LandingPage() {
         <Features />
         <Spotlights />
         <HowItWorks />
-        <Testimonial />
+        <Pricing />
+        <Testimonials />
+        <Faq />
         <FinalCta />
       </main>
       <SiteFooter />
     </div>
-  );
-}
-
-/* ─── Header ──────────────────────────────────────────────────────── */
-
-function SiteHeader() {
-  return (
-    <header className="border-border/70 bg-background/80 sticky top-0 z-50 border-b backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-lg">
-            <MessageSquare className="text-primary-foreground h-4.5 w-4.5" />
-          </div>
-          <span className="text-lg font-bold tracking-tight">wacrm</span>
-        </Link>
-
-        <nav className="hidden items-center gap-8 md:flex">
-          <a
-            href="#features"
-            className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
-          >
-            Features
-          </a>
-          <a
-            href="#how-it-works"
-            className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
-          >
-            How it works
-          </a>
-          <a
-            href="#testimonial"
-            className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
-          >
-            Customers
-          </a>
-        </nav>
-
-        <div className="flex items-center gap-2">
-          <Link href="/login" className={`${btnGhost} hidden sm:inline-flex`}>
-            Log in
-          </Link>
-          <Link href="/signup" className={btnPrimary}>
-            Get started
-          </Link>
-        </div>
-      </div>
-    </header>
   );
 }
 
@@ -236,7 +197,7 @@ function TrustStrip() {
 
 function Features() {
   return (
-    <section id="features" className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32">
+    <section id="features" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-24 sm:px-6 sm:py-32">
       <SectionHeading
         eyebrow="Everything in one place"
         title="One platform for every customer conversation"
@@ -327,7 +288,7 @@ function Spotlight({
 
 function HowItWorks() {
   return (
-    <section id="how-it-works" className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32">
+    <section id="how-it-works" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-24 sm:px-6 sm:py-32">
       <SectionHeading
         eyebrow="Up and running fast"
         title="Live in three simple steps"
@@ -354,31 +315,173 @@ function HowItWorks() {
   );
 }
 
-/* ─── Testimonial ─────────────────────────────────────────────────── */
+/* ─── Pricing (live from billing_plans) ───────────────────────────── */
 
-function Testimonial() {
+interface PricingPlanRow {
+  key: string;
+  name: string;
+  tagline: string | null;
+  amount: number;
+  currency: string;
+  interval: 'monthly' | 'yearly';
+  features: unknown;
+  is_featured: boolean;
+}
+
+async function Pricing() {
+  const { data } = await publicDb()
+    .from('billing_plans')
+    .select('key, name, tagline, amount, currency, interval, features, is_featured')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true });
+
+  const plans = (data ?? []) as PricingPlanRow[];
+  if (plans.length === 0) return null;
+
   return (
-    <section id="testimonial" className="border-border bg-card/40 border-y">
-      <div className="mx-auto max-w-3xl px-4 py-24 text-center sm:px-6 sm:py-32">
-        <div className="bg-primary-soft text-primary mx-auto flex h-12 w-12 items-center justify-center rounded-2xl">
-          <Quote className="h-6 w-6" />
+    <section id="pricing" className="border-border bg-card/40 scroll-mt-20 border-y">
+      <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32">
+        <SectionHeading
+          eyebrow="Simple pricing"
+          title="Pick a plan that grows with you"
+          subtitle="Start free, upgrade when you're ready. Every plan runs on the official WhatsApp Business API."
+        />
+
+        <div className="mx-auto mt-16 grid max-w-4xl gap-6 lg:max-w-none lg:grid-cols-3">
+          {plans.map((plan) => {
+            const features = Array.isArray(plan.features)
+              ? (plan.features.filter((f) => typeof f === 'string') as string[])
+              : [];
+            return (
+              <div
+                key={plan.key}
+                className={cn(
+                  'border-border bg-card relative flex flex-col rounded-2xl border p-7',
+                  plan.is_featured &&
+                    'border-primary/40 shadow-lg ring-1 ring-primary/20',
+                )}
+              >
+                {plan.is_featured && (
+                  <span className="bg-primary text-primary-foreground absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-0.5 text-[11px] font-semibold">
+                    Most popular
+                  </span>
+                )}
+                <h3 className="text-base font-semibold">{plan.name}</h3>
+                {plan.tagline && (
+                  <p className="text-muted-foreground mt-1 text-sm">
+                    {plan.tagline}
+                  </p>
+                )}
+                <p className="mt-5 flex items-baseline gap-1">
+                  <span className="text-4xl font-bold tracking-tight">
+                    {formatMoney(plan.amount, plan.currency)}
+                  </span>
+                  <span className="text-muted-foreground text-sm">
+                    /{plan.interval === 'yearly' ? 'yr' : 'mo'}
+                  </span>
+                </p>
+                <ul className="mt-6 flex-1 space-y-2.5">
+                  {features.map((f) => (
+                    <li key={f} className="flex items-start gap-2.5">
+                      <Check className="text-primary mt-0.5 h-4 w-4 shrink-0" />
+                      <span className="text-foreground text-sm">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/signup"
+                  className={cn(
+                    'mt-7 inline-flex h-11 items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-colors',
+                    plan.is_featured
+                      ? 'bg-primary text-primary-foreground hover:bg-primary-hover'
+                      : 'border-border text-foreground hover:bg-muted border',
+                  )}
+                >
+                  Start free trial
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            );
+          })}
         </div>
-        <blockquote className="mt-6 text-2xl leading-snug font-semibold tracking-tight text-balance sm:text-3xl">
-          &ldquo;We run every customer conversation, broadcast, and follow-up
-          through wacrm now. Our whole team finally works from the same
-          inbox.&rdquo;
-        </blockquote>
-        <div className="mt-8 flex items-center justify-center gap-3">
-          {/* Swap for a real headshot. */}
-          <div className="border-border bg-muted text-muted-foreground/60 flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border">
-            <ImageIcon className="h-4 w-4" strokeWidth={1.5} />
-          </div>
-          <div className="text-left">
-            <p className="text-sm font-semibold">Bettie Porter</p>
-            <p className="text-muted-foreground text-sm">
-              Senior Marketing Manager
-            </p>
-          </div>
+
+        <p className="text-muted-foreground mt-8 text-center text-xs">
+          Every account starts with a free 14-day trial — no credit card
+          required.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Testimonials ────────────────────────────────────────────────── */
+
+function Testimonials() {
+  return (
+    <section id="testimonial" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-24 sm:px-6 sm:py-32">
+      <SectionHeading
+        eyebrow="Loved by teams"
+        title="Don't take our word for it"
+        subtitle="Teams that moved their WhatsApp to wacrm stopped losing conversations — and started closing more of them."
+      />
+
+      <div className="mt-16 grid gap-6 md:grid-cols-3">
+        {TESTIMONIALS.map((t) => (
+          <figure
+            key={t.name}
+            className="border-border bg-card flex flex-col rounded-2xl border p-7"
+          >
+            <Quote className="text-primary/40 h-6 w-6" />
+            <blockquote className="text-foreground mt-4 flex-1 text-sm leading-relaxed">
+              &ldquo;{t.quote}&rdquo;
+            </blockquote>
+            <figcaption className="mt-6 flex items-center gap-3">
+              <span
+                className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br ${t.gradient} text-xs font-semibold text-white`}
+              >
+                {t.initials}
+              </span>
+              <div>
+                <p className="text-sm font-semibold">{t.name}</p>
+                <p className="text-muted-foreground text-xs">{t.role}</p>
+              </div>
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ─── FAQ ─────────────────────────────────────────────────────────── */
+
+function Faq() {
+  return (
+    <section className="border-border bg-card/40 border-y">
+      <div className="mx-auto max-w-3xl px-4 py-24 sm:px-6 sm:py-32">
+        <SectionHeading
+          eyebrow="FAQ"
+          title="Frequently asked questions"
+          subtitle="Everything you need to know before getting started."
+        />
+
+        <div className="mt-12 space-y-3">
+          {FAQS.map((f) => (
+            <details
+              key={f.q}
+              className="group border-border bg-card rounded-xl border px-5 py-4"
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+                {f.q}
+                <span className="text-muted-foreground transition-transform group-open:rotate-45">
+                  +
+                </span>
+              </summary>
+              <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
+                {f.a}
+              </p>
+            </details>
+          ))}
         </div>
       </div>
     </section>
@@ -430,40 +533,6 @@ function FinalCta() {
         </div>
       </div>
     </section>
-  );
-}
-
-/* ─── Footer ──────────────────────────────────────────────────────── */
-
-function SiteFooter() {
-  return (
-    <footer className="border-border border-t">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 sm:flex-row sm:px-6">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="bg-primary flex h-7 w-7 items-center justify-center rounded-lg">
-            <MessageSquare className="text-primary-foreground h-4 w-4" />
-          </div>
-          <span className="font-bold tracking-tight">wacrm</span>
-        </Link>
-        <p className="text-muted-foreground text-xs">
-          © {new Date().getFullYear()} wacrm · Self-hostable CRM for WhatsApp
-        </p>
-        <div className="flex items-center gap-6 text-sm">
-          <Link
-            href="/login"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Log in
-          </Link>
-          <Link
-            href="/signup"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Sign up
-          </Link>
-        </div>
-      </div>
-    </footer>
   );
 }
 
@@ -653,5 +722,59 @@ const STEPS = [
     title: 'Message & grow',
     description:
       'Reply from the shared inbox, launch campaigns, and let automations handle the rest.',
+  },
+] as const;
+
+const TESTIMONIALS = [
+  {
+    quote:
+      'We run every customer conversation, broadcast, and follow-up through wacrm now. Our whole team finally works from the same inbox.',
+    name: 'Bettie Porter',
+    role: 'Senior Marketing Manager',
+    initials: 'BP',
+    gradient: 'from-emerald-400 to-emerald-600',
+  },
+  {
+    quote:
+      'Response times dropped from hours to minutes. Assigning chats and leaving internal notes changed how our support team works.',
+    name: 'Marco Diaz',
+    role: 'Head of Customer Support',
+    initials: 'MD',
+    gradient: 'from-sky-400 to-blue-600',
+  },
+  {
+    quote:
+      'The broadcast campaigns pay for the tool by themselves. We see delivery and read rates live, and follow-ups run on autopilot.',
+    name: 'Aisha Khan',
+    role: 'E-commerce Founder',
+    initials: 'AK',
+    gradient: 'from-violet-400 to-indigo-600',
+  },
+] as const;
+
+const FAQS = [
+  {
+    q: 'Do I need the official WhatsApp Business API?',
+    a: 'Yes — wacrm runs on the official Cloud API from Meta, which keeps your number safe and compliant. Connecting takes a few clicks with embedded signup; we walk you through it.',
+  },
+  {
+    q: 'Can my whole team use one WhatsApp number?',
+    a: 'That is exactly what wacrm is for. Everyone works from a shared inbox on the same number, with assignments, internal notes, and full conversation history.',
+  },
+  {
+    q: 'What happens after the free trial?',
+    a: 'Your 14-day trial includes every feature. When it ends, pick a plan to keep sending — your data, contacts, and history stay untouched either way.',
+  },
+  {
+    q: 'Can I send bulk broadcast messages?',
+    a: 'Yes — build campaigns on Meta-approved templates, target them with tags, lists, and segments, and watch delivery and read stats in real time.',
+  },
+  {
+    q: 'Does wacrm support automations and chatbots?',
+    a: 'Automations handle triggers and follow-ups (welcome messages, tag-based routing, reminders), and Flows let you build no-code chatbot journeys with buttons and menus.',
+  },
+  {
+    q: 'Can I connect Instagram too?',
+    a: 'Yes — plans with the Instagram channel bring your Instagram DMs into the same shared inbox, so one team handles both.',
   },
 ] as const;

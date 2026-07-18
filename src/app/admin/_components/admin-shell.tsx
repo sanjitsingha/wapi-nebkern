@@ -10,6 +10,7 @@ import {
   Bell,
   Megaphone,
   MonitorPlay,
+  Newspaper,
   LifeBuoy,
   LogOut,
   ShieldCheck,
@@ -27,6 +28,7 @@ const NAV = [
   { label: 'Notifications', href: '/admin/notifications', icon: Bell },
   { label: 'Announcements', href: '/admin/announcements', icon: Megaphone },
   { label: 'Popups', href: '/admin/popups', icon: MonitorPlay },
+  { label: 'Blog', href: '/admin/blog', icon: Newspaper },
   { label: 'Tickets', href: '/admin/tickets', icon: LifeBuoy },
 ] as const;
 
