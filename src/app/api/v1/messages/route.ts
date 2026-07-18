@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { authenticateApiKey, requireApiKey } from '@/lib/api-keys/auth';
 import { supabaseAdmin } from '@/lib/webhooks/admin-client';
-import { sanitizePhoneForMeta, isValidE164 } from '@/lib/whatsapp/phone-utils';
+import { sanitizePhoneForMeta, isValidE164, normalizePhone } from '@/lib/whatsapp/phone-utils';
 import { decrypt } from '@/lib/whatsapp/encryption';
+import { findExistingContact, isUniqueViolation } from '@/lib/contacts/dedupe';
 import { sendTemplateMessage } from '@/lib/whatsapp/meta-api';
 import { isMessageTemplate } from '@/lib/whatsapp/template-row-guard';
 import type { SendTimeParams } from '@/lib/whatsapp/template-send-builder';
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
     const apiAuth = await authenticateApiKey(request);
     const auth = requireApiKey(apiAuth, ['send:messages']);
     if (auth instanceof NextResponse) return auth;
-    const { accountId } = auth;
+    const { accountId, userId } = auth;
 
     const body = await request.json().catch(() => null);
     const { to, template, params, messageParams } = body ?? {};
@@ -117,9 +118,29 @@ export async function POST(request: Request) {
 
     const result = await sendTemplateMessage(sendArgs);
 
+    // Mirror the send into the CRM so it shows in the inbox just like an
+    // app-sent template. BEST-EFFORT: the message has already left Meta,
+    // so a persistence failure must never surface as an error — that would
+    // make Zapier/Make retry the step and double-send to the customer. We
+    // log and still return success.
+    let conversationId: string | null = null;
+    try {
+      conversationId = await recordOutboundTemplate({
+        db: supabase,
+        accountId,
+        userId,
+        phone: normalizePhone(to),
+        templateName,
+        waMessageId: result.messageId,
+      });
+    } catch (persistErr) {
+      console.error('[v1/messages] sent to Meta but inbox persist failed:', persistErr);
+    }
+
     return NextResponse.json({
       success: true,
       message_id: result.messageId,
+      conversation_id: conversationId,
       template_name: templateName,
       phone: sanitizedPhone,
     });
@@ -133,4 +154,125 @@ export async function POST(request: Request) {
     const detail = err instanceof Error ? err.message : 'Failed to send message';
     return NextResponse.json({ error: detail }, { status: 502 });
   }
+}
+
+interface RecordOutboundArgs {
+  db: ReturnType<typeof supabaseAdmin>;
+  accountId: string;
+  userId: string;
+  /** Normalized (digits-only) recipient phone. */
+  phone: string;
+  templateName: string;
+  /** Meta's wamid for the sent template. */
+  waMessageId: string;
+}
+
+/**
+ * Persist an API-sent template into contacts / conversations / messages
+ * so it appears in the inbox exactly like an app-sent template. Creates
+ * the contact and conversation when the recipient is new — the same
+ * find-or-create the inbound webhook does — then inserts an 'agent'
+ * template message and bumps the conversation preview.
+ *
+ * Returns the conversation id, or null when any step failed. The caller
+ * treats this as best-effort: the WhatsApp message has already been sent,
+ * so a null here is logged, not surfaced as an API error.
+ */
+async function recordOutboundTemplate(args: RecordOutboundArgs): Promise<string | null> {
+  const { db, accountId, userId, phone, templateName, waMessageId } = args;
+
+  // Find or create the contact by phone (suffix-matched dedup — same
+  // helper the webhook, manual add, and CSV import use, so all paths
+  // agree on "same number").
+  const existing = await findExistingContact(db, accountId, phone);
+  let contactId = existing?.id ?? null;
+  if (!contactId) {
+    const { data: created, error } = await db
+      .from('contacts')
+      .insert({ account_id: accountId, user_id: userId, phone, name: phone })
+      .select('id')
+      .single();
+    if (error) {
+      // Lost a race with a concurrent create — re-resolve the winner.
+      if (isUniqueViolation(error)) {
+        const raced = await findExistingContact(db, accountId, phone);
+        contactId = raced?.id ?? null;
+      }
+      if (!contactId) {
+        console.error('[v1/messages] contact create failed:', error);
+        return null;
+      }
+    } else {
+      contactId = created.id;
+    }
+  }
+
+  // Find or create the conversation (oldest wins, mirroring the webhook's
+  // dedup-tolerant lookup).
+  let conversationId: string | null = null;
+  const { data: convRows } = await db
+    .from('conversations')
+    .select('id')
+    .eq('account_id', accountId)
+    .eq('contact_id', contactId)
+    .order('created_at', { ascending: true })
+    .limit(1);
+  if (convRows && convRows.length > 0) {
+    conversationId = convRows[0].id as string;
+  } else {
+    const { data: newConv, error } = await db
+      .from('conversations')
+      .insert({ account_id: accountId, user_id: userId, contact_id: contactId })
+      .select('id')
+      .single();
+    if (error) {
+      if (isUniqueViolation(error)) {
+        const { data: raced } = await db
+          .from('conversations')
+          .select('id')
+          .eq('account_id', accountId)
+          .eq('contact_id', contactId)
+          .order('created_at', { ascending: true })
+          .limit(1);
+        conversationId = (raced?.[0]?.id as string | undefined) ?? null;
+      }
+      if (!conversationId) {
+        console.error('[v1/messages] conversation create failed:', error);
+        return null;
+      }
+    } else {
+      conversationId = newConv.id as string;
+    }
+  }
+
+  // Insert the outbound template message. sender_type='agent' matches the
+  // manual send route; content_text is null for templates (the inbox
+  // renders the bubble from template_name, same as app-sent templates).
+  const { error: msgError } = await db.from('messages').insert({
+    conversation_id: conversationId,
+    sender_type: 'agent',
+    content_type: 'template',
+    content_text: null,
+    template_name: templateName,
+    message_id: waMessageId,
+    status: 'sent',
+  });
+  if (msgError) {
+    console.error('[v1/messages] message insert failed:', msgError);
+    return null;
+  }
+
+  // Bump the conversation so it sorts to the top of the inbox with a
+  // sensible preview, matching the automations sender.
+  const now = new Date().toISOString();
+  await db
+    .from('conversations')
+    .update({
+      last_message_text: `[template:${templateName}]`,
+      last_message_at: now,
+      updated_at: now,
+    })
+    .eq('id', conversationId);
+
+  return conversationId;
 }
