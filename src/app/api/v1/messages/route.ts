@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import {
-  authenticateApiKey,
-  requireApiKey,
-} from '@/lib/api-keys/auth';
+import { authenticateApiKey, requireApiKey } from '@/lib/api-keys/auth';
+import { supabaseAdmin } from '@/lib/webhooks/admin-client';
 import { sanitizePhoneForMeta, isValidE164 } from '@/lib/whatsapp/phone-utils';
 import { decrypt } from '@/lib/whatsapp/encryption';
 import { sendTemplateMessage } from '@/lib/whatsapp/meta-api';
@@ -11,111 +8,80 @@ import { isMessageTemplate } from '@/lib/whatsapp/template-row-guard';
 import type { SendTimeParams } from '@/lib/whatsapp/template-send-builder';
 
 /**
- * POST /api/integrations/send-message
+ * POST /api/v1/messages
  *
- * Generic server-to-server endpoint for sending a WhatsApp template message
- * to any recipient. No appointment-specific fields — external software sends
- * whatever template + variables it needs.
+ * Send a WhatsApp template message to any recipient — the "action" side
+ * for automation platforms (Zapier/Make/n8n) and custom backends.
  *
- * Auth: x-api-key header (per-account scoped API key from wacrm Settings)
+ * Auth: x-api-key with the `send:messages` scope.
  *
  * Body (simple — body variables only):
- *   {
- *     "to": "+15551234567",
+ *   { "to": "+15551234567",
  *     "template": { "name": "hello_world", "language": "en_US" },
- *     "params": ["John", "Monday"]
- *   }
+ *     "params": ["John", "Monday"] }
  *
  * Body (advanced — headers, buttons, media):
- *   {
- *     "to": "+15551234567",
+ *   { "to": "+15551234567",
  *     "template": { "name": "hello_world", "language": "en_US" },
  *     "messageParams": {
  *       "body": ["John", "Monday"],
  *       "headerText": "Reminder",
  *       "headerMediaUrl": "https://example.com/image.jpg",
- *       "buttonParams": { "0": "https://example.com/confirm" }
- *     }
- *   }
+ *       "buttonParams": { "0": "https://example.com/confirm" } } }
  */
 export async function POST(request: Request) {
   try {
-    // 1. Authenticate via API key
     const apiAuth = await authenticateApiKey(request);
-    const authResult = requireApiKey(apiAuth, ['send:messages']);
-    if (authResult instanceof NextResponse) {
-      return authResult;
-    }
-    const accountId = authResult.accountId;
+    const auth = requireApiKey(apiAuth, ['send:messages']);
+    if (auth instanceof NextResponse) return auth;
+    const { accountId } = auth;
 
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
     const { to, template, params, messageParams } = body ?? {};
 
-    // 2. Validate phone
     if (!to || typeof to !== 'string') {
-      return NextResponse.json(
-        { error: '`to` (phone number) is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '`to` (phone number) is required' }, { status: 400 });
     }
-
     const sanitizedPhone = sanitizePhoneForMeta(to);
     if (!isValidE164(sanitizedPhone)) {
       return NextResponse.json(
-        { error: 'Invalid phone number format. Use E.164 (e.g. +15551234567).' },
-        { status: 400 }
+        { error: 'Invalid phone number. Use E.164 (e.g. +15551234567).' },
+        { status: 400 },
       );
     }
 
-    // 3. Validate template
     const templateName = template?.name;
     if (!templateName || typeof templateName !== 'string') {
-      return NextResponse.json(
-        { error: '`template.name` is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '`template.name` is required' }, { status: 400 });
     }
-
     const language = template?.language || 'en_US';
 
-    // 4. Load WhatsApp config for this account
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = supabaseAdmin();
 
-    const { data: config, error: configError } = await supabase
+    const { data: config } = await supabase
       .from('whatsapp_config')
       .select('*')
       .eq('account_id', accountId)
       .single();
-
-    if (configError || !config) {
+    if (!config) {
       return NextResponse.json(
         { error: 'WhatsApp is not configured for this account.' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // 5. Load template row (for advanced components: headers, buttons, media)
     const { data: rawTemplateRow } = await supabase
       .from('message_templates')
       .select('*')
       .eq('account_id', accountId)
       .eq('name', templateName)
       .maybeSingle();
-
     if (rawTemplateRow && !isMessageTemplate(rawTemplateRow)) {
       return NextResponse.json(
         { error: 'Template row is malformed locally. Run "Sync from Meta" in Settings.' },
-        { status: 500 }
+        { status: 500 },
       );
     }
-
-    const templateRow = rawTemplateRow ?? undefined;
-
-    // 6. Build send arguments
-    const accessToken = decrypt(config.access_token);
 
     const sendArgs: {
       phoneNumberId: string;
@@ -128,14 +94,13 @@ export async function POST(request: Request) {
       messageParams?: SendTimeParams;
     } = {
       phoneNumberId: config.phone_number_id,
-      accessToken,
+      accessToken: decrypt(config.access_token),
       to: sanitizedPhone,
       templateName,
       language,
-      template: templateRow,
+      template: rawTemplateRow ?? undefined,
     };
 
-    // Prefer structured messageParams if provided; fall back to flat params array
     if (messageParams && typeof messageParams === 'object') {
       const mp: SendTimeParams = {};
       if (Array.isArray(messageParams.body)) mp.body = messageParams.body;
@@ -150,19 +115,16 @@ export async function POST(request: Request) {
       sendArgs.params = params.map((p) => String(p));
     }
 
-    const messageResult = await sendTemplateMessage(sendArgs);
+    const result = await sendTemplateMessage(sendArgs);
 
     return NextResponse.json({
       success: true,
-      message_id: messageResult.messageId,
+      message_id: result.messageId,
       template_name: templateName,
       phone: sanitizedPhone,
     });
-  } catch (error) {
-    console.error('[send-message] integration error:', error);
-    return NextResponse.json(
-      { error: 'Failed to send message' },
-      { status: 500 }
-    );
+  } catch (err) {
+    console.error('[v1/messages] error:', err);
+    return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
   }
 }

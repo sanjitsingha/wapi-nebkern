@@ -5,6 +5,7 @@ import {
   startFlowForConversation,
   stopFlowForContact,
 } from '@/lib/flows/engine';
+import { emitWebhookEvent } from '@/lib/webhooks/emit';
 
 /**
  * POST /api/conversations/[id]/assign
@@ -152,6 +153,16 @@ export async function POST(
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    // Outbound webhook: only when handed to a human agent (not on unassign).
+    if (assigned_agent_id) {
+      await emitWebhookEvent(accountId, 'conversation.assigned', {
+        conversation_id: conversationId,
+        contact_id: contactId,
+        agent_id: assigned_agent_id,
+      });
+    }
+
     return NextResponse.json({
       ok: true,
       assigned_agent_id,

@@ -8,6 +8,7 @@ import { verifyMetaWebhookSignature } from '@/lib/whatsapp/webhook-signature'
 import { runAutomationsForTrigger } from '@/lib/automations/engine'
 import { dispatchInboundToFlows } from '@/lib/flows/engine'
 import { triggerAiReplyEngine } from '@/lib/ai/dispatch'
+import { emitWebhookEvent } from '@/lib/webhooks/emit'
 import {
   handleTemplateWebhookChange,
   isTemplateWebhookField,
@@ -606,6 +607,16 @@ async function processMessage(
   if (!contactOutcome) return
   const contactRecord = contactOutcome.contact
 
+  // Outbound webhook: a brand-new contact was just created from this
+  // inbound message. Best-effort (never throws into message handling).
+  if (contactOutcome.wasCreated) {
+    await emitWebhookEvent(accountId, 'contact.created', {
+      contact_id: contactRecord.id,
+      name: contactRecord.name,
+      phone: contactRecord.phone,
+    })
+  }
+
   // Find or create conversation
   const conversation = await findOrCreateConversation(
     accountId,
@@ -697,6 +708,18 @@ async function processMessage(
     console.error('Error inserting message:', msgError)
     return
   }
+
+  // Outbound webhook: inbound message received. Best-effort — a webhook
+  // problem must never break inbound processing.
+  await emitWebhookEvent(accountId, 'message.received', {
+    conversation_id: conversation.id,
+    contact_id: contactRecord.id,
+    contact_name: contactRecord.name,
+    from: senderPhone,
+    content_type: contentType,
+    content_text: contentText,
+    message_id: message.id,
+  })
 
   // Update conversation
   const now = new Date().toISOString()

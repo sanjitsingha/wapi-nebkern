@@ -20,6 +20,12 @@ Tracker:
     Pop up Slash on app load - support of text, image, youutbe
     video, links, image with text ✅ (managed from Admin → Popups)
 
+    Integrations: Zapier / Make / n8n ✅
+    - triggers: outbound webhooks (message.received, contact.created,
+      conversation.assigned, deal.stage_changed)
+    - actions: POST /api/v1/contacts, POST /api/v1/messages (x-api-key)
+    - removed old appointment integration; Settings → Integrations
+
 
 
 
@@ -30,3 +36,9 @@ BUGS:
     connected his google account, now if he/she want to logging using google instead
     of giving email and pass, he is not able to , app auto redirects to landing page 
     and loop.
+
+
+
+UI Enhancement:
+    When a user raise a ticket, and them a admin reply,
+    the ui feels like chatbot chating, i want profesional ui, something like thread/topic

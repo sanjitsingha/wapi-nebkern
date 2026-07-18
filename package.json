@@ -29,6 +29,7 @@
   },
   "scripts": {
     "dev": "next dev",
+    "webhooks:cron": "node --env-file=.env.local scripts/dispatch-webhooks.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

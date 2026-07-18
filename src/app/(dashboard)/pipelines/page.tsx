@@ -215,19 +215,26 @@ export default function PipelinesPage() {
   const handleDealMoved = useCallback(
     async (dealId: string, newStageId: string) => {
       // Optimistic update — board already animated; just persist.
+      const fromStageId =
+        deals.find((d) => d.id === dealId)?.stage_id ?? null;
       setDeals((prev) =>
         prev.map((d) => (d.id === dealId ? { ...d, stage_id: newStageId } : d)),
       );
-      const { error } = await supabase
-        .from("deals")
-        .update({ stage_id: newStageId })
-        .eq("id", dealId);
-      if (error) {
+      // Route through the server so the deal.stage_changed webhook fires.
+      const res = await fetch(`/api/deals/${dealId}/stage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stage_id: newStageId,
+          from_stage_id: fromStageId,
+        }),
+      });
+      if (!res.ok) {
         toast.error("Failed to move deal");
         refreshDeals();
       }
     },
-    [supabase, refreshDeals],
+    [deals, refreshDeals],
   );
 
   const handleAddDeal = useCallback(
