@@ -118,6 +118,20 @@ export async function POST(request: Request) {
 
     const result = await sendTemplateMessage(sendArgs);
 
+    // Render the template body with its variables so the inbox bubble shows
+    // real text — the same thing the composer stores as content_text. Body
+    // values come from messageParams.body (advanced) or params (simple).
+    const bodyValues: unknown[] =
+      messageParams && Array.isArray(messageParams.body)
+        ? messageParams.body
+        : Array.isArray(params)
+          ? params
+          : [];
+    const renderedBody =
+      typeof rawTemplateRow?.body_text === 'string'
+        ? renderTemplateBody(rawTemplateRow.body_text, bodyValues.map(String))
+        : null;
+
     // Mirror the send into the CRM so it shows in the inbox just like an
     // app-sent template. BEST-EFFORT: the message has already left Meta,
     // so a persistence failure must never surface as an error — that would
@@ -131,6 +145,7 @@ export async function POST(request: Request) {
         userId,
         phone: normalizePhone(to),
         templateName,
+        contentText: renderedBody,
         waMessageId: result.messageId,
       });
     } catch (persistErr) {
@@ -156,6 +171,19 @@ export async function POST(request: Request) {
   }
 }
 
+/**
+ * Substitute {{1}}, {{2}}, … in a template body with the supplied values,
+ * leaving any placeholder without a value intact. Mirrors the composer's
+ * renderTemplateBody so API-sent and app-sent templates read identically
+ * in the inbox.
+ */
+function renderTemplateBody(body: string, params: string[]): string {
+  return body.replace(/\{\{(\d+)\}\}/g, (_, raw) => {
+    const idx = Number(raw) - 1;
+    return params[idx] ?? `{{${raw}}}`;
+  });
+}
+
 interface RecordOutboundArgs {
   db: ReturnType<typeof supabaseAdmin>;
   accountId: string;
@@ -163,6 +191,8 @@ interface RecordOutboundArgs {
   /** Normalized (digits-only) recipient phone. */
   phone: string;
   templateName: string;
+  /** Rendered template body for the bubble + preview; null if unknown. */
+  contentText: string | null;
   /** Meta's wamid for the sent template. */
   waMessageId: string;
 }
@@ -179,7 +209,7 @@ interface RecordOutboundArgs {
  * so a null here is logged, not surfaced as an API error.
  */
 async function recordOutboundTemplate(args: RecordOutboundArgs): Promise<string | null> {
-  const { db, accountId, userId, phone, templateName, waMessageId } = args;
+  const { db, accountId, userId, phone, templateName, contentText, waMessageId } = args;
 
   // Find or create the contact by phone (suffix-matched dedup — same
   // helper the webhook, manual add, and CSV import use, so all paths
@@ -246,13 +276,13 @@ async function recordOutboundTemplate(args: RecordOutboundArgs): Promise<string 
   }
 
   // Insert the outbound template message. sender_type='agent' matches the
-  // manual send route; content_text is null for templates (the inbox
-  // renders the bubble from template_name, same as app-sent templates).
+  // manual send route; content_text carries the rendered body so the inbox
+  // bubble shows real text, exactly like an app-sent template.
   const { error: msgError } = await db.from('messages').insert({
     conversation_id: conversationId,
     sender_type: 'agent',
     content_type: 'template',
-    content_text: null,
+    content_text: contentText,
     template_name: templateName,
     message_id: waMessageId,
     status: 'sent',
@@ -268,7 +298,7 @@ async function recordOutboundTemplate(args: RecordOutboundArgs): Promise<string 
   await db
     .from('conversations')
     .update({
-      last_message_text: `[template:${templateName}]`,
+      last_message_text: contentText || `[template:${templateName}]`,
       last_message_at: now,
       updated_at: now,
     })
