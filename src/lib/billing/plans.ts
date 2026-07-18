@@ -8,6 +8,81 @@
 // Finalize the numbers before wiring a payment provider.
 // ============================================================
 
+/**
+ * Money from MINOR units (paise/cents) to a localized string, e.g.
+ * (99900, 'INR') → "₹999.00". Falls back to a plain number if the
+ * currency code isn't recognized. Shared by the settings Plan tab.
+ */
+export function formatMoney(amountMinor: number, currency = 'INR'): string {
+  const major = amountMinor / 100;
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency,
+    }).format(major);
+  } catch {
+    return `${currency} ${major.toFixed(2)}`;
+  }
+}
+
+/**
+ * A priced plan from the admin-managed `billing_plans` table (migration
+ * 054). Distinct from {@link PlanTier} above, which is the static
+ * marketing/feature catalog — this carries the live, editable pricing.
+ * `amount` is in MINOR units (paise/cents).
+ */
+export interface BillingPlan {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  amount: number;
+  currency: string;
+  interval: 'monthly' | 'yearly';
+  isActive: boolean;
+  sortOrder: number;
+  tagline: string | null;
+  features: string[];
+  isFeatured: boolean;
+}
+
+/** Columns to select from billing_plans, shared by the pages that map it. */
+export const BILLING_PLAN_COLUMNS =
+  'id, key, name, description, amount, currency, interval, is_active, sort_order, tagline, features, is_featured';
+
+/** The snake_case DB row → BillingPlan. */
+export function mapBillingPlanRow(p: {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  amount: number;
+  currency: string;
+  interval: 'monthly' | 'yearly';
+  is_active: boolean;
+  sort_order: number;
+  tagline: string | null;
+  features: unknown;
+  is_featured: boolean;
+}): BillingPlan {
+  return {
+    id: p.id,
+    key: p.key,
+    name: p.name,
+    description: p.description,
+    amount: p.amount,
+    currency: p.currency,
+    interval: p.interval,
+    isActive: p.is_active,
+    sortOrder: p.sort_order,
+    tagline: p.tagline,
+    features: Array.isArray(p.features)
+      ? (p.features.filter((f) => typeof f === 'string') as string[])
+      : [],
+    isFeatured: p.is_featured,
+  };
+}
+
 export interface PlanTier {
   id: 'starter' | 'pro' | 'business';
   name: string;

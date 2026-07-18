@@ -18,13 +18,15 @@ import { getCurrentAccount, toErrorResponse } from '@/lib/auth/account'
 
 export interface NotificationItem {
   id: string
-  type: 'message' | 'handoff' | 'template' | 'campaign'
+  type: 'message' | 'handoff' | 'template' | 'campaign' | 'announcement'
   title: string
   body: string
   /** ISO timestamp the item is sorted/highlighted by. */
   at: string
-  /** In-app destination when the row is clicked. */
+  /** In-app path or absolute http(s) URL when clicked; empty = none. */
   href: string
+  /** Optional image (announcements only). */
+  image?: string
 }
 
 const WINDOW_DAYS = 7
@@ -46,7 +48,8 @@ export async function GET() {
       Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000,
     ).toISOString()
 
-    const [unread, handoffs, templates, broadcasts] = await Promise.all([
+    const [unread, handoffs, templates, broadcasts, announcements] =
+      await Promise.all([
       supabase
         .from('conversations')
         .select(
@@ -75,6 +78,15 @@ export async function GET() {
         .select('id, name, status, sent_count, total_recipients, created_at')
         .in('status', ['sent', 'failed'])
         .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(10),
+      // Admin-sent announcements (global or targeted). RLS already filters
+      // to active, non-expired, and addressed-to-this-account rows — so no
+      // 7-day window here; the admin controls visibility via is_active /
+      // expires_at.
+      supabase
+        .from('admin_notifications')
+        .select('id, title, body, href, image_url, created_at')
         .order('created_at', { ascending: false })
         .limit(10),
     ])
@@ -129,6 +141,18 @@ export async function GET() {
         body: `${row.name} — ${row.sent_count}/${row.total_recipients} sent`,
         at: row.created_at,
         href: '/campaigns',
+      })
+    }
+
+    for (const row of announcements.data ?? []) {
+      items.push({
+        id: `ann-${row.id}`,
+        type: 'announcement',
+        title: row.title,
+        body: row.body,
+        at: row.created_at,
+        href: row.href || '',
+        image: row.image_url || undefined,
       })
     }
 

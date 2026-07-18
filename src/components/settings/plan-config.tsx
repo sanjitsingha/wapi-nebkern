@@ -1,20 +1,35 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { toast } from 'sonner';
 import {
-  Check,
   Loader2,
   Sparkles,
   AlertTriangle,
   BadgeCheck,
+  ArrowUpRight,
+  Receipt,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { PLAN_TIERS } from '@/lib/billing/plans';
+import { formatMoney } from '@/lib/billing/plans';
+import { type Invoice } from '@/lib/billing/invoice';
 import { TRIAL_DAYS, type SubscriptionState } from '@/lib/billing/subscription';
+
+/** Mirrors AccountBilling from /api/account/subscription. */
+interface AccountBilling {
+  planKey: string | null;
+  planName: string | null;
+  amount: number | null;
+  currency: string;
+  interval: 'monthly' | 'yearly' | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+}
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
@@ -25,12 +40,33 @@ function formatDate(iso: string | null): string {
   });
 }
 
+function intervalSuffix(interval: 'monthly' | 'yearly' | null): string {
+  if (interval === 'yearly') return '/yr';
+  if (interval === 'monthly') return '/mo';
+  return '';
+}
+
+/** Placeholder until Razorpay checkout lands — records intent, no charge. */
+function requestUpgrade() {
+  toast.info(
+    'Self-serve upgrade is coming soon. Contact us and we’ll switch your plan.',
+  );
+}
+
 /**
- * Current subscription state. Rendered as a plain bordered block (not a
- * Card) because PlanSection is itself a Card on the Profile page —
- * nesting Cards reads as a boxed-in-a-box.
+ * The current subscription block — reflects the plan the admin assigned
+ * (name, price, billing period) plus trial/expiry state. Rendered as a
+ * plain bordered block (PlanSection is itself a Card, so nesting Cards
+ * would read as a box-in-a-box).
  */
-function CurrentStatus({ sub }: { sub: SubscriptionState }) {
+function CurrentPlan({
+  sub,
+  billing,
+}: {
+  sub: SubscriptionState;
+  billing: AccountBilling | null;
+}) {
+  // Trial — show progress + end date.
   if (sub.status === 'trialing') {
     const elapsed = Math.min(
       100,
@@ -63,36 +99,81 @@ function CurrentStatus({ sub }: { sub: SubscriptionState }) {
           />
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
-          Your trial ends on {formatDate(sub.trialEndsAt)}. Pick a plan before
-          then to keep sending without interruption.
+          Your trial ends on {formatDate(sub.trialEndsAt)}. Upgrade to a plan
+          before then to keep sending without interruption.
         </p>
       </div>
     );
   }
 
-  if (sub.status === 'expired') {
+  // Expired / past due / canceled — access is paused.
+  if (sub.status !== 'active') {
+    const title =
+      sub.status === 'expired'
+        ? 'Your free trial has ended'
+        : sub.status === 'past_due'
+          ? 'Your payment is past due'
+          : 'Your subscription is canceled';
     return (
       <Alert variant="destructive">
         <AlertTriangle className="size-4" />
-        <AlertTitle>Your free trial has ended</AlertTitle>
+        <AlertTitle>{title}</AlertTitle>
         <AlertDescription>
-          Sending messages and broadcasts is paused. Choose a plan below to
-          resume. (Checkout is coming soon.)
+          Sending messages and broadcasts is paused. Upgrade to resume.
         </AlertDescription>
       </Alert>
     );
   }
 
-  // active (paid or grandfathered) — or any other non-trial state.
+  // Active with a plan the admin assigned — show name, price, renewal.
+  if (billing && (billing.planName || billing.planKey)) {
+    const priceLabel =
+      billing.amount != null
+        ? `${formatMoney(billing.amount, billing.currency)}${intervalSuffix(
+            billing.interval,
+          )}`
+        : null;
+    return (
+      <div className="rounded-xl border border-border bg-muted/30 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <BadgeCheck className="size-4" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-foreground capitalize">
+                {billing.planName ?? billing.planKey} plan
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {billing.interval === 'yearly'
+                  ? 'Billed yearly'
+                  : 'Billed monthly'}
+              </p>
+            </div>
+          </div>
+          {priceLabel && (
+            <span className="rounded-full bg-primary-soft px-2.5 py-1 text-xs font-semibold text-primary">
+              {priceLabel}
+            </span>
+          )}
+        </div>
+        {billing.periodEnd && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Current period ends on {formatDate(billing.periodEnd)}.
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  // Active but no billing assigned (grandfathered / manual full access).
   return (
     <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-4">
       <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
         <BadgeCheck className="size-4" />
       </span>
       <div>
-        <p className="text-sm font-semibold text-foreground">
-          {sub.plan === 'grandfathered' ? 'Full access' : 'Active plan'}
-        </p>
+        <p className="text-sm font-semibold text-foreground">Full access</p>
         <p className="text-xs text-muted-foreground">
           Your account is active with full access.
         </p>
@@ -101,24 +182,39 @@ function CurrentStatus({ sub }: { sub: SubscriptionState }) {
   );
 }
 
+function InvoiceStatusBadge({ status }: { status: Invoice['status'] }) {
+  return (
+    <span
+      className={cn(
+        'rounded-full px-2 py-0.5 text-[11px] font-medium',
+        status === 'paid'
+          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+          : 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+      )}
+    >
+      {status === 'paid' ? 'Paid' : 'Due'}
+    </span>
+  );
+}
+
 /**
- * Plan & subscription block. Lives inside the Profile settings page (the
- * standalone Plan section was folded in to cut down the settings rail),
- * so it renders as one Card in that stack.
+ * Invoices / billing history — fetched from /api/account/invoices. Each
+ * row links to a printable copy (opens in a new tab). Empty state until a
+ * payment is recorded by the admin.
  */
-export function PlanSection() {
-  const [sub, setSub] = useState<SubscriptionState | null>(null);
+function Invoices() {
+  const [invoices, setInvoices] = useState<Invoice[] | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/account/subscription')
+    fetch('/api/account/invoices')
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (!cancelled) setSub(data?.subscription ?? null);
+        if (!cancelled) setInvoices(data?.invoices ?? []);
       })
       .catch(() => {
-        /* leave sub null — the plans grid still renders */
+        if (!cancelled) setInvoices([]);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -129,14 +225,118 @@ export function PlanSection() {
   }, []);
 
   return (
+    <div>
+      <p className="mb-3 text-sm font-medium text-foreground">Invoices</p>
+
+      {loading ? (
+        <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" />
+          Loading invoices…
+        </div>
+      ) : invoices && invoices.length > 0 ? (
+        <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
+          {invoices.map((inv) => (
+            <div
+              key={inv.id}
+              className="flex items-center justify-between gap-3 px-4 py-3"
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {inv.invoiceNumber ?? 'Invoice'}
+                  </p>
+                  <InvoiceStatusBadge status={inv.status} />
+                </div>
+                <p className="truncate text-xs text-muted-foreground">
+                  {formatDate(inv.issuedAt)} · {inv.description}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                <span className="text-sm font-medium tabular-nums text-foreground">
+                  {formatMoney(inv.amount, inv.currency)}
+                </span>
+                <Link
+                  href={`/invoices/${inv.id}`}
+                  target="_blank"
+                  className="text-xs font-medium text-primary hover:text-primary/80"
+                >
+                  View
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 px-4 py-8 text-center">
+          <span className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            <Receipt className="size-4.5" />
+          </span>
+          <p className="mt-3 text-sm font-medium text-foreground">
+            No invoices yet
+          </p>
+          <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+            Your invoices will appear here once a payment is recorded on your
+            account.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Plan & subscription block on the Profile settings page. Reflects the
+ * plan the admin assigned, offers an upgrade action, and lists invoices.
+ * The old "available plans" grid was removed — plan changes are handled
+ * via upgrade/contact, not self-serve tier cards.
+ */
+export function PlanSection() {
+  const [sub, setSub] = useState<SubscriptionState | null>(null);
+  const [billing, setBilling] = useState<AccountBilling | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/account/subscription')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        setSub(data?.subscription ?? null);
+        setBilling(data?.billing ?? null);
+      })
+      .catch(() => {
+        /* leave state null — the section still renders */
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const canUpgrade = !sub || sub.status !== 'active' || !billing;
+
+  return (
     <Card className="gap-0 overflow-hidden py-0">
       <CardContent className="space-y-5 px-6 py-6">
-        <div>
-          <h3 className="text-base font-semibold text-foreground">Plan</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Your subscription and the plans available. Every account starts
-            with a {TRIAL_DAYS}-day free trial.
-          </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-base font-semibold text-foreground">Plan</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Your current subscription and invoices.
+            </p>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant={canUpgrade ? 'default' : 'outline'}
+            onClick={requestUpgrade}
+            className="shrink-0"
+          >
+            {canUpgrade ? 'Upgrade' : 'Change plan'}
+            <ArrowUpRight className="size-4" />
+          </Button>
         </div>
 
         {loading ? (
@@ -146,67 +346,8 @@ export function PlanSection() {
           </div>
         ) : (
           <>
-            {sub && <CurrentStatus sub={sub} />}
-
-            <div>
-              <p className="mb-3 text-sm font-medium text-foreground">
-                Available plans
-              </p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {PLAN_TIERS.map((tier) => (
-                  <div
-                    key={tier.id}
-                    className={cn(
-                      'flex flex-col rounded-xl border bg-card p-4',
-                      tier.featured
-                        ? 'border-primary ring-1 ring-primary/30'
-                        : 'border-border',
-                    )}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-foreground">
-                        {tier.name}
-                      </p>
-                      {tier.featured && (
-                        <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-medium text-primary">
-                          Popular
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {tier.tagline}
-                    </p>
-                    <p className="mt-3 text-sm font-medium text-foreground">
-                      {tier.priceLabel}
-                    </p>
-                    <ul className="mt-3 flex-1 space-y-2">
-                      {tier.features.map((f) => (
-                        <li
-                          key={f}
-                          className="flex items-start gap-2 text-xs text-muted-foreground"
-                        >
-                          <Check className="mt-0.5 size-3.5 shrink-0 text-primary" />
-                          {f}
-                        </li>
-                      ))}
-                    </ul>
-                    <Button
-                      variant={tier.featured ? 'default' : 'outline'}
-                      disabled
-                      className="mt-4 w-full"
-                      title="Checkout is coming soon"
-                    >
-                      Upgrade
-                    </Button>
-                  </div>
-                ))}
-              </div>
-              <p className="mt-3 text-xs text-muted-foreground">
-                Checkout isn&apos;t available yet — pricing and self-serve
-                upgrade are coming soon. Reach out to us to switch plans in the
-                meantime.
-              </p>
-            </div>
+            {sub && <CurrentPlan sub={sub} billing={billing} />}
+            <Invoices />
           </>
         )}
       </CardContent>

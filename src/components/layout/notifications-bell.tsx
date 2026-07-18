@@ -8,6 +8,7 @@ import {
   BellOff,
   Bot,
   FileText,
+  Info,
   Megaphone,
   MessageSquare,
   type LucideIcon,
@@ -22,11 +23,17 @@ import {
 
 interface NotificationItem {
   id: string;
-  type: 'message' | 'handoff' | 'template' | 'campaign';
+  type: 'message' | 'handoff' | 'template' | 'campaign' | 'announcement';
   title: string;
   body: string;
   at: string;
   href: string;
+  image?: string;
+}
+
+/** True for an absolute external link (opens in a new tab). */
+function isExternal(href: string): boolean {
+  return /^https?:\/\//i.test(href);
 }
 
 const TYPE_META: Record<
@@ -49,10 +56,14 @@ const TYPE_META: Record<
     icon: Megaphone,
     chip: 'bg-sky-500/10 text-sky-600 dark:text-sky-300',
   },
+  announcement: {
+    icon: Info,
+    chip: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300',
+  },
 };
 
 const SEEN_KEY = 'wacrm:notifications-seen-at';
-const POLL_MS = 60_000;
+const POLL_MS = 45_000;
 
 function loadSeenAt(): number {
   if (typeof window === 'undefined') return 0;
@@ -127,9 +138,19 @@ export function NotificationsBell() {
       });
     load();
     const t = setInterval(load, POLL_MS);
+    // Refetch when the user returns to the tab — so an announcement sent
+    // from the admin panel (a different tab) shows up immediately instead
+    // of waiting for the next poll tick.
+    const onFocus = () => {
+      if (document.visibilityState === 'visible') load();
+    };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
     return () => {
       cancelled = true;
       clearInterval(t);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
     };
   }, [totalUnread]);
 
@@ -153,7 +174,12 @@ export function NotificationsBell() {
 
   const openItem = (n: NotificationItem) => {
     setOpen(false);
-    router.push(n.href);
+    if (!n.href) return; // announcement with no link — just dismiss
+    if (isExternal(n.href)) {
+      window.open(n.href, '_blank', 'noopener,noreferrer');
+    } else {
+      router.push(n.href);
+    }
   };
 
   return (
@@ -198,8 +224,8 @@ export function NotificationsBell() {
               You&apos;re all caught up
             </p>
             <p className="text-muted-foreground mt-1 text-xs">
-              New messages, AI handoffs, template verdicts, and campaign
-              results show up here.
+              New messages, AI handoffs, template verdicts, campaign results,
+              and announcements show up here.
             </p>
           </div>
         ) : (
@@ -227,8 +253,15 @@ export function NotificationsBell() {
                       <meta.icon className="h-4 w-4" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="flex items-baseline justify-between gap-2">
-                        <span className="text-foreground truncate text-sm font-medium">
+                      <span className="flex items-start justify-between gap-2">
+                        <span
+                          className={cn(
+                            'text-foreground text-sm font-medium',
+                            n.type === 'announcement'
+                              ? 'wrap-break-word'
+                              : 'truncate',
+                          )}
+                        >
                           {n.title}
                         </span>
                         <span className="text-muted-foreground shrink-0 text-[11px] whitespace-nowrap">
@@ -237,9 +270,28 @@ export function NotificationsBell() {
                           })}
                         </span>
                       </span>
-                      <span className="text-muted-foreground mt-0.5 block truncate text-xs">
+                      <span
+                        className={cn(
+                          'text-muted-foreground mt-0.5 block text-xs',
+                          n.type === 'announcement'
+                            ? 'whitespace-pre-wrap wrap-break-word'
+                            : 'truncate',
+                        )}
+                      >
                         {n.body}
                       </span>
+                      {n.type === 'announcement' && n.image && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={n.image}
+                          alt=""
+                          loading="lazy"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                          className="border-border mt-2 h-32 w-full rounded-lg border object-cover"
+                        />
+                      )}
                     </span>
                     {fresh && (
                       <span className="bg-primary mt-2 size-1.5 shrink-0 rounded-full" />

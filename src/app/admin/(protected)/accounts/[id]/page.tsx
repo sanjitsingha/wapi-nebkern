@@ -3,10 +3,18 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, Users, Radio, LifeBuoy, MessageCircle } from 'lucide-react';
 
 import { computeSubscription } from '@/lib/billing/subscription';
+import {
+  BILLING_PLAN_COLUMNS,
+  mapBillingPlanRow,
+  type BillingPlan,
+} from '@/lib/billing/plans';
 import { adminDb } from '../../../_lib/admin-db';
-import { fmtDate, fmtDateTime } from '../../../_lib/format';
+import { fmtDate, fmtDateTime, fmtMoney } from '../../../_lib/format';
 import { SubscriptionBadge } from '../../../_components/badges';
 import { SubscriptionEditor } from '../../../_components/subscription-editor';
+import { BillingEditor } from '../../../_components/billing-editor';
+import { InvoicesManager } from '../../../_components/invoices-manager';
+import { mapInvoiceRow, type InvoiceRow } from '@/lib/billing/invoice';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,15 +60,22 @@ export default async function AdminAccountDetailPage({
   const { data: account } = await db
     .from('accounts')
     .select(
-      'id, name, owner_user_id, plan, subscription_status, trial_started_at, trial_ends_at, created_at',
+      'id, name, owner_user_id, plan, subscription_status, trial_started_at, trial_ends_at, created_at, billing_plan_key, billing_amount, billing_currency, billing_interval, current_period_start, current_period_end',
     )
     .eq('id', id)
     .maybeSingle();
 
   if (!account) notFound();
 
-  const [membersRes, waRes, contactsRes, broadcastsRes, ticketsRes] =
-    await Promise.all([
+  const [
+    membersRes,
+    waRes,
+    contactsRes,
+    broadcastsRes,
+    ticketsRes,
+    plansRes,
+    invoicesRes,
+  ] = await Promise.all([
       db
         .from('profiles')
         .select('user_id, email, full_name, account_role')
@@ -69,13 +84,36 @@ export default async function AdminAccountDetailPage({
       db.from('contacts').select('*', { count: 'exact', head: true }).eq('account_id', id),
       db.from('broadcasts').select('*', { count: 'exact', head: true }).eq('account_id', id),
       db.from('support_tickets').select('*', { count: 'exact', head: true }).eq('account_id', id),
+      db
+        .from('billing_plans')
+        .select(BILLING_PLAN_COLUMNS)
+        .order('sort_order', { ascending: true }),
+      db
+        .from('invoices')
+        .select(
+          'id, invoice_number, plan_key, description, amount, currency, status, period_start, period_end, issued_at, due_date, paid_at, payment_method, payment_reference, notes',
+        )
+        .eq('account_id', id)
+        .order('issued_at', { ascending: false }),
     ]);
+
+  const invoices = ((invoicesRes.data ?? []) as InvoiceRow[]).map(mapInvoiceRow);
+
+  const plans: BillingPlan[] = (
+    (plansRes.data ?? []) as Parameters<typeof mapBillingPlanRow>[0][]
+  ).map(mapBillingPlanRow);
 
   const members = (membersRes.data ?? []) as MemberRow[];
   const sub = computeSubscription(account);
   const waConnected = !!waRes.data?.phone_number_id;
   const ownerEmail =
     members.find((m) => m.user_id === account.owner_user_id)?.email ?? null;
+  const billingLabel =
+    account.billing_amount != null
+      ? `${fmtMoney(account.billing_amount, account.billing_currency ?? 'INR')}/${
+          account.billing_interval === 'yearly' ? 'yr' : 'mo'
+        }`
+      : null;
 
   return (
     <div className="space-y-6">
@@ -98,6 +136,7 @@ export default async function AdminAccountDetailPage({
           <p className="mt-1 text-sm text-muted-foreground">
             Owner {ownerEmail ?? '—'} · Created {fmtDate(account.created_at)} ·{' '}
             {waConnected ? 'WhatsApp connected' : 'WhatsApp not connected'}
+            {billingLabel ? ` · ${billingLabel}` : ''}
           </p>
         </div>
       </div>
@@ -167,6 +206,32 @@ export default async function AdminAccountDetailPage({
           </ul>
         </div>
       </div>
+
+      <BillingEditor
+        accountId={account.id}
+        plans={plans}
+        billingPlanKey={account.billing_plan_key ?? null}
+        billingAmount={account.billing_amount ?? null}
+        billingCurrency={account.billing_currency ?? 'INR'}
+        billingInterval={account.billing_interval ?? null}
+        periodStart={account.current_period_start ?? null}
+        periodEnd={account.current_period_end ?? null}
+      />
+
+      <InvoicesManager
+        accountId={account.id}
+        invoices={invoices}
+        defaults={{
+          planKey: account.billing_plan_key ?? null,
+          planName:
+            plans.find((p) => p.key === account.billing_plan_key)?.name ?? null,
+          amount: account.billing_amount ?? null,
+          currency: account.billing_currency ?? 'INR',
+          interval: account.billing_interval ?? null,
+          periodStart: account.current_period_start ?? null,
+          periodEnd: account.current_period_end ?? null,
+        }}
+      />
 
       <p className="text-xs text-muted-foreground">
         Trial started {fmtDateTime(account.trial_started_at)} · Trial ends{' '}

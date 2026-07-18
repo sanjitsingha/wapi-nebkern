@@ -2,7 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Users, LifeBuoy, LogOut, ShieldCheck } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Users,
+  UserCog,
+  CreditCard,
+  Bell,
+  MonitorPlay,
+  LifeBuoy,
+  LogOut,
+  ShieldCheck,
+} from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
@@ -11,6 +21,10 @@ import { Button } from '@/components/ui/button';
 const NAV = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { label: 'Accounts', href: '/admin/accounts', icon: Users },
+  { label: 'Users', href: '/admin/users', icon: UserCog },
+  { label: 'Plans', href: '/admin/plans', icon: CreditCard },
+  { label: 'Notifications', href: '/admin/notifications', icon: Bell },
+  { label: 'Popups', href: '/admin/popups', icon: MonitorPlay },
   { label: 'Tickets', href: '/admin/tickets', icon: LifeBuoy },
 ] as const;
 

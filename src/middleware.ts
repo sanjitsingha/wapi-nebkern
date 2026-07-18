@@ -66,6 +66,7 @@ export async function middleware(request: NextRequest) {
     '/campaigns',
     '/automations',
     '/settings',
+    '/invoices',
   ];
   if (
     !user &&

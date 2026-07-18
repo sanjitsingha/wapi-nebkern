@@ -24,6 +24,23 @@ export function fmtDateTime(iso?: string | null): string {
   });
 }
 
+/**
+ * Money from MINOR units (paise/cents) to a localized string, e.g.
+ * (99900, 'INR') → "₹999.00". Falls back to a plain number if the
+ * currency code isn't recognized by Intl.
+ */
+export function fmtMoney(amountMinor: number, currency = 'INR'): string {
+  const major = amountMinor / 100;
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency,
+    }).format(major);
+  } catch {
+    return `${currency} ${major.toFixed(2)}`;
+  }
+}
+
 /** Whole days from now until `iso` (negative = in the past). */
 export function daysUntil(iso?: string | null): number | null {
   if (!iso) return null;
