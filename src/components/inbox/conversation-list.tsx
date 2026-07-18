@@ -13,7 +13,7 @@ import {
   X,
   Bot,
   Check,
-  SlidersHorizontal,
+  Filter,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { Input } from "@/components/ui/input";
@@ -101,8 +101,9 @@ export function ConversationList({
 }: ConversationListProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<InboxFilter>("all");
-  const [assignee, setAssignee] = useState<AssigneeFilter>(null);
-  // When the assignee filter is "user", optionally narrow to one agent.
+  // Multi-select: any mix of AI Agent / Bot / Team member. Empty = anyone.
+  const [assignees, setAssignees] = useState<AssigneeFilter[]>([]);
+  // When "user" is among the assignees, optionally narrow to one agent.
   const [assignedUserId, setAssignedUserId] = useState<string | null>(null);
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
   // Conversation-started date range ('yyyy-MM-dd' or '' for unset), edited
@@ -249,17 +250,19 @@ export function ConversationList({
       result = result.filter((c) => c.status === filter);
     }
 
-    // Assignee (who's handling the chat): AI Agent / Bot / User. The user
-    // filter can be "any assigned agent" or narrowed to a specific one.
-    if (assignee === "ai") {
-      result = result.filter((c) => c.ai_agent_assigned === true);
-    } else if (assignee === "bot") {
-      result = result.filter((c) => !!c.assigned_flow_id);
-    } else if (assignee === "user") {
+    // Assignee (who's handling the chat): any mix of AI Agent / Bot / User,
+    // OR-ed together. The "user" bucket can be "any assigned agent" or
+    // narrowed to a specific one. Empty selection means anyone.
+    if (assignees.length > 0) {
       result = result.filter((c) =>
-        assignedUserId
-          ? c.assigned_agent_id === assignedUserId
-          : !!c.assigned_agent_id,
+        assignees.some((a) => {
+          if (a === "ai") return c.ai_agent_assigned === true;
+          if (a === "bot") return !!c.assigned_flow_id;
+          // "user"
+          return assignedUserId
+            ? c.assigned_agent_id === assignedUserId
+            : !!c.assigned_agent_id;
+        }),
       );
     }
 
@@ -298,7 +301,7 @@ export function ConversationList({
   }, [
     conversations,
     filter,
-    assignee,
+    assignees,
     assignedUserId,
     selectedTagId,
     createdFrom,
@@ -318,9 +321,10 @@ export function ConversationList({
 
   const activeFilter = FILTER_OPTIONS.find((o) => o.value === filter);
   const activeTag = availableTags.find((t) => t.id === selectedTagId);
-  // Badge count on the "Filter" chip — assignee and date-range together.
+  // Badge count on the "Filter" chip — number of active secondary filters:
+  // each selected assignee plus the date range (counted once).
   const secondaryFilterCount =
-    (assignee !== null ? 1 : 0) + (createdFrom || createdTo ? 1 : 0);
+    assignees.length + (createdFrom || createdTo ? 1 : 0);
 
   return (
     <div className="flex h-full w-full flex-col border-r border-border bg-card lg:w-96">
@@ -410,7 +414,7 @@ export function ConversationList({
             onClick={() => setFiltersOpen(true)}
             className={cn(CHIP, secondaryFilterCount > 0 ? CHIP_ON : CHIP_OFF)}
           >
-            <SlidersHorizontal className="h-3 w-3" />
+            <Filter className="h-3 w-3" />
             Filter
             {secondaryFilterCount > 0 && (
               <span className="ml-0.5 inline-flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
@@ -424,13 +428,13 @@ export function ConversationList({
       <InboxFiltersDialog
         open={filtersOpen}
         onOpenChange={setFiltersOpen}
-        appliedAssignee={assignee}
+        appliedAssignees={assignees}
         appliedAssignedUserId={assignedUserId}
         appliedCreatedFrom={createdFrom}
         appliedCreatedTo={createdTo}
         profiles={profiles}
         onApply={(next) => {
-          setAssignee(next.assignee);
+          setAssignees(next.assignees);
           setAssignedUserId(next.assignedUserId);
           setCreatedFrom(next.createdFrom);
           setCreatedTo(next.createdTo);
