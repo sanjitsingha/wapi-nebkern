@@ -4,6 +4,11 @@ import { supabaseAdmin } from '@/lib/webhooks/admin-client';
 import { normalizePhone } from '@/lib/whatsapp/phone-utils';
 import { findExistingContact, isUniqueViolation } from '@/lib/contacts/dedupe';
 import { emitWebhookEvent } from '@/lib/webhooks/emit';
+import {
+  atLimit,
+  getAccountEntitlements,
+  limitReachedResponse,
+} from '@/lib/billing/entitlements';
 
 /**
  * POST /api/v1/contacts
@@ -45,6 +50,19 @@ export async function POST(request: Request) {
       created: false,
       contact: { ...existing, name: name || existing.name },
     });
+  }
+
+  // Plan contact limit — only creation is gated (the upsert path above
+  // returns an existing contact regardless, which never adds a row).
+  const ent = await getAccountEntitlements(db, accountId);
+  if (ent.maxContacts !== null) {
+    const { count } = await db
+      .from('contacts')
+      .select('id', { count: 'exact', head: true })
+      .eq('account_id', accountId);
+    if (atLimit(ent.maxContacts, count ?? 0)) {
+      return limitReachedResponse('contacts', ent.maxContacts);
+    }
   }
 
   const { data, error } = await db

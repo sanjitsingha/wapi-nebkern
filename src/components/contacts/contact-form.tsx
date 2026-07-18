@@ -11,6 +11,7 @@ import {
   isUniqueViolation,
   type ExistingContact,
 } from '@/lib/contacts/dedupe';
+import { checkContactCapacity } from '@/lib/billing/entitlements-client';
 import {
   Dialog,
   DialogContent,
@@ -145,6 +146,15 @@ export function ContactForm({
       if (!accountId) throw new Error('Your profile is not linked to an account.');
 
       let contactId = contact?.id;
+
+      // Plan contact limit — creation only (edits never add a row).
+      if (!isEdit) {
+        const limitError = await checkContactCapacity(1);
+        if (limitError) {
+          toast.error(limitError);
+          return;
+        }
+      }
 
       if (isEdit && contactId) {
         const { error } = await supabase

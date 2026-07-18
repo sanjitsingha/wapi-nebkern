@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/flows/admin-client'
 import { getFlowTemplate } from '@/lib/flows/templates'
+import {
+  featureBlockedResponse,
+  getAccountEntitlements,
+} from '@/lib/billing/entitlements'
 
 /**
  * GET /api/flows — list the caller's flows.
@@ -66,6 +70,10 @@ export async function POST(request: Request) {
       { status: 403 },
     )
   }
+
+  // Plan gate — Flows are a per-plan feature (migration 062).
+  const ent = await getAccountEntitlements(supabase, accountId)
+  if (!ent.allowFlows) return featureBlockedResponse('Flows')
 
   const body = (await request.json().catch(() => null)) as
     | {

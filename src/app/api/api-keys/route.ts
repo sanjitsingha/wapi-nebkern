@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateApiKey, hashKey } from '@/lib/api-keys/auth';
+import {
+  featureBlockedResponse,
+  getAccountEntitlements,
+} from '@/lib/billing/entitlements';
 
 /**
  * POST /api/api-keys
@@ -35,6 +39,12 @@ export async function POST(request: Request) {
         { error: 'Your profile is not linked to an account.' },
         { status: 403 }
       );
+    }
+
+    // Plan gate — API access is part of the integrations feature (062).
+    const ent = await getAccountEntitlements(supabase, accountId);
+    if (!ent.allowIntegrations) {
+      return featureBlockedResponse('API access & integrations');
     }
 
     const body = await request.json().catch(() => ({}));

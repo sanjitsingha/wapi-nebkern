@@ -8,6 +8,10 @@ import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit
 import { encrypt } from '@/lib/whatsapp/encryption';
 import { isWebhookEvent } from '@/lib/webhooks/events';
 import { generateWebhookSecret, isAllowedWebhookUrl } from '@/lib/webhooks/security';
+import {
+  featureBlockedResponse,
+  getAccountEntitlements,
+} from '@/lib/billing/entitlements';
 
 /**
  * GET /api/webhooks — list the account's endpoints (any member). The
@@ -40,6 +44,12 @@ export async function POST(request: Request) {
     const { supabase, accountId, userId } = await requireRole('admin');
     const limit = checkRateLimit(`webhooks:${userId}`, RATE_LIMITS.adminAction);
     if (!limit.success) return rateLimitResponse(limit);
+
+    // Plan gate — outbound webhooks are part of the integrations feature.
+    const ent = await getAccountEntitlements(supabase, accountId);
+    if (!ent.allowIntegrations) {
+      return featureBlockedResponse('Webhooks & integrations');
+    }
 
     const body = await request.json().catch(() => null);
     if (!body || typeof body !== 'object') {

@@ -7,6 +7,10 @@ import {
 } from '@/lib/auth/account'
 import { loadWhatsAppAccess } from '@/lib/whatsapp/server-config'
 import { getCallingSettings, setCallingEnabled } from '@/lib/whatsapp/calling'
+import {
+  featureBlockedResponse,
+  getAccountEntitlements,
+} from '@/lib/billing/entitlements'
 
 /**
  * GET /api/whatsapp/calling
@@ -77,6 +81,13 @@ export async function POST(request: Request) {
         { error: 'Request body must be { enabled: boolean }' },
         { status: 400 },
       )
+    }
+
+    // Plan gate — only ENABLING is gated; turning calling off must
+    // always work (e.g. right after a downgrade).
+    if (body.enabled) {
+      const ent = await getAccountEntitlements(supabase, accountId)
+      if (!ent.allowCalling) return featureBlockedResponse('WhatsApp Calling')
     }
 
     const access = await loadWhatsAppAccess(supabase, accountId)

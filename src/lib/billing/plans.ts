@@ -44,11 +44,13 @@ export interface BillingPlan {
   tagline: string | null;
   features: string[];
   isFeatured: boolean;
+  /** Raw limits jsonb (migration 062) — parse with parsePlanLimits(). */
+  limits: Record<string, unknown>;
 }
 
 /** Columns to select from billing_plans, shared by the pages that map it. */
 export const BILLING_PLAN_COLUMNS =
-  'id, key, name, description, amount, currency, interval, is_active, sort_order, tagline, features, is_featured';
+  'id, key, name, description, amount, currency, interval, is_active, sort_order, tagline, features, is_featured, limits';
 
 /** The snake_case DB row → BillingPlan. */
 export function mapBillingPlanRow(p: {
@@ -64,6 +66,7 @@ export function mapBillingPlanRow(p: {
   tagline: string | null;
   features: unknown;
   is_featured: boolean;
+  limits?: unknown;
 }): BillingPlan {
   return {
     id: p.id,
@@ -80,6 +83,10 @@ export function mapBillingPlanRow(p: {
       ? (p.features.filter((f) => typeof f === 'string') as string[])
       : [],
     isFeatured: p.is_featured,
+    limits:
+      p.limits && typeof p.limits === 'object' && !Array.isArray(p.limits)
+        ? (p.limits as Record<string, unknown>)
+        : {},
   };
 }
 

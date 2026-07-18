@@ -7,6 +7,10 @@ import {
   validateStepsForActivation,
   validateTriggerForActivation,
 } from '@/lib/automations/validate'
+import {
+  featureBlockedResponse,
+  getAccountEntitlements,
+} from '@/lib/billing/entitlements'
 
 export async function GET() {
   const supabase = await createClient()
@@ -45,6 +49,10 @@ export async function POST(request: Request) {
       { status: 403 },
     )
   }
+
+  // Plan gate — Automations are a per-plan feature (migration 062).
+  const ent = await getAccountEntitlements(supabase, accountId)
+  if (!ent.allowAutomations) return featureBlockedResponse('Automations')
 
   const body = await request.json().catch(() => null)
   if (!body) return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })

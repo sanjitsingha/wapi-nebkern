@@ -4,6 +4,10 @@ import { randomUUID } from 'crypto'
 import { requireRole, toErrorResponse } from '@/lib/auth/account'
 import { buildInstagramAuthorizeUrl } from '@/lib/instagram/meta-api'
 import { INSTAGRAM_OAUTH_STATE_COOKIE } from '@/lib/instagram/oauth-cookie'
+import {
+  featureBlockedResponse,
+  getAccountEntitlements,
+} from '@/lib/billing/entitlements'
 
 /**
  * GET /api/instagram/oauth/start
@@ -16,7 +20,11 @@ import { INSTAGRAM_OAUTH_STATE_COOKIE } from '@/lib/instagram/oauth-cookie'
  */
 export async function GET(request: Request) {
   try {
-    await requireRole('admin')
+    const ctx = await requireRole('admin')
+
+    // Plan gate — the Instagram channel is a per-plan feature (062).
+    const ent = await getAccountEntitlements(ctx.supabase, ctx.accountId)
+    if (!ent.allowInstagram) return featureBlockedResponse('Instagram DMs')
 
     const appId = process.env.INSTAGRAM_APP_ID
     if (!appId) {

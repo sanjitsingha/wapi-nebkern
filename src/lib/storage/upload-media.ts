@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { checkStorageCapacity } from "@/lib/billing/entitlements-client";
 
 /**
  * Shared media-upload helper for Supabase Storage buckets that use the
@@ -101,6 +102,12 @@ export async function uploadAccountMedia(
   if (profileErr || !profile?.account_id) {
     throw new Error("Could not resolve your account.");
   }
+
+  // Plan storage limit (migration 062). Soft-fail inside the helper —
+  // a transient check error never blocks the upload; a definitive
+  // over-limit answer does.
+  const storageError = await checkStorageCapacity(file.size);
+  if (storageError) throw new Error(storageError);
 
   const path = buildMediaPath(profile.account_id as string, file.name);
   const { error: upErr } = await supabase.storage.from(bucket).upload(path, file, {

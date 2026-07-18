@@ -28,6 +28,11 @@ import {
 } from "@/lib/auth/invitations";
 import { isAccountRole } from "@/lib/auth/roles";
 import {
+  atLimit,
+  getAccountEntitlements,
+  limitReachedResponse,
+} from "@/lib/billing/entitlements";
+import {
   checkRateLimit,
   rateLimitResponse,
   RATE_LIMITS,
@@ -177,6 +182,30 @@ export async function POST(request: Request) {
       RATE_LIMITS.adminAction,
     );
     if (!limit.success) return rateLimitResponse(limit);
+
+    // Plan seat limit: members + outstanding (un-redeemed, unexpired)
+    // invites must stay under max_users, or every pending link could
+    // be redeemed and overshoot the cap.
+    const ent = await getAccountEntitlements(ctx.supabase, ctx.accountId);
+    if (ent.maxUsers !== null) {
+      const nowIso = new Date().toISOString();
+      const [membersRes, invitesRes] = await Promise.all([
+        ctx.supabase
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("account_id", ctx.accountId),
+        ctx.supabase
+          .from("account_invitations")
+          .select("id", { count: "exact", head: true })
+          .eq("account_id", ctx.accountId)
+          .is("accepted_at", null)
+          .gt("expires_at", nowIso),
+      ]);
+      const seatsTaken = (membersRes.count ?? 0) + (invitesRes.count ?? 0);
+      if (atLimit(ent.maxUsers, seatsTaken)) {
+        return limitReachedResponse("team member", ent.maxUsers);
+      }
+    }
 
     const body = (await request.json().catch(() => null)) as
       | { role?: unknown; expiresInDays?: unknown; label?: unknown }

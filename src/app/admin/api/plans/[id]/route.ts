@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminUser } from '../../../_lib/auth';
 import { adminDb } from '../../../_lib/admin-db';
+import { sanitizeLimitsInput } from '@/lib/billing/entitlements';
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -131,6 +132,14 @@ export async function POST(
       if (t) out.push(t.slice(0, 200));
     }
     update.features = out.slice(0, 30);
+  }
+
+  if ('limits' in body) {
+    const limits = sanitizeLimitsInput(body.limits);
+    if (limits === null) {
+      return NextResponse.json({ error: 'Invalid limits payload' }, { status: 400 });
+    }
+    update.limits = limits;
   }
 
   if (Object.keys(update).length === 0) {

@@ -8,6 +8,7 @@ import {
   isUniqueViolation,
   normalizeKey,
 } from '@/lib/contacts/dedupe';
+import { checkContactCapacity } from '@/lib/billing/entitlements-client';
 import {
   parseContactCsv,
   type ParsedContactRow,
@@ -245,6 +246,16 @@ export function ImportModal({
         }
         return true;
       });
+
+      // Plan contact limit — checked against the genuinely-new rows only
+      // (in-file dupes and already-imported numbers don't add contacts).
+      if (toInsert.length > 0) {
+        const limitError = await checkContactCapacity(toInsert.length);
+        if (limitError) {
+          toast.error(limitError);
+          return;
+        }
+      }
 
       // 3) Resolve tag names → ids (admin+ may auto-create missing tags).
       //    Skip the round-trip when the import carries no tag names.

@@ -35,9 +35,28 @@ interface FormValues {
   isFeatured: boolean;
   isActive: boolean;
   sortOrder: string;
+  // Limits & feature gates (migration 062). Blank number = unlimited.
+  maxUsers: string;
+  maxContacts: string;
+  storageMb: string;
+  allowCalling: boolean;
+  allowInstagram: boolean;
+  allowAutomations: boolean;
+  allowFlows: boolean;
+  allowIntegrations: boolean;
+}
+
+/** limits jsonb value → form string ('' = unlimited). */
+function limitStr(v: unknown): string {
+  return typeof v === 'number' && Number.isFinite(v) ? String(v) : '';
+}
+
+function limitBool(v: unknown): boolean {
+  return typeof v === 'boolean' ? v : true;
 }
 
 function fromPlan(p: BillingPlan): FormValues {
+  const l = p.limits ?? {};
   return {
     name: p.name,
     tagline: p.tagline ?? '',
@@ -49,6 +68,14 @@ function fromPlan(p: BillingPlan): FormValues {
     isFeatured: p.isFeatured,
     isActive: p.isActive,
     sortOrder: String(p.sortOrder),
+    maxUsers: limitStr(l.max_users),
+    maxContacts: limitStr(l.max_contacts),
+    storageMb: limitStr(l.storage_mb),
+    allowCalling: limitBool(l.allow_calling),
+    allowInstagram: limitBool(l.allow_instagram),
+    allowAutomations: limitBool(l.allow_automations),
+    allowFlows: limitBool(l.allow_flows),
+    allowIntegrations: limitBool(l.allow_integrations),
   };
 }
 
@@ -63,7 +90,21 @@ const EMPTY: FormValues = {
   isFeatured: false,
   isActive: true,
   sortOrder: '0',
+  maxUsers: '',
+  maxContacts: '',
+  storageMb: '',
+  allowCalling: true,
+  allowInstagram: true,
+  allowAutomations: true,
+  allowFlows: true,
+  allowIntegrations: true,
 };
+
+/** Form limit string → number | null (blank / invalid = unlimited). */
+function limitNum(s: string): number | null {
+  const n = parseInt(s, 10);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
 
 /** Form values → API payload (amount to minor units, features to array). */
 function buildPayload(v: FormValues) {
@@ -83,6 +124,16 @@ function buildPayload(v: FormValues) {
     is_featured: v.isFeatured,
     is_active: v.isActive,
     sort_order: Number.isFinite(order) ? order : 0,
+    limits: {
+      max_users: limitNum(v.maxUsers),
+      max_contacts: limitNum(v.maxContacts),
+      storage_mb: limitNum(v.storageMb),
+      allow_calling: v.allowCalling,
+      allow_instagram: v.allowInstagram,
+      allow_automations: v.allowAutomations,
+      allow_flows: v.allowFlows,
+      allow_integrations: v.allowIntegrations,
+    },
   };
 }
 
@@ -246,6 +297,81 @@ function PlanFields({
           />
           Featured
         </label>
+      </div>
+
+      {/* ---- Limits & feature gates (enforced in the tenant app) ---- */}
+      <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
+        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          Limits &amp; features
+        </p>
+
+        <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs text-foreground">Users</Label>
+            <Input
+              type="number"
+              min="0"
+              value={values.maxUsers}
+              onChange={(e) => set({ maxUsers: e.target.value })}
+              placeholder="∞"
+              disabled={disabled}
+              className="border-border bg-muted"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-foreground">Contacts</Label>
+            <Input
+              type="number"
+              min="0"
+              value={values.maxContacts}
+              onChange={(e) => set({ maxContacts: e.target.value })}
+              placeholder="∞"
+              disabled={disabled}
+              className="border-border bg-muted"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-foreground">Storage (MB)</Label>
+            <Input
+              type="number"
+              min="0"
+              value={values.storageMb}
+              onChange={(e) => set({ storageMb: e.target.value })}
+              placeholder="∞"
+              disabled={disabled}
+              className="border-border bg-muted"
+            />
+          </div>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Leave a field blank for unlimited.
+        </p>
+
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+          {(
+            [
+              ['allowCalling', 'WhatsApp calling'],
+              ['allowInstagram', 'Instagram DMs'],
+              ['allowAutomations', 'Automations'],
+              ['allowFlows', 'Flows (chatbots)'],
+              ['allowIntegrations', 'API & webhooks'],
+            ] as const
+          ).map(([field, label]) => (
+            <label
+              key={field}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground"
+            >
+              <input
+                type="checkbox"
+                checked={values[field]}
+                onChange={(e) => set({ [field]: e.target.checked })}
+                disabled={disabled}
+                className="size-3.5 accent-primary"
+              />
+              {label}
+            </label>
+          ))}
+        </div>
       </div>
     </div>
   );

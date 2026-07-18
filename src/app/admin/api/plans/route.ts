@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminUser } from '../../_lib/auth';
 import { adminDb } from '../../_lib/admin-db';
+import { sanitizeLimitsInput } from '@/lib/billing/entitlements';
 
 const KEY_RE = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;
 
@@ -70,6 +71,15 @@ export async function POST(request: Request) {
     );
   }
 
+  // Per-plan limits & feature gates (migration 062).
+  const limits = sanitizeLimitsInput(body.limits);
+  if (limits === null) {
+    return NextResponse.json(
+      { error: 'Invalid limits payload' },
+      { status: 400 },
+    );
+  }
+
   const row = {
     key,
     name,
@@ -85,6 +95,7 @@ export async function POST(request: Request) {
         ? body.tagline.trim()
         : null,
     features,
+    limits,
     is_featured: body.is_featured === true,
     is_active: body.is_active !== false,
     sort_order: Number.isInteger(body.sort_order) ? body.sort_order : 0,
