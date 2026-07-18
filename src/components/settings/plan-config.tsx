@@ -10,6 +10,11 @@ import {
   BadgeCheck,
   ArrowUpRight,
   Receipt,
+  Users,
+  Contact,
+  HardDrive,
+  Check,
+  X,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -19,6 +24,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { formatMoney } from '@/lib/billing/plans';
 import { type Invoice } from '@/lib/billing/invoice';
 import { TRIAL_DAYS, type SubscriptionState } from '@/lib/billing/subscription';
+import { useEntitlements } from '@/hooks/use-entitlements';
 
 /** Mirrors AccountBilling from /api/account/subscription. */
 interface AccountBilling {
@@ -177,6 +183,117 @@ function CurrentPlan({
         <p className="text-xs text-muted-foreground">
           Your account is active with full access.
         </p>
+      </div>
+    </div>
+  );
+}
+
+/** One usage meter row — mirrors the trial bar's idiom above. */
+function UsageMeter({
+  icon: Icon,
+  label,
+  used,
+  limit,
+  format = (n: number) => n.toLocaleString(),
+}: {
+  icon: typeof Users;
+  label: string;
+  used: number;
+  limit: number | null;
+  format?: (n: number) => string;
+}) {
+  const pct = limit === null ? 0 : Math.min(100, (used / Math.max(1, limit)) * 100);
+  const tone =
+    limit !== null && used >= limit
+      ? 'bg-destructive'
+      : pct >= 90
+        ? 'bg-amber-500'
+        : 'bg-primary';
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+          <Icon className="size-3.5 text-muted-foreground" />
+          {label}
+        </span>
+        <span className="text-xs tabular-nums text-muted-foreground">
+          {format(used)}
+          {limit !== null ? ` / ${format(limit)}` : ' · Unlimited'}
+        </span>
+      </div>
+      {limit !== null && (
+        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+          <div
+            className={cn('h-full rounded-full transition-[width] duration-500', tone)}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Plan usage — live meters for seats / contacts / storage plus which
+ * features the current plan includes. Hidden entirely when the account
+ * has no plan limits (trial / grandfathered / everything unlimited with
+ * all features on), where meters would just be noise.
+ */
+function UsageSection() {
+  const { snapshot } = useEntitlements();
+  if (!snapshot) return null;
+
+  const { entitlements: ent, usage } = snapshot;
+  const hasAnyLimit =
+    ent.maxUsers !== null || ent.maxContacts !== null || ent.storageMb !== null;
+  const features: { label: string; on: boolean }[] = [
+    { label: 'WhatsApp calling', on: ent.allowCalling },
+    { label: 'Instagram DMs', on: ent.allowInstagram },
+    { label: 'Automations', on: ent.allowAutomations },
+    { label: 'Flows', on: ent.allowFlows },
+    { label: 'API & webhooks', on: ent.allowIntegrations },
+  ];
+  const hasAnyGate = features.some((f) => !f.on);
+  if (!hasAnyLimit && !hasAnyGate) return null;
+
+  const usedMb = usage.storageBytes / (1024 * 1024);
+  const fmtMb = (n: number) =>
+    n >= 1024 ? `${(n / 1024).toFixed(1)} GB` : `${Math.round(n)} MB`;
+
+  return (
+    <div>
+      <p className="mb-3 text-sm font-medium text-foreground">Usage</p>
+      <div className="space-y-4 rounded-xl border border-border p-4">
+        <UsageMeter icon={Users} label="Team members" used={usage.users} limit={ent.maxUsers} />
+        <UsageMeter icon={Contact} label="Contacts" used={usage.contacts} limit={ent.maxContacts} />
+        <UsageMeter
+          icon={HardDrive}
+          label="Media storage"
+          used={usedMb}
+          limit={ent.storageMb}
+          format={fmtMb}
+        />
+
+        <div className="border-t border-border pt-3">
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+            {features.map((f) => (
+              <span
+                key={f.label}
+                className={cn(
+                  'inline-flex items-center gap-1 text-xs',
+                  f.on ? 'text-foreground' : 'text-muted-foreground line-through',
+                )}
+              >
+                {f.on ? (
+                  <Check className="size-3 text-primary" />
+                ) : (
+                  <X className="size-3" />
+                )}
+                {f.label}
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -347,6 +464,7 @@ export function PlanSection() {
         ) : (
           <>
             {sub && <CurrentPlan sub={sub} billing={billing} />}
+            <UsageSection />
             <Invoices />
           </>
         )}

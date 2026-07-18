@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { softBadge } from '@/lib/badge-colors';
 import { useTotalUnread } from '@/hooks/use-total-unread';
 import { useSupportUnread } from '@/hooks/use-support-unread';
+import { useEntitlements } from '@/hooks/use-entitlements';
 import { SupportDialog } from '@/components/support/support-dialog';
 import {
   resolveSection,
@@ -155,6 +156,25 @@ export function Sidebar({
   // open groups stay open (and clipped), per the "keep it intact" rule.
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
+  // Plan gating — hide nav entries for features the plan excludes
+  // (fail open while entitlements load, so allowed users never see the
+  // nav pop in). A group with no visible children disappears entirely.
+  const { snapshot: entSnapshot } = useEntitlements();
+  const visibleGroups = useMemo(() => {
+    const ent = entSnapshot?.entitlements;
+    if (!ent) return groups;
+    return groups
+      .map((g) => ({
+        ...g,
+        children: g.children.filter((c) => {
+          if (c.href === '/automations') return ent.allowAutomations;
+          if (c.href === '/flows') return ent.allowFlows;
+          return true;
+        }),
+      }))
+      .filter((g) => g.children.length > 0);
+  }, [entSnapshot]);
+
   const isCollapsed = collapsed && !hovered;
 
   const isLinkActive = (link: NavLink): boolean => {
@@ -177,7 +197,7 @@ export function Sidebar({
       setOpenGroups({});
       return;
     }
-    const active = groups.find((g) => g.children.some(isLinkActive));
+    const active = visibleGroups.find((g) => g.children.some(isLinkActive));
     if (active) {
       setOpenGroups((prev) =>
         prev[active.label] ? prev : { ...prev, [active.label]: true }
@@ -420,7 +440,7 @@ export function Sidebar({
 
           <div className="border-border my-4 border-t" />
 
-          <ul className="flex flex-col gap-1.5">{groups.map(renderGroup)}</ul>
+          <ul className="flex flex-col gap-1.5">{visibleGroups.map(renderGroup)}</ul>
         </nav>
 
         {/* Footer — pinned below the scrolling nav. Support opens the
