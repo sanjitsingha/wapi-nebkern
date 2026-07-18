@@ -194,6 +194,17 @@ export function ContactForm({
         }
       }
 
+      // Fire the contact.created webhook for a new contact. Best-effort
+      // and non-blocking — the contact is already saved; a webhook hiccup
+      // must not affect the form. (Edits don't emit.)
+      if (!isEdit && contactId) {
+        void fetch('/api/contacts/notify-created', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contact_id: contactId }),
+        }).catch(() => {});
+      }
+
       toast.success(isEdit ? 'Contact updated' : 'Contact created');
       onOpenChange(false);
       onSaved();
