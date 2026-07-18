@@ -58,7 +58,15 @@ import {
   ArrowUp,
   ArrowDown,
   MessageCircleOff,
+  Info,
 } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { useEntitlements } from '@/hooks/use-entitlements';
 import { ContactForm } from '@/components/contacts/contact-form';
 import { ImportModal } from '@/components/contacts/import-modal';
 import { CustomFieldsManager } from '@/components/contacts/custom-fields-manager';
@@ -95,6 +103,8 @@ export default function ContactsPage() {
   const router = useRouter();
   const canEdit = useCan('send-messages');
   const canEditSettings = useCan('edit-settings');
+  // Plan contact limit — powers the info tooltip next to the title.
+  const { snapshot: entSnapshot } = useEntitlements();
 
   const [contacts, setContacts] = useState<ContactWithTags[]>([]);
   const [loading, setLoading] = useState(true);
@@ -413,7 +423,35 @@ export default function ContactsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-foreground text-2xl font-bold">Contacts</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-foreground text-2xl font-bold">Contacts</h1>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      aria-label="Contact limit information"
+                      className="text-muted-foreground hover:text-foreground focus:outline-none"
+                    />
+                  }
+                >
+                  <Info className="size-4" />
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-xs text-left">
+                  {(() => {
+                    const max = entSnapshot?.entitlements.maxContacts ?? null;
+                    const used = entSnapshot?.usage.contacts ?? totalCount;
+                    if (max === null) {
+                      return `Your plan has no contact limit. ${used.toLocaleString()} contact${used === 1 ? '' : 's'} so far.`;
+                    }
+                    const left = Math.max(0, max - used);
+                    return `Your plan includes up to ${max.toLocaleString()} contacts — ${used.toLocaleString()} used, ${left.toLocaleString()} remaining.`;
+                  })()}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <p className="text-muted-foreground mt-1 text-sm">
             Manage your contact list.{' '}
             {totalCount > 0 && `${totalCount} total contacts.`}
