@@ -125,6 +125,12 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     console.error('[v1/messages] error:', err);
-    return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
+    // Surface the real reason. sendTemplateMessage (via throwMetaError)
+    // produces an actionable message — which template field Meta rejected,
+    // "Recipient phone number not in allowed list", an expired token, etc.
+    // A caller on Zapier/Make only ever sees this string, so hiding it
+    // behind a generic "Failed to send message" makes the send undebuggable.
+    const detail = err instanceof Error ? err.message : 'Failed to send message';
+    return NextResponse.json({ error: detail }, { status: 502 });
   }
 }
