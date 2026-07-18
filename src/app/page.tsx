@@ -8,11 +8,12 @@ import {
   Zap,
   FileText,
   BarChart3,
-  CheckCheck,
   Check,
   ArrowRight,
   Quote,
+  Image as ImageIcon,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 // The public marketing landing page. Unlike the rest of the app (which
 // is noindex — it's a private product surface), this page is the front
@@ -36,9 +37,10 @@ export default function LandingPage() {
       <SiteHeader />
       <main className="flex-1">
         <Hero />
+        <LogoCloud />
         <TrustStrip />
         <Features />
-        <Spotlight />
+        <Spotlights />
         <HowItWorks />
         <Testimonial />
         <FinalCta />
@@ -100,7 +102,7 @@ function SiteHeader() {
 function Hero() {
   return (
     <section className="relative overflow-hidden">
-      {/* Background glow + grid */}
+      {/* Background grid, masked to fade toward the edges. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10"
@@ -109,164 +111,104 @@ function Hero() {
             'linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px)',
           backgroundSize: '56px 56px',
           maskImage:
-            'radial-gradient(ellipse 70% 55% at 50% 0%, black, transparent)',
+            'radial-gradient(ellipse 75% 60% at 50% 0%, black, transparent)',
           WebkitMaskImage:
-            'radial-gradient(ellipse 70% 55% at 50% 0%, black, transparent)',
+            'radial-gradient(ellipse 75% 60% at 50% 0%, black, transparent)',
         }}
       />
+      {/* Soft brand glow behind the headline. */}
       <div
         aria-hidden
-        className="bg-primary/10 pointer-events-none absolute -top-40 left-1/2 -z-10 h-96 w-[42rem] -translate-x-1/2 rounded-full blur-3xl"
+        className="bg-primary/10 pointer-events-none absolute -top-40 left-1/2 -z-10 h-96 w-184 -translate-x-1/2 rounded-full blur-3xl"
       />
 
-      {/* Floating avatars + chat bubbles — decorative, live in the side
-          margins on large screens so they frame the headline like the
-          conversations they represent. Hidden on smaller screens where they'd
-          collide with the copy. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-0 mx-auto hidden max-w-6xl lg:block"
-      >
-        {/* left column */}
-        <FloatAvatar
-          initials="AD"
-          gradient="from-emerald-400 to-emerald-600"
-          size={56}
-          delay={0}
-          online
-          className="top-28 left-2"
-        />
-        <div className="animate-floaty bg-card text-foreground ring-border absolute top-[6.5rem] left-20 rounded-2xl rounded-bl-sm px-3 py-1.5 text-xs font-medium shadow-md ring-1">
-          New order received! 🎉
-        </div>
-        <FloatAvatar
-          initials="LT"
-          gradient="from-rose-400 to-pink-600"
-          size={48}
-          delay={2.4}
-          className="top-64 left-16"
-        />
-        <FloatAvatar
-          initials="KP"
-          gradient="from-amber-400 to-orange-600"
-          size={52}
-          delay={1.8}
-          className="top-[26rem] left-6"
-        />
+      <div className="mx-auto max-w-6xl px-4 pt-20 pb-16 sm:px-6 sm:pt-28 sm:pb-24">
+        <div className="mx-auto max-w-3xl text-center">
+          <span className="border-border bg-card text-muted-foreground inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium">
+            <span className="bg-primary flex h-1.5 w-1.5 rounded-full" />
+            Built on the official WhatsApp Business API
+          </span>
 
-        {/* right column */}
-        <FloatAvatar
-          initials="MJ"
-          gradient="from-sky-400 to-blue-600"
-          size={54}
-          delay={1.2}
-          online
-          className="top-24 right-4"
-        />
-        <FloatAvatar
-          initials="SR"
-          gradient="from-violet-400 to-indigo-600"
-          size={50}
-          delay={0.6}
-          className="top-60 right-16"
-        />
-        <FloatAvatar
-          initials="PT"
-          gradient="from-teal-400 to-emerald-600"
-          size={58}
-          delay={3}
-          className="top-[25rem] right-6"
-        />
-        <div className="animate-floaty bg-primary text-primary-foreground absolute top-[24rem] right-24 rounded-2xl rounded-br-sm px-3 py-1.5 text-xs font-medium shadow-md">
-          I want a black T-shirt…
-        </div>
-      </div>
+          <h1 className="mt-6 text-4xl font-bold tracking-tight text-balance sm:text-5xl md:text-6xl">
+            Increase orders, secure more bookings, and delight every customer{' '}
+            <span className="text-primary">effortlessly</span>
+          </h1>
 
-      <div className="relative z-10 mx-auto max-w-6xl px-4 pt-16 pb-12 text-center sm:px-6 sm:pt-24">
-        <span className="border-border bg-card text-muted-foreground inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium">
-          <span className="bg-primary flex h-1.5 w-1.5 rounded-full" />
-          Built on the official WhatsApp Business API
-        </span>
+          <p className="text-muted-foreground mx-auto mt-6 max-w-xl text-base text-pretty sm:text-lg">
+            wacrm brings your contacts, broadcast campaigns, and every WhatsApp
+            conversation into one shared inbox — so your whole team can sell and
+            support without switching apps.
+          </p>
 
-        <h1 className="mx-auto mt-6 max-w-3xl text-4xl font-bold tracking-tight text-balance sm:text-5xl md:text-6xl">
-          Increase orders, secure more bookings, and delight every customer{' '}
-          <span className="text-primary">effortlessly</span>
-        </h1>
+          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              href="/signup"
+              className={`${btnPrimary} h-12 w-full px-6 sm:w-auto`}
+            >
+              Get started free
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="/login"
+              className={`${btnGhost} border-border h-12 w-full border px-6 sm:w-auto`}
+            >
+              Log in
+            </Link>
+          </div>
 
-        <p className="text-muted-foreground mx-auto mt-5 max-w-xl text-base text-pretty sm:text-lg">
-          wacrm brings your contacts, broadcast campaigns, and every WhatsApp
-          conversation into one shared inbox — so your whole team can sell and
-          support without switching apps.
-        </p>
-
-        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link
-            href="/signup"
-            className={`${btnPrimary} h-12 w-full px-6 sm:w-auto`}
-          >
-            Get started free
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-          <Link
-            href="/login"
-            className={`${btnGhost} border-border h-12 w-full border px-6 sm:w-auto`}
-          >
-            Log in
-          </Link>
+          <p className="text-muted-foreground mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-xs">
+            <span className="inline-flex items-center gap-1.5">
+              <Check className="text-primary h-3.5 w-3.5" /> No credit card
+              required
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Check className="text-primary h-3.5 w-3.5" /> Self-hostable
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Check className="text-primary h-3.5 w-3.5" /> Set up in minutes
+            </span>
+          </p>
         </div>
 
-        <p className="text-muted-foreground mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-xs">
-          <span className="inline-flex items-center gap-1.5">
-            <Check className="text-primary h-3.5 w-3.5" /> No credit card
-            required
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <Check className="text-primary h-3.5 w-3.5" /> Self-hostable
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <Check className="text-primary h-3.5 w-3.5" /> Set up in minutes
-          </span>
-        </p>
+        {/* Hero product shot. Swap the placeholder for a real screenshot. */}
+        <div className="relative mx-auto mt-16 max-w-5xl sm:mt-20">
+          <div
+            aria-hidden
+            className="bg-primary/15 pointer-events-none absolute -inset-x-8 -top-8 bottom-0 -z-10 rounded-[2rem] blur-2xl"
+          />
+          <BrowserFrame
+            label="wacrm · Shared inbox"
+            imageLabel="Dashboard screenshot"
+            aspect="aspect-16/9"
+          />
+        </div>
       </div>
     </section>
   );
 }
 
-/* ─── Hero floating avatar ────────────────────────────────────────── */
+/* ─── Logo cloud ──────────────────────────────────────────────────── */
 
-// Floating avatar for the marketing hero. `delay` staggers the drift so the
-// group never bobs in unison; `online` adds the WhatsApp-style green dot.
-function FloatAvatar({
-  initials,
-  gradient,
-  size = 56,
-  delay = 0,
-  online = false,
-  className = '',
-}: {
-  initials: string;
-  gradient: string;
-  size?: number;
-  delay?: number;
-  online?: boolean;
-  className?: string;
-}) {
+function LogoCloud() {
   return (
-    <div
-      className={`animate-floaty absolute ${className}`}
-      style={{ animationDelay: `${delay}s` }}
-    >
-      <div className="relative">
-        <div
-          className={`ring-background flex items-center justify-center rounded-full bg-gradient-to-br ${gradient} font-semibold text-white shadow-lg ring-4`}
-          style={{ height: size, width: size, fontSize: size * 0.32 }}
-        >
-          {initials}
-        </div>
-        {online && (
-          <span className="ring-background absolute right-0 bottom-0 h-3.5 w-3.5 rounded-full bg-emerald-500 ring-2" />
-        )}
+    <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+      <p className="text-muted-foreground text-center text-xs font-medium tracking-wide uppercase">
+        Trusted by teams that run their business on WhatsApp
+      </p>
+      <div className="mt-8 grid grid-cols-2 items-center gap-x-8 gap-y-6 sm:grid-cols-3 md:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <LogoPlaceholder key={i} />
+        ))}
       </div>
+    </section>
+  );
+}
+
+function LogoPlaceholder() {
+  return (
+    <div className="border-border/70 text-muted-foreground/60 flex h-10 items-center justify-center gap-2 rounded-lg border border-dashed">
+      <span className="bg-muted-foreground/30 h-4 w-4 rounded" />
+      <span className="bg-muted-foreground/25 h-2.5 w-14 rounded-full" />
     </div>
   );
 }
@@ -276,13 +218,13 @@ function FloatAvatar({
 function TrustStrip() {
   return (
     <section className="border-border bg-card/50 border-y">
-      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-4 py-10 sm:px-6 md:grid-cols-4">
+      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-4 py-12 sm:px-6 md:grid-cols-4">
         {STATS.map((s) => (
           <div key={s.label} className="text-center">
-            <p className="text-foreground text-3xl font-bold tracking-tight">
+            <p className="text-foreground text-3xl font-bold tracking-tight sm:text-4xl">
               {s.value}
             </p>
-            <p className="text-muted-foreground mt-1 text-sm">{s.label}</p>
+            <p className="text-muted-foreground mt-1.5 text-sm">{s.label}</p>
           </div>
         ))}
       </div>
@@ -294,18 +236,18 @@ function TrustStrip() {
 
 function Features() {
   return (
-    <section id="features" className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+    <section id="features" className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32">
       <SectionHeading
         eyebrow="Everything in one place"
         title="One platform for every customer conversation"
         subtitle="From the first message to the closed deal — wacrm gives your team the tools to sell and support over WhatsApp, without switching apps."
       />
 
-      <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {FEATURES.map(({ icon: Icon, title, description }) => (
           <div
             key={title}
-            className="group border-border bg-card rounded-2xl border p-6 transition-shadow hover:shadow-md"
+            className="group border-border bg-card rounded-2xl border p-7 transition-all hover:-translate-y-0.5 hover:shadow-md"
           >
             <div className="bg-primary-soft text-primary flex h-11 w-11 items-center justify-center rounded-xl">
               <Icon className="h-5 w-5" />
@@ -321,90 +263,63 @@ function Features() {
   );
 }
 
-/* ─── Spotlight ───────────────────────────────────────────────────── */
+/* ─── Spotlights ──────────────────────────────────────────────────── */
 
-function Spotlight() {
+function Spotlights() {
   return (
     <section className="border-border bg-card/40 border-y">
-      <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-20 sm:px-6 lg:grid-cols-2">
-        <div>
-          <p className="text-primary text-sm font-semibold">
-            Shared team inbox
-          </p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-balance sm:text-4xl">
-            Every conversation, assigned and never dropped
-          </h2>
-          <p className="text-muted-foreground mt-4 text-base leading-relaxed">
-            Your whole team works from a single WhatsApp inbox. Assign chats,
-            leave internal notes, and see the full history for every contact —
-            so nothing falls through the cracks.
-          </p>
-          <ul className="mt-6 space-y-3">
-            {SPOTLIGHT_POINTS.map((point) => (
-              <li key={point} className="flex items-start gap-3">
-                <span className="bg-primary-soft text-primary mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full">
-                  <Check className="h-3 w-3" />
-                </span>
-                <span className="text-foreground text-sm">{point}</span>
-              </li>
-            ))}
-          </ul>
-          <Link href="/signup" className={`${btnPrimary} mt-8`}>
-            Start free
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-
-        {/* Emerald inbox mock */}
-        <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-emerald-950 via-emerald-900 to-emerald-800 p-6 shadow-xl sm:p-8">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute top-8 -right-16 h-64 w-64 rounded-full bg-emerald-400/20 blur-3xl"
-          />
-          <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm">
-            <div className="flex items-center gap-2.5 border-b border-white/10 px-4 py-3">
-              <div className="bg-primary flex h-6 w-6 items-center justify-center rounded-md">
-                <MessageSquare className="text-primary-foreground h-3.5 w-3.5" />
-              </div>
-              <span className="text-sm font-semibold text-white">
-                wacrm · Inbox
-              </span>
-            </div>
-            <div className="grid grid-cols-[minmax(0,7rem)_1fr]">
-              <div className="space-y-1 border-r border-white/10 p-2">
-                {HERO_CONVERSATIONS.map((c, i) => (
-                  <div
-                    key={c.name}
-                    className={`rounded-lg px-2 py-1.5 ${i === 0 ? 'bg-white/10' : ''}`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <span className="h-4 w-4 shrink-0 rounded-full bg-emerald-400/40" />
-                      <span className="truncate text-[11px] font-medium text-white/90">
-                        {c.name}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 truncate text-[10px] text-white/50">
-                      {c.preview}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              <div className="space-y-2.5 p-3">
-                <div className="max-w-[80%] rounded-2xl rounded-tl-sm bg-white/10 px-3 py-2 text-[11px] text-white/80">
-                  Can I get a demo this week?
-                </div>
-                <div className="bg-primary text-primary-foreground ml-auto max-w-[80%] rounded-2xl rounded-tr-sm px-3 py-2 text-[11px]">
-                  Absolutely — does Thursday 2pm work?
-                </div>
-                <div className="ml-auto flex items-center gap-1 text-[9px] text-emerald-200/70">
-                  <CheckCheck className="h-3 w-3" /> Read
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="mx-auto max-w-6xl space-y-24 px-4 py-24 sm:px-6 sm:space-y-32 sm:py-32">
+        {SPOTLIGHTS.map((s) => (
+          <Spotlight key={s.title} {...s} />
+        ))}
       </div>
     </section>
+  );
+}
+
+function Spotlight({
+  eyebrow,
+  title,
+  body,
+  points,
+  frameLabel,
+  imageLabel,
+  reverse,
+}: (typeof SPOTLIGHTS)[number]) {
+  return (
+    <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+      <div className={cn(reverse && 'lg:order-2')}>
+        <p className="text-primary text-sm font-semibold">{eyebrow}</p>
+        <h2 className="mt-3 text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+          {title}
+        </h2>
+        <p className="text-muted-foreground mt-4 text-base leading-relaxed">
+          {body}
+        </p>
+        <ul className="mt-6 space-y-3">
+          {points.map((point) => (
+            <li key={point} className="flex items-start gap-3">
+              <span className="bg-primary-soft text-primary mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full">
+                <Check className="h-3 w-3" />
+              </span>
+              <span className="text-foreground text-sm">{point}</span>
+            </li>
+          ))}
+        </ul>
+        <Link href="/signup" className={`${btnPrimary} mt-8`}>
+          Start free
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
+
+      <div className={cn('relative', reverse && 'lg:order-1')}>
+        <div
+          aria-hidden
+          className="bg-primary/10 pointer-events-none absolute -inset-6 -z-10 rounded-[2rem] blur-2xl"
+        />
+        <BrowserFrame label={frameLabel} imageLabel={imageLabel} aspect="aspect-4/3" />
+      </div>
+    </div>
   );
 }
 
@@ -412,18 +327,18 @@ function Spotlight() {
 
 function HowItWorks() {
   return (
-    <section id="how-it-works" className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+    <section id="how-it-works" className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32">
       <SectionHeading
         eyebrow="Up and running fast"
         title="Live in three simple steps"
         subtitle="No lengthy onboarding. Connect your number and start talking to customers today."
       />
 
-      <div className="mt-14 grid gap-6 md:grid-cols-3">
+      <div className="mt-16 grid gap-6 md:grid-cols-3">
         {STEPS.map((step, i) => (
           <div
             key={step.title}
-            className="border-border bg-card relative rounded-2xl border p-6"
+            className="border-border bg-card relative rounded-2xl border p-7"
           >
             <div className="bg-primary text-primary-foreground flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold">
               {i + 1}
@@ -444,7 +359,7 @@ function HowItWorks() {
 function Testimonial() {
   return (
     <section id="testimonial" className="border-border bg-card/40 border-y">
-      <div className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6">
+      <div className="mx-auto max-w-3xl px-4 py-24 text-center sm:px-6 sm:py-32">
         <div className="bg-primary-soft text-primary mx-auto flex h-12 w-12 items-center justify-center rounded-2xl">
           <Quote className="h-6 w-6" />
         </div>
@@ -453,9 +368,10 @@ function Testimonial() {
           through wacrm now. Our whole team finally works from the same
           inbox.&rdquo;
         </blockquote>
-        <div className="mt-6 flex items-center justify-center gap-3">
-          <div className="bg-primary text-primary-foreground flex h-11 w-11 items-center justify-center rounded-full text-sm font-semibold">
-            BP
+        <div className="mt-8 flex items-center justify-center gap-3">
+          {/* Swap for a real headshot. */}
+          <div className="border-border bg-muted text-muted-foreground/60 flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border">
+            <ImageIcon className="h-4 w-4" strokeWidth={1.5} />
           </div>
           <div className="text-left">
             <p className="text-sm font-semibold">Bettie Porter</p>
@@ -473,8 +389,8 @@ function Testimonial() {
 
 function FinalCta() {
   return (
-    <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-      <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-emerald-950 via-emerald-900 to-emerald-800 px-6 py-16 text-center sm:px-16">
+    <section className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32">
+      <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-emerald-950 via-emerald-900 to-emerald-800 px-6 py-16 text-center sm:px-16 sm:py-20">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-[0.12]"
@@ -496,7 +412,7 @@ function FinalCta() {
             Join teams using wacrm to turn conversations into customers. Get
             started in minutes — no credit card required.
           </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               href="/signup"
               className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-white px-6 text-sm font-semibold text-emerald-950 transition-colors hover:bg-emerald-50 sm:w-auto"
@@ -575,13 +491,75 @@ function SectionHeading({
   );
 }
 
-/* ─── Content ─────────────────────────────────────────────────────── */
+// A polished, theme-aware image placeholder framed like an app window.
+// Drop a real <Image>/<img> in place of the PlaceholderArea when the
+// screenshots are ready — the frame + shadow stay.
+function BrowserFrame({
+  label,
+  imageLabel,
+  aspect,
+  className,
+}: {
+  label?: string;
+  imageLabel: string;
+  aspect: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        'border-border bg-card overflow-hidden rounded-2xl border shadow-xl',
+        className,
+      )}
+    >
+      <div className="border-border bg-muted/40 flex items-center gap-1.5 border-b px-4 py-3">
+        <span className="bg-foreground/15 h-3 w-3 rounded-full" />
+        <span className="bg-foreground/15 h-3 w-3 rounded-full" />
+        <span className="bg-foreground/15 h-3 w-3 rounded-full" />
+        {label && (
+          <span className="text-muted-foreground ml-3 truncate text-xs font-medium">
+            {label}
+          </span>
+        )}
+      </div>
+      <PlaceholderArea label={imageLabel} className={aspect} />
+    </div>
+  );
+}
 
-const HERO_CONVERSATIONS = [
-  { name: 'Bettie Porter', preview: 'Sounds perfect, thanks!' },
-  { name: 'Marco Diaz', preview: 'Can I get a demo?' },
-  { name: 'Aisha Khan', preview: 'Order #1043 update' },
-] as const;
+function PlaceholderArea({
+  label,
+  className,
+}: {
+  label: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        'bg-muted/40 relative flex items-center justify-center',
+        className,
+      )}
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-60"
+        style={{
+          backgroundImage:
+            'radial-gradient(currentColor 1px, transparent 1px)',
+          backgroundSize: '22px 22px',
+          color: 'rgba(120,120,120,0.12)',
+        }}
+      />
+      <div className="text-muted-foreground/70 relative flex flex-col items-center gap-2">
+        <ImageIcon className="h-7 w-7" strokeWidth={1.5} />
+        <span className="text-xs font-medium tracking-wide">{label}</span>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Content ─────────────────────────────────────────────────────── */
 
 const STATS = [
   { value: '1 inbox', label: 'For your whole team' },
@@ -629,11 +607,35 @@ const FEATURES = [
   },
 ] as const;
 
-const SPOTLIGHT_POINTS = [
-  'Assign conversations so everyone knows who owns what',
-  'Private team notes on any chat or contact',
-  'Full contact history at your fingertips',
-  'The 24-hour messaging window, tracked for you',
+const SPOTLIGHTS = [
+  {
+    eyebrow: 'Shared team inbox',
+    title: 'Every conversation, assigned and never dropped',
+    body: 'Your whole team works from a single WhatsApp inbox. Assign chats, leave internal notes, and see the full history for every contact — so nothing falls through the cracks.',
+    points: [
+      'Assign conversations so everyone knows who owns what',
+      'Private team notes on any chat or contact',
+      'Full contact history at your fingertips',
+      'The 24-hour messaging window, tracked for you',
+    ],
+    frameLabel: 'wacrm · Inbox',
+    imageLabel: 'Shared inbox screenshot',
+    reverse: false,
+  },
+  {
+    eyebrow: 'Campaigns & automations',
+    title: 'Turn one message into thousands of conversations',
+    body: 'Launch broadcast campaigns with approved templates, then let automations follow up, route, and reply — so your outreach scales without more hands on deck.',
+    points: [
+      'Send bulk campaigns and track delivery & read rates live',
+      'Auto-reply and route chats with no-code flows',
+      'Trigger follow-ups on tags, replies, and deal stages',
+      'Segment contacts to reach exactly the right people',
+    ],
+    frameLabel: 'wacrm · Campaigns',
+    imageLabel: 'Campaign builder screenshot',
+    reverse: true,
+  },
 ] as const;
 
 const STEPS = [
