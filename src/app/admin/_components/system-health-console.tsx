@@ -287,6 +287,13 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
 
   const latencySeries = history.map((s) => s.latency ?? 0);
   const pendingSeries = history.map((s) => s.pending);
+  const timeLabels = history.map((s) =>
+    new Date(s.t).toLocaleTimeString(undefined, {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    }),
+  );
 
   const configGroups = Array.from(new Set(config.map((c) => c.group)));
 
@@ -412,6 +419,7 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
                 </div>
                 <Sparkline
                   data={latencySeries}
+                  labels={timeLabels}
                   formatValue={(v) => `${Math.round(v)} ms`}
                 />
               </div>
@@ -506,6 +514,7 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
                 </div>
                 <Sparkline
                   data={pendingSeries}
+                  labels={timeLabels}
                   formatValue={(v) => `${Math.round(v)} pending`}
                 />
               </div>
