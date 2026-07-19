@@ -25,6 +25,24 @@ import type {
   SystemHealth,
   ServiceStatus,
 } from '../_lib/system-health';
+import { Sparkline, RadialMeter, HBarChart } from './health-charts';
+
+/** One polled sample, kept in a rolling buffer to feed the live sparklines. */
+interface Sample {
+  t: number;
+  latency: number | null;
+  pending: number;
+}
+
+function sampleFrom(h: SystemHealth): Sample {
+  return {
+    t: Date.parse(h.generatedAt),
+    latency: h.database.latencyMs,
+    pending: h.webhooks.pending,
+  };
+}
+
+const MAX_SAMPLES = 40;
 
 const REFRESH_MS = 30_000;
 
@@ -163,17 +181,6 @@ function Metric({
   );
 }
 
-function Bar({ pct, tone }: { pct: number; tone?: string }) {
-  return (
-    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-      <div
-        className={cn('h-full rounded-full', tone ?? 'bg-primary')}
-        style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
-      />
-    </div>
-  );
-}
-
 /* ── service summary card ───────────────────────────────────── */
 
 function ServiceCard({
@@ -209,6 +216,7 @@ function ServiceCard({
 
 export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
   const [health, setHealth] = useState<SystemHealth>(initial);
+  const [history, setHistory] = useState<Sample[]>(() => [sampleFrom(initial)]);
   const [refreshing, setRefreshing] = useState(false);
   const [auto, setAuto] = useState(true);
   const [tick, setTick] = useState(0); // re-render "x ago" labels
@@ -248,14 +256,37 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
     return () => clearInterval(t);
   }, []);
 
+  // Append each new snapshot to the rolling history that feeds the live
+  // sparklines (deduped by generation timestamp).
+  useEffect(() => {
+    setHistory((h) => {
+      const s = sampleFrom(health);
+      if (h.length && h[h.length - 1].t === s.t) return h;
+      return [...h, s].slice(-MAX_SAMPLES);
+    });
+  }, [health]);
+
   const generatedAgoMs = Date.now() - Date.parse(health.generatedAt);
   const { database: db, storage, auth, runtime, webhooks, crons, tables, config } =
     health;
 
-  const connPct =
+  const connFrac =
     db.activeConnections != null && db.maxConnections
-      ? (db.activeConnections / db.maxConnections) * 100
-      : 0;
+      ? db.activeConnections / db.maxConnections
+      : null;
+  const connPct = (connFrac ?? 0) * 100;
+  const poolTone: 'good' | 'warning' | 'critical' =
+    connPct > 85 ? 'critical' : connPct > 65 ? 'warning' : 'good';
+
+  const successTone: 'good' | 'warning' | 'critical' =
+    webhooks.successRate24h == null
+      ? 'good'
+      : webhooks.successRate24h < 0.8
+        ? 'warning'
+        : 'good';
+
+  const latencySeries = history.map((s) => s.latency ?? 0);
+  const pendingSeries = history.map((s) => s.pending);
 
   const configGroups = Array.from(new Set(config.map((c) => c.group)));
 
@@ -355,23 +386,33 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
             <p className="text-sm text-red-600 dark:text-red-400">{db.error}</p>
           ) : (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <Metric label="Latency" value={db.latencyMs != null ? `${db.latencyMs} ms` : '—'} />
-                <Metric label="Size" value={fmtBytes(db.sizeBytes)} />
-                <Metric
-                  label="Connections"
-                  value={`${fmtInt(db.activeConnections)} / ${fmtInt(db.maxConnections)}`}
+              <div className="flex items-center gap-4">
+                <RadialMeter
+                  fraction={connFrac}
+                  tone={poolTone}
+                  valueText={`${Math.round(connPct)}%`}
+                  caption="pool used"
                 />
-                <Metric label="Postgres" value={db.postgresVersion?.split(' ')[0] ?? '—'} />
+                <div className="grid flex-1 grid-cols-2 gap-3">
+                  <Metric label="Latency" value={db.latencyMs != null ? `${db.latencyMs} ms` : '—'} />
+                  <Metric label="Size" value={fmtBytes(db.sizeBytes)} />
+                  <Metric
+                    label="Connections"
+                    value={`${fmtInt(db.activeConnections)} / ${fmtInt(db.maxConnections)}`}
+                  />
+                  <Metric label="Postgres" value={db.postgresVersion?.split(' ')[0] ?? '—'} />
+                </div>
               </div>
               <div>
-                <div className="mb-1 flex justify-between text-[11px] text-muted-foreground">
-                  <span>Connection pool</span>
-                  <span>{Math.round(connPct)}%</span>
+                <div className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>Query latency</span>
+                  <span className="tabular-nums">
+                    {db.latencyMs != null ? `${db.latencyMs} ms now` : '—'}
+                  </span>
                 </div>
-                <Bar
-                  pct={connPct}
-                  tone={connPct > 85 ? 'bg-red-500' : connPct > 65 ? 'bg-amber-500' : 'bg-primary'}
+                <Sparkline
+                  data={latencySeries}
+                  formatValue={(v) => `${Math.round(v)} ms`}
                 />
               </div>
             </div>
@@ -409,29 +450,19 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
                   {storage.buckets.length} buckets
                 </span>
               </div>
-              <div className="space-y-2.5">
-                {storage.buckets.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No stored objects.</p>
-                ) : (
-                  storage.buckets.map((b) => {
-                    const pct =
-                      storage.totalBytes > 0
-                        ? (b.bytes / storage.totalBytes) * 100
-                        : 0;
-                    return (
-                      <div key={b.bucket}>
-                        <div className="mb-1 flex items-center justify-between text-xs">
-                          <span className="font-medium text-foreground">{b.bucket}</span>
-                          <span className="tabular-nums text-muted-foreground">
-                            {fmtBytes(b.bytes)} · {fmtInt(b.objects)}
-                          </span>
-                        </div>
-                        <Bar pct={pct} />
-                      </div>
-                    );
-                  })
-                )}
-              </div>
+              {storage.buckets.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No stored objects.</p>
+              ) : (
+                <HBarChart
+                  items={storage.buckets.map((b) => ({
+                    label: b.bucket,
+                    value: b.bytes,
+                    valueText: fmtBytes(b.bytes),
+                    caption: `${fmtInt(b.objects)} objects · ${fmtBytes(b.bytes)}`,
+                  }))}
+                  formatValue={fmtBytes}
+                />
+              )}
             </div>
           )}
         </Panel>
@@ -442,36 +473,40 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
             <p className="text-sm text-red-600 dark:text-red-400">{webhooks.error}</p>
           ) : (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <Metric label="Active endpoints" value={fmtInt(webhooks.activeEndpoints)} />
-                <Metric
-                  label="Pending"
-                  value={fmtInt(webhooks.pending)}
-                  sub={
-                    webhooks.oldestPendingAgeMs != null
-                      ? `oldest ${fmtAgo(webhooks.oldestPendingAgeMs)}`
-                      : undefined
+              <div className="flex items-center gap-4">
+                <RadialMeter
+                  fraction={webhooks.successRate24h}
+                  tone={successTone}
+                  valueText={
+                    webhooks.successRate24h != null
+                      ? `${Math.round(webhooks.successRate24h * 100)}%`
+                      : '—'
                   }
+                  caption="24h success"
                 />
-                <Metric label="Delivered · 24h" value={fmtInt(webhooks.delivered24h)} />
-                <Metric label="Failed · 24h" value={fmtInt(webhooks.failed24h)} />
+                <div className="grid flex-1 grid-cols-2 gap-3">
+                  <Metric label="Active endpoints" value={fmtInt(webhooks.activeEndpoints)} />
+                  <Metric
+                    label="Pending"
+                    value={fmtInt(webhooks.pending)}
+                    sub={
+                      webhooks.oldestPendingAgeMs != null
+                        ? `oldest ${fmtAgo(webhooks.oldestPendingAgeMs)}`
+                        : undefined
+                    }
+                  />
+                  <Metric label="Delivered · 24h" value={fmtInt(webhooks.delivered24h)} />
+                  <Metric label="Failed · 24h" value={fmtInt(webhooks.failed24h)} />
+                </div>
               </div>
               <div>
-                <div className="mb-1 flex justify-between text-[11px] text-muted-foreground">
-                  <span>Success rate · 24h</span>
-                  <span>
-                    {webhooks.successRate24h != null
-                      ? `${Math.round(webhooks.successRate24h * 100)}%`
-                      : 'n/a'}
-                  </span>
+                <div className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>Queue depth</span>
+                  <span className="tabular-nums">{fmtInt(webhooks.pending)} pending</span>
                 </div>
-                <Bar
-                  pct={(webhooks.successRate24h ?? 1) * 100}
-                  tone={
-                    webhooks.successRate24h != null && webhooks.successRate24h < 0.8
-                      ? 'bg-amber-500'
-                      : 'bg-emerald-500'
-                  }
+                <Sparkline
+                  data={pendingSeries}
+                  formatValue={(v) => `${Math.round(v)} pending`}
                 />
               </div>
             </div>
@@ -482,7 +517,7 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
       {/* Cron jobs */}
       <Panel title="Cron jobs" icon={<Timer className="size-4" />}>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
+          <table className="w-full min-w-160 text-sm">
             <thead>
               <tr className="text-left text-xs text-muted-foreground">
                 <th className="pb-2 font-medium">Job</th>
@@ -550,30 +585,20 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
           {tables.length === 0 ? (
             <p className="text-sm text-muted-foreground">No table stats available.</p>
           ) : (
-            <div className="space-y-2">
-              {tables.map((t) => {
-                const max = tables[0]?.bytes || 1;
-                return (
-                  <div key={t.name} className="flex items-center gap-3">
-                    <span className="w-40 shrink-0 truncate text-xs font-medium text-foreground">
-                      {t.name}
-                    </span>
-                    <div className="flex-1">
-                      <Bar pct={(t.bytes / max) * 100} />
-                    </div>
-                    <span className="w-16 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">
-                      {fmtBytes(t.bytes)}
-                    </span>
-                    <span className="w-16 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">
-                      {fmtInt(t.estRows)}
-                    </span>
-                  </div>
-                );
-              })}
-              <p className="pt-1 text-right text-[10px] text-muted-foreground">
-                size · est. rows
+            <>
+              <HBarChart
+                items={tables.map((t) => ({
+                  label: t.name,
+                  value: t.bytes,
+                  valueText: fmtBytes(t.bytes),
+                  caption: `${fmtBytes(t.bytes)} · ${fmtInt(t.estRows)} est. rows`,
+                }))}
+                formatValue={fmtBytes}
+              />
+              <p className="pt-2 text-right text-[10px] text-muted-foreground">
+                bar = total size · hover for row estimate
               </p>
-            </div>
+            </>
           )}
         </Panel>
 
