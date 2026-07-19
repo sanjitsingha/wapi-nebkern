@@ -12,6 +12,7 @@ import {
   MonitorPlay,
   Newspaper,
   LifeBuoy,
+  Activity,
   LogOut,
   ShieldCheck,
 } from 'lucide-react';
@@ -30,6 +31,7 @@ const NAV = [
   { label: 'Popups', href: '/admin/popups', icon: MonitorPlay },
   { label: 'Blog', href: '/admin/blog', icon: Newspaper },
   { label: 'Tickets', href: '/admin/tickets', icon: LifeBuoy },
+  { label: 'System', href: '/admin/system', icon: Activity },
 ] as const;
 
 /**

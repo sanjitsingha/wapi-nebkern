@@ -2,6 +2,7 @@ import { timingSafeEqual } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/flows/admin-client'
 import { resolveFallbackPolicy } from '@/lib/flows/fallback'
+import { recordCronHeartbeat } from '@/lib/system/cron-heartbeat'
 
 /**
  * Sweep abandoned active flow runs.
@@ -47,6 +48,7 @@ export async function GET(request: Request) {
 
   const admin = supabaseAdmin()
   const now = new Date()
+  const started = Date.now()
 
   // Pull all currently-active runs along with their parent flow's
   // fallback_policy. Joined in one query — the small set of active
@@ -60,9 +62,21 @@ export async function GET(request: Request) {
 
   if (error) {
     console.error('[flows-cron] active-run scan failed:', error.message)
+    await recordCronHeartbeat(admin, 'flows', {
+      status: 'error',
+      durationMs: Date.now() - started,
+      error: error.message,
+    })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
-  if (!runs?.length) return NextResponse.json({ swept: 0 })
+  if (!runs?.length) {
+    await recordCronHeartbeat(admin, 'flows', {
+      status: 'ok',
+      durationMs: Date.now() - started,
+      detail: { swept: 0, active: 0 },
+    })
+    return NextResponse.json({ swept: 0 })
+  }
 
   type Row = {
     id: string
@@ -108,5 +122,10 @@ export async function GET(request: Request) {
     }
   }
 
+  await recordCronHeartbeat(admin, 'flows', {
+    status: 'ok',
+    durationMs: Date.now() - started,
+    detail: { swept, active: runs.length },
+  })
   return NextResponse.json({ swept })
 }

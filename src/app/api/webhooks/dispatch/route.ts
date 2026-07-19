@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 
 import { supabaseAdmin } from '@/lib/webhooks/admin-client';
 import { dispatchDueDeliveries } from '@/lib/webhooks/dispatch';
+import { recordCronHeartbeat } from '@/lib/system/cron-heartbeat';
 
 /**
  * Drain the outbound webhook delivery queue.
@@ -30,11 +31,23 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const admin = supabaseAdmin();
+  const started = Date.now();
   try {
-    const result = await dispatchDueDeliveries(supabaseAdmin(), MAX_PER_RUN);
+    const result = await dispatchDueDeliveries(admin, MAX_PER_RUN);
+    await recordCronHeartbeat(admin, 'webhooks_dispatch', {
+      status: 'ok',
+      durationMs: Date.now() - started,
+      detail: result as Record<string, unknown>,
+    });
     return NextResponse.json(result);
   } catch (err) {
     console.error('[webhooks-cron] dispatch failed:', err);
+    await recordCronHeartbeat(admin, 'webhooks_dispatch', {
+      status: 'error',
+      durationMs: Date.now() - started,
+      error: err instanceof Error ? err.message : String(err),
+    });
     return NextResponse.json({ error: 'dispatch failed' }, { status: 500 });
   }
 }

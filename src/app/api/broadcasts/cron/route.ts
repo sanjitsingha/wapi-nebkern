@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 
 import { supabaseAdmin } from '@/lib/broadcasts/admin-client';
 import { dispatchScheduledBroadcast } from '@/lib/broadcasts/dispatch';
+import { recordCronHeartbeat } from '@/lib/system/cron-heartbeat';
 
 /**
  * Dispatch due scheduled broadcasts.
@@ -39,6 +40,7 @@ export async function GET(request: Request) {
   }
 
   const admin = supabaseAdmin();
+  const started = Date.now();
 
   const { data: due, error } = await admin
     .from('broadcasts')
@@ -52,9 +54,19 @@ export async function GET(request: Request) {
 
   if (error) {
     console.error('[broadcasts-cron] due scan failed:', error.message);
+    await recordCronHeartbeat(admin, 'broadcasts', {
+      status: 'error',
+      durationMs: Date.now() - started,
+      error: error.message,
+    });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   if (!due || due.length === 0) {
+    await recordCronHeartbeat(admin, 'broadcasts', {
+      status: 'ok',
+      durationMs: Date.now() - started,
+      detail: { dispatched: 0 },
+    });
     return NextResponse.json({ dispatched: 0 });
   }
 
@@ -93,5 +105,11 @@ export async function GET(request: Request) {
     }
   }
 
+  const totalSent = results.reduce((n, r) => n + r.sent, 0);
+  await recordCronHeartbeat(admin, 'broadcasts', {
+    status: 'ok',
+    durationMs: Date.now() - started,
+    detail: { dispatched: results.length, sent: totalSent },
+  });
   return NextResponse.json({ dispatched: results.length, results });
 }
