@@ -15,32 +15,20 @@ export type FeatureKey =
   | 'allowIntegrations';
 
 /**
- * Wraps a feature surface and swaps it for an upgrade notice when the
- * account's plan doesn't include the feature. While entitlements are
- * loading (or the check fails) the children render — fail open, no lock
- * flash for the common allowed case; the server routes stay the real
- * enforcement.
+ * The "this feature isn't in your plan" card with an upgrade CTA.
+ * Purely presentational (no hooks), so server layouts can render it
+ * directly after their own entitlement check — see the automations and
+ * flows layout guards.
  */
-export function FeatureGate({
-  feature,
+export function FeatureLockCard({
   label,
   description,
-  children,
 }: {
-  feature: FeatureKey;
   /** Human name shown in the lock card, e.g. "WhatsApp Calling". */
   label: string;
   /** One-liner about what the feature does. */
   description?: string;
-  children: React.ReactNode;
 }) {
-  const { snapshot } = useEntitlements();
-
-  const allowed: boolean =
-    snapshot === null ? true : (snapshot.entitlements as PlanEntitlements)[feature];
-
-  if (allowed) return <>{children}</>;
-
   return (
     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 px-6 py-14 text-center">
       <span className="flex size-11 items-center justify-center rounded-xl bg-muted text-muted-foreground">
@@ -62,4 +50,32 @@ export function FeatureGate({
       </Link>
     </div>
   );
+}
+
+/**
+ * Wraps a feature surface and swaps it for the lock card when the
+ * account's plan doesn't include the feature. While entitlements are
+ * loading (or the check fails) the children render — fail open, no lock
+ * flash for the common allowed case; the server routes stay the real
+ * enforcement.
+ */
+export function FeatureGate({
+  feature,
+  label,
+  description,
+  children,
+}: {
+  feature: FeatureKey;
+  label: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  const { snapshot } = useEntitlements();
+
+  const allowed: boolean =
+    snapshot === null ? true : (snapshot.entitlements as PlanEntitlements)[feature];
+
+  if (allowed) return <>{children}</>;
+
+  return <FeatureLockCard label={label} description={description} />;
 }

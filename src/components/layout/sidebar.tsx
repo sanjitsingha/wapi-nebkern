@@ -24,6 +24,7 @@ import {
   Home,
   Image as ImageIcon,
   List,
+  Lock,
   Megaphone,
   MessageSquare,
   Users,
@@ -50,6 +51,9 @@ interface NavLink {
   tab?: SettingsSection;
   badge?: 'New' | 'Beta';
   unread?: boolean;
+  /** Plan-gated: shown faded with an "Upgrade" badge; the target route
+   *  renders the upgrade screen (server-side gate). */
+  locked?: boolean;
 }
 
 // An expandable section with a chevron toggle.
@@ -156,23 +160,24 @@ export function Sidebar({
   // open groups stay open (and clipped), per the "keep it intact" rule.
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
-  // Plan gating — hide nav entries for features the plan excludes
-  // (fail open while entitlements load, so allowed users never see the
-  // nav pop in). A group with no visible children disappears entirely.
+  // Plan gating — nav entries for features the plan excludes stay
+  // visible but fade out and wear an "Upgrade" badge (fail open while
+  // entitlements load, so allowed users never see a flicker). The link
+  // still navigates: the target route's server-side gate renders the
+  // upgrade screen.
   const { snapshot: entSnapshot } = useEntitlements();
   const visibleGroups = useMemo(() => {
     const ent = entSnapshot?.entitlements;
     if (!ent) return groups;
-    return groups
-      .map((g) => ({
-        ...g,
-        children: g.children.filter((c) => {
-          if (c.href === '/automations') return ent.allowAutomations;
-          if (c.href === '/flows') return ent.allowFlows;
-          return true;
-        }),
-      }))
-      .filter((g) => g.children.length > 0);
+    const lockedFor = (href: string): boolean => {
+      if (href === '/automations') return !ent.allowAutomations;
+      if (href === '/flows') return !ent.allowFlows;
+      return false;
+    };
+    return groups.map((g) => ({
+      ...g,
+      children: g.children.map((c) => ({ ...c, locked: lockedFor(c.href) })),
+    }));
   }, [entSnapshot]);
 
   const isCollapsed = collapsed && !hovered;
@@ -236,13 +241,18 @@ export function Sidebar({
       <Link
         href={link.href}
         onClick={onClose}
-        title={link.label}
+        title={
+          link.locked
+            ? `${link.label} — upgrade your plan to unlock`
+            : link.label
+        }
         className={cn(
           'relative flex items-center gap-3.5 rounded-lg px-3 text-sm font-medium transition-colors',
           indented ? 'py-3' : 'py-3.5',
           active
             ? 'bg-primary-soft text-primary font-semibold'
-            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+          link.locked && 'opacity-55 hover:opacity-80'
         )}
       >
         <link.icon
@@ -256,7 +266,19 @@ export function Sidebar({
         >
           {link.label}
         </span>
-        {link.badge === 'Beta' && (
+        {link.locked && (
+          <span
+            className={cn(
+              'flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold tracking-wider uppercase transition-opacity duration-200',
+              softBadge.amber,
+              isCollapsed && 'lg:opacity-0'
+            )}
+          >
+            <Lock className="h-2.5 w-2.5" />
+            Upgrade
+          </span>
+        )}
+        {!link.locked && link.badge === 'Beta' && (
           <span
             className={cn(
               'shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold tracking-wider uppercase transition-opacity duration-200',
@@ -267,7 +289,7 @@ export function Sidebar({
             Beta
           </span>
         )}
-        {link.badge === 'New' && (
+        {!link.locked && link.badge === 'New' && (
           <span
             className={cn(
               'shrink-0 rounded-full bg-violet-600 px-1.5 py-0.5 text-[9px] font-bold tracking-wide text-white uppercase transition-opacity duration-200',
