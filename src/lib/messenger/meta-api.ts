@@ -25,10 +25,13 @@ const OAUTH_DIALOG = `https://www.facebook.com/${META_API_VERSION}/dialog/oauth`
 //   pages_show_list       — enumerate the Pages the user manages
 //   pages_messaging       — send/receive Messenger messages as the Page
 //   pages_manage_metadata — subscribe the Page to this app's webhook
+//   pages_read_engagement — read Page fields (id/name) with a Page token;
+//                           without it any GET /{page-id} returns (#100)
 const OAUTH_SCOPES = [
   'pages_show_list',
   'pages_messaging',
   'pages_manage_metadata',
+  'pages_read_engagement',
 ].join(',');
 
 export interface MessengerSendResult {
