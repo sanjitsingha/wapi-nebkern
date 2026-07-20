@@ -20,12 +20,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
 import { PresenceDot } from '@/components/presence/presence-dot';
 import { NotificationsBell } from '@/components/layout/notifications-bell';
-import { PlanBadge } from '@/components/billing/plan-badge';
 
 interface HeaderProps {
   /** Wired to the shell's drawer state. Used only on mobile — the
@@ -77,22 +78,17 @@ export function Header({ onOpenSidebar }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-1 sm:gap-2">
-        <PlanBadge />
         <NotificationsBell />
-
-        <Link
-          href="/settings"
-          aria-label="Settings"
-          title="Settings"
-          className="text-muted-foreground hover:bg-muted hover:text-foreground flex h-10 w-10 items-center justify-center rounded-md transition-colors"
-        >
-          <SettingsIcon className="h-5 w-5" />
-        </Link>
 
         <DropdownMenu>
           <DropdownMenuTrigger
             className="hover:bg-muted/70 focus:bg-muted/70 data-popup-open:bg-muted/70 flex items-center gap-2 rounded-md px-1 py-1 transition-colors focus:outline-none sm:gap-3 sm:pr-3 sm:pl-1"
             aria-label="Open account menu"
+            // Walkthrough anchor. Lives on the trigger, not the Settings
+            // item inside the menu: menu content is unmounted while
+            // closed, so anchoring there would leave the tour pointing
+            // at nothing.
+            data-walkthrough="settings"
           >
             <span className="relative inline-flex">
               <Avatar className="size-8">
@@ -193,6 +189,19 @@ export function Header({ onOpenSidebar }: HeaderProps) {
                 )}
               </div>
             )}
+
+            {/* Settings moved here from its own header icon. Rendered as
+                a Link via `render` so it stays a real anchor —
+                middle-click and "open in new tab" keep working, and the
+                menu still handles focus and close-on-select. */}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              render={<Link href="/settings" />}
+              className="gap-2 px-2.5 py-2"
+            >
+              <SettingsIcon className="h-4 w-4" />
+              Settings
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

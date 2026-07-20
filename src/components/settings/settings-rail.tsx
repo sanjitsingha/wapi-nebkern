@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Lock } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { softBadge } from '@/lib/badge-colors';
 import { useEntitlements } from '@/hooks/use-entitlements';
 import {
   DEFAULT_SECTION,
@@ -80,7 +81,57 @@ export function SettingsRail() {
               const meta = SECTION_META[s];
               const Icon = meta.icon;
               const isActive = s === active;
-              const locked = isLocked(s);
+              const soon = meta.comingSoon === true;
+              // A shelved section is never also plan-locked — "coming
+              // soon" wins, so we don't show two competing badges.
+              const locked = !soon && isLocked(s);
+
+              const body = (
+                <>
+                  <Icon className="size-5 shrink-0" />
+                  <span className="flex-1">{meta.label}</span>
+                  {locked && <Lock className="size-3.5 shrink-0 opacity-70" />}
+                  {soon && (
+                    <span
+                      className={cn(
+                        'shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold tracking-wider uppercase',
+                        softBadge.neutral,
+                      )}
+                    >
+                      Soon
+                    </span>
+                  )}
+                </>
+              );
+
+              const shell = cn(
+                'flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[15px] font-medium whitespace-nowrap transition-colors',
+                'lg:w-full',
+                isActive
+                  ? 'bg-primary-soft text-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                locked && 'opacity-55 hover:opacity-80',
+              );
+
+              // Shelved sections render as inert text, not a link — the
+              // page behind them has nothing to configure yet, so
+              // navigating there is a dead end.
+              if (soon) {
+                return (
+                  <span
+                    key={s}
+                    aria-disabled="true"
+                    title={`${meta.label} — coming soon`}
+                    className={cn(
+                      shell,
+                      'cursor-default opacity-55 hover:bg-transparent hover:text-muted-foreground',
+                    )}
+                  >
+                    {body}
+                  </span>
+                );
+              }
+
               return (
                 <Link
                   key={s}
@@ -92,18 +143,9 @@ export function SettingsRail() {
                       ? `${meta.label} — upgrade your plan to unlock`
                       : undefined
                   }
-                  className={cn(
-                    'flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[15px] font-medium whitespace-nowrap transition-colors',
-                    'lg:w-full',
-                    isActive
-                      ? 'bg-primary-soft text-primary'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                    locked && 'opacity-55 hover:opacity-80',
-                  )}
+                  className={shell}
                 >
-                  <Icon className="size-5 shrink-0" />
-                  <span className="flex-1">{meta.label}</span>
-                  {locked && <Lock className="size-3.5 shrink-0 opacity-70" />}
+                  {body}
                 </Link>
               );
             })}

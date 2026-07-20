@@ -3,10 +3,8 @@ import Link from 'next/link';
 import {
   ArrowRight,
   Bot,
-  Camera,
   Check,
   Code2,
-  MessageCircle,
   Plus,
   Puzzle,
   Quote,
@@ -28,15 +26,16 @@ import {
   MiniKanban,
   PhoneFrame,
 } from '@/components/marketing/landing-visuals';
+import { HeroOrbit } from '@/components/marketing/hero-orbit';
 
 // The public marketing landing page. Unlike the rest of the app (which
 // is noindex — it's a private product surface), this page is the front
 // door, so we override robots to allow indexing and give it its own
 // absolute title (bypassing the "%s — wacrm" template).
 export const metadata: Metadata = {
-  title: { absolute: 'wacrm — Meet customers where they are. Close more deals on WhatsApp.' },
+  title: { absolute: 'wacrm — Your customers are circling. Reach every one, on WhatsApp.' },
   description:
-    'Capture, qualify, and convert leads on WhatsApp with AI agents, a shared team inbox, broadcast campaigns, pipelines, and no-code automations — on the official WhatsApp Business API.',
+    'Price checks, callbacks, catalogue asks — wacrm pulls every WhatsApp conversation into one shared inbox, answers with AI agents, and turns it into a deal. Broadcast campaigns, pipelines, and no-code automations on the official WhatsApp Business API.',
   robots: { index: true, follow: true },
 };
 
@@ -73,13 +72,6 @@ export default function LandingPage() {
 }
 
 /* ─── Hero ────────────────────────────────────────────────────────── */
-
-const CHANNELS = [
-  { icon: MessageCircle, label: 'WhatsApp' },
-  { icon: Camera, label: 'Instagram' },
-  { icon: Bot, label: 'AI Agents' },
-  { icon: Code2, label: 'REST API' },
-] as const;
 
 // The four crosshair ticks that sit where the framed column's side rails
 // meet the section's top/bottom edges — the signature "drawn frame" detail.
@@ -119,10 +111,18 @@ function Hero() {
       />
 
       {/* Framed content column — full-bleed section, 1000px rails. */}
-      <div className="border-border relative mx-auto w-full max-w-350 border-x px-6 pt-16 pb-20 sm:pt-20">
+      {/* The 1240px orbit is intentionally wider than this column, so it
+          bleeds off the sides. `xl:min-h-300` (1200px) is what keeps the
+          VERTICAL crop shallow: every chip passes through 12 and 6
+          o'clock on each lap, and any height much below the ring's
+          would have them disappear for a long stretch of it. */}
+      <div className="border-border relative mx-auto flex w-full max-w-350 flex-col justify-center border-x px-6 pt-16 pb-20 sm:pt-20 xl:min-h-300 xl:py-24">
         <CornerTicks />
 
-        <div className="mx-auto max-w-3xl text-center">
+        {/* Customers circling the copy, just out of reach. */}
+        <HeroOrbit />
+
+        <div className="relative mx-auto max-w-lg text-center">
           <Link
             href="/#ai-agents"
             className="border-border bg-card text-muted-foreground hover:text-foreground inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition-colors"
@@ -132,17 +132,16 @@ function Hero() {
           </Link>
 
           <h1 className="mt-6 text-4xl font-bold tracking-tight text-balance sm:text-5xl md:text-6xl md:leading-[1.05]">
-            Meet customers where they are.{' '}
-            <span className="text-primary">Close more deals.</span>
+            Your customers are circling.{' '}
+            <span className="text-primary">Reach every one.</span>
           </h1>
 
-          <p className="text-muted-foreground mx-auto mt-6 max-w-xl text-base text-pretty sm:text-lg">
-            wacrm captures every lead, qualifies it with AI, and helps your
-            team convert it — with a shared inbox, broadcast campaigns,
-            pipelines, and automations on one platform.
+          <p className="text-muted-foreground mx-auto mt-6 max-w-md text-base text-pretty sm:text-lg">
+            Every WhatsApp question caught in one shared inbox, answered by AI,
+            and turned into a deal you can close.
           </p>
 
-          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <div className="mt-9 flex justify-center">
             <Link
               href="/signup"
               className={`${btnPrimary} h-12 w-full px-6 sm:w-auto`}
@@ -150,41 +149,7 @@ function Hero() {
               Start free trial
               <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link
-              href="/#pricing"
-              className={`${btnGhost} border-border h-12 w-full border px-6 sm:w-auto`}
-            >
-              See pricing
-            </Link>
           </div>
-
-          <p className="text-muted-foreground mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-xs">
-            <span className="inline-flex items-center gap-1.5">
-              <Check className="text-primary h-3.5 w-3.5" /> No credit card
-              required
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Check className="text-primary h-3.5 w-3.5" /> Self-hostable
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Check className="text-primary h-3.5 w-3.5" /> Set up in minutes
-            </span>
-          </p>
-        </div>
-
-        {/* Channel capabilities row. */}
-        <div className="border-border/70 mx-auto mt-14 flex max-w-2xl flex-wrap items-center justify-center gap-x-8 gap-y-3 border-t pt-8 sm:mt-16">
-          {CHANNELS.map((c) => (
-            <span
-              key={c.label}
-              className="text-muted-foreground inline-flex items-center gap-2 text-xs font-semibold"
-            >
-              <span className="bg-primary-soft text-primary flex h-7 w-7 items-center justify-center rounded-lg">
-                <c.icon className="h-3.5 w-3.5" />
-              </span>
-              {c.label}
-            </span>
-          ))}
         </div>
       </div>
     </section>

@@ -52,7 +52,7 @@ UI Enhancement:
     When a user raise a ticket, and them a admin reply,
     the ui feels like chatbot chating, i want profesional ui, something like thread/topic
 
-    Need to work on media page in tenewnt app
+    Need to work on media page in tenewnt app => remove the grid view, just keep table view
 
 
 Landing Page Layout

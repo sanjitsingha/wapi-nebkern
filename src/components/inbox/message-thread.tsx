@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePresence } from "@/hooks/use-presence";
 import { PresenceDot } from "@/components/presence/presence-dot";
 import { presenceLabel } from "@/lib/presence";
+import { avatarColor } from "@/lib/avatar-color";
 import { cn } from "@/lib/utils";
 import type {
   Conversation,
@@ -908,6 +909,7 @@ export function MessageThread({
     contact.messenger_id ||
     "Customer";
   const isMetaDm = isMetaDmChannel(conversation.channel);
+  const headerAvatar = avatarColor(contact.id || displayName);
   const messageGroups = groupMessagesByDate(messages);
   const currentStatus = STATUS_OPTIONS.find(
     (s) => s.value === conversation.status
@@ -944,8 +946,23 @@ export function MessageThread({
               <ArrowLeft className="h-5 w-5" />
             </button>
           )}
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-base font-medium text-foreground">
-            {displayName.charAt(0).toUpperCase()}
+          {/* Seeded from the contact id with the same fallback chain as
+              the conversation list, so one contact keeps one colour
+              across the list, this header, and the contact panel. */}
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-base font-semibold"
+            style={{ backgroundColor: headerAvatar.bg, color: headerAvatar.fg }}
+          >
+            {contact.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={contact.avatar_url}
+                alt={displayName}
+                className="h-10 w-10 rounded-full object-cover"
+              />
+            ) : (
+              displayName.charAt(0).toUpperCase()
+            )}
           </div>
           <div className="min-w-0">
             <h2 className="truncate text-base font-semibold text-foreground">{displayName}</h2>

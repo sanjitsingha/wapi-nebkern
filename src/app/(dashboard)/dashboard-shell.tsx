@@ -10,6 +10,7 @@ import { PresenceHeartbeat } from '@/components/presence/presence-heartbeat';
 import { TrialBanner } from '@/components/billing/trial-banner';
 import { AppPopup } from '@/components/layout/app-popup';
 import { AnnouncementBar } from '@/components/layout/announcement-bar';
+import { WalkthroughProvider } from '@/components/walkthrough/walkthrough-provider';
 
 // Auth-gated dashboard shell. Extracted from the layout so the layout
 // itself can stay a server component and export metadata (noindex) —
@@ -28,12 +29,22 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
   // Desktop-only collapse state — shrinks the sidebar to an icon rail.
-  // Persisted so the choice survives reloads. Read in an effect (not a
-  // lazy initializer) to keep server and first client render in sync.
+  // Defaults to expanded and only changes when the user presses the
+  // toggle; the choice is persisted so it survives reloads. Read in an
+  // effect (not a lazy initializer) to keep server and first client
+  // render in sync.
   const [collapsed, setCollapsed] = useState(false);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCollapsed(localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1');
+  }, []);
+
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? '1' : '0');
+      return next;
+    });
   }, []);
 
   useEffect(() => {
@@ -72,6 +83,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
             open={sidebarOpen}
             onClose={closeSidebar}
             collapsed={collapsed}
+            onToggleCollapse={toggleCollapsed}
           />
         </Suspense>
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</main>
@@ -84,7 +96,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <AvailabilityProvider>
-        <DashboardShellInner>{children}</DashboardShellInner>
+        {/* Inside AuthProvider (it reads the session to decide whether
+            this user has seen the tour) and outside the shell, so the
+            sidebar's Walkthrough button can reach it via context. */}
+        <WalkthroughProvider>
+          <DashboardShellInner>{children}</DashboardShellInner>
+        </WalkthroughProvider>
       </AvailabilityProvider>
     </AuthProvider>
   );

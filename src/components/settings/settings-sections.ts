@@ -46,6 +46,14 @@ export interface SectionMeta {
   label: string;
   icon: LucideIcon;
   group: 'account' | 'workspace';
+  /**
+   * Shelved channel: the rail shows the entry with a "Soon" badge and
+   * makes it non-navigable, and the section's page renders the
+   * coming-soon card instead of its connect UI. Distinct from the
+   * plan-gated lock in SECTION_FEATURE — that one says "upgrade to get
+   * this", this one says "nobody has this yet".
+   */
+  comingSoon?: boolean;
 }
 
 export const SECTION_META: Record<SettingsSection, SectionMeta> = {
@@ -72,12 +80,14 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     label: 'Instagram',
     icon: AtSign,
     group: 'workspace',
+    comingSoon: true,
   },
   messenger: {
     id: 'messenger',
     label: 'Messenger',
     icon: MessageCircle,
     group: 'workspace',
+    comingSoon: true,
   },
   'business-profile': {
     id: 'business-profile',

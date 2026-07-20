@@ -1,17 +1,14 @@
-import { Suspense } from 'react';
-import { InstagramConfig } from '@/components/settings/instagram-config';
-import { FeatureGate } from '@/components/billing/feature-gate';
+import { ComingSoonCard } from '@/components/settings/coming-soon-card';
 
+// The Instagram channel is shelved. The implementation and its
+// `allowInstagram` plan gate are both intact — this page just stops
+// surfacing the connect flow. Restore by wrapping <InstagramConfig />
+// in the FeatureGate again and dropping `comingSoon` from SECTION_META.
 export default function InstagramPage() {
   return (
-    <FeatureGate
-      feature="allowInstagram"
-      label="Instagram DMs"
-      description="Bring Instagram Direct Messages into your shared inbox. Upgrade your plan to unlock the Instagram channel."
-    >
-      <Suspense fallback={null}>
-        <InstagramConfig />
-      </Suspense>
-    </FeatureGate>
+    <ComingSoonCard
+      label="Instagram"
+      description="Instagram Direct Messages will land in your shared inbox alongside WhatsApp. We're finishing this one off."
+    />
   );
 }

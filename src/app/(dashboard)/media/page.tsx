@@ -11,9 +11,15 @@ import {
   formatBytes,
   ALL_MEDIA_ACCEPT,
 } from '@/lib/media/library';
+import { MEDIA_MAX_BYTES_BY_KIND } from '@/lib/storage/upload-media';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { GatedButton } from '@/components/ui/gated-button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import {
   Dialog,
   DialogContent,
@@ -35,8 +41,7 @@ import {
   FileText,
   ExternalLink,
   FolderOpen,
-  LayoutGrid,
-  List,
+  Info,
   FileType,
   HardDrive,
   Ruler,
@@ -52,7 +57,6 @@ import {
 } from '@/components/ui/table';
 
 type KindFilter = 'all' | MediaKind;
-type View = 'grid' | 'list';
 
 const KIND_FILTERS: { value: KindFilter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -83,7 +87,6 @@ export default function MediaPage() {
   const [uploading, setUploading] = useState(false);
   const [search, setSearch] = useState('');
   const [kindFilter, setKindFilter] = useState<KindFilter>('all');
-  const [view, setView] = useState<View>('grid');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MediaLibraryItem | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -164,7 +167,31 @@ export default function MediaPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Media</h1>
+          <div className="flex items-center gap-1.5">
+            <h1 className="text-2xl font-bold text-foreground">Media</h1>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    aria-label="Upload size limits"
+                    className="text-muted-foreground transition-colors hover:text-foreground focus:outline-none"
+                  />
+                }
+              >
+                <Info className="size-4" />
+              </TooltipTrigger>
+              {/* Numbers come from MEDIA_MAX_BYTES_BY_KIND so this can't
+                  drift from what the uploader actually enforces. Images
+                  are lower than everything else because that's Meta's
+                  WhatsApp cap, not ours. */}
+              <TooltipContent side="bottom" className="max-w-xs text-left">
+                Maximum upload size: {formatBytes(MEDIA_MAX_BYTES_BY_KIND.image)}{' '}
+                for images, {formatBytes(MEDIA_MAX_BYTES_BY_KIND.document)} for
+                videos and documents.
+              </TooltipContent>
+            </Tooltip>
+          </div>
           <p className="mt-1 text-sm text-muted-foreground">
             Upload images, videos, and documents once — then reuse their links
             in message templates.
@@ -225,38 +252,9 @@ export default function MediaPage() {
           ))}
         </div>
 
-        {/* View toggle */}
-        <div className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5 sm:ml-auto">
-          <button
-            type="button"
-            onClick={() => setView('grid')}
-            aria-label="Grid view"
-            aria-pressed={view === 'grid'}
-            className={`flex size-8 items-center justify-center rounded-md transition-colors ${
-              view === 'grid'
-                ? 'bg-primary-soft text-primary'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <LayoutGrid className="size-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setView('list')}
-            aria-label="List view"
-            aria-pressed={view === 'list'}
-            className={`flex size-8 items-center justify-center rounded-md transition-colors ${
-              view === 'list'
-                ? 'bg-primary-soft text-primary'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <List className="size-4" />
-          </button>
-        </div>
       </div>
 
-      {/* Grid */}
+      {/* Library table */}
       {loading ? (
         <div className="flex justify-center py-16">
           <Loader2 className="size-6 animate-spin text-primary" />
@@ -282,107 +280,6 @@ export default function MediaPage() {
               Upload files
             </GatedButton>
           )}
-        </div>
-      ) : view === 'grid' ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {filtered.map((item) => {
-            const Icon = KIND_ICON[item.kind];
-            return (
-              <div
-                key={item.id}
-                className="group overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-md"
-              >
-                {/* Preview */}
-                <div className="relative aspect-square bg-muted">
-                  {item.kind === 'image' ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={item.public_url}
-                      alt={item.name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : item.kind === 'video' ? (
-                    <video
-                      src={item.public_url}
-                      muted
-                      preload="metadata"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <FileText className="size-10 text-muted-foreground" />
-                    </div>
-                  )}
-                  <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-medium capitalize text-foreground backdrop-blur-sm">
-                    <Icon className="size-3" />
-                    {item.kind}
-                  </span>
-                  {/* Hover actions */}
-                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-end gap-1 bg-gradient-to-t from-black/55 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
-                    <a
-                      href={item.public_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="Open"
-                      className="flex size-8 items-center justify-center rounded-md bg-white/90 text-neutral-800 transition-colors hover:bg-white"
-                    >
-                      <ExternalLink className="size-4" />
-                    </a>
-                    <button
-                      type="button"
-                      title="Copy link"
-                      onClick={() => copyLink(item)}
-                      className="flex size-8 items-center justify-center rounded-md bg-white/90 text-neutral-800 transition-colors hover:bg-white"
-                    >
-                      {copiedId === item.id ? (
-                        <Check className="size-4 text-primary" />
-                      ) : (
-                        <Copy className="size-4" />
-                      )}
-                    </button>
-                    {canManage && (
-                      <button
-                        type="button"
-                        title="Delete"
-                        onClick={() => setDeleteTarget(item)}
-                        className="flex size-8 items-center justify-center rounded-md bg-white/90 text-red-600 transition-colors hover:bg-white"
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Meta */}
-                <div className="p-3">
-                  <p className="truncate text-sm font-medium text-foreground" title={item.name}>
-                    {item.name}
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {formatBytes(item.size_bytes)}
-                    {item.width && item.height
-                      ? ` · ${item.width}×${item.height}`
-                      : ''}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => copyLink(item)}
-                    className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-border py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  >
-                    {copiedId === item.id ? (
-                      <>
-                        <Check className="size-3.5 text-primary" /> Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="size-3.5" /> Copy link
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border bg-card">

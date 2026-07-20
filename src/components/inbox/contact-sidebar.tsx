@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { avatarColor } from "@/lib/avatar-color";
 import { cn } from "@/lib/utils";
 import type { Contact, Deal, ContactNote, Tag } from "@/types";
 import {
@@ -244,6 +245,7 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
   const displayName =
     contact.name || contact.phone || contact.instagram_id || "Unknown";
   const initials = displayName.charAt(0).toUpperCase();
+  const avatar = avatarColor(contact.id || displayName);
 
   return (
     <div className="flex h-full w-88 flex-col border-l border-border bg-card">
@@ -265,7 +267,12 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
         <div className="p-4">
           {/* Contact Info */}
           <div className="flex flex-col items-center text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-lg font-semibold text-foreground">
+            {/* Same seed as the conversation list and thread header so a
+                contact's colour is identical everywhere. */}
+            <div
+              className="flex h-16 w-16 items-center justify-center rounded-full text-lg font-semibold"
+              style={{ backgroundColor: avatar.bg, color: avatar.fg }}
+            >
               {contact.avatar_url ? (
                 <img
                   src={contact.avatar_url}

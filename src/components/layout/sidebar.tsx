@@ -9,6 +9,7 @@ import { useTotalUnread } from '@/hooks/use-total-unread';
 import { useSupportUnread } from '@/hooks/use-support-unread';
 import { useEntitlements } from '@/hooks/use-entitlements';
 import { SupportDialog } from '@/components/support/support-dialog';
+import { useWalkthrough } from '@/components/walkthrough/walkthrough-provider';
 import {
   resolveSection,
   type SettingsSection,
@@ -17,6 +18,7 @@ import {
   Bot,
   ChevronDown,
   Coins,
+  Compass,
   FileText,
   Filter,
   GitBranch,
@@ -27,6 +29,8 @@ import {
   Lock,
   Megaphone,
   MessageSquare,
+  PanelLeftClose,
+  PanelLeftOpen,
   Users,
   X,
   Zap,
@@ -53,6 +57,10 @@ interface NavLink {
   /** Plan-gated: shown faded with an "Upgrade" badge; the target route
    *  renders the upgrade screen (server-side gate). */
   locked?: boolean;
+  /** Anchor id for the guided walkthrough (lib/walkthrough/steps.ts).
+   *  Emitted as `data-walkthrough` — the tour's contract with the DOM,
+   *  so restyling this row can't break the spotlight. */
+  walkthrough?: string;
 }
 
 // An expandable section with a chevron toggle.
@@ -61,6 +69,9 @@ interface NavGroup {
   icon: LucideIcon;
   badge?: 'New';
   children: NavLink[];
+  /** See NavLink.walkthrough. Anchored on the group toggle, which is
+   *  always mounted — the children only exist while expanded. */
+  walkthrough?: string;
 }
 
 // Standalone items above the grouped nav (the reference's "Home").
@@ -76,11 +87,23 @@ const agentsLink: NavLink = {
   icon: Bot,
   href: '/agents',
   badge: 'New',
+  walkthrough: 'agents',
 };
 
 const quickLinks: NavLink[] = [
-  { label: 'Inbox', icon: MessageSquare, href: '/inbox', unread: true },
-  { label: 'Campaigns', icon: Megaphone, href: '/campaigns' },
+  {
+    label: 'Inbox',
+    icon: MessageSquare,
+    href: '/inbox',
+    unread: true,
+    walkthrough: 'inbox',
+  },
+  {
+    label: 'Campaigns',
+    icon: Megaphone,
+    href: '/campaigns',
+    walkthrough: 'campaigns',
+  },
 ];
 
 // Expandable groups. Settings fans out into the real `?tab=` sections
@@ -89,6 +112,7 @@ const groups: NavGroup[] = [
   {
     label: 'Contacts',
     icon: Users,
+    walkthrough: 'contacts',
     children: [
       { label: 'All Contacts', icon: Users, href: '/contacts' },
       { label: 'Lists', icon: List, href: '/lists' },
@@ -122,6 +146,7 @@ const groups: NavGroup[] = [
     label: 'Automation',
     icon: Zap,
     badge: 'New',
+    walkthrough: 'automation',
     children: [
       { label: 'Automations', icon: Zap, href: '/automations' },
       { label: 'Flows', icon: Bot, href: '/flows', badge: 'Beta' },
@@ -137,22 +162,30 @@ interface SidebarProps {
    * Desktop-only icon-rail collapse. When true, the sidebar narrows to
    * a rail; the content is clipped, not re-laid-out. No effect on
    * mobile (< lg), where the drawer is always full width.
+   *
+   * Purely click-driven: the rail used to also expand on hover, which
+   * made the sidebar move whenever the pointer crossed it on the way
+   * to something else. Collapsed now stays collapsed until the toggle
+   * is pressed.
    */
   collapsed?: boolean;
+  /** Flip the desktop collapse. Persisted by the shell. */
+  onToggleCollapse?: () => void;
 }
 
 export function Sidebar({
   open = false,
   onClose,
   collapsed = false,
+  onToggleCollapse,
 }: SidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const totalUnread = useTotalUnread();
   const supportUnread = useSupportUnread();
   const activeTab = resolveSection(searchParams.get('tab'));
-  const [hovered, setHovered] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
+  const { start: startWalkthrough } = useWalkthrough();
 
   // Which expandable groups are open. The group containing the active
   // route is auto-opened; collapsing the sidebar does NOT change this —
@@ -179,7 +212,9 @@ export function Sidebar({
     }));
   }, [entSnapshot]);
 
-  const isCollapsed = collapsed && !hovered;
+  // Straight through from the prop — no hover override. On mobile the
+  // drawer is always full width, which the `lg:` prefixes below handle.
+  const isCollapsed = collapsed;
 
   const isLinkActive = (link: NavLink): boolean => {
     if (link.tab) {
@@ -240,6 +275,7 @@ export function Sidebar({
       <Link
         href={link.href}
         onClick={onClose}
+        data-walkthrough={link.walkthrough}
         title={
           link.locked
             ? `${link.label} — upgrade your plan to unlock`
@@ -327,6 +363,7 @@ export function Sidebar({
             setOpenGroups((p) => ({ ...p, [group.label]: !p[group.label] }))
           }
           aria-expanded={open}
+          data-walkthrough={group.walkthrough}
           title={group.label}
           className={cn(
             'flex w-full items-center gap-3.5 rounded-lg px-3 py-3.5 text-sm font-medium transition-colors',
@@ -402,8 +439,6 @@ export function Sidebar({
           isCollapsed ? 'lg:w-16' : 'lg:w-64'
         )}
         aria-label="Primary"
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
       >
         {/* Main navigation — starts directly with items, no logo row. */}
         <nav
@@ -423,6 +458,29 @@ export function Sidebar({
               <X className="h-5 w-5" />
             </button>
           </div>
+
+          {/* Desktop collapse toggle. Left-aligned on purpose: `nav`
+              keeps its full 256px width and the <aside> clips it, so
+              anything right-aligned would be clipped away in the 64px
+              rail — exactly when you need this button to un-collapse. */}
+          {onToggleCollapse && (
+            <div className="mb-2 hidden lg:flex">
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                aria-expanded={!isCollapsed}
+                title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                className="text-muted-foreground hover:bg-muted hover:text-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors"
+              >
+                {isCollapsed ? (
+                  <PanelLeftOpen className="h-5 w-5" />
+                ) : (
+                  <PanelLeftClose className="h-5 w-5" />
+                )}
+              </button>
+            </div>
+          )}
           <ul className="flex flex-col gap-1.5">
             <li>{renderLink(homeLink)}</li>
             <li>{renderLink(agentsLink)}</li>
@@ -464,13 +522,36 @@ export function Sidebar({
           <ul className="flex flex-col gap-1.5">{visibleGroups.map(renderGroup)}</ul>
         </nav>
 
-        {/* Footer — pinned below the scrolling nav. Support opens the
-            ticketing modal; an alert dot on the icon (kept visible even on
-            the collapsed rail) flags an unread reply from the team. */}
+        {/* Footer — pinned below the scrolling nav. Walkthrough replays
+            the guided tour; Support opens the ticketing modal, whose
+            icon carries an alert dot (kept visible even on the
+            collapsed rail) when the team has replied. */}
         <div className={cn('border-border border-t p-3', CONTENT_W)}>
           <button
             type="button"
+            onClick={() => {
+              onClose?.();
+              startWalkthrough();
+            }}
+            data-walkthrough="walkthrough"
+            title="Walkthrough"
+            className="relative flex w-full items-center gap-3.5 rounded-lg px-3 py-3.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <Compass className="h-5.5 w-5.5 shrink-0" />
+            <span
+              className={cn(
+                'flex-1 truncate text-left transition-opacity duration-200',
+                isCollapsed && 'lg:opacity-0'
+              )}
+            >
+              Walkthrough
+            </span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setSupportOpen(true)}
+            data-walkthrough="support"
             title="Support"
             className="relative flex w-full items-center gap-3.5 rounded-lg px-3 py-3.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
 
 import type { SupportTicketStatus, SupportTicketPriority } from '@/types';
+import { formatTicketRef } from '@/lib/support/ticket-ref';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -71,7 +72,12 @@ export function TicketsTable({
         return false;
       }
       if (!q) return true;
+      // Ticket ref is searchable with or without the leading '#', so
+      // pasting a code straight out of a customer's message works.
+      const ref = formatTicketRef(r.id).toLowerCase();
       return (
+        ref.includes(q) ||
+        ref.slice(1).startsWith(q.replace(/^#/, '')) ||
         r.subject.toLowerCase().includes(q) ||
         r.accountName.toLowerCase().includes(q) ||
         (r.creatorEmail ?? '').toLowerCase().includes(q)
@@ -109,6 +115,7 @@ export function TicketsTable({
         <Table>
           <TableHeader>
             <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
+              <TableHead className="text-muted-foreground w-28">Ticket</TableHead>
               <TableHead className="text-muted-foreground">Subject</TableHead>
               <TableHead className="text-muted-foreground hidden md:table-cell">
                 Account
@@ -126,7 +133,7 @@ export function TicketsTable({
             {filtered.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="h-24 text-center text-sm text-muted-foreground"
                 >
                   No tickets match.
@@ -139,6 +146,11 @@ export function TicketsTable({
                   onClick={() => router.push(`/admin/tickets/${r.id}`)}
                   className="cursor-pointer border-border hover:bg-muted/50"
                 >
+                  {/* Same short code the tenant app shows, so a user
+                      quoting "#3F9A2C71" can be matched by eye. */}
+                  <TableCell className="font-mono text-xs text-muted-foreground">
+                    {formatTicketRef(r.id)}
+                  </TableCell>
                   <TableCell className="max-w-xs font-medium text-foreground">
                     <div className="flex items-center gap-2">
                       {r.needsReply && (

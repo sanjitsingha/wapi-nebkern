@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/popover';
 import { CreatedAtFilterDialog } from '@/components/contacts/created-at-filter-dialog';
 import { createClient } from '@/lib/supabase/client';
+import { avatarColor } from '@/lib/avatar-color';
 import { cn } from '@/lib/utils';
 import type { Contact, Tag } from '@/types';
 
@@ -339,6 +340,7 @@ export function ContactPicker({
                 const initials = (contact.name || contact.phone || '?')
                   .charAt(0)
                   .toUpperCase();
+                const avatar = avatarColor(contact.id || contact.name);
 
                 return (
                   <label
@@ -349,7 +351,10 @@ export function ContactPicker({
                       checked={selectedIds.includes(contact.id)}
                       onCheckedChange={() => toggleContact(contact.id)}
                     />
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-foreground">
+                    <div
+                      className="flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
+                      style={{ backgroundColor: avatar.bg, color: avatar.fg }}
+                    >
                       {contact.avatar_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
   ArrowLeft,
+  Check,
+  Copy,
   Loader2,
   Plus,
   Send,
@@ -14,6 +16,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { softBadge } from '@/lib/badge-colors';
+import { formatTicketRef } from '@/lib/support/ticket-ref';
 import { cn } from '@/lib/utils';
 import type {
   SupportTicket,
@@ -96,7 +99,28 @@ interface SupportDialogProps {
  * stamps `user_last_read_at`, which clears the sidebar's unread dot.
  */
 export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
-  const { user, accountId } = useAuth();
+  const { user, accountId, profile } = useAuth();
+
+  // Brief confirmation after copying the ticket reference.
+  const [copiedRef, setCopiedRef] = useState(false);
+  const copyTicketRef = useCallback(async (ticketId: string) => {
+    try {
+      await navigator.clipboard.writeText(formatTicketRef(ticketId));
+      setCopiedRef(true);
+      setTimeout(() => setCopiedRef(false), 1500);
+    } catch {
+      toast.error('Clipboard blocked — copy the ID manually');
+    }
+  }, []);
+
+  // Attribution for the thread. Messages carry only `author_role`, so
+  // the user's own name comes from their profile; "You" is the fallback
+  // while the profile is still loading.
+  const authorName = profile?.full_name?.trim() || 'You';
+  const authorInitial =
+    profile?.full_name?.trim()?.charAt(0)?.toUpperCase() ??
+    profile?.email?.charAt(0)?.toUpperCase() ??
+    'Y';
 
   const [view, setView] = useState<View>({ kind: 'list' });
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
@@ -264,7 +288,7 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+      <DialogContent className="flex h-[88vh] max-h-[880px] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
         {/* Header */}
         <DialogHeader className="border-b border-border p-4">
           {view.kind === 'detail' ? (
@@ -279,9 +303,26 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
                 >
                   <ArrowLeft className="size-4" />
                 </Button>
-                <DialogTitle className="min-w-0 flex-1 truncate text-popover-foreground">
-                  {activeTicket?.subject ?? 'Ticket'}
-                </DialogTitle>
+                <div className="min-w-0 flex-1">
+                  <DialogTitle className="truncate text-popover-foreground">
+                    {activeTicket?.subject ?? 'Ticket'}
+                  </DialogTitle>
+                  {activeTicket && (
+                    <button
+                      type="button"
+                      onClick={() => copyTicketRef(activeTicket.id)}
+                      title="Copy ticket ID"
+                      className="mt-0.5 flex items-center gap-1 font-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      {formatTicketRef(activeTicket.id)}
+                      {copiedRef ? (
+                        <Check className="size-3 text-primary" />
+                      ) : (
+                        <Copy className="size-3" />
+                      )}
+                    </button>
+                  )}
+                </div>
                 {activeTicket && (
                   <span
                     className={cn(
@@ -369,7 +410,11 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
                                 {t.subject}
                               </p>
                             </div>
-                            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                            <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+                              <span className="font-mono">
+                                {formatTicketRef(t.id)}
+                              </span>
+                              <span aria-hidden>·</span>
                               Updated {formatWhen(t.updated_at)}
                             </p>
                           </div>
@@ -508,32 +553,87 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
                   <Loader2 className="size-5 animate-spin text-primary" />
                 </div>
               ) : (
-                <div className="flex flex-col gap-3">
-                  {messages.map((m) => {
+                <div className="flex flex-col">
+                  {/* Ticket metadata strip. A support ticket is a topic,
+                      not a chat — leading with category/priority/opened
+                      frames the thread the way a helpdesk does. */}
+                  {activeTicket && (
+                    <dl className="mb-2 flex flex-wrap items-center gap-x-5 gap-y-1 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <dt className="text-muted-foreground">Category</dt>
+                        <dd className="font-medium text-foreground">
+                          {CATEGORY_OPTIONS.find(
+                            (o) => o.value === activeTicket.category,
+                          )?.label ?? activeTicket.category}
+                        </dd>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <dt className="text-muted-foreground">Priority</dt>
+                        <dd className="font-medium text-foreground">
+                          {PRIORITY_OPTIONS.find(
+                            (o) => o.value === activeTicket.priority,
+                          )?.label ?? activeTicket.priority}
+                        </dd>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <dt className="text-muted-foreground">Opened</dt>
+                        <dd className="font-medium text-foreground">
+                          {formatWhen(activeTicket.created_at)}
+                        </dd>
+                      </div>
+                    </dl>
+                  )}
+
+                  {/* Thread entries. Full-width rows separated by rules,
+                      each with an attribution header — deliberately not
+                      alternating bubbles, which read as instant
+                      messaging rather than a support record. */}
+                  {messages.map((m, i) => {
                     const isSupport = m.author_role === 'support';
                     return (
-                      <div
+                      <article
                         key={m.id}
                         className={cn(
-                          'flex flex-col',
-                          isSupport ? 'items-start' : 'items-end',
+                          'flex gap-3 py-4',
+                          i > 0 && 'border-t border-border',
                         )}
                       >
-                        <div
+                        <span
                           className={cn(
-                            'max-w-[85%] rounded-2xl px-3.5 py-2 text-sm',
+                            'flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold',
                             isSupport
-                              ? 'rounded-tl-sm bg-muted text-foreground'
-                              : 'rounded-tr-sm bg-primary-soft text-foreground',
+                              ? 'bg-primary/10 text-primary'
+                              : 'bg-muted text-muted-foreground',
                           )}
+                          aria-hidden
                         >
-                          <p className="whitespace-pre-wrap break-words">{m.body}</p>
-                        </div>
-                        <span className="mt-1 flex items-center gap-1 px-1 text-[10px] text-muted-foreground">
-                          {isSupport && <Headset className="size-3" />}
-                          {isSupport ? 'Support' : 'You'} · {formatWhen(m.created_at)}
+                          {isSupport ? <Headset className="size-4" /> : authorInitial}
                         </span>
-                      </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                            <span className="text-sm font-semibold text-foreground">
+                              {isSupport ? 'Support team' : authorName}
+                            </span>
+                            {isSupport && (
+                              <span
+                                className={cn(
+                                  'rounded-full border px-1.5 py-0.5 text-[9px] font-semibold tracking-wider uppercase',
+                                  softBadge.primary,
+                                )}
+                              >
+                                Staff
+                              </span>
+                            )}
+                            <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                              {formatWhen(m.created_at)}
+                            </span>
+                          </div>
+                          <p className="mt-1.5 text-sm leading-relaxed whitespace-pre-wrap break-words text-foreground">
+                            {m.body}
+                          </p>
+                        </div>
+                      </article>
                     );
                   })}
                   <div ref={threadEndRef} />

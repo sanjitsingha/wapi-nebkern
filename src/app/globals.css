@@ -113,6 +113,91 @@
   }
 }
 
+/* Marketing hero: customer chips orbiting the pitch.
+   The ring carrier rotates; each chip counter-rotates on the SAME
+   duration so avatars and message bubbles stay upright while their
+   position travels along the stroke. Kept slow — this is ambience
+   behind reading copy, not a carousel. */
+@keyframes orbit-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes orbit-spin-reverse {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+/* Durations are a matched pair per ring: a carrier and its chips MUST
+   share a duration or the counter-rotation drifts and the bubbles
+   slowly tip over. Change one, change its partner. */
+.animate-orbit {
+  animation: orbit-spin 160s linear infinite;
+}
+
+.animate-orbit-slow {
+  animation: orbit-spin 220s linear infinite;
+}
+
+/* Pair with .animate-orbit (160s). */
+.animate-orbit-item {
+  animation: orbit-spin-reverse 160s linear infinite;
+}
+
+/* Pair with .animate-orbit-slow (220s). */
+.animate-orbit-item-slow {
+  animation: orbit-spin-reverse 220s linear infinite;
+}
+
+/* The dashed rings themselves travel, so the stroke reads as a trail
+   the customers are riding rather than a static boundary. Animating
+   stroke-dashoffset (not the transform) keeps the circle geometry
+   fixed while the dashes march along it. */
+@keyframes dash-trail {
+  to {
+    stroke-dashoffset: -120;
+  }
+}
+
+@keyframes dash-trail-reverse {
+  to {
+    stroke-dashoffset: 120;
+  }
+}
+
+.animate-dash-trail {
+  animation: dash-trail 55s linear infinite;
+}
+
+.animate-dash-trail-reverse {
+  animation: dash-trail-reverse 78s linear infinite;
+}
+
+/* Hovering a chip freezes the whole system so the card you're reading
+   holds still. Deliberately NOT done here with `animation-play-state`:
+   that flips instantly and reads as a glitch. hero-orbit.tsx ramps
+   each animation's playbackRate down instead, which decelerates and
+   preserves position. These classes are the handles it looks for. */
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-orbit,
+  .animate-orbit-slow,
+  .animate-orbit-item,
+  .animate-orbit-item-slow,
+  .animate-dash-trail,
+  .animate-dash-trail-reverse {
+    animation: none;
+  }
+}
+
 /* ── Custom thin scrollbar ──────────────────────────────────────────
    Replaces the chunky default OS scrollbar with a slim, theme-aware one
    across the whole app.
