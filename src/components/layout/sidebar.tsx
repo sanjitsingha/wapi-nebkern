@@ -28,7 +28,6 @@ import {
   Megaphone,
   MessageSquare,
   Users,
-  Workflow,
   X,
   Zap,
   type LucideIcon,
@@ -125,7 +124,7 @@ const groups: NavGroup[] = [
     badge: 'New',
     children: [
       { label: 'Automations', icon: Zap, href: '/automations' },
-      { label: 'Flows', icon: Workflow, href: '/flows', badge: 'Beta' },
+      { label: 'Flows', icon: Bot, href: '/flows', badge: 'Beta' },
     ],
   },
 ];

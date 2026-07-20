@@ -28,7 +28,7 @@ import {
   PlayCircle,
   Save,
   Trash2,
-  Workflow,
+  Bot,
   Zap,
 } from 'lucide-react';
 
@@ -93,7 +93,7 @@ export function EditorHeader() {
       <span aria-hidden className="hidden h-6 w-px shrink-0 bg-border sm:block" />
 
       <div className="hidden size-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary sm:flex">
-        <Workflow className="h-4.5 w-4.5" />
+        <Bot className="h-4.5 w-4.5" />
       </div>
 
       {/* Name + description stack */}

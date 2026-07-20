@@ -1,6 +1,7 @@
 import {
   AtSign,
   KeyRound,
+  MessageCircle,
   Phone,
   PlugZap,
   SlidersHorizontal,
@@ -26,6 +27,7 @@ export const SETTINGS_SECTIONS = [
   'whatsapp',
   'calling',
   'instagram',
+  'messenger',
   'business-profile',
   'billing',
   'api-access',
@@ -69,6 +71,12 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     id: 'instagram',
     label: 'Instagram',
     icon: AtSign,
+    group: 'workspace',
+  },
+  messenger: {
+    id: 'messenger',
+    label: 'Messenger',
+    icon: MessageCircle,
     group: 'workspace',
   },
   'business-profile': {

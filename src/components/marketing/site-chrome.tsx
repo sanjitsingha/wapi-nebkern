@@ -34,7 +34,8 @@ function Logo({ size = 'md' }: { size?: 'sm' | 'md' }) {
 
 const NAV = [
   { label: 'Features', href: '/#features' },
-  { label: 'How it works', href: '/#how-it-works' },
+  { label: 'AI Agents', href: '/#ai-agents' },
+  { label: 'Integrations', href: '/#integrations' },
   { label: 'Pricing', href: '/#pricing' },
   { label: 'Blog', href: '/blog' },
 ] as const;
@@ -75,8 +76,17 @@ const FOOTER_COLUMNS = [
     title: 'Product',
     links: [
       { label: 'Features', href: '/#features' },
+      { label: 'AI Agents', href: '/#ai-agents' },
+      { label: 'Integrations', href: '/#integrations' },
       { label: 'Pricing', href: '/#pricing' },
-      { label: 'How it works', href: '/#how-it-works' },
+    ],
+  },
+  {
+    title: 'Solutions',
+    links: [
+      { label: 'For Sales', href: '/#teams' },
+      { label: 'For Marketing', href: '/#teams' },
+      { label: 'For Support', href: '/#teams' },
       { label: 'Customers', href: '/#testimonial' },
     ],
   },
@@ -84,7 +94,8 @@ const FOOTER_COLUMNS = [
     title: 'Resources',
     links: [
       { label: 'Blog', href: '/blog' },
-      { label: 'Get started', href: '/signup' },
+      { label: 'How it works', href: '/#how-it-works' },
+      { label: 'FAQ', href: '/#faq' },
     ],
   },
   {
@@ -100,7 +111,7 @@ export function SiteFooter() {
   return (
     <footer className="border-border border-t">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-6">
           <div className="lg:col-span-2">
             <Logo size="sm" />
             <p className="text-muted-foreground mt-3 max-w-xs text-sm leading-relaxed">

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { toast } from 'sonner';
 import {
   Loader2,
   Sparkles,
@@ -25,6 +24,7 @@ import { formatMoney } from '@/lib/billing/plans';
 import { type Invoice } from '@/lib/billing/invoice';
 import { TRIAL_DAYS, type SubscriptionState } from '@/lib/billing/subscription';
 import { useEntitlements } from '@/hooks/use-entitlements';
+import { UpgradeDialog } from '@/components/billing/upgrade-dialog';
 
 /** Mirrors AccountBilling from /api/account/subscription. */
 interface AccountBilling {
@@ -50,13 +50,6 @@ function intervalSuffix(interval: 'monthly' | 'yearly' | null): string {
   if (interval === 'yearly') return '/yr';
   if (interval === 'monthly') return '/mo';
   return '';
-}
-
-/** Placeholder until Razorpay checkout lands — records intent, no charge. */
-function requestUpgrade() {
-  toast.info(
-    'Self-serve upgrade is coming soon. Contact us and we’ll switch your plan.',
-  );
 }
 
 /**
@@ -411,6 +404,8 @@ export function PlanSection() {
   const [sub, setSub] = useState<SubscriptionState | null>(null);
   const [billing, setBilling] = useState<AccountBilling | null>(null);
   const [loading, setLoading] = useState(true);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -430,7 +425,7 @@ export function PlanSection() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadKey]);
 
   const canUpgrade = !sub || sub.status !== 'active' || !billing;
 
@@ -448,13 +443,20 @@ export function PlanSection() {
             type="button"
             size="sm"
             variant={canUpgrade ? 'default' : 'outline'}
-            onClick={requestUpgrade}
+            onClick={() => setUpgradeOpen(true)}
             className="shrink-0"
           >
             {canUpgrade ? 'Upgrade' : 'Change plan'}
             <ArrowUpRight className="size-4" />
           </Button>
         </div>
+
+        <UpgradeDialog
+          open={upgradeOpen}
+          onOpenChange={setUpgradeOpen}
+          currentPlanKey={billing?.planKey}
+          onUpgraded={() => setReloadKey((k) => k + 1)}
+        />
 
         {loading ? (
           <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">

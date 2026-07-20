@@ -14,11 +14,17 @@ Tracker:
     Need to add About us page in tenant app
 
     Create a activition code facility - Generate from admin panel, and can be used in tenent app
+    ✅ built (Admin → Activation codes; redeem in Settings → Billing)
+       — pending: apply supabase/migrations/065_activation_codes.sql
     
     Create a discount coupon facility
 
     Pop up Slash on app load - support of text, image, youutbe
     video, links, image with text ✅ (managed from Admin → Popups)
+
+    Razorpay Standard Checkout — self-serve plan purchase ✅
+    (Settings → Billing / Plan → Upgrade; verified payments recorded
+    as paid invoices; test-mode keys in .env.local)
 
     Integrations: Zapier / Make / n8n ✅
     - triggers: outbound webhooks (message.received, contact.created,
@@ -37,8 +43,17 @@ BUGS:
     of giving email and pass, he is not able to , app auto redirects to landing page 
     and loop.
 
+    Clicking on "Mark Spam"  say "Couldn't update spam status. Please try again."
+    - in inbox page side contact panel
+ 
 
 
 UI Enhancement:
     When a user raise a ticket, and them a admin reply,
     the ui feels like chatbot chating, i want profesional ui, something like thread/topic
+
+    Need to work on media page in tenewnt app
+
+
+Landing Page Layout
+    Hero Section

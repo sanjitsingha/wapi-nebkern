@@ -1,7 +1,6 @@
 'use client';
 
 import { Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProfileForm } from '@/components/settings/profile-form';
@@ -9,13 +8,9 @@ import { PlanSection } from '@/components/settings/plan-config';
 import { PasswordForm } from '@/components/settings/password-form';
 import { ConnectedAccountsCard } from '@/components/settings/connected-accounts-card';
 import { SessionsCard } from '@/components/settings/sessions-card';
+import { useTabParam } from '@/components/settings/use-tab-param';
 
 const TABS = ['profile', 'plan', 'security'] as const;
-type ProfileTab = (typeof TABS)[number];
-
-function isTab(value: string | null): value is ProfileTab {
-  return !!value && (TABS as readonly string[]).includes(value);
-}
 
 /**
  * Profile section — a tabbed shell over the account surfaces. Plan &
@@ -23,16 +18,20 @@ function isTab(value: string | null): value is ProfileTab {
  * under Profile in one long scroll; they were split into tabs to match the
  * Business Profile shell and shorten each panel.
  *
- * `?tab=` deep-links a specific tab, so old /settings/plan-style links
- * (remapped in resolveSection) can land on the right panel. Each tab renders
- * its card(s) unchanged, so each keeps its own heading + description.
+ * The active tab is bound to `?tab=` (useTabParam): deep-links like
+ * /settings/profile?tab=plan land on the right panel, and switching tabs
+ * updates the URL so the view is shareable. Each tab renders its card(s)
+ * unchanged, so each keeps its own heading + description.
  */
 function ProfilePageInner() {
-  const raw = useSearchParams().get('tab');
-  const initial: ProfileTab = isTab(raw) ? raw : 'profile';
+  const [tab, setTab] = useTabParam(TABS);
 
   return (
-    <Tabs defaultValue={initial} className="animate-in fade-in-50 duration-200">
+    <Tabs
+      value={tab}
+      onValueChange={(value) => setTab(String(value))}
+      className="animate-in fade-in-50 duration-200"
+    >
       <TabsList variant="line" className="mb-5 gap-4 bg-transparent p-0">
         <TabsTrigger value="profile">Profile</TabsTrigger>
         <TabsTrigger value="plan">Plan</TabsTrigger>

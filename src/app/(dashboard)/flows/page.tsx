@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  Workflow,
+  Bot,
   Plus,
   Trash2,
   Loader2,
@@ -348,7 +348,7 @@ export default function FlowsPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
-                    <TableHead className="text-muted-foreground" icon={Workflow}>Flow</TableHead>
+                    <TableHead className="text-muted-foreground" icon={Bot}>Flow</TableHead>
                     <TableHead className="text-muted-foreground" icon={CircleDot}>Status</TableHead>
                     <TableHead className="hidden text-muted-foreground md:table-cell" icon={Zap}>
                       Trigger
@@ -467,7 +467,7 @@ function EmptyState({
   return (
     <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card/50 px-6 py-16 text-center">
       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
-        <Workflow className="h-6 w-6 text-muted-foreground" />
+        <Bot className="h-6 w-6 text-muted-foreground" />
       </div>
       <h2 className="mt-4 text-base font-medium text-foreground">
         No flows yet
@@ -521,7 +521,7 @@ function FlowTableRow({
       <TableCell className="max-w-0">
         <div className="flex items-center gap-2.5">
           <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
-            <Workflow className="h-4 w-4" />
+            <Bot className="h-4 w-4" />
           </span>
           <div className="min-w-0">
             <div className="truncate text-sm font-medium text-foreground">
