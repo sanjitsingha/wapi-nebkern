@@ -49,6 +49,7 @@ export function MessengerConfig() {
 
   const [connected, setConnected] = useState(false);
   const [page, setPage] = useState<ConnectedPage | null>(null);
+  const [verifyToken, setVerifyToken] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState('');
 
   // Page picker (only when the operator manages more than one Page).
@@ -68,10 +69,12 @@ export function MessengerConfig() {
       if (body.connected) {
         setConnected(true);
         setPage(body.page ?? null);
+        setVerifyToken(body.verify_token ?? null);
         setStatusMessage('');
       } else {
         setConnected(false);
         setPage(null);
+        setVerifyToken(null);
         setStatusMessage(body.message || '');
       }
     } catch {
@@ -184,6 +187,12 @@ export function MessengerConfig() {
   function handleCopyWebhookUrl() {
     navigator.clipboard.writeText(webhookUrl);
     toast.success('Webhook URL copied to clipboard');
+  }
+
+  function handleCopyVerifyToken() {
+    if (!verifyToken) return;
+    navigator.clipboard.writeText(verifyToken);
+    toast.success('Verify token copied to clipboard');
   }
 
   if (loading) {
@@ -365,22 +374,50 @@ export function MessengerConfig() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            <Label className="text-muted-foreground">Webhook callback URL</Label>
-            <div className="flex gap-2">
-              <Input
-                readOnly
-                value={webhookUrl}
-                className="bg-muted font-mono text-sm text-muted-foreground"
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleCopyWebhookUrl}
-                className="shrink-0 text-muted-foreground hover:text-foreground"
-              >
-                <Copy className="size-4" />
-              </Button>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">Webhook callback URL</Label>
+              <div className="flex gap-2">
+                <Input
+                  readOnly
+                  value={webhookUrl}
+                  className="bg-muted font-mono text-sm text-muted-foreground"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleCopyWebhookUrl}
+                  className="shrink-0 text-muted-foreground hover:text-foreground"
+                >
+                  <Copy className="size-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">Verify token</Label>
+              {verifyToken ? (
+                <div className="flex gap-2">
+                  <Input
+                    readOnly
+                    value={verifyToken}
+                    className="bg-muted font-mono text-sm text-muted-foreground"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleCopyVerifyToken}
+                    className="shrink-0 text-muted-foreground hover:text-foreground"
+                  >
+                    <Copy className="size-4" />
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Generated once you connect a Page — paste it into the
+                  &ldquo;Verify token&rdquo; field alongside the callback URL.
+                </p>
+              )}
             </div>
           </div>
         </CardContent>

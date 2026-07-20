@@ -40,10 +40,13 @@ function StatusIcon({
   status: Message["status"];
   channel: ConversationChannel;
 }) {
-  // Instagram's send API doesn't hand back delivered/read granularity —
-  // collapse to sent/failed only rather than showing a misleading tick.
+  // Neither Instagram's nor Messenger's send API hands back
+  // delivered/read granularity — collapse to sent/failed only rather
+  // than showing a misleading tick.
   const displayStatus =
-    channel === "instagram" && status !== "failed" && status !== "sending"
+    (channel === "instagram" || channel === "messenger") &&
+    status !== "failed" &&
+    status !== "sending"
       ? "sent"
       : status;
   switch (displayStatus) {

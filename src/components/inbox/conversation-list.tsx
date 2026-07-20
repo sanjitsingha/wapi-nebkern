@@ -4,9 +4,16 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import type { Conversation, ConversationStatus, Profile, Tag } from "@/types";
+import type {
+  Conversation,
+  ConversationChannel,
+  ConversationStatus,
+  Profile,
+  Tag,
+} from "@/types";
 import {
   AtSign,
+  MessageCircle,
   Search,
   ChevronDown,
   Tag as TagIcon,
@@ -42,6 +49,7 @@ interface ContactWithTags {
   name?: string;
   phone?: string | null;
   instagram_id?: string | null;
+  messenger_id?: string | null;
   avatar_url?: string;
   is_spam?: boolean;
   contact_tags?: { tag_id: string }[];
@@ -77,6 +85,18 @@ const STATUS_COLORS: Record<ConversationStatus, string> = {
 
 type InboxFilter = ConversationStatus | "all" | "unread";
 
+type ChannelFilter = ConversationChannel | "all";
+
+// Channel tabs sit above the search box — the coarsest cut through the
+// inbox, so they read as tabs rather than joining the chip row below.
+// Rows with no `channel` value are pre-migration-044 WhatsApp threads.
+const CHANNEL_OPTIONS: { label: string; value: ChannelFilter }[] = [
+  { label: "All", value: "all" },
+  { label: "WhatsApp", value: "whatsapp" },
+  { label: "Messenger", value: "messenger" },
+  { label: "Instagram", value: "instagram" },
+];
+
 const FILTER_OPTIONS: { label: string; value: InboxFilter }[] = [
   { label: "All", value: "all" },
   { label: "Unread", value: "unread" },
@@ -100,6 +120,7 @@ export function ConversationList({
   resyncToken = 0,
 }: ConversationListProps) {
   const [search, setSearch] = useState("");
+  const [channel, setChannel] = useState<ChannelFilter>("all");
   const [filter, setFilter] = useState<InboxFilter>("all");
   // Multi-select: any mix of AI Agent / Bot / Team member. Empty = anyone.
   const [assignees, setAssignees] = useState<AssigneeFilter[]>([]);
@@ -244,6 +265,12 @@ export function ConversationList({
   const filtered = useMemo(() => {
     let result = conversations as ConversationWithTags[];
 
+    if (channel !== "all") {
+      // Legacy rows predating migration 044 have no channel — treat them
+      // as WhatsApp so they don't vanish under the WhatsApp tab.
+      result = result.filter((c) => (c.channel ?? "whatsapp") === channel);
+    }
+
     if (filter === "unread") {
       result = result.filter((c) => c.unread_count > 0);
     } else if (filter !== "all") {
@@ -287,11 +314,13 @@ export function ConversationList({
         const name = c.contact?.name?.toLowerCase() ?? "";
         const phone = c.contact?.phone?.toLowerCase() ?? "";
         const instagramId = c.contact?.instagram_id?.toLowerCase() ?? "";
+        const messengerId = c.contact?.messenger_id?.toLowerCase() ?? "";
         const lastMsg = c.last_message_text?.toLowerCase() ?? "";
         return (
           name.includes(q) ||
           phone.includes(q) ||
           instagramId.includes(q) ||
+          messengerId.includes(q) ||
           lastMsg.includes(q)
         );
       });
@@ -300,6 +329,7 @@ export function ConversationList({
     return result;
   }, [
     conversations,
+    channel,
     filter,
     assignees,
     assignedUserId,
@@ -328,6 +358,47 @@ export function ConversationList({
 
   return (
     <div className="flex h-full w-full flex-col border-r border-border bg-card lg:w-96">
+      {/* Channel tabs — above the search box, per-channel counts so an
+          empty channel is legible as "nothing here" rather than a broken
+          filter. */}
+      <div className="flex items-center gap-1 border-b border-border px-3 pt-3">
+        {CHANNEL_OPTIONS.map((opt) => {
+          const count =
+            opt.value === "all"
+              ? conversations.length
+              : conversations.filter(
+                  (c) => (c.channel ?? "whatsapp") === opt.value,
+                ).length;
+          const active = channel === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setChannel(opt.value)}
+              className={cn(
+                "relative flex-1 whitespace-nowrap px-1 pb-2 text-xs font-medium transition-colors",
+                active
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {opt.label}
+              <span
+                className={cn(
+                  "ml-1 text-[10px]",
+                  active ? "text-primary/70" : "text-muted-foreground/60",
+                )}
+              >
+                {count}
+              </span>
+              {active && (
+                <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Search + Filters */}
       <div className="space-y-2 border-b border-border p-3">
         <div className="relative">
@@ -538,7 +609,11 @@ function ConversationItem({
 }: ConversationItemProps) {
   const contact = conversation.contact as ContactWithTags | undefined;
   const displayName =
-    contact?.name || contact?.phone || contact?.instagram_id || "Unknown";
+    contact?.name ||
+    contact?.phone ||
+    contact?.instagram_id ||
+    contact?.messenger_id ||
+    "Unknown";
   const initials = displayName.charAt(0).toUpperCase();
   const avatar = avatarColor(contact?.id || displayName);
 
@@ -602,6 +677,14 @@ function ConversationItem({
             className="absolute -right-0.5 -bottom-0.5 flex size-4 items-center justify-center rounded-full bg-card text-foreground ring-2 ring-card"
           >
             <AtSign className="size-3" />
+          </span>
+        )}
+        {conversation.channel === "messenger" && (
+          <span
+            title="Messenger"
+            className="absolute -right-0.5 -bottom-0.5 flex size-4 items-center justify-center rounded-full bg-card text-[#0084FF] ring-2 ring-card"
+          >
+            <MessageCircle className="size-3" />
           </span>
         )}
       </div>

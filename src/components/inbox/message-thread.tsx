@@ -9,6 +9,7 @@ import { presenceLabel } from "@/lib/presence";
 import { cn } from "@/lib/utils";
 import type {
   Conversation,
+  ConversationChannel,
   Message,
   MessageReaction,
   Contact,
@@ -133,6 +134,23 @@ function groupMessagesByDate(messages: Message[]) {
   }
 
   return groups;
+}
+
+/**
+ * Instagram and Messenger are both Meta DM channels reached through the
+ * same Send API shape: free-form text within a 24h window, no template
+ * gating, no reply-context, no reactions. WhatsApp is the odd one out,
+ * so most of the thread's channel branching is really this distinction
+ * rather than "is it Instagram".
+ */
+function isMetaDmChannel(channel: ConversationChannel | undefined): boolean {
+  return channel === "instagram" || channel === "messenger";
+}
+
+function sendEndpointFor(channel: ConversationChannel | undefined): string {
+  if (channel === "instagram") return "/api/instagram/send";
+  if (channel === "messenger") return "/api/messenger/send";
+  return "/api/whatsapp/send";
 }
 
 const STATUS_OPTIONS: { label: string; value: ConversationStatus; color: string }[] = [
@@ -498,28 +516,25 @@ export function MessageThread({
       setReplyTo(null);
 
       try {
-        const isInstagram = conversation.channel === "instagram";
-        const res = await fetch(
-          isInstagram ? "/api/instagram/send" : "/api/whatsapp/send",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(
-              isInstagram
-                ? {
-                    conversation_id: conversation.id,
-                    message_type: "text",
-                    content_text: text,
-                  }
-                : {
-                    conversation_id: conversation.id,
-                    message_type: "text",
-                    content_text: text,
-                    reply_to_message_id: replyToId,
-                  },
-            ),
-          },
-        );
+        const isMetaDm = isMetaDmChannel(conversation.channel);
+        const res = await fetch(sendEndpointFor(conversation.channel), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            isMetaDm
+              ? {
+                  conversation_id: conversation.id,
+                  message_type: "text",
+                  content_text: text,
+                }
+              : {
+                  conversation_id: conversation.id,
+                  message_type: "text",
+                  content_text: text,
+                  reply_to_message_id: replyToId,
+                },
+          ),
+        });
 
         const payload = await res.json().catch(() => ({}));
 
@@ -574,31 +589,28 @@ export function MessageThread({
       setReplyTo(null);
 
       try {
-        const isInstagram = conversation.channel === "instagram";
-        const res = await fetch(
-          isInstagram ? "/api/instagram/send" : "/api/whatsapp/send",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(
-              isInstagram
-                ? {
-                    conversation_id: conversation.id,
-                    message_type: payload.kind,
-                    media_url: payload.mediaUrl,
-                    content_text: contentText,
-                  }
-                : {
-                    conversation_id: conversation.id,
-                    message_type: payload.kind,
-                    media_url: payload.mediaUrl,
-                    content_text: contentText,
-                    filename: payload.filename,
-                    reply_to_message_id: payload.replyToId,
-                  },
-            ),
-          },
-        );
+        const isMetaDm = isMetaDmChannel(conversation.channel);
+        const res = await fetch(sendEndpointFor(conversation.channel), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            isMetaDm
+              ? {
+                  conversation_id: conversation.id,
+                  message_type: payload.kind,
+                  media_url: payload.mediaUrl,
+                  content_text: contentText,
+                }
+              : {
+                  conversation_id: conversation.id,
+                  message_type: payload.kind,
+                  media_url: payload.mediaUrl,
+                  content_text: contentText,
+                  filename: payload.filename,
+                  reply_to_message_id: payload.replyToId,
+                },
+          ),
+        });
 
         const data = await res.json().catch(() => ({}));
 
@@ -890,8 +902,12 @@ export function MessageThread({
   }
 
   const displayName =
-    contact.name || contact.phone || contact.instagram_id || "Customer";
-  const isInstagramConversation = conversation.channel === "instagram";
+    contact.name ||
+    contact.phone ||
+    contact.instagram_id ||
+    contact.messenger_id ||
+    "Customer";
+  const isMetaDm = isMetaDmChannel(conversation.channel);
   const messageGroups = groupMessagesByDate(messages);
   const currentStatus = STATUS_OPTIONS.find(
     (s) => s.value === conversation.status
@@ -940,7 +956,7 @@ export function MessageThread({
           {/* Session timer badge — WhatsApp's 24h window only; Instagram
               has no window enforcement in this MVP. Hidden on the
               narrowest phones so the name + back arrow keep their room. */}
-          {!isInstagramConversation && (
+          {!isMetaDm && (
             <Badge
               variant="outline"
               className={cn(
@@ -1010,7 +1026,7 @@ export function MessageThread({
               Instagram yet (the webhook never dispatches to the AI reply
               engine or the Flows engine for that channel in this MVP), so
               hide both rather than offer a control that silently no-ops. */}
-          {!isInstagramConversation && (
+          {!isMetaDm && (
             <>
               {/* AI Agent toggle — the BYO-key assistant handles this chat
                   on its own (KB-grounded replies to every inbound, no cap,
@@ -1181,7 +1197,7 @@ export function MessageThread({
           <div className="flex flex-col items-center justify-center py-12">
             <p className="text-sm text-muted-foreground">No messages yet</p>
             <p className="text-xs text-muted-foreground">
-              {isInstagramConversation
+              {isMetaDm
                 ? "Send a message to start the conversation"
                 : "Send a template to start the conversation"}
             </p>
@@ -1226,7 +1242,7 @@ export function MessageThread({
                         message={msg}
                         onReply={() => handleStartReply(msg)}
                         onReact={
-                          isInstagramConversation
+                          isMetaDm
                             ? undefined
                             : (emoji) => {
                                 if (emoji) void postReaction(msg.id, emoji);
@@ -1239,7 +1255,7 @@ export function MessageThread({
                           reactions={msgReactions}
                           currentUserId={user?.id}
                           onToggleReaction={
-                            isInstagramConversation ? undefined : handlePillToggle
+                            isMetaDm ? undefined : handlePillToggle
                           }
                           channel={conversation.channel}
                         />
@@ -1256,7 +1272,7 @@ export function MessageThread({
       {/* Composer */}
       <MessageComposer
         conversationId={conversation.id}
-        sessionExpired={!isInstagramConversation && sessionInfo.expired}
+        sessionExpired={!isMetaDm && sessionInfo.expired}
         onSend={handleSend}
         onSendMedia={handleSendMedia}
         onOpenTemplates={handleOpenTemplates}
@@ -1265,7 +1281,7 @@ export function MessageThread({
         channel={conversation.channel}
       />
 
-      {!isInstagramConversation && (
+      {!isMetaDm && (
         <TemplatePicker
           open={templateModalOpen}
           onOpenChange={setTemplateModalOpen}

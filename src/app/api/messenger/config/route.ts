@@ -10,6 +10,7 @@ import {
   finalizeMessengerPage,
   loadMessengerAccess,
   loadMessengerUserToken,
+  loadMessengerVerifyToken,
 } from '@/lib/messenger/server-config';
 
 /**
@@ -45,6 +46,10 @@ export async function GET() {
       return NextResponse.json({
         connected: true,
         page: { id: info.id, name: info.name ?? access.access.pageName },
+        // Needed to complete the Webhooks handshake in Meta's dashboard.
+        // Not a credential for our API — it only lets the holder answer
+        // the GET verification challenge.
+        verify_token: await loadMessengerVerifyToken(supabase, accountId),
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown Meta API error';

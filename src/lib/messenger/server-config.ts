@@ -8,6 +8,8 @@
 // Server-only — imports the token decryptor.
 // ============================================================
 
+import { randomUUID } from 'crypto';
+
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { decrypt, encrypt } from '@/lib/whatsapp/encryption';
@@ -76,6 +78,28 @@ export async function loadMessengerUserToken(
   }
 }
 
+/**
+ * Read + decrypt the webhook verify token. The operator pastes this into
+ * Meta's App Dashboard → Webhooks; the webhook's GET handshake matches
+ * the incoming `hub.verify_token` against it.
+ */
+export async function loadMessengerVerifyToken(
+  supabase: SupabaseClient,
+  accountId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from('messenger_config')
+    .select('verify_token')
+    .eq('account_id', accountId)
+    .maybeSingle();
+  if (!data?.verify_token) return null;
+  try {
+    return decrypt(data.verify_token);
+  } catch {
+    return null;
+  }
+}
+
 export type FinalizeResult =
   | { ok: true; pageName: string }
   | { ok: false; error: string };
@@ -124,6 +148,21 @@ export async function finalizeMessengerPage(args: {
     return { ok: false, error: 'Failed to secure the Page token. Please try again.' };
   }
 
+  // Mint a webhook verify token on first connect and keep it stable
+  // across reconnects — it's pasted into Meta's dashboard by hand, so
+  // rotating it on every reconnect would silently break the handshake.
+  let encryptedVerifyToken: string;
+  try {
+    const { data: existingRow } = await supabase
+      .from('messenger_config')
+      .select('verify_token')
+      .eq('account_id', accountId)
+      .maybeSingle();
+    encryptedVerifyToken = existingRow?.verify_token ?? encrypt(randomUUID().replace(/-/g, ''));
+  } catch {
+    return { ok: false, error: 'Failed to prepare the webhook token. Please try again.' };
+  }
+
   // Best-effort — never block connecting on the subscribe failing.
   let subscribedAt: string | null = null;
   try {
@@ -144,6 +183,7 @@ export async function finalizeMessengerPage(args: {
       page_name: page.name,
       access_token: encryptedToken,
       user_access_token: null,
+      verify_token: encryptedVerifyToken,
       connect_method: 'oauth',
       status: 'connected',
       connected_at: now,
