@@ -37,6 +37,7 @@ const NAV = [
   { label: 'AI Agents', href: '/#ai-agents' },
   { label: 'Integrations', href: '/#integrations' },
   { label: 'Pricing', href: '/#pricing' },
+  { label: 'Docs', href: '/docs' },
   { label: 'Blog', href: '/blog' },
 ] as const;
 
@@ -93,6 +94,7 @@ const FOOTER_COLUMNS = [
   {
     title: 'Resources',
     links: [
+      { label: 'Docs', href: '/docs' },
       { label: 'Blog', href: '/blog' },
       { label: 'How it works', href: '/#how-it-works' },
       { label: 'FAQ', href: '/#faq' },
