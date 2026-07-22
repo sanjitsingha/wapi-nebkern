@@ -13,7 +13,6 @@ import {
   MiniInbox,
   MiniKanban,
   PhoneFrame,
-  QuickReplies,
 } from './landing-visuals';
 
 // ============================================================
@@ -83,7 +82,7 @@ function TabBar({
             onClick={() => onSelect(i)}
             className={cn(
               'border-border relative min-w-32 flex-1 border-r px-4 py-3 text-left transition-colors last:border-r-0 sm:px-5 sm:py-3.5',
-              isActive ? 'bg-card' : 'bg-muted/40 hover:bg-muted/70',
+              isActive ? 'bg-[#F6FFEC]' : 'bg-muted/40 hover:bg-muted/70',
             )}
           >
             {/* Accent as an overlay, not a border: a real border-top
@@ -131,15 +130,24 @@ function TabPanel({
   children,
   visual,
   className,
+  visualFullBleed,
 }: {
   children: React.ReactNode;
   visual: React.ReactNode;
   className?: string;
+  /**
+   * Let the visual fill its half corner to corner instead of floating,
+   * centred, inside padding on the tinted half. For a visual that
+   * already carries its own full-bleed background (like Capture's
+   * photo) rather than one meant to sit ON the tint (the phone
+   * mockups). Defaults to the padded/centred treatment.
+   */
+  visualFullBleed?: boolean;
 }) {
   return (
     // `lg:flex-1` lets the panel absorb whatever height the tab strip
-    // leaves over, so tabs + panel together land on the wrapper's 90vh
-    // rather than overshooting it by the strip's height.
+    // leaves over, so tabs + panel together fill the section without
+    // overshooting it by the strip's height.
     <div
       className={cn(
         'border-border grid overflow-hidden rounded-b-xl border lg:flex-1 lg:grid-cols-2',
@@ -151,7 +159,14 @@ function TabPanel({
       <div className="bg-card flex flex-col justify-center p-7 sm:p-12">
         {children}
       </div>
-      <div className="border-border bg-primary/5 flex items-center justify-center border-t p-7 sm:p-12 lg:border-t-0 lg:border-l">
+      <div
+        className={cn(
+          'border-border bg-primary/5 border-t lg:border-t-0 lg:border-l',
+          visualFullBleed
+            ? 'overflow-hidden'
+            : 'flex items-center justify-center p-7 sm:p-12',
+        )}
+      >
         {visual}
       </div>
     </div>
@@ -180,16 +195,14 @@ const JOURNEY = [
       },
     ],
     visual: (
-      <PhoneFrame title="Nova Store">
-        <ChatBubble side="in" time="10:02">
-          Hi! Saw your ad — do you deliver to Pune? 🙋
-        </ChatBubble>
-        <ChatBubble side="out" time="10:02" ai>
-          We do! Delivery takes 2–3 days. Want me to send today&apos;s catalog?
-        </ChatBubble>
-        <QuickReplies options={['Yes, send it', 'Talk to an agent']} />
-      </PhoneFrame>
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src="/landing-page/capture.jpg"
+        alt="A Meta ad, a wa.link, and a QR code all funneling into one shared contact list"
+        className="h-full w-full object-cover"
+      />
     ),
+    visualFullBleed: true,
   },
   {
     tab: 'Qualify',
@@ -228,6 +241,7 @@ const JOURNEY = [
         <FieldsCard className="absolute -right-3 -bottom-5 w-44 sm:-right-6" />
       </div>
     ),
+    visualFullBleed: false,
   },
   {
     tab: 'Nurture',
@@ -253,6 +267,7 @@ const JOURNEY = [
         <MiniInbox />
       </div>
     ),
+    visualFullBleed: false,
   },
   {
     tab: 'Convert',
@@ -278,6 +293,7 @@ const JOURNEY = [
         <MiniInbox />
       </div>
     ),
+    visualFullBleed: false,
   },
   {
     tab: 'Retain',
@@ -303,6 +319,7 @@ const JOURNEY = [
         <MiniCampaign />
       </div>
     ),
+    visualFullBleed: false,
   },
 ] as const;
 
@@ -511,7 +528,11 @@ export function JourneyTabs({ heading }: { heading?: React.ReactNode }) {
             // with single hairlines instead of 2px seams.
             className="-mt-px"
           >
-            <TabPanel visual={item.visual} className="rounded-none lg:min-h-[76vh]">
+            <TabPanel
+              visual={item.visual}
+              visualFullBleed={item.visualFullBleed}
+              className="rounded-none lg:min-h-150"
+            >
               <p className="text-primary text-sm font-semibold">
                 {String(i + 1).padStart(2, '0')} · {item.tab}
               </p>
