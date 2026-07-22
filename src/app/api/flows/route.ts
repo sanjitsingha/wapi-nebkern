@@ -3,8 +3,10 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/flows/admin-client'
 import { getFlowTemplate } from '@/lib/flows/templates'
 import {
+  atLimit,
   featureBlockedResponse,
   getAccountEntitlements,
+  limitReachedResponse,
 } from '@/lib/billing/entitlements'
 
 /**
@@ -74,6 +76,18 @@ export async function POST(request: Request) {
   // Plan gate — Flows are a per-plan feature (migration 062).
   const ent = await getAccountEntitlements(supabase, accountId)
   if (!ent.allowFlows) return featureBlockedResponse('Flows')
+
+  // Per-plan cap on how many they may have. Counted only when a finite
+  // limit exists, so the unlimited path costs no extra query.
+  if (ent.maxFlows !== null) {
+    const { count } = await supabase
+      .from('flows')
+      .select('id', { count: 'exact', head: true })
+      .eq('account_id', accountId)
+    if (atLimit(ent.maxFlows, count ?? 0)) {
+      return limitReachedResponse('flows', ent.maxFlows)
+    }
+  }
 
   const body = (await request.json().catch(() => null)) as
     | {

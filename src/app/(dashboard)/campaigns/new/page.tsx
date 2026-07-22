@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FileText } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { checkCampaignCapacity } from '@/lib/billing/entitlements-client';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 import { MessageTemplate } from '@/types';
@@ -251,6 +252,16 @@ export default function NewBroadcastPage() {
     }
     if (!accountId) {
       toast.error('Your profile is not linked to an account.');
+      return;
+    }
+
+    // Plan cap. Checked here rather than in a route because this insert
+    // goes straight to Supabase from the browser; the check sits after
+    // the draftId branch above so editing an existing campaign is never
+    // blocked by a limit the account is already at.
+    const capacityError = await checkCampaignCapacity();
+    if (capacityError) {
+      toast.error(capacityError);
       return;
     }
 

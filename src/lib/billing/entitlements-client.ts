@@ -17,7 +17,14 @@ import type { PlanEntitlements } from './entitlements';
 
 export interface EntitlementsSnapshot {
   entitlements: PlanEntitlements;
-  usage: { contacts: number; users: number; storageBytes: number };
+  usage: {
+    contacts: number;
+    users: number;
+    storageBytes: number;
+    campaigns: number;
+    automations: number;
+    flows: number;
+  };
 }
 
 export async function fetchEntitlements(): Promise<EntitlementsSnapshot | null> {
@@ -49,6 +56,25 @@ export async function checkContactCapacity(
   return adding > 1
     ? `Your plan allows ${limit.toLocaleString()} contacts — you have ${snap.usage.contacts.toLocaleString()} and room for ${room.toLocaleString()} more. Reduce the import or upgrade your plan.`
     : `You've reached your plan's contact limit (${limit.toLocaleString()}). Upgrade to add more.`;
+}
+
+/**
+ * Would creating one more campaign exceed the plan? Returns the message
+ * to show, or null to proceed.
+ *
+ * Campaigns are inserted straight from the browser (campaigns/new writes
+ * to `broadcasts` via the Supabase client), so unlike automations and
+ * flows there is no API route to enforce this authoritatively. This is a
+ * UX guard, not a security boundary — same caveat as the contact and
+ * storage checks above.
+ */
+export async function checkCampaignCapacity(): Promise<string | null> {
+  const snap = await fetchEntitlements();
+  if (!snap) return null;
+  const limit = snap.entitlements.maxCampaigns;
+  if (limit === null) return null;
+  if (snap.usage.campaigns < limit) return null;
+  return `You've reached your plan's campaign limit (${limit.toLocaleString()}). Delete an old campaign or upgrade your plan.`;
 }
 
 /**

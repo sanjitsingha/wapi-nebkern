@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { checkCampaignCapacity } from '@/lib/billing/entitlements-client';
 import { useAuth } from '@/hooks/use-auth';
 import { Contact, MessageTemplate } from '@/types';
 import { resolveVariables, type VariableMapping } from '@/lib/broadcasts/variables';
@@ -336,6 +337,14 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
         throw new Error('Your profile is not linked to an account.');
       }
 
+      // Plan cap. Sending creates a broadcast row just like saving a
+      // draft does, so it has to be checked here too — otherwise the
+      // cap is trivially sidestepped by sending without saving first.
+      const capacityError = await checkCampaignCapacity();
+      if (capacityError) {
+        throw new Error(capacityError);
+      }
+
       // ── Step 1: Resolve audience contacts ─────────────────────────
       setProgress(5);
       const contacts = await resolveAudience(payload.audience);
@@ -579,6 +588,13 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
       }
       if (Date.parse(scheduledAtIso) <= Date.now()) {
         throw new Error('Pick a time in the future.');
+      }
+
+      // Plan cap — a scheduled send creates a broadcast row now, not at
+      // fire time, so it counts against the limit immediately.
+      const capacityError = await checkCampaignCapacity();
+      if (capacityError) {
+        throw new Error(capacityError);
       }
 
       // Freeze the audience at schedule time (same resolution the

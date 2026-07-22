@@ -14,6 +14,9 @@ import {
   HardDrive,
   Check,
   X,
+  Zap,
+  Megaphone,
+  Bot,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -238,7 +241,12 @@ function UsageSection() {
 
   const { entitlements: ent, usage } = snapshot;
   const hasAnyLimit =
-    ent.maxUsers !== null || ent.maxContacts !== null || ent.storageMb !== null;
+    ent.maxUsers !== null ||
+    ent.maxContacts !== null ||
+    ent.storageMb !== null ||
+    ent.maxAutomations !== null ||
+    ent.maxCampaigns !== null ||
+    ent.maxFlows !== null;
   const features: { label: string; on: boolean }[] = [
     { label: 'WhatsApp calling', on: ent.allowCalling },
     { label: 'Instagram DMs', on: ent.allowInstagram },
@@ -266,6 +274,35 @@ function UsageSection() {
           limit={ent.storageMb}
           format={fmtMb}
         />
+
+        {/* Unlike the three above, these render only when the plan
+            actually caps them. They default to unlimited for every
+            existing plan, so always showing them would add three
+            permanent "· Unlimited" rows of pure noise. */}
+        {ent.maxCampaigns !== null && (
+          <UsageMeter
+            icon={Megaphone}
+            label="Campaigns"
+            used={usage.campaigns}
+            limit={ent.maxCampaigns}
+          />
+        )}
+        {ent.maxAutomations !== null && (
+          <UsageMeter
+            icon={Zap}
+            label="Automations"
+            used={usage.automations}
+            limit={ent.maxAutomations}
+          />
+        )}
+        {ent.maxFlows !== null && (
+          <UsageMeter
+            icon={Bot}
+            label="Flows"
+            used={usage.flows}
+            limit={ent.maxFlows}
+          />
+        )}
 
         <div className="border-t border-border pt-3">
           <div className="flex flex-wrap gap-x-4 gap-y-1.5">

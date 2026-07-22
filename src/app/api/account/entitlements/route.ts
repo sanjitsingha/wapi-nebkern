@@ -18,10 +18,18 @@ export async function GET() {
 
     const entitlements = await getAccountEntitlements(supabase, accountId);
 
-    // Live usage counts. All three run under the caller's RLS (members
-    // can read their account's rows; account_storage_bytes checks
-    // membership internally).
-    const [contactsRes, usersRes, storageRes] = await Promise.all([
+    // Live usage counts. All run under the caller's RLS (members can
+    // read their account's rows; account_storage_bytes checks membership
+    // internally). `head: true` fetches counts without rows, so the
+    // extra three cost a count query each and no payload.
+    const [
+      contactsRes,
+      usersRes,
+      storageRes,
+      campaignsRes,
+      automationsRes,
+      flowsRes,
+    ] = await Promise.all([
       supabase
         .from('contacts')
         .select('id', { count: 'exact', head: true })
@@ -31,6 +39,18 @@ export async function GET() {
         .select('id', { count: 'exact', head: true })
         .eq('account_id', accountId),
       supabase.rpc('account_storage_bytes', { p_account_id: accountId }),
+      supabase
+        .from('broadcasts')
+        .select('id', { count: 'exact', head: true })
+        .eq('account_id', accountId),
+      supabase
+        .from('automations')
+        .select('id', { count: 'exact', head: true })
+        .eq('account_id', accountId),
+      supabase
+        .from('flows')
+        .select('id', { count: 'exact', head: true })
+        .eq('account_id', accountId),
     ]);
 
     return NextResponse.json({
@@ -40,6 +60,9 @@ export async function GET() {
         users: usersRes.count ?? 0,
         storageBytes:
           typeof storageRes.data === 'number' ? storageRes.data : 0,
+        campaigns: campaignsRes.count ?? 0,
+        automations: automationsRes.count ?? 0,
+        flows: flowsRes.count ?? 0,
       },
     });
   } catch (err) {

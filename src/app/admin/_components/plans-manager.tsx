@@ -39,6 +39,9 @@ interface FormValues {
   maxUsers: string;
   maxContacts: string;
   storageMb: string;
+  maxAutomations: string;
+  maxCampaigns: string;
+  maxFlows: string;
   allowCalling: boolean;
   allowInstagram: boolean;
   allowAutomations: boolean;
@@ -71,6 +74,9 @@ function fromPlan(p: BillingPlan): FormValues {
     maxUsers: limitStr(l.max_users),
     maxContacts: limitStr(l.max_contacts),
     storageMb: limitStr(l.storage_mb),
+    maxAutomations: limitStr(l.max_automations),
+    maxCampaigns: limitStr(l.max_campaigns),
+    maxFlows: limitStr(l.max_flows),
     allowCalling: limitBool(l.allow_calling),
     allowInstagram: limitBool(l.allow_instagram),
     allowAutomations: limitBool(l.allow_automations),
@@ -93,6 +99,9 @@ const EMPTY: FormValues = {
   maxUsers: '',
   maxContacts: '',
   storageMb: '',
+  maxAutomations: '',
+  maxCampaigns: '',
+  maxFlows: '',
   allowCalling: true,
   allowInstagram: true,
   allowAutomations: true,
@@ -128,6 +137,9 @@ function buildPayload(v: FormValues) {
       max_users: limitNum(v.maxUsers),
       max_contacts: limitNum(v.maxContacts),
       storage_mb: limitNum(v.storageMb),
+      max_automations: limitNum(v.maxAutomations),
+      max_campaigns: limitNum(v.maxCampaigns),
+      max_flows: limitNum(v.maxFlows),
       allow_calling: v.allowCalling,
       allow_instagram: v.allowInstagram,
       allow_automations: v.allowAutomations,
@@ -343,8 +355,51 @@ function PlanFields({
             />
           </div>
         </div>
+
+        {/* How many of each the account may create. Separate from the
+            toggles below: the toggle decides whether the builder is
+            available at all, this decides how much they get. A toggle
+            that's off wins regardless of the number here. */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs text-foreground">Automations</Label>
+            <Input
+              type="number"
+              min="0"
+              value={values.maxAutomations}
+              onChange={(e) => set({ maxAutomations: e.target.value })}
+              placeholder="∞"
+              disabled={disabled}
+              className="border-border bg-muted"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-foreground">Campaigns</Label>
+            <Input
+              type="number"
+              min="0"
+              value={values.maxCampaigns}
+              onChange={(e) => set({ maxCampaigns: e.target.value })}
+              placeholder="∞"
+              disabled={disabled}
+              className="border-border bg-muted"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-foreground">Flows</Label>
+            <Input
+              type="number"
+              min="0"
+              value={values.maxFlows}
+              onChange={(e) => set({ maxFlows: e.target.value })}
+              placeholder="∞"
+              disabled={disabled}
+              className="border-border bg-muted"
+            />
+          </div>
+        </div>
         <p className="text-[11px] text-muted-foreground">
-          Leave a field blank for unlimited.
+          Leave a field blank for unlimited. 0 blocks creation entirely.
         </p>
 
         <div className="grid grid-cols-2 gap-x-4 gap-y-2">

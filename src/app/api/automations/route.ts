@@ -8,8 +8,10 @@ import {
   validateTriggerForActivation,
 } from '@/lib/automations/validate'
 import {
+  atLimit,
   featureBlockedResponse,
   getAccountEntitlements,
+  limitReachedResponse,
 } from '@/lib/billing/entitlements'
 
 export async function GET() {
@@ -53,6 +55,18 @@ export async function POST(request: Request) {
   // Plan gate — Automations are a per-plan feature (migration 062).
   const ent = await getAccountEntitlements(supabase, accountId)
   if (!ent.allowAutomations) return featureBlockedResponse('Automations')
+
+  // Per-plan cap on how many they may have. Counted only when a finite
+  // limit exists, so the unlimited path costs no extra query.
+  if (ent.maxAutomations !== null) {
+    const { count } = await supabase
+      .from('automations')
+      .select('id', { count: 'exact', head: true })
+      .eq('account_id', accountId)
+    if (atLimit(ent.maxAutomations, count ?? 0)) {
+      return limitReachedResponse('automations', ent.maxAutomations)
+    }
+  }
 
   const body = await request.json().catch(() => null)
   if (!body) return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })

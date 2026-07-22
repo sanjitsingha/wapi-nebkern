@@ -17,6 +17,19 @@
 //
 //   if (atLimit(ent.maxContacts, contactCount))
 //     return limitReachedResponse('contacts', ent.maxContacts);
+//
+// Numeric keys in the `limits` jsonb (all null / absent = unlimited):
+//   max_users, max_contacts, storage_mb,
+//   max_automations, max_campaigns, max_flows
+// Boolean keys (all absent = allowed):
+//   allow_calling, allow_instagram, allow_automations, allow_flows,
+//   allow_integrations
+//
+// The three max_* counts above were added after migration 062 and need
+// no migration of their own: `limits` is a jsonb that already accepts
+// arbitrary keys, and an absent key reads as unlimited. That is
+// deliberate — backfilling them would retroactively cap plans that
+// customers are already on.
 // ============================================================
 
 import { NextResponse } from 'next/server';
@@ -29,6 +42,12 @@ export interface PlanEntitlements {
   maxContacts: number | null;
   /** Media storage across account buckets, in MB. null = unlimited. */
   storageMb: number | null;
+  /** Automations the account may have. null = unlimited. */
+  maxAutomations: number | null;
+  /** Campaigns (broadcasts) the account may create. null = unlimited. */
+  maxCampaigns: number | null;
+  /** Flows the account may have. null = unlimited. */
+  maxFlows: number | null;
   allowCalling: boolean;
   allowInstagram: boolean;
   allowAutomations: boolean;
@@ -41,6 +60,9 @@ export const UNLIMITED_ENTITLEMENTS: PlanEntitlements = {
   maxUsers: null,
   maxContacts: null,
   storageMb: null,
+  maxAutomations: null,
+  maxCampaigns: null,
+  maxFlows: null,
   allowCalling: true,
   allowInstagram: true,
   allowAutomations: true,
@@ -68,6 +90,12 @@ export function parsePlanLimits(raw: unknown): PlanEntitlements {
     maxUsers: num(o.max_users),
     maxContacts: num(o.max_contacts),
     storageMb: num(o.storage_mb),
+    // Absent key ⇒ unlimited, so plans created before these existed are
+    // uncapped rather than retroactively restricted. No migration
+    // backfills them; the admin opts in per plan.
+    maxAutomations: num(o.max_automations),
+    maxCampaigns: num(o.max_campaigns),
+    maxFlows: num(o.max_flows),
     allowCalling: bool(o.allow_calling, true),
     allowInstagram: bool(o.allow_instagram, true),
     allowAutomations: bool(o.allow_automations, true),
@@ -81,7 +109,14 @@ export function atLimit(limit: number | null, current: number): boolean {
   return limit !== null && current >= limit;
 }
 
-const LIMIT_NUM_KEYS = ['max_users', 'max_contacts', 'storage_mb'] as const;
+const LIMIT_NUM_KEYS = [
+  'max_users',
+  'max_contacts',
+  'storage_mb',
+  'max_automations',
+  'max_campaigns',
+  'max_flows',
+] as const;
 const LIMIT_BOOL_KEYS = [
   'allow_calling',
   'allow_instagram',
