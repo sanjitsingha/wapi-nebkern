@@ -91,6 +91,11 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // `widget.js` is excluded deliberately. It's the public chat-widget
+    // loader, fetched by anonymous visitors on customers' own websites:
+    // there is never a session to refresh, and running the Supabase
+    // auth round trip on every third-party pageview would both slow the
+    // widget down and make it fail whenever Supabase is unreachable.
+    '/((?!_next/static|_next/image|favicon.ico|widget\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

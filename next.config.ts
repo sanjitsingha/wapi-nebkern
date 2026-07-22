@@ -118,7 +118,15 @@ const nextConfig: NextConfig = {
         headers: [{ key: "Cache-Control", value: "no-store" }],
       },
       {
-        source: "/:path((?!_next/static|_next/image|api).*)",
+        // `widget.js` is excluded alongside `api` because it sets its
+        // own Cache-Control per response, and rules here override what
+        // the route handler sets. It serves a silent no-op script when
+        // the database is unreachable, and that failure must NOT
+        // inherit the 5-minute s-maxage + 24-hour stale-while-
+        // revalidate below — a momentary blip would otherwise switch
+        // the chat widget off across every customer site for minutes,
+        // and keep serving that stale no-op for up to a day.
+        source: "/:path((?!_next/static|_next/image|api|widget\\.js).*)",
         headers: [
           {
             key: "Cache-Control",
