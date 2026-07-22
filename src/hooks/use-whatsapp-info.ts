@@ -51,18 +51,29 @@ export function messagingTierLabel(
 }
 
 /**
- * The connected WhatsApp Business phone's identity + health.
+ * Whether the config request has resolved, and what it found. `null` from
+ * useWhatsAppInfo conflates "still loading" with "not connected", which is
+ * fine for decorative callers but not for UI that has to choose between a
+ * skeleton and a "connect your number" prompt.
+ */
+export type WaConnectionStatus = 'loading' | 'connected' | 'disconnected';
+
+/**
+ * The connected WhatsApp Business phone's identity + health, plus the
+ * load status.
  *
  * Identity (name/number) comes from /api/whatsapp/config; the health
  * signals (quality rating, messaging limit tier) come from the separate
  * /api/whatsapp/phone-health endpoint, so a Meta hiccup there can never
  * affect connect/verify. Health merges in when it lands — callers must
  * treat both health fields as optional.
- *
- * Returns null until the config loads or if WhatsApp isn't connected.
  */
-export function useWhatsAppInfo() {
+export function useWhatsAppConnection(): {
+  info: WaPhoneInfo | null;
+  status: WaConnectionStatus;
+} {
   const [info, setInfo] = useState<WaPhoneInfo | null>(null);
+  const [status, setStatus] = useState<WaConnectionStatus>('loading');
 
   useEffect(() => {
     let cancelled = false;
@@ -79,9 +90,16 @@ export function useWhatsAppInfo() {
             // for it); phone-health confirms/refines it below.
             quality_rating: data.phone_info.quality_rating ?? null,
           });
+          setStatus('connected');
+        } else {
+          setStatus('disconnected');
         }
       })
-      .catch(() => {});
+      // A failed request is indistinguishable from "not connected" as far
+      // as callers can act on it — either way there's no number to use.
+      .catch(() => {
+        if (!cancelled) setStatus('disconnected');
+      });
 
     // Additive: merges onto whatever identity resolved. If it fails, the
     // badges simply don't render.
@@ -106,5 +124,14 @@ export function useWhatsAppInfo() {
     };
   }, []);
 
-  return info;
+  return { info, status };
+}
+
+/**
+ * Identity-only view of the above, for callers that just want to show the
+ * number and don't care why it's missing. Null until config loads, or if
+ * WhatsApp isn't connected.
+ */
+export function useWhatsAppInfo(): WaPhoneInfo | null {
+  return useWhatsAppConnection().info;
 }

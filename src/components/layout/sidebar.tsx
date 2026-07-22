@@ -31,6 +31,7 @@ import {
   MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
+  QrCode,
   Users,
   X,
   Zap,
@@ -126,6 +127,7 @@ const groups: NavGroup[] = [
       { label: 'Campaigns', icon: Megaphone, href: '/campaigns' },
       { label: 'Templates', icon: FileText, href: '/templates' },
       { label: 'Media', icon: ImageIcon, href: '/media' },
+      { label: 'QR Generator', icon: QrCode, href: '/qr-code', badge: 'New' },
     ],
   },
   {
