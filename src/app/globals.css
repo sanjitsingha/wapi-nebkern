@@ -187,13 +187,32 @@
    each animation's playbackRate down instead, which decelerates and
    preserves position. These classes are the handles it looks for. */
 
+/* Integrations hub: signal travelling out along each spoke from the
+   product to a connected tool. Separate from dash-trail above because
+   the intent is opposite — that one is slow ambient drift over a huge
+   ring, this is a short, brisk pulse that has to read as DATA MOVING.
+
+   The -24 offset is four full 2+4 dash periods, so the loop restarts
+   exactly on a dash boundary; any other value visibly jumps each cycle.
+   Keep it a multiple of the dasharray period if you retune it. */
+@keyframes trail-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+.animate-trail-flow {
+  animation: trail-flow 1.6s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-orbit,
   .animate-orbit-slow,
   .animate-orbit-item,
   .animate-orbit-item-slow,
   .animate-dash-trail,
-  .animate-dash-trail-reverse {
+  .animate-dash-trail-reverse,
+  .animate-trail-flow {
     animation: none;
   }
 }

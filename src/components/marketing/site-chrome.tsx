@@ -88,7 +88,6 @@ const FOOTER_COLUMNS = [
       { label: 'For Sales', href: '/#teams' },
       { label: 'For Marketing', href: '/#teams' },
       { label: 'For Support', href: '/#teams' },
-      { label: 'Customers', href: '/#testimonial' },
     ],
   },
   {
@@ -96,7 +95,6 @@ const FOOTER_COLUMNS = [
     links: [
       { label: 'Docs', href: '/docs' },
       { label: 'Blog', href: '/blog' },
-      { label: 'How it works', href: '/#how-it-works' },
       { label: 'FAQ', href: '/#faq' },
     ],
   },

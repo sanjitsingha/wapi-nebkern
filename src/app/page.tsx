@@ -4,18 +4,13 @@ import {
   ArrowRight,
   Bot,
   Check,
-  Code2,
   Plus,
-  Puzzle,
-  Quote,
-  Workflow,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import { publicDb } from '@/lib/blog';
-import { formatMoney } from '@/lib/billing/plans';
 import { SiteHeader, SiteFooter } from '@/components/marketing/site-chrome';
 import { JourneyTabs, TeamTabs } from '@/components/marketing/landing-tabs';
+import { IntegrationShowcase } from '@/components/marketing/integration-showcase';
 import {
   ChatBubble,
   CheckItem,
@@ -39,8 +34,8 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-// Pricing is read live from billing_plans — refresh every 5 minutes.
-export const revalidate = 300;
+// Fully static — nothing on this page reads the database any more
+// (pricing is hardcoded copy), so it prerenders once at build time.
 
 const btnPrimary =
   'inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary-hover';
@@ -59,9 +54,7 @@ export default function LandingPage() {
         <Platform />
         <Teams />
         <Integrations />
-        <HowItWorks />
         <StatsBand />
-        <Testimonials />
         <Pricing />
         <Faq />
         <FinalCta />
@@ -276,32 +269,40 @@ function AiAgents() {
   );
 }
 
-/* ─── Platform features (4 cards with mini product UIs) ───────────── */
+/* ─── Platform features (bento grid of mini product UIs) ──────────── */
 
+// Laid out as a bento: a six-column grid where `wide` cards take four
+// columns and the rest take two, giving a 4–2 / 2–4 rhythm rather than
+// four identical cards. Order matters — it's what makes the two rows
+// mirror each other, so keep a wide card at each end.
 const PLATFORM = [
   {
     title: 'Shared team inbox',
     description:
       'Every WhatsApp and Instagram conversation in one place — assign chats, leave internal notes, and reply as a team.',
     visual: <MiniInbox />,
+    wide: true,
   },
   {
     title: 'Broadcast campaigns',
     description:
       'Reach thousands with approved templates and watch delivery, read, and reply rates update live.',
     visual: <MiniCampaign />,
+    wide: false,
   },
   {
     title: 'Pipelines & CRM',
     description:
       'Custom fields, tags, and drag-and-drop deal stages — a full CRM built around your WhatsApp conversations.',
     visual: <MiniKanban />,
+    wide: false,
   },
   {
     title: 'Flows & automations',
     description:
       'No-code triggers, conditions, and actions that answer, route, and follow up while you sleep.',
     visual: <MiniFlow />,
+    wide: true,
   },
 ] as const;
 
@@ -315,42 +316,57 @@ function Platform() {
           subtitle="Four tools that usually live in four different apps — working as one, on the official WhatsApp Business API."
         />
 
-        <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-16 grid gap-5 sm:grid-cols-2 lg:grid-cols-6">
           {PLATFORM.map((f) => (
             <div
               key={f.title}
-              className="border-border bg-card flex flex-col gap-5 rounded-2xl border p-6 transition-all hover:-translate-y-0.5 hover:shadow-md"
+              className={cn(
+                // No padding on the card itself: each card is split into
+                // a padded content half and a full-bleed graphics half,
+                // and the graphics tint has to reach the card's edges.
+                // `overflow-hidden` is what makes it respect the corner
+                // radius instead of squaring off the corners.
+                'border-border bg-card overflow-hidden rounded-2xl border transition-all hover:-translate-y-0.5 hover:shadow-md',
+                // Wide cards go full-bleed on the two-column tablet grid
+                // too — a 4-col card squeezed into half a tablet row
+                // leaves its side-by-side split too narrow to read.
+                f.wide ? 'sm:col-span-2 lg:col-span-4' : 'lg:col-span-2',
+              )}
             >
-              <div className="bg-card-2 border-border/60 rounded-xl border p-3">
-                {f.visual}
-              </div>
-              <div>
-                <h3 className="text-base font-semibold">{f.title}</h3>
-                <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-                  {f.description}
-                </p>
-              </div>
+              {f.wide ? (
+                // Wide: content and graphics side by side. No gap — the
+                // two halves meet, so the tint reads as a panel of the
+                // card rather than a floating swatch inside it.
+                <div className="grid h-full sm:grid-cols-2">
+                  <div className="flex flex-col justify-center p-6 sm:p-7">
+                    <h3 className="text-2xl font-normal">{f.title}</h3>
+                    <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+                      {f.description}
+                    </p>
+                  </div>
+                  {/* grid (not flex) so the single child stretches to
+                      full width on its own, while items-center keeps it
+                      vertically centred when the text column is taller.
+                      Padding insets the visual; the tint stays full-bleed
+                      because it's on this container, not the child. */}
+                  <div className="grid items-center bg-[#F6FFEC] p-5 sm:p-6">
+                    {f.visual}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex h-full flex-col">
+                  <div className="grid flex-1 items-center bg-[#F6FFEC] p-5 sm:p-6">
+                    {f.visual}
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-xl font-normal">{f.title}</h3>
+                    <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+                      {f.description}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-
-        <div className="mt-12 flex flex-wrap items-center justify-center gap-2">
-          {[
-            'Message templates',
-            'Contact segments',
-            'Media library',
-            'Quick replies',
-            'Analytics dashboard',
-            'Multi-agent seats',
-            'Roles & permissions',
-            'Support tickets',
-          ].map((t) => (
-            <span
-              key={t}
-              className="border-border text-muted-foreground rounded-full border bg-card px-3.5 py-1.5 text-xs font-medium"
-            >
-              {t}
-            </span>
           ))}
         </div>
       </div>
@@ -378,116 +394,14 @@ function Teams() {
 
 /* ─── Integrations ────────────────────────────────────────────────── */
 
-const INTEGRATIONS = [
-  {
-    name: 'Zapier',
-    blurb: 'Connect 6,000+ apps with triggers and actions',
-  },
-  {
-    name: 'Make',
-    blurb: 'Visual scenarios powered by our webhooks',
-  },
-  {
-    name: 'n8n',
-    blurb: 'Self-hosted automation for self-hosted CRM',
-  },
-  {
-    name: 'Webhooks',
-    blurb: 'message.received, contact.created & more',
-  },
-  {
-    name: 'REST API',
-    blurb: 'Create contacts and send messages via API key',
-  },
-] as const;
-
 function Integrations() {
   return (
     <section id="integrations" className="border-border bg-card/40 scroll-mt-20 border-y">
-      <div className="mx-auto max-w-350 px-4 py-24 sm:px-6 sm:py-28">
-        <SectionHeading
-          eyebrow="Integrations"
-          title="Works with the tools you already use"
-          subtitle="Outbound webhooks fire on every important event, and the REST API lets any system create contacts or send messages — no rebuild needed."
-        />
-
-        <div className="mx-auto mt-14 grid max-w-4xl gap-4 sm:grid-cols-2 lg:grid-cols-5 lg:max-w-none">
-          {INTEGRATIONS.map((i) => (
-            <div
-              key={i.name}
-              className="border-border bg-card rounded-2xl border p-5 text-center transition-all hover:-translate-y-0.5 hover:shadow-md"
-            >
-              <div className="bg-primary-soft text-primary mx-auto flex h-11 w-11 items-center justify-center rounded-xl">
-                {i.name === 'REST API' ? (
-                  <Code2 className="h-5 w-5" />
-                ) : i.name === 'Webhooks' ? (
-                  <Workflow className="h-5 w-5" />
-                ) : (
-                  <Puzzle className="h-5 w-5" />
-                )}
-              </div>
-              <p className="mt-4 text-sm font-semibold">{i.name}</p>
-              <p className="text-muted-foreground mt-1.5 text-xs leading-relaxed">
-                {i.blurb}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ─── How it works ────────────────────────────────────────────────── */
-
-const STEPS = [
-  {
-    title: 'Connect',
-    description:
-      'Link your WhatsApp Business number in a few clicks with embedded signup on the official API.',
-  },
-  {
-    title: 'Import',
-    description:
-      'Bring contacts in by CSV or let them flow in as customers message you — tagged and organized.',
-  },
-  {
-    title: 'Automate',
-    description:
-      'Turn on your AI agent, build flows, and set follow-ups so routine work runs itself.',
-  },
-  {
-    title: 'Grow',
-    description:
-      'Launch campaigns, track deals through your pipeline, and watch it all on the dashboard.',
-  },
-] as const;
-
-function HowItWorks() {
-  return (
-    <section id="how-it-works" className="mx-auto max-w-350 scroll-mt-20 px-4 py-24 sm:px-6 sm:py-28">
-      <SectionHeading
-        eyebrow="Easy to set up"
-        title="Live in four simple steps"
-        subtitle="No lengthy onboarding. Connect your number and start talking to customers today."
-      />
-
-      <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {STEPS.map((step, i) => (
-          <div
-            key={step.title}
-            className="border-border bg-card relative rounded-2xl border p-7"
-          >
-            <div className="bg-primary text-primary-foreground flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold">
-              {i + 1}
-            </div>
-            <h3 className="mt-5 text-base font-semibold">{step.title}</h3>
-            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-              {step.description}
-            </p>
-          </div>
-        ))}
-      </div>
+      {/* Interactive: hovering a tool on the right swaps the left copy
+          over to that tool's detail, so the column earns its space
+          instead of holding one static paragraph. Lives in a client
+          component because that swap is pointer-driven. */}
+      <IntegrationShowcase />
     </section>
   );
 }
@@ -504,9 +418,10 @@ const STATS = [
 function StatsBand() {
   return (
     <section className="border-border bg-card/50 border-y">
-      <div className="mx-auto flex max-w-350 items-center justify-between gap-8 px-4 py-14 sm:px-6">
-        <GradientBars className="hidden shrink-0 lg:flex" />
-        <div className="grid flex-1 grid-cols-2 gap-8 md:grid-cols-4">
+      {/* No flanking GradientBars here any more — the stats grid spans
+          the full column on its own. */}
+      <div className="mx-auto max-w-350 px-4 py-14 sm:px-6">
+        <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
           {STATS.map((s) => (
             <div key={s.label} className="text-center">
               <p className="text-foreground text-3xl font-bold tracking-tight sm:text-4xl">
@@ -516,113 +431,92 @@ function StatsBand() {
             </div>
           ))}
         </div>
-        <GradientBars mirrored className="hidden shrink-0 lg:flex" />
       </div>
     </section>
   );
 }
 
-/* ─── Testimonials ────────────────────────────────────────────────── */
+/* ─── Pricing ─────────────────────────────────────────────────────── */
 
-const TESTIMONIALS = [
+/**
+ * Static on purpose — this table is marketing copy, not a live read of
+ * `billing_plans`. It used to query the table on every render; that
+ * coupled the front page to the database and to whatever an operator
+ * had typed into the admin panel (where `features` is empty on every
+ * plan today, so the cards rendered a bare price and nothing else).
+ *
+ * The numbers below were taken from the live plans, so they are real:
+ * seats, contacts and storage match the `limits` actually enforced, and
+ * the capability lists match the `allow_*` flags per tier. If pricing or
+ * limits change in the admin, update this block to match — nothing
+ * syncs it automatically any more.
+ *
+ * `surface`/`line`/`accent` tint each card. The middle one is the same
+ * mint used elsewhere on this page, so the table sits inside the
+ * existing palette rather than importing a new one.
+ */
+const PRICING = [
   {
-    quote:
-      'We run every customer conversation, broadcast, and follow-up through wacrm now. Our whole team finally works from the same inbox.',
-    name: 'Bettie Porter',
-    role: 'Senior Marketing Manager',
-    initials: 'BP',
-    gradient: 'from-emerald-400 to-emerald-600',
-    metric: '3×',
-    metricLabel: 'more replies than email campaigns',
+    name: 'Try',
+    tagline: 'Kick the tyres on a real WhatsApp number, with your own contacts.',
+    price: '₹100',
+    per: 'month',
+    meta: '2 seats · 60 contacts',
+    tint: { surface: '#F1F7FF', line: '#CFE3FB', accent: '#2F6FED' },
+    featured: false,
+    featuresTitle: 'Key features',
+    features: [
+      'Shared team inbox on the official API',
+      'Contacts, tags and custom fields',
+      'Message templates and broadcasts',
+      'Sales pipelines and deal stages',
+      'AI agent with your own knowledge base',
+    ],
+    usage: ['2 team members', '60 contacts', '10 MB media storage'],
   },
   {
-    quote:
-      'Response times dropped from hours to minutes. Assigning chats and leaving internal notes changed how our support team works.',
-    name: 'Marco Diaz',
-    role: 'Head of Customer Support',
-    initials: 'MD',
-    gradient: 'from-sky-400 to-blue-600',
-    metric: '−80%',
-    metricLabel: 'first-response time',
+    name: 'Pro',
+    tagline: 'For teams running acquisition and support on WhatsApp daily.',
+    price: '₹999',
+    per: 'month',
+    meta: '10 seats · 25,000 contacts',
+    tint: { surface: '#F6FFEC', line: '#CDE9A8', accent: '#4D8A16' },
+    featured: true,
+    featuresTitle: 'Everything in Try, plus',
+    features: [
+      'No-code automations and triggers',
+      'Flows — visual chatbot builder',
+      'WhatsApp calling',
+      'Instagram and Messenger channels',
+      'REST API, API keys and outbound webhooks',
+    ],
+    usage: ['10 team members', '25,000 contacts', '5 GB media storage'],
   },
   {
-    quote:
-      'The broadcast campaigns pay for the tool by themselves. We see delivery and read rates live, and follow-ups run on autopilot.',
-    name: 'Aisha Khan',
-    role: 'E-commerce Founder',
-    initials: 'AK',
-    gradient: 'from-violet-400 to-indigo-600',
-    metric: '74%',
-    metricLabel: 'average campaign read rate',
+    name: 'Business',
+    tagline: 'Unlimited seats and contacts, for when WhatsApp is the business.',
+    price: '₹2,499',
+    per: 'month',
+    meta: 'Unlimited seats · unlimited contacts',
+    tint: { surface: '#FBF3FF', line: '#E6CFF7', accent: '#8B44C8' },
+    featured: false,
+    featuresTitle: 'Everything in Pro, plus',
+    features: [
+      'Unlimited team members',
+      'Unlimited contacts',
+      'Roles and granular permissions',
+      'Priority support with faster response times',
+      'Self-host it on your own infrastructure',
+    ],
+    usage: [
+      'Unlimited team members',
+      'Unlimited contacts',
+      '20 GB media storage',
+    ],
   },
 ] as const;
 
-function Testimonials() {
-  return (
-    <section id="testimonial" className="mx-auto max-w-350 scroll-mt-20 px-4 py-24 sm:px-6 sm:py-28">
-      <SectionHeading
-        eyebrow="Loved by teams"
-        title="See how teams win with wacrm"
-        subtitle="Teams that moved their WhatsApp to wacrm stopped losing conversations — and started closing more of them."
-      />
-
-      <div className="mt-16 grid gap-6 md:grid-cols-3">
-        {TESTIMONIALS.map((t) => (
-          <figure
-            key={t.name}
-            className="border-border bg-card flex flex-col rounded-2xl border p-7"
-          >
-            <Quote className="text-primary/40 h-6 w-6" />
-            <blockquote className="text-foreground mt-4 flex-1 text-sm leading-relaxed">
-              &ldquo;{t.quote}&rdquo;
-            </blockquote>
-            <div className="border-border/70 mt-6 border-t pt-5">
-              <p className="text-primary text-2xl font-bold tracking-tight">
-                {t.metric}
-              </p>
-              <p className="text-muted-foreground mt-0.5 text-xs">{t.metricLabel}</p>
-            </div>
-            <figcaption className="mt-5 flex items-center gap-3">
-              <span
-                className={`flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br ${t.gradient} text-xs font-semibold text-white`}
-              >
-                {t.initials}
-              </span>
-              <div>
-                <p className="text-sm font-semibold">{t.name}</p>
-                <p className="text-muted-foreground text-xs">{t.role}</p>
-              </div>
-            </figcaption>
-          </figure>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/* ─── Pricing (live from billing_plans) ───────────────────────────── */
-
-interface PricingPlanRow {
-  key: string;
-  name: string;
-  tagline: string | null;
-  amount: number;
-  currency: string;
-  interval: 'monthly' | 'yearly';
-  features: unknown;
-  is_featured: boolean;
-}
-
-async function Pricing() {
-  const { data } = await publicDb()
-    .from('billing_plans')
-    .select('key, name, tagline, amount, currency, interval, features, is_featured')
-    .eq('is_active', true)
-    .order('sort_order', { ascending: true });
-
-  const plans = (data ?? []) as PricingPlanRow[];
-  if (plans.length === 0) return null;
-
+function Pricing() {
   return (
     <section id="pricing" className="border-border bg-card/40 scroll-mt-20 border-y">
       <div className="mx-auto max-w-350 px-4 py-24 sm:px-6 sm:py-28">
@@ -632,59 +526,105 @@ async function Pricing() {
           subtitle="Start free, upgrade when you're ready. Every plan runs on the official WhatsApp Business API."
         />
 
-        <div className="mx-auto mt-16 grid max-w-4xl gap-6 lg:max-w-none lg:grid-cols-3">
-          {plans.map((plan) => {
-            const features = Array.isArray(plan.features)
-              ? (plan.features.filter((f) => typeof f === 'string') as string[])
-              : [];
+        {/* `items-start` so a taller card can't stretch its neighbours
+            into matching whitespace — each card ends where its own
+            content does. */}
+        <div className="mx-auto mt-16 grid max-w-4xl items-start gap-6 lg:max-w-none lg:grid-cols-3">
+          {PRICING.map((plan) => {
+            const cta = (
+              <Link
+                href="/signup"
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-white shadow-sm transition-[filter] hover:brightness-110"
+                style={{ backgroundColor: plan.tint.accent }}
+              >
+                Select plan
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            );
+
             return (
               <div
-                key={plan.key}
-                className={cn(
-                  'border-border bg-card relative flex flex-col rounded-2xl border p-7',
-                  plan.is_featured &&
-                    'border-primary/40 shadow-lg ring-1 ring-primary/20',
-                )}
+                key={plan.name}
+                className="relative flex flex-col rounded-3xl border p-6 sm:p-7"
+                style={{
+                  backgroundColor: plan.tint.surface,
+                  borderColor: plan.tint.line,
+                }}
               >
-                {plan.is_featured && (
-                  <span className="bg-primary text-primary-foreground absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-0.5 text-[11px] font-semibold">
-                    Most popular
+                {plan.featured && (
+                  <span className="absolute -top-3 right-5 rounded-full bg-amber-400 px-2.5 py-1 text-[11px] font-bold text-amber-950 shadow-sm">
+                    Best value
                   </span>
                 )}
-                <h3 className="text-base font-semibold">{plan.name}</h3>
-                {plan.tagline && (
-                  <p className="text-muted-foreground mt-1 text-sm">
-                    {plan.tagline}
-                  </p>
-                )}
-                <p className="mt-5 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold tracking-tight">
-                    {formatMoney(plan.amount, plan.currency)}
+
+                <h3 className="text-lg font-bold tracking-tight">{plan.name}</h3>
+                <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+                  {plan.tagline}
+                </p>
+
+                <p className="mt-5 flex items-baseline gap-1.5">
+                  <span
+                    className="text-4xl font-bold tracking-tight"
+                    style={{ color: plan.tint.accent }}
+                  >
+                    {plan.price}
                   </span>
-                  <span className="text-muted-foreground text-sm">
-                    /{plan.interval === 'yearly' ? 'yr' : 'mo'}
+                  <span className="text-muted-foreground text-sm font-medium">
+                    /{plan.per}
                   </span>
                 </p>
-                <ul className="mt-6 flex-1 space-y-2.5">
-                  {features.map((f) => (
-                    <li key={f} className="flex items-start gap-2.5">
-                      <Check className="text-primary mt-0.5 h-4 w-4 shrink-0" />
-                      <span className="text-foreground text-sm">{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href="/signup"
-                  className={cn(
-                    'mt-7 inline-flex h-11 items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-colors',
-                    plan.is_featured
-                      ? 'bg-primary text-primary-foreground hover:bg-primary-hover'
-                      : 'border-border text-foreground hover:bg-muted border',
-                  )}
+                <p className="text-muted-foreground mt-2 text-xs">{plan.meta}</p>
+
+                <div className="mt-5">{cta}</div>
+
+                {/* ── What you get ── */}
+                <div
+                  className="mt-7 border-t pt-5"
+                  style={{ borderColor: plan.tint.line }}
                 >
-                  Start free trial
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
+                  <p className="text-xs font-bold tracking-wide uppercase">
+                    {plan.featuresTitle}
+                  </p>
+                  <ul className="mt-4 space-y-2.5">
+                    {plan.features.map((f) => (
+                      <li key={f} className="flex items-start gap-2.5">
+                        <Check
+                          className="mt-0.5 h-4 w-4 shrink-0"
+                          style={{ color: plan.tint.accent }}
+                        />
+                        <span className="text-sm">{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* ── Usage ── */}
+                <div
+                  className="mt-6 border-t pt-5"
+                  style={{ borderColor: plan.tint.line }}
+                >
+                  <p className="text-xs font-bold tracking-wide uppercase">
+                    Usage
+                  </p>
+                  <ul className="text-muted-foreground mt-3.5 space-y-1.5 text-xs">
+                    {plan.usage.map((row) => (
+                      <li key={row} className="flex items-start gap-2">
+                        <span
+                          aria-hidden
+                          className="mt-1.5 size-1 shrink-0 rounded-full"
+                          style={{ backgroundColor: plan.tint.accent }}
+                        />
+                        {row}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Repeated CTA — these cards run long, and by the time
+                    you've read to the bottom the first button is off
+                    screen. Same reason the reference has one at each
+                    end. */}
+                <div className="mt-7">{cta}</div>
               </div>
             );
           })}
