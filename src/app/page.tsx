@@ -160,7 +160,7 @@ function Hero() {
 
 function LogoCloud() {
   return (
-    <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+    <section className="mx-auto max-w-350 px-4 py-12 sm:px-6 sm:py-16">
       <p className="text-muted-foreground text-center text-xs font-medium tracking-wide uppercase">
         Trusted by teams that run their business on WhatsApp
       </p>
@@ -187,13 +187,25 @@ function LogoPlaceholder() {
 function Journey() {
   return (
     <section id="journey" className="border-border bg-card/40 scroll-mt-20 border-y">
-      <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-28">
-        <SectionHeading
-          eyebrow="The full customer journey"
-          title="Every stage, from first hello to repeat order. Automated."
-          subtitle="wacrm covers the whole funnel on WhatsApp — capture leads, qualify them with AI, nurture with campaigns, convert on pipelines, and retain with automations."
+      {/*
+        No fixed height here on purpose. The journey is a scroll story:
+        five stacked panels give the section its length, and the strip
+        pins itself while they pass. A `min-h` + flex column would fight
+        that by trying to fit everything on one screen — and any
+        `overflow` clamp on an ancestor silently kills `position: sticky`.
+      */}
+      <div className="mx-auto max-w-350 px-4 py-24 sm:px-6 sm:py-28">
+        {/* Passed IN rather than rendered above, because the heading has
+            to live inside the sticky block and pin along with the tab
+            strip — not scroll away above it. */}
+        <JourneyTabs
+          heading={
+            <SectionHeadingSplit
+              title="Every stage, from first hello to repeat order. Automated."
+              subtitle="wacrm covers the whole funnel on WhatsApp — capture leads, qualify them with AI, nurture with campaigns, convert on pipelines, and retain with automations."
+            />
+          }
         />
-        <JourneyTabs />
       </div>
     </section>
   );
@@ -203,7 +215,7 @@ function Journey() {
 
 function AiAgents() {
   return (
-    <section id="ai-agents" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-24 sm:px-6 sm:py-28">
+    <section id="ai-agents" className="mx-auto max-w-350 scroll-mt-20 px-4 py-24 sm:px-6 sm:py-28">
       <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
         <div>
           <p className="text-primary flex items-center gap-1.5 text-sm font-semibold">
@@ -296,7 +308,7 @@ const PLATFORM = [
 function Platform() {
   return (
     <section id="features" className="border-border bg-card/40 scroll-mt-20 border-y">
-      <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-28">
+      <div className="mx-auto max-w-350 px-4 py-24 sm:px-6 sm:py-28">
         <SectionHeading
           eyebrow="The platform"
           title="The platform behind the conversations"
@@ -350,8 +362,11 @@ function Platform() {
 
 function Teams() {
   return (
-    <section id="teams" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-24 sm:px-6 sm:py-28">
-      <SectionHeading
+    <section
+      id="teams"
+      className="mx-auto max-w-350 scroll-mt-20 px-4 py-24 sm:px-6 sm:py-28 lg:flex lg:min-h-[110vh] lg:flex-col"
+    >
+      <SectionHeadingSplit
         eyebrow="Built for your team"
         title="Sales, marketing, and support — one inbox, zero silos"
         subtitle="Whoever owns the conversation, wacrm gives them the tools to move it forward."
@@ -389,7 +404,7 @@ const INTEGRATIONS = [
 function Integrations() {
   return (
     <section id="integrations" className="border-border bg-card/40 scroll-mt-20 border-y">
-      <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-28">
+      <div className="mx-auto max-w-350 px-4 py-24 sm:px-6 sm:py-28">
         <SectionHeading
           eyebrow="Integrations"
           title="Works with the tools you already use"
@@ -450,7 +465,7 @@ const STEPS = [
 
 function HowItWorks() {
   return (
-    <section id="how-it-works" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-24 sm:px-6 sm:py-28">
+    <section id="how-it-works" className="mx-auto max-w-350 scroll-mt-20 px-4 py-24 sm:px-6 sm:py-28">
       <SectionHeading
         eyebrow="Easy to set up"
         title="Live in four simple steps"
@@ -489,7 +504,7 @@ const STATS = [
 function StatsBand() {
   return (
     <section className="border-border bg-card/50 border-y">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-8 px-4 py-14 sm:px-6">
+      <div className="mx-auto flex max-w-350 items-center justify-between gap-8 px-4 py-14 sm:px-6">
         <GradientBars className="hidden shrink-0 lg:flex" />
         <div className="grid flex-1 grid-cols-2 gap-8 md:grid-cols-4">
           {STATS.map((s) => (
@@ -544,7 +559,7 @@ const TESTIMONIALS = [
 
 function Testimonials() {
   return (
-    <section id="testimonial" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-24 sm:px-6 sm:py-28">
+    <section id="testimonial" className="mx-auto max-w-350 scroll-mt-20 px-4 py-24 sm:px-6 sm:py-28">
       <SectionHeading
         eyebrow="Loved by teams"
         title="See how teams win with wacrm"
@@ -610,7 +625,7 @@ async function Pricing() {
 
   return (
     <section id="pricing" className="border-border bg-card/40 scroll-mt-20 border-y">
-      <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-28">
+      <div className="mx-auto max-w-350 px-4 py-24 sm:px-6 sm:py-28">
         <SectionHeading
           eyebrow="Simple pricing"
           title="Pick a plan that grows with you"
@@ -755,7 +770,7 @@ function Faq() {
 function FinalCta() {
   return (
     <section className="border-border bg-card/40 border-t">
-      <div className="mx-auto flex max-w-6xl items-end justify-between gap-8 px-4 py-24 sm:px-6 sm:py-32">
+      <div className="mx-auto flex max-w-350 items-end justify-between gap-8 px-4 py-24 sm:px-6 sm:py-32">
         <GradientBars className="hidden shrink-0 md:flex" />
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-balance sm:text-4xl">
@@ -806,6 +821,45 @@ function SectionHeading({
         {title}
       </h2>
       <p className="text-muted-foreground mt-4 text-base leading-relaxed text-pretty">
+        {subtitle}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Heading for the full-width tabbed sections: title left, supporting
+ * copy right. The centred variant above pulls the eye to the middle,
+ * which fights a panel whose content starts hard against the left rail
+ * — this one starts the reading line where the panel does.
+ *
+ * Baseline-aligned at lg (`items-end`) so the paragraph sits on the
+ * headline's last line rather than floating beside its cap height.
+ */
+function SectionHeadingSplit({
+  eyebrow,
+  title,
+  subtitle,
+}: {
+  /** Optional: the journey heading sits inside a pinned block, where an
+   *  eyebrow is one more line of permanently-occupied screen. */
+  eyebrow?: string;
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr] lg:items-end lg:gap-16">
+      <div>
+        {/* Spacing hangs off the eyebrow, not the h2 — so dropping the
+            eyebrow doesn't leave an orphaned gap above the title. */}
+        {eyebrow && (
+          <p className="text-primary mb-3 text-sm font-semibold">{eyebrow}</p>
+        )}
+        <h2 className="text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+          {title}
+        </h2>
+      </div>
+      <p className="text-muted-foreground text-base leading-relaxed text-pretty lg:pb-1.5">
         {subtitle}
       </p>
     </div>

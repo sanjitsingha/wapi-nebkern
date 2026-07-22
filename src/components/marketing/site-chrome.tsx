@@ -43,7 +43,7 @@ const NAV = [
 
 export function SiteHeader() {
   return (
-    <header className="border-border/70 bg-background/80 sticky top-0 z-50 border-b backdrop-blur-md">
+    <header className="border-border/70 bg-background sticky top-0 z-50 border-b">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Logo />
 
