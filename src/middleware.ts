@@ -57,7 +57,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Protected pages - redirect to login if not authenticated
+  // Protected pages - redirect to login if not authenticated. Covers the
+  // whole in-app surface (the (dashboard) route group) plus /onboarding
+  // and /invoices, so an unauthenticated visitor to any of them lands on
+  // /login rather than a half-rendered shell.
   const protectedPaths = [
     '/dashboard',
     '/inbox',
@@ -67,14 +70,61 @@ export async function middleware(request: NextRequest) {
     '/automations',
     '/settings',
     '/invoices',
+    '/agents',
+    '/broadcasts',
+    '/flows',
+    '/forms',
+    '/lists',
+    '/media',
+    '/qr-code',
+    '/segments',
+    '/templates',
+    '/onboarding',
   ];
-  if (
-    !user &&
-    protectedPaths.some((path) => request.nextUrl.pathname.startsWith(path))
-  ) {
+  const onProtected = protectedPaths.some((path) =>
+    request.nextUrl.pathname.startsWith(path),
+  );
+  if (!user && onProtected) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
+  }
+
+  // Onboarding gate — a brand-new account owner must complete the
+  // one-time plan-selection step (start the 14-day trial or subscribe)
+  // before reaching the app. The signup trigger leaves accounts.onboarded_at
+  // NULL (migration 070); it's stamped once the choice is made (the
+  // start-trial route or the Razorpay verify route). The extra lookup only
+  // runs on the in-app surface + the onboarding page itself.
+  const onOnboarding = request.nextUrl.pathname === '/onboarding';
+  if (user && onProtected) {
+    const { data: prof } = await supabase
+      .from('profiles')
+      .select('account:accounts!inner(onboarded_at)')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    // Supabase surfaces an !inner join as an object or a single-element
+    // array depending on inferred cardinality — normalise before reading.
+    const accountRow = Array.isArray(prof?.account)
+      ? prof?.account[0]
+      : prof?.account;
+    // Fail OPEN: a missing profile row, a pre-070 fork without the column,
+    // or a transient read error must never trap a user behind the gate.
+    const onboarded = accountRow ? accountRow.onboarded_at != null : true;
+
+    if (!onboarded && !onOnboarding) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/onboarding';
+      url.search = '';
+      return NextResponse.redirect(url);
+    }
+    // Already chosen — don't let them sit on the gate; send them in.
+    if (onboarded && onOnboarding) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      url.search = '';
+      return NextResponse.redirect(url);
+    }
   }
 
   // API routes that need auth (not webhooks)

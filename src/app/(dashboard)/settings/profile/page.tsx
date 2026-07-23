@@ -10,18 +10,19 @@ import { ConnectedAccountsCard } from '@/components/settings/connected-accounts-
 import { SessionsCard } from '@/components/settings/sessions-card';
 import { useTabParam } from '@/components/settings/use-tab-param';
 
-const TABS = ['profile', 'plan', 'security'] as const;
+const TABS = ['profile', 'plan'] as const;
 
 /**
- * Profile section — a tabbed shell over the account surfaces. Plan &
- * subscription and the security cards (password + sessions) used to stack
- * under Profile in one long scroll; they were split into tabs to match the
- * Business Profile shell and shorten each panel.
+ * Profile section — a tabbed shell over the account surfaces. The
+ * security cards (password + connected accounts + sessions) now stack
+ * under the profile form in the Profile tab rather than living in their
+ * own tab, leaving just Profile and Plan.
  *
  * The active tab is bound to `?tab=` (useTabParam): deep-links like
  * /settings/profile?tab=plan land on the right panel, and switching tabs
- * updates the URL so the view is shareable. Each tab renders its card(s)
- * unchanged, so each keeps its own heading + description.
+ * updates the URL so the view is shareable. `?tab=security` is a legacy
+ * value — it resolves to Profile (resolveSection), which is where its
+ * cards now live. Each card keeps its own heading + description.
  */
 function ProfilePageInner() {
   const [tab, setTab] = useTabParam(TABS);
@@ -35,23 +36,19 @@ function ProfilePageInner() {
       <TabsList variant="line" className="mb-5 gap-4 bg-transparent p-0">
         <TabsTrigger value="profile">Profile</TabsTrigger>
         <TabsTrigger value="plan">Plan</TabsTrigger>
-        <TabsTrigger value="security">Security</TabsTrigger>
       </TabsList>
 
       <TabsContent value="profile">
-        <ProfileForm />
-      </TabsContent>
-
-      <TabsContent value="plan">
-        <PlanSection />
-      </TabsContent>
-
-      <TabsContent value="security">
         <div className="flex flex-col gap-6">
+          <ProfileForm />
           <PasswordForm />
           <ConnectedAccountsCard />
           <SessionsCard />
         </div>
+      </TabsContent>
+
+      <TabsContent value="plan">
+        <PlanSection />
       </TabsContent>
     </Tabs>
   );

@@ -304,12 +304,14 @@ const JOURNEY = [
       },
     ],
     visual: (
-      <div className="w-full max-w-sm space-y-3">
-        <MiniFlow />
-        <MiniCampaign />
-      </div>
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src="/landing-page/retain.jpg"
+        alt="A no-code automation flow firing follow-ups while a support ticket keeps the issue on record"
+        className="h-full w-full object-cover"
+      />
     ),
-    visualFullBleed: false,
+    visualFullBleed: true,
   },
 ] as const;
 

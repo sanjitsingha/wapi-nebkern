@@ -130,7 +130,7 @@ export async function POST(request: Request) {
     // the same semantics as activation-code redemption (migration 065).
     const { data: account } = await db
       .from('accounts')
-      .select('billing_plan_key, current_period_end')
+      .select('billing_plan_key, current_period_end, onboarded_at')
       .eq('id', ctx.accountId)
       .maybeSingle();
 
@@ -155,6 +155,10 @@ export async function POST(request: Request) {
       current_period_end: end.toISOString(),
     };
     if (!stacking) accountUpdate.current_period_start = now.toISOString();
+    // Paying IS a completed plan-selection choice — clear the onboarding
+    // gate (migration 070) so a first payment lands the user in the app.
+    // Only stamp it once, to preserve the original onboarding time.
+    if (!account?.onboarded_at) accountUpdate.onboarded_at = now.toISOString();
 
     const { error: updateErr } = await db
       .from('accounts')
