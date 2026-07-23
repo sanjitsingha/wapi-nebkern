@@ -11,6 +11,7 @@ import {
 import {
   Send,
   LayoutTemplate,
+  ClipboardList,
   Paperclip,
   Image as ImageIcon,
   Video,
@@ -100,6 +101,9 @@ interface MessageComposerProps {
   onSend: (text: string, replyToId?: string) => void;
   onSendMedia: (payload: SendMediaPayload) => void;
   onOpenTemplates: () => void;
+  /** WhatsApp Forms are WhatsApp-only, same as templates — omit to
+   *  hide the button entirely (Instagram/Messenger threads). */
+  onOpenForms?: () => void;
   replyTo?: ReplyDraft | null;
   onClearReply?: () => void;
   /** Instagram has no templates and (for now) no document/voice-note
@@ -124,6 +128,7 @@ export function MessageComposer({
   onSend,
   onSendMedia,
   onOpenTemplates,
+  onOpenForms,
   replyTo,
   onClearReply,
   channel,
@@ -724,6 +729,20 @@ export function MessageComposer({
               onClick={onOpenTemplates}
             >
               <LayoutTemplate className="h-5 w-5" />
+            </GatedButton>
+          )}
+
+          {channel === "whatsapp" && onOpenForms && (
+            <GatedButton
+              variant="ghost"
+              size="sm"
+              canAct={!readOnly}
+              gateReason="send messages"
+              title={readOnly ? undefined : "Send form"}
+              className="h-10 w-10 shrink-0 p-0 text-muted-foreground hover:text-foreground"
+              onClick={onOpenForms}
+            >
+              <ClipboardList className="h-5 w-5" />
             </GatedButton>
           )}
 

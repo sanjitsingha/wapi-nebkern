@@ -329,7 +329,11 @@ export type ContentType =
   | 'interactive'
   /** A WhatsApp voice-call event (inbound), surfaced inline in the thread
    *  as a call chip. The structured record lives in `call_logs`. */
-  | 'call';
+  | 'call'
+  /** Customer completed a WhatsApp Form (migration 069) — the answers
+   *  live in `form_answers`, keyed by field label where the
+   *  originating form could be resolved, by raw field id otherwise. */
+  | 'form_response';
 export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
 
 export interface Message {
@@ -352,6 +356,12 @@ export interface Message {
    * cue (renders with a "↩ button reply" affordance).
    */
   interactive_reply_id?: string;
+  /** Set on an outbound message that sent a Form, and on the inbound
+   *  `form_response` that answers it (migration 069). */
+  whatsapp_form_id?: string | null;
+  /** Only on a `form_response` row — the customer's answers, keyed by
+   *  field label when resolvable, by raw field id otherwise. */
+  form_answers?: Record<string, unknown> | null;
 }
 
 export type CallDirection = 'inbound' | 'outbound';
@@ -529,6 +539,51 @@ export interface MessageTemplate {
   submission_error?: string;
   last_submitted_at?: string;
   created_at: string;
+}
+
+/** Native WhatsApp Flow, authored as a "Form" — see
+ *  src/lib/whatsapp/forms.ts for why the product name differs from
+ *  Meta's (it would collide with the unrelated Flows bot builder). */
+export type FormFieldType =
+  | 'short_text'
+  | 'email'
+  | 'phone'
+  | 'number'
+  | 'long_text'
+  | 'dropdown'
+  | 'radio'
+  | 'checkbox'
+  | 'date'
+  | 'opt_in';
+
+export interface FormFieldOption {
+  id: string;
+  title: string;
+}
+
+export interface FormField {
+  id: string;
+  type: FormFieldType;
+  label: string;
+  required: boolean;
+  options?: FormFieldOption[];
+}
+
+/** Mirrors Meta's own Flow status values verbatim. */
+export type WhatsAppFormStatus = 'DRAFT' | 'PUBLISHED' | 'DEPRECATED' | 'BLOCKED' | 'THROTTLED';
+
+export interface WhatsAppForm {
+  id: string;
+  account_id: string;
+  created_by?: string | null;
+  name: string;
+  categories: string[];
+  fields: FormField[];
+  meta_flow_id?: string | null;
+  status: WhatsAppFormStatus;
+  validation_errors: unknown[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Pipeline {

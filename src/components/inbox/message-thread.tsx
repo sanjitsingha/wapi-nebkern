@@ -17,6 +17,7 @@ import type {
   ConversationStatus,
   MessageTemplate,
   Profile,
+  WhatsAppForm,
 } from "@/types";
 import {
   MessageSquare,
@@ -51,6 +52,7 @@ import {
 } from "./message-composer";
 import { deleteAccountMedia } from "@/lib/storage/upload-media";
 import { TemplatePicker } from "./template-picker";
+import { FormPicker, type FormSendValues } from "./form-picker";
 import { buildReplyPreview } from "./reply-quote";
 import { toast } from "sonner";
 
@@ -192,6 +194,7 @@ export function MessageThread({
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
+  const [formModalOpen, setFormModalOpen] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   // Active flows (bots) that a conversation can be assigned to.
   const [flows, setFlows] = useState<{ id: string; name: string }[]>([]);
@@ -721,6 +724,61 @@ export function MessageThread({
         console.error("Failed to send template:", err);
         const reason = err instanceof Error ? err.message : "network error";
         toast.error(`Failed to send template: ${reason}`);
+        onUpdateMessage(tempId, { status: "failed" });
+      }
+    },
+    [conversation, onNewMessage, onUpdateMessage],
+  );
+
+  const handleOpenForms = useCallback(() => {
+    setFormModalOpen(true);
+  }, []);
+
+  const handleSendForm = useCallback(
+    async (form: WhatsAppForm, values: FormSendValues) => {
+      if (!conversation) return;
+
+      const tempId = `temp-${Date.now()}`;
+      const optimisticMsg: Message = {
+        id: tempId,
+        conversation_id: conversation.id,
+        sender_type: "agent",
+        content_type: "interactive",
+        content_text: values.bodyText,
+        whatsapp_form_id: form.id,
+        status: "sending",
+        created_at: new Date().toISOString(),
+      };
+      onNewMessage(optimisticMsg);
+
+      try {
+        const res = await fetch(`/api/whatsapp/forms/${form.id}/send`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversation_id: conversation.id,
+            header_text: values.headerText,
+            body_text: values.bodyText,
+            footer_text: values.footerText,
+            cta_text: values.ctaText,
+          }),
+        });
+
+        const payload = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          const reason = payload?.error || `HTTP ${res.status}`;
+          console.error("Failed to send form:", reason);
+          toast.error(`Failed to send form: ${reason}`);
+          onUpdateMessage(tempId, { status: "failed" });
+          return;
+        }
+
+        onUpdateMessage(tempId, { status: "sent" });
+      } catch (err) {
+        console.error("Failed to send form:", err);
+        const reason = err instanceof Error ? err.message : "network error";
+        toast.error(`Failed to send form: ${reason}`);
         onUpdateMessage(tempId, { status: "failed" });
       }
     },
@@ -1293,6 +1351,7 @@ export function MessageThread({
         onSend={handleSend}
         onSendMedia={handleSendMedia}
         onOpenTemplates={handleOpenTemplates}
+        onOpenForms={isMetaDm ? undefined : handleOpenForms}
         replyTo={replyTo}
         onClearReply={() => setReplyTo(null)}
         channel={conversation.channel}
@@ -1303,6 +1362,14 @@ export function MessageThread({
           open={templateModalOpen}
           onOpenChange={setTemplateModalOpen}
           onSelect={handleSendTemplate}
+        />
+      )}
+
+      {!isMetaDm && (
+        <FormPicker
+          open={formModalOpen}
+          onOpenChange={setFormModalOpen}
+          onSelect={handleSendForm}
         />
       )}
     </div>

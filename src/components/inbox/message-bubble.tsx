@@ -11,6 +11,7 @@ import {
   FileText,
   MapPin,
   LayoutTemplate,
+  ClipboardList,
   ImageOff,
   CornerDownLeft,
   PhoneIncoming,
@@ -249,6 +250,36 @@ function MessageContent({ message }: { message: Message }) {
           <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
             {message.content_text || "[Interactive reply]"}
           </p>
+        </div>
+      );
+    }
+
+    case "form_response": {
+      // Customer completed a WhatsApp Form (webhook nfm_reply handling
+      // in api/whatsapp/webhook). Answers are keyed by field label
+      // where the originating form could be resolved, by raw field id
+      // otherwise — render whatever came back rather than assume a
+      // shape.
+      const answers = message.form_answers ?? {};
+      const entries = Object.entries(answers);
+      return (
+        <div className="flex flex-col gap-1.5">
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            <ClipboardList className="h-3 w-3" />
+            Form response
+          </span>
+          {entries.length > 0 ? (
+            <dl className="space-y-1">
+              {entries.map(([label, value]) => (
+                <div key={label} className="flex gap-1.5 text-[15px] leading-snug">
+                  <dt className="shrink-0 font-medium">{label}:</dt>
+                  <dd className="break-words">{String(value)}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <p className="text-[15px]">{message.content_text || "[No answers received]"}</p>
+          )}
         </div>
       );
     }

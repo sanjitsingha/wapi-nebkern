@@ -7,7 +7,6 @@ import { ArrowRight, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   ChatBubble,
-  FieldsCard,
   MiniCampaign,
   MiniFlow,
   MiniInbox,
@@ -223,25 +222,14 @@ const JOURNEY = [
       },
     ],
     visual: (
-      <div className="relative w-full max-w-sm">
-        <PhoneFrame title="Nova Store">
-          <ChatBubble side="out" time="10:04" ai>
-            Great! What budget range should I show you? 💸
-          </ChatBubble>
-          <ChatBubble side="in" time="10:05">
-            Around 40–50k, need it this week
-          </ChatBubble>
-          <ChatBubble side="out" time="10:05" ai>
-            Perfect — sharing 6 options in that range now.
-          </ChatBubble>
-        </PhoneFrame>
-        {/* Offsets stay inside TabPanel's padding — the panel clips its
-            corners with overflow-hidden, so a larger overhang would be
-            sliced off rather than floating over the frame. */}
-        <FieldsCard className="absolute -right-3 -bottom-5 w-44 sm:-right-6" />
-      </div>
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src="/landing-page/qualify.jpg"
+        alt="An AI agent instantly answering a customer's questions in a chat"
+        className="h-full w-full object-cover"
+      />
     ),
-    visualFullBleed: false,
+    visualFullBleed: true,
   },
   {
     tab: 'Nurture',
@@ -262,12 +250,14 @@ const JOURNEY = [
       },
     ],
     visual: (
-      <div className="w-full max-w-sm space-y-3">
-        <MiniCampaign />
-        <MiniInbox />
-      </div>
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src="/landing-page/nurture.jpg"
+        alt="A broadcast campaign dashboard showing recipients, sent, and delivered counts"
+        className="h-full w-full object-cover"
+      />
     ),
-    visualFullBleed: false,
+    visualFullBleed: true,
   },
   {
     tab: 'Convert',

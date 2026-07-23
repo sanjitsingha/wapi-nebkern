@@ -13,6 +13,7 @@ import {
   handleTemplateWebhookChange,
   isTemplateWebhookField,
 } from '@/lib/whatsapp/template-webhook'
+import { parseFlowCompletion } from '@/lib/whatsapp/forms'
 
 // Lazy-initialized to avoid build-time crash when env vars are missing
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -47,9 +48,13 @@ interface WhatsAppMessage {
    * to advance the per-contact run.
    */
   interactive?: {
-    type: 'button_reply' | 'list_reply'
+    type: 'button_reply' | 'list_reply' | 'nfm_reply'
     button_reply?: { id: string; title: string }
     list_reply?: { id: string; title: string; description?: string }
+    /** Sent when a customer completes a WhatsApp Form (Flow). Per
+     *  Meta's spec `response_json` is a JSON-encoded STRING, not a
+     *  nested object — see parseFlowCompletion in lib/whatsapp/forms. */
+    nfm_reply?: { name: string; response_json: unknown }
   }
   /** Present when the customer swipe-replies to one of our messages. */
   context?: { id: string }
@@ -634,7 +639,7 @@ async function processMessage(
   }
 
   // Parse message content based on type
-  const { contentText, mediaUrl, mediaType, interactiveReplyId } =
+  const { contentText, mediaUrl, mediaType, interactiveReplyId, formAnswers, flowToken } =
     await parseMessageContent(message, accessToken)
 
   // Resolve swipe-reply context if present. A missing parent is fine —
@@ -663,19 +668,64 @@ async function processMessage(
   void mediaType
 
   // The messages.content_type CHECK constraint (widened in migration 010
-  // to add 'interactive' for button/list taps) allows:
-  //   text, image, document, audio, video, location, template, interactive
+  // to add 'interactive', migration 069 to add 'form_response') allows:
+  //   text, image, document, audio, video, location, template,
+  //   interactive, call, form_response
   // Map incoming WhatsApp types that aren't in that list to the closest
   // allowed value so the INSERT doesn't fail with a constraint error.
   const ALLOWED_CONTENT_TYPES = new Set([
     'text', 'image', 'document', 'audio', 'video',
     'location', 'template', 'interactive',
   ])
-  const contentType = ALLOWED_CONTENT_TYPES.has(message.type)
-    ? message.type
-    : message.type === 'sticker'
-      ? 'image'   // stickers are images
-      : 'text'    // reaction, unknown → text fallback
+  const contentType = formAnswers
+    ? 'form_response'
+    : ALLOWED_CONTENT_TYPES.has(message.type)
+      ? message.type
+      : message.type === 'sticker'
+        ? 'image'   // stickers are images
+        : 'text'    // reaction, unknown → text fallback
+
+  // A completed Form: look up which one this flow_token was sent for
+  // (via the outbound message we stamped it on) and use its field
+  // labels to turn the raw {field_id: value} answers into something
+  // legible, rather than showing customers' answers keyed by opaque
+  // ids in the inbox.
+  let resolvedFormId: string | null = null
+  let formContentText = contentText
+  let labeledAnswers: Record<string, unknown> | null = formAnswers
+  if (formAnswers && flowToken) {
+    const { data: sentMessage } = await supabaseAdmin()
+      .from('messages')
+      .select('whatsapp_form_id')
+      .eq('flow_token', flowToken)
+      .not('whatsapp_form_id', 'is', null)
+      .maybeSingle()
+    resolvedFormId = sentMessage?.whatsapp_form_id ?? null
+
+    if (resolvedFormId) {
+      const { data: form } = await supabaseAdmin()
+        .from('whatsapp_forms')
+        .select('name, fields')
+        .eq('id', resolvedFormId)
+        .maybeSingle()
+      if (form) {
+        const labelById = new Map<string, string>(
+          (form.fields as { id: string; label: string }[]).map((f) => [f.id, f.label]),
+        )
+        labeledAnswers = Object.fromEntries(
+          Object.entries(formAnswers).map(([id, value]) => [labelById.get(id) ?? id, value]),
+        )
+        formContentText = `${form.name}: ${Object.entries(labeledAnswers)
+          .map(([label, value]) => `${label} — ${value}`)
+          .join('; ')}`
+      }
+    }
+    if (!formContentText) {
+      formContentText = `Form response: ${Object.entries(formAnswers)
+        .map(([id, value]) => `${id} — ${value}`)
+        .join('; ')}`
+    }
+  }
 
   // Determine whether this is the contact's very first inbound message
   // BEFORE we insert, so the count is accurate. Covers the case where
@@ -692,7 +742,7 @@ async function processMessage(
     conversation_id: conversation.id,
     sender_type: 'customer',
     content_type: contentType,
-    content_text: contentText,
+    content_text: formAnswers ? formContentText : contentText,
     media_url: mediaUrl,
     message_id: message.id,
     status: 'delivered',
@@ -702,6 +752,9 @@ async function processMessage(
     // the column; null for every other content_type so existing inserts
     // behave identically.
     interactive_reply_id: interactiveReplyId,
+    // Only populated for content_type='form_response' (migration 069).
+    form_answers: labeledAnswers,
+    whatsapp_form_id: resolvedFormId,
   })
 
   if (msgError) {
@@ -1035,6 +1088,13 @@ async function parseMessageContent(
    * tap with the right affordance. Null for everything else.
    */
   interactiveReplyId: string | null
+  /** Set only for a completed WhatsApp Form (`nfm_reply`) — the raw
+   *  field-id → value answers, and the flow_token that correlates
+   *  back to the specific form we sent (see the call site, which
+   *  looks up messages.flow_token to attribute this to a form and
+   *  fill in human-readable labels). Null for everything else. */
+  formAnswers: Record<string, unknown> | null
+  flowToken: string | null
 }> {
   // getMediaUrl signature is (mediaId, accessToken) — earlier code had
   // the args swapped, so every verification hit an invalid Meta URL and
@@ -1062,6 +1122,8 @@ async function parseMessageContent(
     mediaUrl: null,
     mediaType: null,
     interactiveReplyId: null,
+    formAnswers: null,
+    flowToken: null,
   }
 
   switch (message.type) {
@@ -1139,6 +1201,22 @@ async function parseMessageContent(
       return { ...empty, contentText: message.reaction?.emoji || null }
 
     case 'interactive': {
+      // A completed WhatsApp Form. Parsing here is intentionally pure
+      // (no DB access) — the call site looks up which form this
+      // flow_token belongs to and builds the human-readable summary,
+      // since that needs a query this function doesn't have access to.
+      if (message.interactive?.type === 'nfm_reply' && message.interactive.nfm_reply) {
+        const completion = parseFlowCompletion(message.interactive.nfm_reply)
+        if (completion) {
+          return {
+            ...empty,
+            formAnswers: completion.answers,
+            flowToken: completion.flowToken,
+          }
+        }
+        return { ...empty, contentText: '[Form response could not be read]' }
+      }
+
       // The customer tapped a reply button or a list row on a message
       // we previously sent. Meta delivers `interactive.button_reply` for
       // 3-button messages and `interactive.list_reply` for list messages.

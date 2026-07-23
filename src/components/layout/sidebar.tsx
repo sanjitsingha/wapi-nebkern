@@ -17,6 +17,7 @@ import {
 import {
   Bot,
   ChevronDown,
+  ClipboardList,
   Coins,
   Compass,
   FileText,
@@ -126,6 +127,7 @@ const groups: NavGroup[] = [
     children: [
       { label: 'Campaigns', icon: Megaphone, href: '/campaigns' },
       { label: 'Templates', icon: FileText, href: '/templates' },
+      { label: 'Forms', icon: ClipboardList, href: '/forms', badge: 'New' },
       { label: 'Media', icon: ImageIcon, href: '/media' },
       { label: 'QR Generator', icon: QrCode, href: '/qr-code', badge: 'New' },
     ],
