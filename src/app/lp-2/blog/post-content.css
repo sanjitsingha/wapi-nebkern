@@ -1,0 +1,189 @@
+/* ============================================================
+   /lp-2 article typography.
+
+   Deliberately a different class (`.lp2-post`) from the live blog's
+   `.post-content`: that one is shared with the admin editor's
+   contentEditable surface, so restyling it would silently change what
+   writers see while typing. This one only ever renders published HTML
+   on the /lp-2 read page.
+
+   Same authored HTML, different voice — chunkier headings on the
+   display face, ink borders, and the page's own palette.
+   ============================================================ */
+
+.lp2 .lp2-post {
+  color: var(--lp2-ink);
+  font-size: 1.075rem;
+  line-height: 1.8;
+}
+
+.lp2 .lp2-post p {
+  margin: 1.15em 0;
+  color: var(--lp2-ink-soft);
+}
+
+/* Headings jump to the display face and get real weight — in a joyful
+   layout a merely-bold heading in the body font disappears. */
+.lp2 .lp2-post h2 {
+  margin: 2em 0 0.5em;
+  font-family: var(--font-lp2-display), var(--font-sans), sans-serif;
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--lp2-ink);
+}
+
+.lp2 .lp2-post h3 {
+  margin: 1.6em 0 0.4em;
+  font-family: var(--font-lp2-display), var(--font-sans), sans-serif;
+  font-size: 1.3rem;
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--lp2-ink);
+}
+
+/* Pull-quote as a mint sticker rather than a thin left rule: the rule
+   is invisible against the cream, and every other emphasised block on
+   this site is an outlined card. */
+.lp2 .lp2-post blockquote {
+  margin: 1.6em 0;
+  padding: 1em 1.25em;
+  border: 2px solid var(--lp2-ink);
+  border-radius: 1rem;
+  background: var(--lp2-mint);
+  box-shadow: var(--lp2-shadow-sm);
+  color: var(--lp2-ink);
+  font-style: normal;
+  font-weight: 600;
+}
+
+.lp2 .lp2-post blockquote p {
+  margin: 0.4em 0;
+  color: var(--lp2-ink);
+}
+
+.lp2 .lp2-post ul,
+.lp2 .lp2-post ol {
+  margin: 1.15em 0;
+  padding-left: 1.5em;
+  color: var(--lp2-ink-soft);
+}
+
+.lp2 .lp2-post ul {
+  list-style: disc;
+}
+
+.lp2 .lp2-post ol {
+  list-style: decimal;
+}
+
+.lp2 .lp2-post li {
+  margin: 0.4em 0;
+}
+
+.lp2 .lp2-post li::marker {
+  color: var(--lp2-grass);
+  font-weight: 700;
+}
+
+/* Lemon marker under links, echoing the headline swash. `0.35em` of
+   background sits behind the text baseline; the hover swaps it for the
+   full-height wash. */
+.lp2 .lp2-post a {
+  color: var(--lp2-ink);
+  font-weight: 700;
+  text-decoration: none;
+  background-image: linear-gradient(var(--lp2-lemon), var(--lp2-lemon));
+  background-repeat: no-repeat;
+  background-position: 0 88%;
+  background-size: 100% 0.35em;
+  transition: background-size 0.15s ease;
+}
+
+.lp2 .lp2-post a:hover {
+  background-size: 100% 100%;
+}
+
+.lp2 .lp2-post img {
+  margin: 1.8em auto;
+  display: block;
+  max-width: 100%;
+  border: 2px solid var(--lp2-ink);
+  border-radius: 1.25rem;
+  box-shadow: var(--lp2-shadow);
+}
+
+/* Three dots instead of a rule — a section break that matches the
+   confetti vocabulary. */
+.lp2 .lp2-post hr {
+  margin: 2.6em auto;
+  width: 5rem;
+  height: 0.5rem;
+  border: 0;
+  background-image: radial-gradient(
+    circle,
+    var(--lp2-ink) 0.25rem,
+    transparent 0.25rem
+  );
+  background-size: 1.75rem 100%;
+  background-repeat: repeat-x;
+  background-position: center;
+  opacity: 0.35;
+}
+
+.lp2 .lp2-post strong {
+  font-weight: 800;
+  color: var(--lp2-ink);
+}
+
+.lp2 .lp2-post code {
+  padding: 0.15em 0.45em;
+  border: 2px solid color-mix(in oklab, var(--lp2-ink) 15%, transparent);
+  border-radius: 0.5rem;
+  background: var(--lp2-cream);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.88em;
+  font-weight: 600;
+  color: var(--lp2-ink);
+}
+
+.lp2 .lp2-post pre {
+  margin: 1.5em 0;
+  padding: 1.1em 1.25em;
+  overflow-x: auto;
+  border: 2px solid var(--lp2-ink);
+  border-radius: 1rem;
+  background: var(--lp2-ink);
+  color: #fff;
+}
+
+/* A <code> inside <pre> must drop the inline chip styling, or every
+   code block renders as a bordered box inside a bordered box. */
+.lp2 .lp2-post pre code {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-weight: 500;
+}
+
+.lp2 .lp2-post table {
+  margin: 1.6em 0;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+
+.lp2 .lp2-post th,
+.lp2 .lp2-post td {
+  padding: 0.6em 0.8em;
+  border: 2px solid color-mix(in oklab, var(--lp2-ink) 12%, transparent);
+  text-align: left;
+}
+
+.lp2 .lp2-post th {
+  background: var(--lp2-lemon-soft);
+  font-weight: 800;
+  color: var(--lp2-ink);
+}

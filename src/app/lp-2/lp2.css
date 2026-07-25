@@ -1,0 +1,158 @@
+/* ============================================================
+   /lp-2 — the joyful landing rebuild.
+
+   Everything here is scoped under `.lp2`, which the route layout puts
+   on its wrapper. The app-wide tokens in globals.css are a restrained
+   single-hue system (one forest green + neutrals); this page is the
+   opposite brief — bright, many-hued, sticker-like — so it carries its
+   own palette rather than bending the shared one and leaking a circus
+   into the dashboard.
+
+   Use these through Tailwind arbitrary values: bg-[var(--lp2-lemon)].
+   ============================================================ */
+
+.lp2 {
+  /* Base type for the whole scope — DM Sans, loaded by the route layout
+     and exposed as --font-lp2-display. Overrides the app's inherited
+     Inter for everything under /lp-2, body copy included. */
+  font-family: var(--font-lp2-display), var(--font-sans), sans-serif;
+
+  /* ── Surfaces & ink ── */
+  --lp2-cream: #fffbf2; /* page canvas — warm, never clinical white */
+  --lp2-paper: #ffffff; /* cards that sit on the cream */
+  --lp2-ink: #191826; /* near-black with a blue lean, softer than #000 */
+  --lp2-ink-soft: #5c5a70; /* secondary copy */
+
+  /* ── Brand green ──
+     Deliberately deeper than the decorative hues: this one carries
+     white button text, so it has to clear a real contrast bar
+     (~4.4:1) rather than just look bright. `pop` is the neon version,
+     decoration only — never put text on it. */
+  --lp2-grass: #0b8b47;
+  --lp2-grass-deep: #076b36;
+  --lp2-pop: #2fd37e;
+  --lp2-mint: #d6f7e4;
+
+  /* ── The confetti hues ──
+     Each is a saturated "sticker" colour plus a pastel wash for
+     surfaces. Pairs, always: the wash is what makes a block of colour
+     readable behind ink text. */
+  --lp2-lemon: #ffd84d;
+  --lp2-lemon-soft: #fff3c4;
+  --lp2-coral: #ff6b5a;
+  --lp2-coral-soft: #ffe1dc;
+  --lp2-sky: #4c8dff;
+  --lp2-sky-soft: #dee9ff;
+  --lp2-grape: #9b6bff;
+  --lp2-grape-soft: #ece2ff;
+  --lp2-tangerine: #ff9138;
+  --lp2-tangerine-soft: #ffe8d2;
+
+  /* ── The "sticker" shadow ──
+     A hard, un-blurred offset in ink. It's the single detail doing the
+     most work for the playful feel: soft blurred shadows read
+     corporate-SaaS, a crisp offset reads cut-and-stuck-on. */
+  --lp2-shadow: 4px 4px 0 var(--lp2-ink);
+  --lp2-shadow-sm: 3px 3px 0 var(--lp2-ink);
+  --lp2-shadow-lg: 8px 8px 0 var(--lp2-ink);
+}
+
+/* Headline class. The whole scope is already DM Sans (see `.lp2`
+   above), so this only adds the display treatment: tighter tracking and
+   the font's large optical-size cut for big text. */
+.lp2 .lp2-display {
+  font-family: var(--font-lp2-display), var(--font-sans), sans-serif;
+  font-variation-settings: 'opsz' 36;
+  letter-spacing: -0.02em;
+}
+
+/* ── Motion ──────────────────────────────────────────────────
+   Ambient only. Every duration is long and every travel is small:
+   these run behind copy someone is trying to read, so they should
+   register as "alive" in peripheral vision and never pull focus. */
+
+@keyframes lp2-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(var(--lp2-tilt, 0deg));
+  }
+  50% {
+    transform: translateY(-12px) rotate(var(--lp2-tilt, 0deg));
+  }
+}
+
+/* Blobs are huge and blurred, so they can travel much further than a
+   sticker before the movement becomes noticeable. */
+@keyframes lp2-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(28px, -20px) scale(1.06);
+  }
+  66% {
+    transform: translate(-20px, 16px) scale(0.96);
+  }
+}
+
+/* The typing indicator in the chat card — the one place a fast,
+   attention-grabbing loop is the point. */
+@keyframes lp2-typing {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+/* The marker swash under a highlighted headline word draws itself once
+   on load, so the eye lands on the word after it lands on the line. */
+@keyframes lp2-draw {
+  from {
+    stroke-dashoffset: var(--lp2-dash, 400);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.lp2 .lp2-float {
+  /* `--lp2-tilt` lets a rotated sticker keep its rotation while it
+     bobs — the keyframe re-applies it, since transform is one property
+     and a bare translateY would flatten the tilt to 0. */
+  animation: lp2-float 6s ease-in-out infinite;
+}
+
+.lp2 .lp2-drift {
+  animation: lp2-drift 24s ease-in-out infinite;
+}
+
+.lp2 .lp2-typing-dot {
+  animation: lp2-typing 1.4s ease-in-out infinite;
+}
+
+.lp2 .lp2-draw {
+  stroke-dasharray: var(--lp2-dash, 400);
+  animation: lp2-draw 0.9s 0.35s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp2 .lp2-float,
+  .lp2 .lp2-drift,
+  .lp2 .lp2-typing-dot,
+  .lp2 .lp2-draw {
+    animation: none;
+  }
+
+  /* Without the draw animation the swash would sit at its dashoffset
+     and never appear at all, so pin it to the finished state. */
+  .lp2 .lp2-draw {
+    stroke-dashoffset: 0;
+  }
+}
