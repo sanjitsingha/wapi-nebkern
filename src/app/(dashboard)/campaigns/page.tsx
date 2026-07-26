@@ -25,7 +25,10 @@ import {
   Radio,
   Plus,
   Loader2,
-  Tag,
+  Shapes,
+  Megaphone,
+  Wrench,
+  ShieldCheck,
   ChevronDown,
   Filter,
   ArrowUpDown,
@@ -36,8 +39,17 @@ import {
   Send,
   Eye,
   CircleDot,
+  ArrowRight,
+  type LucideIcon,
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
+import { cn } from '@/lib/utils';
+import { softBadge } from '@/lib/badge-colors';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useCan } from '@/hooks/use-can';
 import { GatedButton } from '@/components/ui/gated-button';
 import { TemplatePickerDialog } from '@/components/broadcasts/template-picker-dialog';
@@ -53,6 +65,120 @@ import {
  * counts consistent; we just need to surface the freshest snapshot.
  */
 const POLL_INTERVAL_MS = 5_000;
+
+type TemplateCategory = 'Marketing' | 'Utility' | 'Authentication';
+
+/**
+ * One visual identity per Meta template category — a distinct hue and a
+ * meaning-carrying icon (not the generic tag, which implied a free-form
+ * label rather than one of Meta's three fixed categories). Shared by the
+ * Category filter and the table chip so "Marketing" reads the same blue
+ * in both places.
+ */
+const CATEGORY_STYLES: Record<
+  TemplateCategory,
+  { badge: string; icon: LucideIcon; iconColor: string }
+> = {
+  Marketing: {
+    badge: softBadge.blue,
+    icon: Megaphone,
+    iconColor: 'text-blue-600 dark:text-blue-300',
+  },
+  Utility: {
+    badge: softBadge.amber,
+    icon: Wrench,
+    iconColor: 'text-amber-600 dark:text-amber-300',
+  },
+  Authentication: {
+    badge: softBadge.purple,
+    icon: ShieldCheck,
+    iconColor: 'text-purple-600 dark:text-purple-300',
+  },
+};
+
+/** Colour-coded category pill. Falls back to a neutral "Unknown" chip
+ *  when the template's category hasn't loaded (or isn't one of the
+ *  three), so the cell never renders empty. */
+function CategoryChip({ category }: { category?: string | null }) {
+  const style = category
+    ? CATEGORY_STYLES[category as TemplateCategory]
+    : undefined;
+
+  if (!style) {
+    return (
+      <span
+        className={cn(
+          'inline-flex items-center rounded-full border px-2 py-0.5 text-xs',
+          softBadge.neutral,
+        )}
+      >
+        {category ?? 'Unknown'}
+      </span>
+    );
+  }
+
+  const Icon = style.icon;
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium',
+        style.badge,
+      )}
+    >
+      <Icon className="h-3 w-3" />
+      {category}
+    </span>
+  );
+}
+
+/**
+ * Category cell for the campaigns table. Normally just the colour-coded
+ * chip — but when Meta reclassified the template on review (its current
+ * `category` differs from the `original_category` the user submitted),
+ * it shows the original struck-through, an arrow, then Meta's new
+ * category, and explains the swap on hover.
+ */
+function CategoryCell({
+  category,
+  originalCategory,
+}: {
+  category?: string | null;
+  originalCategory?: string | null;
+}) {
+  const reclassified =
+    !!category && !!originalCategory && category !== originalCategory;
+
+  if (!reclassified) {
+    return <CategoryChip category={category} />;
+  }
+
+  const originalStyle =
+    CATEGORY_STYLES[originalCategory as TemplateCategory] ?? undefined;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span className="inline-flex cursor-help items-center gap-1.5">
+            <span
+              className={cn(
+                'text-xs line-through decoration-1',
+                originalStyle?.iconColor ?? 'text-muted-foreground',
+              )}
+            >
+              {originalCategory}
+            </span>
+            <ArrowRight className="text-muted-foreground h-3 w-3 shrink-0" />
+            <CategoryChip category={category} />
+          </span>
+        }
+      />
+      <TooltipContent>
+        Meta reclassified this template from {originalCategory} to {category}.
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 function percent(numerator: number, denominator: number): number {
   if (!denominator) return 0;
@@ -110,15 +236,31 @@ export default function BroadcastsPage() {
   const [selectedStatuses, setSelectedStatuses] = useState<
     (typeof statusOptions)[number][]
   >([]);
+  // Per template name: Meta's current category plus the category the
+  // user originally submitted (null unless we recorded it). The two
+  // differ only when Meta reclassified the template on review.
   const [templateCategoryByName, setTemplateCategoryByName] = useState<
-    Record<string, (typeof categoryOptions)[number]>
+    Record<
+      string,
+      {
+        category: TemplateCategory;
+        originalCategory: TemplateCategory | null;
+      }
+    >
   >({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dateSortDirection, setDateSortDirection] =
     useState<BroadcastDateSortDirection>('desc');
 
+  /** Effective (current) category — what to filter and colour-code by. */
   function getBroadcastCategory(broadcast: Broadcast) {
+    return templateCategoryByName[broadcast.template_name]?.category;
+  }
+
+  /** Full category info for a broadcast's template, or undefined if the
+   *  template isn't in the map yet. */
+  function getBroadcastCategoryInfo(broadcast: Broadcast) {
     return templateCategoryByName[broadcast.template_name];
   }
 
@@ -181,7 +323,9 @@ export default function BroadcastsPage() {
           .from('broadcasts')
           .select('*')
           .order('created_at', { ascending: false }),
-        supabase.from('message_templates').select('name,category'),
+        supabase
+          .from('message_templates')
+          .select('name,category,original_category'),
       ]);
 
       if (broadcastsResult.error) throw broadcastsResult.error;
@@ -189,8 +333,21 @@ export default function BroadcastsPage() {
 
       const templates = templatesResult.data ?? [];
       const templateMap = templates.reduce(
-        (acc, template) => ({ ...acc, [template.name]: template.category }),
-        {} as Record<string, (typeof categoryOptions)[number]>
+        (acc, template) => ({
+          ...acc,
+          [template.name]: {
+            category: template.category as TemplateCategory,
+            originalCategory:
+              (template.original_category as TemplateCategory | null) ?? null,
+          },
+        }),
+        {} as Record<
+          string,
+          {
+            category: TemplateCategory;
+            originalCategory: TemplateCategory | null;
+          }
+        >
       );
 
       setBroadcasts(broadcastsResult.data ?? []);
@@ -332,28 +489,36 @@ export default function BroadcastsPage() {
               <DropdownMenuTrigger
                 render={<Button variant="outline" className="h-11 gap-2" />}
               >
-                <Tag className="h-4 w-4" />
+                <Shapes className="h-4 w-4" />
                 Category
                 <ChevronDown className="h-4 w-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-48">
-                {categoryOptions.map((category) => (
-                  <DropdownMenuCheckboxItem
-                    key={category}
-                    checked={selectedCategories.includes(category)}
-                    className="gap-2"
-                    onCheckedChange={() =>
-                      setSelectedCategories((prev) =>
-                        prev.includes(category)
-                          ? prev.filter((current) => current !== category)
-                          : [...prev, category]
-                      )
-                    }
-                  >
-                    <Tag className="text-muted-foreground h-4 w-4" />
-                    <span>{category}</span>
-                  </DropdownMenuCheckboxItem>
-                ))}
+                {categoryOptions.map((category) => {
+                  const Icon = CATEGORY_STYLES[category].icon;
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={category}
+                      checked={selectedCategories.includes(category)}
+                      className="gap-2"
+                      onCheckedChange={() =>
+                        setSelectedCategories((prev) =>
+                          prev.includes(category)
+                            ? prev.filter((current) => current !== category)
+                            : [...prev, category]
+                        )
+                      }
+                    >
+                      <Icon
+                        className={cn(
+                          'h-4 w-4',
+                          CATEGORY_STYLES[category].iconColor,
+                        )}
+                      />
+                      <span>{category}</span>
+                    </DropdownMenuCheckboxItem>
+                  );
+                })}
               </DropdownMenuContent>
             </DropdownMenu>
             <DropdownMenu>
@@ -462,7 +627,7 @@ export default function BroadcastsPage() {
                 <TableHead className="text-muted-foreground hidden md:table-cell" icon={FileText}>
                   Template
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden md:table-cell" icon={Tag}>
+                <TableHead className="text-muted-foreground hidden md:table-cell" icon={Shapes}>
                   Category
                 </TableHead>
                 <TableHead className="text-muted-foreground hidden text-right sm:table-cell">
@@ -495,10 +660,13 @@ export default function BroadcastsPage() {
                     <TableCell className="text-muted-foreground hidden md:table-cell">
                       {broadcast.template_name}
                     </TableCell>
-                    <TableCell className="text-muted-foreground hidden md:table-cell">
-                      <span className="border-border bg-muted text-muted-foreground inline-flex rounded-full border px-2 py-0.5 text-xs">
-                        {getBroadcastCategory(broadcast) ?? 'Unknown'}
-                      </span>
+                    <TableCell className="hidden md:table-cell">
+                      <CategoryCell
+                        category={getBroadcastCategoryInfo(broadcast)?.category}
+                        originalCategory={
+                          getBroadcastCategoryInfo(broadcast)?.originalCategory
+                        }
+                      />
                     </TableCell>
                     <TableCell className="text-muted-foreground hidden text-right tabular-nums sm:table-cell">
                       {broadcast.total_recipients}

@@ -518,6 +518,10 @@ export interface MessageTemplate {
   user_id: string;
   name: string;
   category: 'Marketing' | 'Utility' | 'Authentication';
+  /** The category chosen at submit time. Diverges from `category` only
+   *  when Meta reclassified the template on review; null for rows imported
+   *  straight from Meta or created before this was tracked. */
+  original_category?: 'Marketing' | 'Utility' | 'Authentication';
   language?: string;
   /** 'standard' (default) or 'carousel'. */
   template_type?: TemplateType;

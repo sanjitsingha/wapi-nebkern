@@ -40,6 +40,11 @@ function buildUpsertRow(
     user_id: userId,
     name: payload.name,
     category: payload.category,
+    // The category the user chose, recorded once at submit time. The
+    // Meta-sync route only ever writes `category`, so if Meta later
+    // reclassifies the template this preserves the original intent for
+    // the "Meta reclassified this" display. Re-submitting re-declares it.
+    original_category: payload.category,
     language: payload.language,
     template_type: payload.template_type ?? 'standard',
     header_type: payload.header_type ?? null,
