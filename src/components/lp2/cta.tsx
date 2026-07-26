@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { ArrowRight } from 'lucide-react';
 
-import { AvatarStack, Sparkle, Squiggle, Swash } from './decor';
+import { AvatarStack, Highlight, Sparkle, Squiggle } from './decor';
 import { Btn } from './ui';
 
 // ============================================================
@@ -53,7 +53,7 @@ export function Lp2Cta() {
         <div className="relative">
           <h2 className="lp2-display text-3xl leading-[1.06] font-extrabold text-balance sm:text-5xl">
             Your customers are already typing.{' '}
-            <Swash color="lemon">Go say hi.</Swash>
+            <Highlight color="lemon">Go say hi.</Highlight>
           </h2>
 
           <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-lg">

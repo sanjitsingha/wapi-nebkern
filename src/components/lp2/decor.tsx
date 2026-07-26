@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 // /lp-2 decorative primitives.
 //
 // The joyful look is built from a small vocabulary repeated at
-// different sizes and hues — a marker swash, a squiggle, a sparkle, a
+// different sizes and hues — a highlight box, a squiggle, a sparkle, a
 // blurred blob, a dotted field. Keeping them here (rather than inline
 // in each section) is what stops the page drifting into five different
 // hand-drawn styles as sections get added.
@@ -27,59 +27,15 @@ export type Lp2Hue =
 
 const hue = (h: Lp2Hue) => `var(--lp2-${h})`;
 
-/* ─── Marker highlight ────────────────────────────────────────────── */
-
-/**
- * A word (or few) with a hand-drawn marker stroke swiped under it.
- *
- * The SVG stretches to whatever the text measures (`preserveAspectRatio
- * ="none"`), so the swash always fits the word instead of being a fixed
- * graphic the copy has to be written around. Sized in `em` so it tracks
- * the headline's font-size at every breakpoint.
- *
- * `whitespace-nowrap` keeps the highlighted phrase on one line — a
- * swash that wraps mid-phrase draws two disconnected strokes and reads
- * as a mistake.
- */
-export function Swash({
-  children,
-  color = 'lemon',
-  className,
-}: {
-  children: React.ReactNode;
-  color?: Lp2Hue;
-  className?: string;
-}) {
-  return (
-    <span className={cn('relative inline-block whitespace-nowrap', className)}>
-      {/* Text above the stroke, so the marker reads as *behind* the
-          word rather than struck through it. */}
-      <span className="relative z-10">{children}</span>
-      <svg
-        aria-hidden
-        viewBox="0 0 300 26"
-        preserveAspectRatio="none"
-        className="absolute inset-x-[-3%] bottom-[0.04em] h-[0.36em] w-[106%]"
-      >
-        <path
-          d="M8 17C58 8 108 20 152 12S248 6 292 14"
-          fill="none"
-          stroke={hue(color)}
-          strokeWidth="20"
-          strokeLinecap="round"
-          className="lp2-draw"
-          style={{ '--lp2-dash': 320 } as CSSProperties}
-        />
-      </svg>
-    </span>
-  );
-}
-
 /* ─── Highlight ───────────────────────────────────────────────────── */
 
 /**
- * A word with a solid highlighter block behind it — the flat-colour
- * alternative to Swash's hand-drawn stroke.
+ * A word with a solid highlighter block behind it — the page's way of
+ * marking the key word in a headline.
+ *
+ * `whitespace-nowrap` keeps the highlighted phrase on one line, so the
+ * box frames one continuous run rather than breaking into two boxes
+ * mid-phrase.
  *
  * The block is drawn first (absolute) and the text painted over it
  * (relative, later in the DOM), so no z-index juggling is needed. It

@@ -111,17 +111,6 @@
   }
 }
 
-/* The marker swash under a highlighted headline word draws itself once
-   on load, so the eye lands on the word after it lands on the line. */
-@keyframes lp2-draw {
-  from {
-    stroke-dashoffset: var(--lp2-dash, 400);
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
 .lp2 .lp2-float {
   /* `--lp2-tilt` lets a rotated sticker keep its rotation while it
      bobs — the keyframe re-applies it, since transform is one property
@@ -137,22 +126,10 @@
   animation: lp2-typing 1.4s ease-in-out infinite;
 }
 
-.lp2 .lp2-draw {
-  stroke-dasharray: var(--lp2-dash, 400);
-  animation: lp2-draw 0.9s 0.35s ease-out both;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .lp2 .lp2-float,
   .lp2 .lp2-drift,
-  .lp2 .lp2-typing-dot,
-  .lp2 .lp2-draw {
+  .lp2 .lp2-typing-dot {
     animation: none;
-  }
-
-  /* Without the draw animation the swash would sit at its dashoffset
-     and never appear at all, so pin it to the finished state. */
-  .lp2 .lp2-draw {
-    stroke-dashoffset: 0;
   }
 }

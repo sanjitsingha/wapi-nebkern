@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react';
 import Link from 'next/link';
 
 import { cn } from '@/lib/utils';
-import { Swash, type Lp2Hue } from './decor';
+import { Highlight, type Lp2Hue } from './decor';
 
 // ============================================================
 // /lp-2 shared UI — the button and the section heading.
@@ -58,10 +58,10 @@ export function Btn({
  * Section heading: a tilted eyebrow sticker, a display-face title, and
  * one line of support.
  *
- * `highlight` marks a word inside `title` to swash — passed as its own
+ * `highlight` marks a word inside `title` to box — passed as its own
  * prop rather than as JSX so a section can't accidentally ship two
- * swashes in one heading, which turns the page's loudest device into
- * noise.
+ * highlight boxes in one heading, which turns the page's loudest device
+ * into noise.
  */
 export function SectionHead({
   eyebrow,
@@ -74,7 +74,7 @@ export function SectionHead({
   eyebrow: string;
   hue?: Lp2Hue;
   title: string;
-  /** Substring of `title` to draw the marker under. Must appear in
+  /** Substring of `title` to wrap in the highlight box. Must appear in
    *  `title` verbatim or it's ignored. */
   highlight?: string;
   subtitle?: string;
@@ -101,7 +101,7 @@ export function SectionHead({
         {before}
         {after !== null && (
           <>
-            <Swash color={hue === 'lemon' ? 'lemon' : hue}>{highlight}</Swash>
+            <Highlight color={hue}>{highlight}</Highlight>
             {after}
           </>
         )}

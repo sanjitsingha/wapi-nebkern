@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { ArrowRight, Bot, Check, FileText, MessageCircle, Sparkles } from 'lucide-react';
 
-import { Sparkle, Squiggle, Swash } from './decor';
+import { Highlight, Sparkle, Squiggle } from './decor';
 import { Btn } from './ui';
 
 // ============================================================
@@ -48,7 +48,7 @@ export function Lp2AiAgents() {
 
           <h2 className="lp2-display mt-5 text-3xl leading-[1.08] font-extrabold text-balance sm:text-[2.75rem]">
             It reads your catalogue once, then answers{' '}
-            <Swash color="grape">forever</Swash>.
+            <Highlight color="grape">forever</Highlight>.
           </h2>
 
           <p className="mt-5 text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-lg">
