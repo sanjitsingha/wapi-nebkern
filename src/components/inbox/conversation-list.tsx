@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import {
+  Fragment,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -37,6 +44,16 @@ import {
   InboxFiltersDialog,
   type AssigneeFilter,
 } from "@/components/inbox/inbox-filters-dialog";
+import {
+  WhatsAppLogo,
+  MessengerLogo,
+  InstagramLogo,
+} from "@/components/inbox/channel-icons";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface FlowOption {
   id: string;
@@ -90,12 +107,35 @@ type ChannelFilter = ConversationChannel | "all";
 // Channel tabs sit above the search box — the coarsest cut through the
 // inbox, so they read as tabs rather than joining the chip row below.
 // Rows with no `channel` value are pre-migration-044 WhatsApp threads.
-const CHANNEL_OPTIONS: { label: string; value: ChannelFilter }[] = [
+// Each carries its full-colour brand mark; "All" has none (it's not a
+// platform, and it isn't shown while WhatsApp is the only live channel).
+const CHANNEL_OPTIONS: {
+  label: string;
+  value: ChannelFilter;
+  Logo?: React.FC<{ className?: string }>;
+}[] = [
   { label: "All", value: "all" },
-  { label: "WhatsApp", value: "whatsapp" },
-  { label: "Messenger", value: "messenger" },
-  { label: "Instagram", value: "instagram" },
+  { label: "WhatsApp", value: "whatsapp", Logo: WhatsAppLogo },
+  // Instagram before Messenger — the order they render in the channel bar.
+  { label: "Instagram", value: "instagram", Logo: InstagramLogo },
+  { label: "Messenger", value: "messenger", Logo: MessengerLogo },
 ];
+
+// Which channels are actually usable today. WhatsApp is live; Messenger
+// and Instagram are wired up in the backend but not yet exposed here.
+// Widen this set to promote a channel from "coming soon" to a real tab —
+// the icons, filter logic and default-selection all follow from it.
+const LIVE_CHANNELS = new Set<ChannelFilter>(["whatsapp"]);
+const CHANNEL_TABS = CHANNEL_OPTIONS.filter((o) => LIVE_CHANNELS.has(o.value));
+
+// The not-yet-live platforms, shown beside the live tab as full-colour
+// but non-clickable logos with a "coming soon" tooltip — so people can
+// see the channels are planned without being able to select an empty one.
+// "all" is excluded (it's not a platform); everything else not live lands
+// here automatically, so promoting a channel above removes it from here.
+const COMING_SOON_CHANNELS = CHANNEL_OPTIONS.filter(
+  (o) => o.value !== "all" && !LIVE_CHANNELS.has(o.value),
+);
 
 const FILTER_OPTIONS: { label: string; value: InboxFilter }[] = [
   { label: "All", value: "all" },
@@ -120,7 +160,12 @@ export function ConversationList({
   resyncToken = 0,
 }: ConversationListProps) {
   const [search, setSearch] = useState("");
-  const [channel, setChannel] = useState<ChannelFilter>("all");
+  // Start on the first live channel tab. Today that's WhatsApp (the only
+  // one shown); if "All" is re-added as the leading tab this reverts to
+  // "all" on its own — no separate default to keep in sync.
+  const [channel, setChannel] = useState<ChannelFilter>(
+    CHANNEL_TABS[0]?.value ?? "all",
+  );
   const [filter, setFilter] = useState<InboxFilter>("all");
   // Multi-select: any mix of AI Agent / Bot / Team member. Empty = anyone.
   const [assignees, setAssignees] = useState<AssigneeFilter[]>([]);
@@ -358,43 +403,60 @@ export function ConversationList({
 
   return (
     <div className="flex h-full w-full flex-col border-r border-border bg-card lg:w-96">
-      {/* Channel tabs — above the search box, per-channel counts so an
-          empty channel is legible as "nothing here" rather than a broken
-          filter. */}
-      <div className="flex items-center gap-1 border-b border-border px-3 pt-3">
-        {CHANNEL_OPTIONS.map((opt) => {
-          const count =
-            opt.value === "all"
-              ? conversations.length
-              : conversations.filter(
-                  (c) => (c.channel ?? "whatsapp") === opt.value,
-                ).length;
+      {/* Channel bar — the live channel (WhatsApp) is an active pill with
+          its logo and name; the not-yet-live platforms follow as
+          full-colour, non-clickable logos, each split off by a vertical
+          divider and explaining themselves with a "coming soon" tooltip
+          on hover. */}
+      <div className="flex items-center gap-2.5 border-b border-border px-3 py-2.5">
+        {CHANNEL_TABS.map((opt) => {
           const active = channel === opt.value;
+          const Logo = opt.Logo;
           return (
             <button
               key={opt.value}
               type="button"
               onClick={() => setChannel(opt.value)}
               className={cn(
-                "relative flex-1 whitespace-nowrap px-1 pb-2 text-xs font-medium transition-colors",
+                "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap transition-colors",
                 active
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground",
+                  ? "bg-primary-soft text-primary"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >
+              {Logo && <Logo className="size-4 shrink-0" />}
               {opt.label}
-              <span
-                className={cn(
-                  "ml-1 text-[10px]",
-                  active ? "text-primary/70" : "text-muted-foreground/60",
-                )}
-              >
-                {count}
-              </span>
-              {active && (
-                <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
-              )}
             </button>
+          );
+        })}
+
+        {/* Coming-soon channels. A divider precedes each one, so the row
+            reads WhatsApp │ Instagram │ Messenger. The trigger is a span
+            (not a disabled button) so hover still fires the tooltip;
+            cursor-not-allowed + aria-disabled convey it can't be picked. */}
+        {COMING_SOON_CHANNELS.map((opt) => {
+          const Logo = opt.Logo;
+          return (
+            <Fragment key={opt.value}>
+              <span
+                aria-hidden
+                className="h-4 w-px shrink-0 bg-border"
+              />
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <span
+                      aria-disabled
+                      aria-label={`${opt.label} — coming soon`}
+                      className="flex cursor-not-allowed items-center opacity-60 transition-opacity hover:opacity-100"
+                    >
+                      {Logo && <Logo className="size-4 shrink-0" />}
+                    </span>
+                  }
+                />
+                <TooltipContent>{opt.label} · Coming soon</TooltipContent>
+              </Tooltip>
+            </Fragment>
           );
         })}
       </div>
