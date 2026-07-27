@@ -1,7 +1,13 @@
 /* ============================================================
-   Blog article typography — shared by the public post page and the
-   admin editor's contentEditable surface, so what you write is exactly
-   what readers see. Colors ride the theme tokens.
+   Blog article typography — shared by the admin editor's
+   contentEditable surface and the live post page(s) that render its
+   HTML, so what you write is exactly what readers see. Colors ride
+   the theme tokens.
+
+   Deliberately kept OUTSIDE src/app/ (not co-located with any one
+   route) because the admin editor's import of this file must survive
+   regardless of which page is the "live" blog at any given moment —
+   see src/app/admin/_components/blog-editor.tsx.
    ============================================================ */
 
 .post-content {

@@ -203,7 +203,7 @@ export function LegalPage({
 
           <div className="relative mx-auto max-w-4xl px-4 pt-12 pb-14 sm:px-6">
             <Link
-              href="/lp-2"
+              href="/"
               className="inline-flex items-center gap-1.5 text-sm font-bold text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink)"
             >
               <ArrowLeft className="size-4" strokeWidth={3} />

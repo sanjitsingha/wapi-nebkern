@@ -101,7 +101,7 @@ export function Lp2BlogBrowser({ posts }: { posts: BlogListItem[] }) {
                     {matches.map((p) => (
                       <li key={p.id}>
                         <Link
-                          href={`/lp-2/blog/${p.slug}`}
+                          href={`/blog/${p.slug}`}
                           className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-(--lp2-cream)"
                         >
                           <span
@@ -163,7 +163,7 @@ function Card({ post }: { post: BlogListItem }) {
     // white box with a full-bleed coloured cover up top, divided from
     // the text by the same light rule.
     <Link
-      href={`/lp-2/blog/${post.slug}`}
+      href={`/blog/${post.slug}`}
       className="group flex flex-col overflow-hidden rounded-[1.75rem] border-2 border-(--lp2-ink)/15 bg-white transition-transform duration-200 hover:-translate-y-1"
     >
       <div

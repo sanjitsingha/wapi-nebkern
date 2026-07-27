@@ -2,11 +2,11 @@ import type { Metadata } from 'next';
 
 import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 
-// Indexed, unlike the /lp-2 landing page itself. The root layout sets
-// `robots: index:false` app-wide, so this override is what makes the
-// page crawlable — and legal pages need to be: payment providers and
-// Meta's app reviewers both check that they resolve publicly, and
-// there's no other copy of this text to duplicate.
+// Indexed. The root layout sets `robots: index:false` app-wide, so
+// this override is what makes the page crawlable — and legal pages
+// need to be: payment providers and Meta's app reviewers both check
+// that they resolve publicly, and there's no other copy of this text
+// to duplicate.
 export const metadata: Metadata = {
   title: { absolute: 'Privacy Policy — wacrm' },
   description:

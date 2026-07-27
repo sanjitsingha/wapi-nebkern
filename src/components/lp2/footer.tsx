@@ -8,7 +8,7 @@ import type { Lp2Hue } from './decor';
 // opened it — the two dark bands bookend all the cream in between.
 // ============================================================
 
-// The in-page anchors are absolute (`/lp-2#features`) rather than bare
+// The in-page anchors are absolute (`/#features`) rather than bare
 // hashes, because this footer also renders on the legal and blog pages —
 // a bare `#features` there scrolls to nothing.
 const COLUMNS: { title: string; hue: Lp2Hue; links: { label: string; href: string }[] }[] = [
@@ -16,9 +16,9 @@ const COLUMNS: { title: string; hue: Lp2Hue; links: { label: string; href: strin
     title: 'Product',
     hue: 'lemon',
     links: [
-      { label: 'Features', href: '/lp-2#features' },
-      { label: 'AI Agents', href: '/lp-2#ai-agents' },
-      { label: 'Pricing', href: '/lp-2#pricing' },
+      { label: 'Features', href: '/#features' },
+      { label: 'AI Agents', href: '/#ai-agents' },
+      { label: 'Pricing', href: '/#pricing' },
     ],
   },
   {
@@ -26,18 +26,18 @@ const COLUMNS: { title: string; hue: Lp2Hue; links: { label: string; href: strin
     hue: 'sky',
     links: [
       { label: 'Docs', href: '/docs' },
-      { label: 'Blog', href: '/lp-2/blog' },
-      { label: 'Contact us', href: '/lp-2/contact' },
+      { label: 'Blog', href: '/blog' },
+      { label: 'Contact us', href: '/contact' },
     ],
   },
   {
     title: 'Legal',
     hue: 'grape',
     links: [
-      { label: 'Privacy Policy', href: '/lp-2/privacy' },
-      { label: 'Terms & Conditions', href: '/lp-2/terms' },
-      { label: 'Cancellation & Refunds', href: '/lp-2/refunds' },
-      { label: 'Acceptable Use', href: '/lp-2/acceptable-use' },
+      { label: 'Privacy Policy', href: '/privacy' },
+      { label: 'Terms & Conditions', href: '/terms' },
+      { label: 'Cancellation & Refunds', href: '/refunds' },
+      { label: 'Acceptable Use', href: '/acceptable-use' },
     ],
   },
   {
@@ -58,7 +58,7 @@ export function Lp2Footer() {
             four link columns since Legal was added. */}
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-6">
           <div className="lg:col-span-2">
-            <Link href="/lp-2" className="flex items-center gap-2.5">
+            <Link href="/" className="flex items-center gap-2.5">
               <span className="flex size-9 items-center justify-center rounded-xl border-2 border-white bg-(--lp2-grass)">
                 <MessageCircle className="size-4.5" strokeWidth={2.75} />
               </span>

@@ -5,8 +5,11 @@ import { cn } from '@/lib/utils';
 import { HeaderCta } from './header-cta';
 
 // ============================================================
-// Shared marketing-site chrome — header + footer used by the landing
-// page and the public blog, so navigation stays consistent.
+// Chrome for the original landing page — now living at /lp-2, its
+// own blog (/lp-2/blog), and the docs site (which borrows it rather
+// than the newer (marketing) chrome). Every in-page anchor below is
+// `/lp-2#...` because that's where the sections it points at actually
+// live; `/` now serves the (marketing) rebuild instead.
 // ============================================================
 
 function Logo({ size = 'md' }: { size?: 'sm' | 'md' }) {
@@ -31,11 +34,11 @@ function Logo({ size = 'md' }: { size?: 'sm' | 'md' }) {
 }
 
 const NAV = [
-  { label: 'AI Agents', href: '/#ai-agents' },
-  { label: 'Integrations', href: '/#integrations' },
-  { label: 'Pricing', href: '/#pricing' },
+  { label: 'AI Agents', href: '/lp-2#ai-agents' },
+  { label: 'Integrations', href: '/lp-2#integrations' },
+  { label: 'Pricing', href: '/lp-2#pricing' },
   { label: 'Docs', href: '/docs' },
-  { label: 'Blog', href: '/blog' },
+  { label: 'Blog', href: '/lp-2/blog' },
 ] as const;
 
 /**
@@ -169,26 +172,26 @@ const FOOTER_COLUMNS = [
   {
     title: 'Product',
     links: [
-      { label: 'Features', href: '/#features' },
-      { label: 'AI Agents', href: '/#ai-agents' },
-      { label: 'Integrations', href: '/#integrations' },
-      { label: 'Pricing', href: '/#pricing' },
+      { label: 'Features', href: '/lp-2#features' },
+      { label: 'AI Agents', href: '/lp-2#ai-agents' },
+      { label: 'Integrations', href: '/lp-2#integrations' },
+      { label: 'Pricing', href: '/lp-2#pricing' },
     ],
   },
   {
     title: 'Solutions',
     links: [
-      { label: 'For Sales', href: '/#teams' },
-      { label: 'For Marketing', href: '/#teams' },
-      { label: 'For Support', href: '/#teams' },
+      { label: 'For Sales', href: '/lp-2#teams' },
+      { label: 'For Marketing', href: '/lp-2#teams' },
+      { label: 'For Support', href: '/lp-2#teams' },
     ],
   },
   {
     title: 'Resources',
     links: [
       { label: 'Docs', href: '/docs' },
-      { label: 'Blog', href: '/blog' },
-      { label: 'FAQ', href: '/#faq' },
+      { label: 'Blog', href: '/lp-2/blog' },
+      { label: 'FAQ', href: '/lp-2#faq' },
     ],
   },
   {

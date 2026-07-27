@@ -1,22 +1,16 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowRight, Clock, Newspaper } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Clock } from 'lucide-react';
 
+import { SiteHeader, SiteFooter } from '@/components/marketing/site-chrome';
 import {
   getPostBySlug,
   getPublishedPosts,
   readMinutes,
   formatPostDate,
 } from '@/lib/blog';
-import { buildToc } from '@/lib/lp2-blog-toc';
-import { Lp2Nav } from '@/components/lp2/nav';
-import { Lp2Footer } from '@/components/lp2/footer';
-import { Sparkle, Squiggle } from '@/components/lp2/decor';
-import { postHue, TagPill } from '@/components/lp2/blog-bits';
-import { BlogToc, PromoBanner } from '@/components/lp2/blog-toc';
-import { ShareButtons } from '@/components/lp2/share-buttons';
-import '../post-content.css';
+import '@/styles/post-content.css';
 
 export const revalidate = 300;
 
@@ -28,13 +22,11 @@ export async function generateMetadata({
   const { slug } = await params;
   const post = await getPostBySlug(slug);
   if (!post) return { title: 'Post not found — wacrm' };
-
   return {
     title: { absolute: `${post.title} — wacrm blog` },
     description: post.excerpt ?? undefined,
-    // Noindex while /lp-2 is a draft: the live /blog/[slug] serves this
-    // same post from the same table and is the indexed copy. See the
-    // note on the blog index.
+    // Noindex — the live /blog/[slug] serves this same post; see the
+    // note on the index page (lp-2/blog/page.tsx).
     robots: { index: false, follow: true },
     openGraph: {
       title: post.title,
@@ -45,7 +37,7 @@ export async function generateMetadata({
   };
 }
 
-export default async function Lp2BlogPostPage({
+export default async function BlogPostPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
@@ -54,171 +46,119 @@ export default async function Lp2BlogPostPage({
   const post = await getPostBySlug(slug);
   if (!post) notFound();
 
-  // "Keep reading" — the three most recent other posts. Fetch four in
-  // case this post is among the newest, then drop itself.
-  const more = (await getPublishedPosts(4))
-    .filter((p) => p.id !== post.id)
-    .slice(0, 3);
+  // "More from the blog" — the three most recent other posts.
+  const more = (await getPublishedPosts(4)).filter((p) => p.id !== post.id).slice(0, 3);
 
-  const hue = postHue(post.slug);
   const minutes = readMinutes(post.contentHtml);
 
-  // Give every h2–h4 an id and pull out the ToC. `html` is the rewritten
-  // body the article renders; `toc` feeds the sidebar.
-  const { html, toc } = buildToc(post.contentHtml);
-
   return (
-    <>
-      <Lp2Nav />
+    <div className="bg-background text-foreground flex min-h-screen flex-col">
+      <SiteHeader />
+      <main className="flex-1">
+        <article className="mx-auto max-w-3xl px-4 pt-14 pb-20 sm:px-6 sm:pt-20">
+          <Link
+            href="/lp-2/blog"
+            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            All articles
+          </Link>
 
-      <main className="bg-white">
-        {/* ── Feature image ──
-            Full width (left to right, spanning the whole article
-            container), and no border/outline/shadow — just the image. */}
-        <section className="relative -mt-19 px-4 pt-19 sm:-mt-20 sm:px-6 sm:pt-20">
-          <div className="mx-auto max-w-6xl pt-10">
-            {post.coverImageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={post.coverImageUrl}
-                alt=""
-                className="aspect-[16/5] w-full rounded-[1.75rem] object-cover"
-              />
-            ) : (
-              <div
-                className="relative flex aspect-[16/5] items-center justify-center overflow-hidden rounded-[1.75rem]"
-                style={{ backgroundColor: `var(--lp2-${hue}-soft)` }}
-              >
+          <header className="mt-8">
+            <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">
+              {post.tags.slice(0, 3).map((t) => (
                 <span
-                  className="flex size-20 items-center justify-center rounded-3xl"
-                  style={{
-                    backgroundColor: `var(--lp2-${hue})`,
-                    transform: 'rotate(-6deg)',
-                  }}
+                  key={t}
+                  className="bg-primary-soft text-primary rounded-full px-2 py-0.5 font-medium"
                 >
-                  <Newspaper className="size-9" strokeWidth={2.5} />
+                  {t}
                 </span>
-                <Sparkle color="lemon" className="absolute top-8 right-12 size-6" />
-                <Squiggle color="grape" className="absolute bottom-8 left-10 w-16" />
-              </div>
+              ))}
+            </div>
+            <h1 className="mt-4 text-3xl font-bold tracking-tight text-balance sm:text-5xl sm:leading-[1.15]">
+              {post.title}
+            </h1>
+            {post.excerpt && (
+              <p className="text-muted-foreground mt-4 text-lg leading-relaxed text-pretty">
+                {post.excerpt}
+              </p>
             )}
+            <div className="text-muted-foreground mt-6 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              {post.authorName && (
+                <span className="text-foreground font-medium">
+                  {post.authorName}
+                </span>
+              )}
+              <span>{formatPostDate(post.publishedAt)}</span>
+              <span className="inline-flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" />
+                {minutes} min read
+              </span>
+            </div>
+          </header>
+
+          {post.coverImageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={post.coverImageUrl}
+              alt=""
+              className="mt-10 w-full rounded-2xl object-cover"
+            />
+          )}
+
+          {/* Admin-authored HTML — writers are trusted (ADMIN_EMAILS only). */}
+          <div
+            className="post-content mt-10"
+            dangerouslySetInnerHTML={{ __html: post.contentHtml }}
+          />
+
+          {/* CTA */}
+          <div className="border-border bg-card mt-16 flex flex-col items-center gap-4 rounded-2xl border p-8 text-center sm:flex-row sm:justify-between sm:text-left">
+            <div>
+              <p className="text-foreground text-lg font-semibold">
+                Run your business on WhatsApp
+              </p>
+              <p className="text-muted-foreground mt-1 text-sm">
+                One shared inbox for your whole team — free to start.
+              </p>
+            </div>
+            <Link
+              href="/signup"
+              className="bg-primary text-primary-foreground hover:bg-primary-hover inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg px-6 text-sm font-semibold transition-colors"
+            >
+              Get started free
+              <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
-        </section>
+        </article>
 
-        {/* ── Article ──
-            One grid: sticky ToC + promo on the left, and the article on
-            the right in reading order — tags, title, excerpt, info box,
-            then the body. */}
-        <section className="px-4 pb-4 sm:px-6">
-          <div className="mx-auto mt-10 grid max-w-6xl gap-10 lg:grid-cols-[15rem_1fr] lg:gap-12">
-            {/* Sidebar. Desktop only — on a phone a ToC above the article
-                is more clutter than help, and the bottom CTA still
-                carries the promo. Sticky so it rides along as you read. */}
-            <aside className="hidden lg:sticky lg:top-32 lg:block lg:self-start">
-              <BlogToc items={toc} />
-              <PromoBanner className={toc.length > 0 ? 'mt-8' : ''} />
-            </aside>
-
-            <article className="min-w-0">
-              {/* Capped so the header and prose share one readable measure
-                  and a common left edge in the wide column. */}
-              <div className="max-w-3xl">
-                {/* 1. Tags */}
-                <div className="flex flex-wrap items-center gap-2">
-                  {post.tags.slice(0, 3).map((t) => (
-                    <TagPill key={t} tag={t} />
-                  ))}
-                </div>
-
-                {/* 2. Title */}
-                <h1 className="lp2-display mt-4 text-3xl leading-[1.08] font-extrabold text-balance sm:text-5xl">
-                  {post.title}
-                </h1>
-
-                {/* 3. Excerpt */}
-                {post.excerpt && (
-                  <p className="mt-5 text-lg leading-relaxed text-pretty text-(--lp2-ink-soft)">
-                    {post.excerpt}
-                  </p>
-                )}
-
-                {/* 4. Info box — full-width outlined strip: byline on
-                    the left, share buttons on the right. */}
-                <div className="mt-7 flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-2xl border-2 border-(--lp2-ink) bg-white px-4 py-3 shadow-(--lp2-shadow-sm)">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    {post.authorName && (
-                      <>
-                        <span
-                          className="flex size-9 items-center justify-center rounded-full border-2 border-(--lp2-ink) text-[11px] font-extrabold"
-                          style={{ backgroundColor: `var(--lp2-${hue})` }}
-                        >
-                          {initials(post.authorName)}
-                        </span>
-                        <span className="text-sm font-extrabold">
-                          {post.authorName}
-                        </span>
-                        <Dot />
-                      </>
-                    )}
-                    <span className="text-sm font-semibold text-(--lp2-ink-soft)">
-                      {formatPostDate(post.publishedAt)}
-                    </span>
-                    <Dot />
-                    <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-(--lp2-ink-soft)">
-                      <Clock className="size-3.5" strokeWidth={3} />
-                      {minutes} min read
-                    </span>
-                  </div>
-
-                  <ShareButtons title={post.title} />
-                </div>
-
-                {/* 5. Body. Admin-authored HTML (ids injected by
-                    buildToc). Writers are ADMIN_EMAILS only — the same
-                    trust boundary the live blog relies on. */}
-                <div
-                  className="lp2-post mt-10 border-t-2 border-(--lp2-ink)/10 pt-10"
-                  dangerouslySetInnerHTML={{ __html: html }}
-                />
-              </div>
-            </article>
-          </div>
-        </section>
-
-        {/* ── Keep reading ──
-            Separated by a thin, light divider constrained to the site's
-            max width, rather than a thick edge-to-edge rule. */}
         {more.length > 0 && (
-          <section className="bg-white pb-16">
-            <div className="mx-auto max-w-6xl border-t border-(--lp2-ink)/10 px-4 pt-16 sm:px-6">
-              <h2 className="lp2-display text-2xl font-extrabold">
-                Keep reading
+          <section className="border-border bg-card/40 border-t">
+            <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+              <h2 className="text-xl font-bold tracking-tight">
+                More from the blog
               </h2>
-
               <div className="mt-8 grid gap-6 md:grid-cols-3">
                 {more.map((p) => (
                   <Link
                     key={p.id}
                     href={`/lp-2/blog/${p.slug}`}
-                    className="group flex flex-col rounded-[1.5rem] border-2 border-(--lp2-ink) bg-(--lp2-cream) p-5 shadow-(--lp2-shadow-sm) transition-transform duration-200 hover:-translate-y-1"
+                    className="group border-border bg-card rounded-2xl border p-6 transition-all hover:-translate-y-0.5 hover:shadow-md"
                   >
-                    <span
-                      aria-hidden
-                      className="h-2 w-12 rounded-full border-2 border-(--lp2-ink)"
-                      style={{ backgroundColor: `var(--lp2-${postHue(p.slug)})` }}
-                    />
-                    <p className="mt-3 text-xs font-bold text-(--lp2-ink-soft)">
+                    <p className="text-muted-foreground text-xs">
                       {formatPostDate(p.publishedAt)}
                     </p>
-                    <h3 className="lp2-display mt-1.5 flex-1 text-lg font-extrabold text-balance">
+                    <h3 className="text-foreground mt-2 font-semibold text-balance">
                       {p.title}
                     </h3>
-                    <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-extrabold">
+                    {p.excerpt && (
+                      <p className="text-muted-foreground mt-2 line-clamp-2 text-sm">
+                        {p.excerpt}
+                      </p>
+                    )}
+                    <span className="text-primary mt-3 inline-flex items-center gap-1 text-sm font-medium">
                       Read
-                      <ArrowRight
-                        className="size-4 transition-transform group-hover:translate-x-1"
-                        strokeWidth={3}
-                      />
+                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                     </span>
                   </Link>
                 ))}
@@ -227,24 +167,7 @@ export default async function Lp2BlogPostPage({
           </section>
         )}
       </main>
-
-      <Lp2Footer />
-    </>
+      <SiteFooter />
+    </div>
   );
-}
-
-/* ─── Bits ────────────────────────────────────────────────────────── */
-
-function Dot() {
-  return <span aria-hidden className="size-1.5 rounded-full bg-(--lp2-ink)/25" />;
-}
-
-/** First letters of the first two words — "Aarti Rao" → "AR". */
-function initials(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? '')
-    .join('');
 }

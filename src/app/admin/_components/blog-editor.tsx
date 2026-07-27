@@ -25,7 +25,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import '@/app/blog/post-content.css';
+import '@/styles/post-content.css';
 
 export interface BlogPostRecord {
   id: string;

@@ -40,19 +40,19 @@ import { press } from './ui';
  * first thing anyone touches, and one that answers back in a different
  * colour every time sets the tone for the whole page.
  */
-// Anchors are absolute (`/lp-2#features`) because this nav also renders
-// on the legal and blog pages, where a bare `#features` goes nowhere.
+// Anchors are absolute (`/#features`) because this nav also renders on
+// the legal and blog pages, where a bare `#features` goes nowhere.
 //
 // `Features` is special-cased: on desktop it opens the mega-menu below
 // (FeaturesMenu) instead of navigating. It stays in this array so the
 // mobile sheet still lists it as a plain link — the sheet has no room
 // for a nested panel, and its links jump to the same page anyway.
 const NAV: { label: string; href: string; hue: Lp2Hue }[] = [
-  { label: 'Features', href: '/lp-2#features', hue: 'lemon' },
-  { label: 'AI Agents', href: '/lp-2#ai-agents', hue: 'grape' },
-  { label: 'Pricing', href: '/lp-2#pricing', hue: 'sky' },
+  { label: 'Features', href: '/#features', hue: 'lemon' },
+  { label: 'AI Agents', href: '/#ai-agents', hue: 'grape' },
+  { label: 'Pricing', href: '/#pricing', hue: 'sky' },
   { label: 'Docs', href: '/docs', hue: 'coral' },
-  { label: 'Blog', href: '/lp-2/blog', hue: 'tangerine' },
+  { label: 'Blog', href: '/blog', hue: 'tangerine' },
 ];
 
 /**
@@ -103,7 +103,7 @@ const FEATURE_MENU: {
 
 function Logo() {
   return (
-    <Link href="/lp-2" className="group flex items-center gap-2.5">
+    <Link href="/" className="group flex items-center gap-2.5">
       <span className="relative">
         <span className="flex size-9 items-center justify-center rounded-xl border-2 border-(--lp2-ink) bg-(--lp2-grass) transition-transform duration-200 group-hover:-rotate-6">
           <MessageCircle className="size-4.5 text-white" strokeWidth={2.75} />
