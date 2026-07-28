@@ -17,6 +17,7 @@ import {
 
 import { cn } from '@/lib/utils';
 import { SectionHead, Btn } from './ui';
+import { AutopilotTeaserLink } from './autopilot';
 
 // ============================================================
 // No-code automations — the drag-and-drop flow builder, with the
@@ -61,11 +62,12 @@ export function Lp2Automations() {
           </div>
         </div>
 
-        <div className="mt-12 flex justify-center">
+        <div className="mt-12 flex flex-col items-center gap-4">
           <Btn href="/signup">
             Build your first flow
             <ArrowRight className="size-5" strokeWidth={2.75} />
           </Btn>
+          <AutopilotTeaserLink />
         </div>
       </div>
     </section>

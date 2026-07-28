@@ -49,7 +49,7 @@ import { press } from './ui';
 // for a nested panel, and its links jump to the same page anyway.
 const NAV: { label: string; href: string; hue: Lp2Hue }[] = [
   { label: 'Features', href: '/#features', hue: 'lemon' },
-  { label: 'AI Agents', href: '/#ai-agents', hue: 'grape' },
+  { label: 'Autopilot', href: '/autopilot', hue: 'grape' },
   { label: 'Pricing', href: '/#pricing', hue: 'sky' },
   { label: 'Docs', href: '/docs', hue: 'coral' },
   { label: 'Blog', href: '/blog', hue: 'tangerine' },
@@ -76,11 +76,11 @@ const FEATURE_MENU: {
     ],
   },
   {
-    heading: 'Automate',
+    heading: 'Autopilot',
     hue: 'grape',
     items: [
-      { label: 'AI Agents', desc: 'Answer & qualify 24/7', href: '/docs/ai-agents', icon: Bot },
-      { label: 'No-code Flows', desc: 'Automate every follow-up', href: '/docs/flows', icon: Workflow },
+      { label: 'AI Bot, Flows & Automations', desc: 'The full picture, one page', href: '/autopilot', icon: Bot },
+      { label: 'Visual Flow builder', desc: 'Branch every conversation', href: '/docs/flows', icon: Workflow },
     ],
   },
   {

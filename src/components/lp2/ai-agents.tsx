@@ -3,6 +3,7 @@ import { ArrowRight, Bot, Check, FileText, MessageCircle, Sparkles } from 'lucid
 
 import { Highlight, Sparkle, Squiggle } from './decor';
 import { Btn } from './ui';
+import { AutopilotTeaserLink } from './autopilot';
 
 // ============================================================
 // AI agents spotlight.
@@ -70,10 +71,13 @@ export function Lp2AiAgents() {
             ))}
           </ul>
 
-          <Btn href="/signup" className="mt-9">
-            Meet your agent
-            <ArrowRight className="size-5" strokeWidth={2.75} />
-          </Btn>
+          <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-2">
+            <Btn href="/signup">
+              Meet your agent
+              <ArrowRight className="size-5" strokeWidth={2.75} />
+            </Btn>
+            <AutopilotTeaserLink />
+          </div>
         </div>
       </div>
     </section>

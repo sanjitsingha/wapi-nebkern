@@ -1,20 +1,27 @@
-import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, ArrowLeft } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import { Blob, type Lp2Hue } from './decor';
+import type { Lp2Hue } from './decor';
 import { Lp2Nav } from './nav';
 import { Lp2Footer } from './footer';
 
 // ============================================================
-// Shared shell for the /lp-2 legal pages.
+// Shared shell for the legal pages (privacy, terms, refunds,
+// acceptable use, contact).
 //
-// All five policies (privacy, terms, refunds, acceptable use, contact)
-// are the same page with different words, so they're structured data
-// rendered by one component. That's not just DRY: legal pages have to
-// agree with each other, and the fastest way to end up with a Terms
-// page that contradicts the Privacy page is to hand-build each one.
+// Same nav/footer as the rest of the site, but deliberately restrained
+// in the body: no blobs, no rotated stickers, no hard offset shadows.
+// A policy someone might need to read carefully — or a payment
+// gateway's reviewer might screenshot — should read as a document,
+// not a marketing page. The per-section hue survives only as a soft
+// tint, not a solid sticker fill.
+//
+// All five policies are the same page with different words, so
+// they're structured data rendered by one component. That's not just
+// DRY: legal pages have to agree with each other, and the fastest way
+// to end up with a Terms page that contradicts the Privacy page is to
+// hand-build each one.
 //
 // PLACEHOLDERS: policy text uses {{TOKEN}} markers for facts only the
 // business owner knows (legal entity name, address, contact email).
@@ -92,11 +99,9 @@ function Text({ children }: { children: string }) {
  */
 function DraftNotice() {
   return (
-    <div className="flex items-start gap-3 rounded-2xl border-2 border-(--lp2-ink) bg-(--lp2-coral-soft) p-4 shadow-(--lp2-shadow-sm)">
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-xl border-2 border-(--lp2-ink) bg-(--lp2-coral)">
-        <AlertTriangle className="size-4 text-white" strokeWidth={3} />
-      </span>
-      <p className="text-sm leading-relaxed font-semibold">
+    <div className="flex items-start gap-3 rounded-xl border border-(--lp2-coral) bg-(--lp2-coral-soft)/60 p-4">
+      <AlertTriangle className="mt-0.5 size-4 shrink-0 text-(--lp2-coral)" strokeWidth={2.5} />
+      <p className="text-sm leading-relaxed font-medium">
         <span className="font-extrabold">Template — not yet legal advice.</span>{' '}
         This document is a starting point drafted for a WhatsApp CRM on the
         official Business API. Fill in every highlighted placeholder and have
@@ -124,7 +129,7 @@ function Blocks({ blocks }: { blocks: LegalBlock[] }) {
           return (
             <p
               key={i}
-              className="mt-5 rounded-2xl border-2 border-(--lp2-ink) bg-(--lp2-mint) px-4 py-3 text-sm leading-relaxed font-semibold"
+              className="mt-5 rounded-xl border border-(--lp2-grass)/30 bg-(--lp2-mint)/50 px-4 py-3 text-sm leading-relaxed font-medium"
             >
               <Text>{b.note}</Text>
             </p>
@@ -189,35 +194,26 @@ export function LegalPage({
       <Lp2Nav />
 
       <main>
-        {/* ── Header band ── */}
-        <section className="relative -mt-19 overflow-hidden border-b-2 border-(--lp2-ink) pt-19 sm:-mt-20 sm:pt-20">
-          <Blob
-            color={hue}
-            className="-top-32 -right-24 size-120 opacity-50"
-          />
-          <Blob
-            color="lemon"
-            className="-bottom-32 -left-24 size-96 opacity-40"
-            style={{ animationDelay: '-9s' }}
-          />
-
-          <div className="relative mx-auto max-w-4xl px-4 pt-12 pb-14 sm:px-6">
+        {/* ── Header band ──
+            No blobs, no rotation, no sticker shadow — a policy page
+            reads as a document. The hue survives only as a thin left
+            rule and a soft-tinted kicker, not a solid stamped badge. */}
+        <section
+          className="border-b border-(--lp2-ink)/10 pt-8 sm:pt-10"
+          style={{ borderTopWidth: 3, borderTopColor: `var(--lp2-${hue})` }}
+        >
+          <div className="mx-auto max-w-4xl px-4 pt-4 pb-14 sm:px-6">
             <Link
               href="/"
-              className="inline-flex items-center gap-1.5 text-sm font-bold text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink)"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink)"
             >
-              <ArrowLeft className="size-4" strokeWidth={3} />
+              <ArrowLeft className="size-4" strokeWidth={2.5} />
               Back home
             </Link>
 
             <span
-              className="mt-6 inline-flex rounded-full border-2 border-(--lp2-ink) px-3.5 py-1.5 text-xs font-extrabold tracking-wide uppercase shadow-(--lp2-shadow-sm)"
-              style={
-                {
-                  backgroundColor: `var(--lp2-${hue})`,
-                  transform: 'rotate(-1.5deg)',
-                } as CSSProperties
-              }
+              className="mt-6 inline-flex rounded-full px-3.5 py-1.5 text-xs font-bold tracking-wide uppercase"
+              style={{ backgroundColor: `var(--lp2-${hue}-soft)` }}
             >
               {kicker}
             </span>
@@ -228,7 +224,7 @@ export function LegalPage({
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-pretty text-(--lp2-ink-soft)">
               {intro}
             </p>
-            <p className="mt-5 inline-flex rounded-full border-2 border-(--lp2-ink) bg-white px-3 py-1 text-xs font-bold">
+            <p className="mt-5 inline-flex rounded-full border border-(--lp2-ink)/15 bg-(--lp2-paper) px-3 py-1 text-xs font-semibold text-(--lp2-ink-soft)">
               Last updated: {updated}
             </p>
           </div>
@@ -272,7 +268,7 @@ export function LegalPage({
                   <section key={s.id} id={s.id} className="scroll-mt-28">
                     <h2 className="lp2-display flex items-start gap-3 text-2xl font-extrabold">
                       <span
-                        className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl border-2 border-(--lp2-ink) text-sm shadow-[2px_2px_0_var(--lp2-ink)]"
+                        className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-bold"
                         style={{ backgroundColor: `var(--lp2-${hue}-soft)` }}
                       >
                         {i + 1}

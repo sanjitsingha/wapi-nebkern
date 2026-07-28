@@ -1,6 +1,10 @@
 import type { Metadata } from 'next';
 
-import { SiteHeader, SiteFooter } from '@/components/marketing/site-chrome';
+import '../(marketing)/lp2.css';
+
+import { lp2Display } from '@/components/lp2/font';
+import { Lp2Nav } from '@/components/lp2/nav';
+import { Lp2Footer } from '@/components/lp2/footer';
 import { DocsShell } from '@/components/docs/docs-shell';
 
 // Public docs — indexed, unlike the authenticated app.
@@ -11,14 +15,20 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+// Shares the lp2 nav/footer and design tokens with `/` (same brand,
+// same chrome) but the content area (docs-shell.tsx, docs-components.tsx)
+// is deliberately restrained — no blobs, no stickers — since this is a
+// reference someone is reading carefully, not a pitch. See legal.tsx
+// for the same "serious but on-brand" treatment applied to the legal
+// pages.
 export default function DocsLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <SiteHeader />
-      <main className="flex-1">
+    <div className={`lp2 ${lp2Display.variable} min-h-screen bg-(--lp2-cream) text-(--lp2-ink) antialiased`}>
+      <Lp2Nav />
+      <main>
         <DocsShell>{children}</DocsShell>
       </main>
-      <SiteFooter />
+      <Lp2Footer />
     </div>
   );
 }
