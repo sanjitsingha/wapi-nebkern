@@ -7,6 +7,7 @@ import { Menu, X } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { docHref, DOCS_NAV } from '@/lib/docs/nav';
+import { DocsSearch } from './docs-search';
 
 /**
  * Two-column docs shell: a topic sidebar (desktop static, mobile
@@ -33,15 +34,19 @@ export function DocsShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6">
-      {/* Mobile topic toggle — the sidebar is a drawer below lg. */}
-      <div className="flex items-center gap-2 border-b border-(--lp2-ink)/10 py-3 lg:hidden">
+      {/* Master search — full width, the first thing on every docs
+          page. Paired with the mobile topic toggle (the sidebar is a
+          drawer below lg) on the same row so neither steals a full
+          line on a phone. */}
+      <div className="flex items-center gap-3 border-b border-(--lp2-ink)/10 py-4">
+        <DocsSearch />
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg border border-(--lp2-ink)/15 px-3 py-2 text-sm font-semibold text-(--lp2-ink)"
+          className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-(--lp2-ink)/15 px-3 py-2.5 text-sm font-semibold text-(--lp2-ink) lg:hidden"
         >
           <Menu className="size-4" />
-          Browse docs
+          <span className="sr-only sm:not-sr-only">Browse</span>
         </button>
       </div>
 
