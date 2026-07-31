@@ -1,5 +1,6 @@
 'use client';
 
+import { InfoHint } from '@/components/ui/info-hint';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import QRCode from 'qrcode';
@@ -155,7 +156,14 @@ export default function QrCodePage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-foreground text-2xl font-bold">QR Generator</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-foreground text-2xl font-bold">QR Generator</h1>
+          <InfoHint label="QR Generator" docs="/docs/whatsapp">
+            A click-to-chat code for your number. Print it, put it on
+            packaging or a shop window, and a scan opens WhatsApp with your
+            pre-filled message ready to send.
+          </InfoHint>
+        </div>
         <p className="text-muted-foreground mt-1 text-sm">
           Turn your WhatsApp number into a scannable code. Add a pre-filled
           message and whoever scans it lands in a chat with the first message

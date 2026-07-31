@@ -29,6 +29,32 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Rescue a stranded OAuth code.
+  //
+  // Supabase only honours a `redirectTo` that matches the project's
+  // Redirect URLs allow-list; on a miss it drops the browser on the Site
+  // URL instead — typically `/`, the marketing homepage — with an
+  // unspent `?code=` in the query. The user has just cleared Google
+  // consent and lands on a logged-out landing page for their trouble.
+  //
+  // Rather than depend on a dashboard setting being right, finish the
+  // job: hand any stray code to /auth/callback, which exchanges it and
+  // forwards on to wherever the flow was headed. Scoped to signed-out
+  // browsers on non-API pages — /api/* has its own OAuth callbacks for
+  // Instagram and Messenger that take a `code` of their own, and
+  // /auth/callback is excluded so this can't loop.
+  const strayCode = request.nextUrl.searchParams.get('code');
+  if (
+    !user &&
+    strayCode &&
+    !request.nextUrl.pathname.startsWith('/api/') &&
+    !request.nextUrl.pathname.startsWith('/auth/')
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/auth/callback';
+    return NextResponse.redirect(url);
+  }
+
   // Auth pages - redirect to dashboard if already logged in.
   // Exception: when an invite token is in the query string we
   // send the already-signed-in user to /join/<token> instead so

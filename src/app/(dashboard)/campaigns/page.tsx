@@ -1,5 +1,6 @@
 'use client';
 
+import { InfoHint } from '@/components/ui/info-hint';
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -26,9 +27,6 @@ import {
   Plus,
   Loader2,
   Shapes,
-  Megaphone,
-  Wrench,
-  ShieldCheck,
   ChevronDown,
   Filter,
   ArrowUpDown,
@@ -39,17 +37,14 @@ import {
   Send,
   Eye,
   CircleDot,
-  ArrowRight,
-  type LucideIcon,
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { cn } from '@/lib/utils';
-import { softBadge } from '@/lib/badge-colors';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+  CategoryCell,
+  TEMPLATE_CATEGORY_STYLES,
+  type TemplateCategory,
+} from '@/components/templates/category-badge';
 import { useCan } from '@/hooks/use-can';
 import { GatedButton } from '@/components/ui/gated-button';
 import { TemplatePickerDialog } from '@/components/broadcasts/template-picker-dialog';
@@ -65,120 +60,6 @@ import {
  * counts consistent; we just need to surface the freshest snapshot.
  */
 const POLL_INTERVAL_MS = 5_000;
-
-type TemplateCategory = 'Marketing' | 'Utility' | 'Authentication';
-
-/**
- * One visual identity per Meta template category — a distinct hue and a
- * meaning-carrying icon (not the generic tag, which implied a free-form
- * label rather than one of Meta's three fixed categories). Shared by the
- * Category filter and the table chip so "Marketing" reads the same blue
- * in both places.
- */
-const CATEGORY_STYLES: Record<
-  TemplateCategory,
-  { badge: string; icon: LucideIcon; iconColor: string }
-> = {
-  Marketing: {
-    badge: softBadge.blue,
-    icon: Megaphone,
-    iconColor: 'text-blue-600 dark:text-blue-300',
-  },
-  Utility: {
-    badge: softBadge.amber,
-    icon: Wrench,
-    iconColor: 'text-amber-600 dark:text-amber-300',
-  },
-  Authentication: {
-    badge: softBadge.purple,
-    icon: ShieldCheck,
-    iconColor: 'text-purple-600 dark:text-purple-300',
-  },
-};
-
-/** Colour-coded category pill. Falls back to a neutral "Unknown" chip
- *  when the template's category hasn't loaded (or isn't one of the
- *  three), so the cell never renders empty. */
-function CategoryChip({ category }: { category?: string | null }) {
-  const style = category
-    ? CATEGORY_STYLES[category as TemplateCategory]
-    : undefined;
-
-  if (!style) {
-    return (
-      <span
-        className={cn(
-          'inline-flex items-center rounded-full border px-2 py-0.5 text-xs',
-          softBadge.neutral,
-        )}
-      >
-        {category ?? 'Unknown'}
-      </span>
-    );
-  }
-
-  const Icon = style.icon;
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium',
-        style.badge,
-      )}
-    >
-      <Icon className="h-3 w-3" />
-      {category}
-    </span>
-  );
-}
-
-/**
- * Category cell for the campaigns table. Normally just the colour-coded
- * chip — but when Meta reclassified the template on review (its current
- * `category` differs from the `original_category` the user submitted),
- * it shows the original struck-through, an arrow, then Meta's new
- * category, and explains the swap on hover.
- */
-function CategoryCell({
-  category,
-  originalCategory,
-}: {
-  category?: string | null;
-  originalCategory?: string | null;
-}) {
-  const reclassified =
-    !!category && !!originalCategory && category !== originalCategory;
-
-  if (!reclassified) {
-    return <CategoryChip category={category} />;
-  }
-
-  const originalStyle =
-    CATEGORY_STYLES[originalCategory as TemplateCategory] ?? undefined;
-
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <span className="inline-flex cursor-help items-center gap-1.5">
-            <span
-              className={cn(
-                'text-xs line-through decoration-1',
-                originalStyle?.iconColor ?? 'text-muted-foreground',
-              )}
-            >
-              {originalCategory}
-            </span>
-            <ArrowRight className="text-muted-foreground h-3 w-3 shrink-0" />
-            <CategoryChip category={category} />
-          </span>
-        }
-      />
-      <TooltipContent>
-        Meta reclassified this template from {originalCategory} to {category}.
-      </TooltipContent>
-    </Tooltip>
-  );
-}
 
 function percent(numerator: number, denominator: number): number {
   if (!denominator) return 0;
@@ -458,7 +339,14 @@ export default function BroadcastsPage() {
       <div className="space-y-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-foreground text-2xl font-bold">Campaigns</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-foreground text-2xl font-bold">Campaigns</h1>
+              <InfoHint label="Campaigns" docs="/docs/campaigns">
+                A campaign sends one approved template to many contacts at
+                once, then tracks what happened to each message — delivered,
+                read, replied or failed.
+              </InfoHint>
+            </div>
             <p className="text-muted-foreground mt-1 text-sm">
               Send bulk messages to your contacts using approved templates.
             </p>
@@ -495,7 +383,7 @@ export default function BroadcastsPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-48">
                 {categoryOptions.map((category) => {
-                  const Icon = CATEGORY_STYLES[category].icon;
+                  const Icon = TEMPLATE_CATEGORY_STYLES[category].icon;
                   return (
                     <DropdownMenuCheckboxItem
                       key={category}
@@ -512,7 +400,7 @@ export default function BroadcastsPage() {
                       <Icon
                         className={cn(
                           'h-4 w-4',
-                          CATEGORY_STYLES[category].iconColor,
+                          TEMPLATE_CATEGORY_STYLES[category].iconColor,
                         )}
                       />
                       <span>{category}</span>

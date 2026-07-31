@@ -1,5 +1,6 @@
 "use client"
 
+import { InfoHint } from '@/components/ui/info-hint';
 import { useCallback, useEffect, useState } from 'react'
 import { subDays, startOfDay } from 'date-fns'
 import { createClient } from '@/lib/supabase/client'
@@ -133,7 +134,13 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+            <InfoHint label="Dashboard" docs="/docs/getting-started">
+              Your account at a glance — conversations, contacts, deals and
+              campaign results, all counted live from your own data.
+            </InfoHint>
+          </div>
           <p className="mt-1 text-sm text-muted-foreground">
             Live analytics across conversations, contacts, deals, broadcasts, and automations.
           </p>

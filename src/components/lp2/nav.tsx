@@ -50,7 +50,7 @@ import { press } from './ui';
 const NAV: { label: string; href: string; hue: Lp2Hue }[] = [
   { label: 'Features', href: '/#features', hue: 'lemon' },
   { label: 'Autopilot', href: '/autopilot', hue: 'grape' },
-  { label: 'Pricing', href: '/#pricing', hue: 'sky' },
+  { label: 'Pricing', href: '/pricing', hue: 'sky' },
   { label: 'Docs', href: '/docs', hue: 'coral' },
   { label: 'Blog', href: '/blog', hue: 'tangerine' },
 ];

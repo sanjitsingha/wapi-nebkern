@@ -1,5 +1,6 @@
 import {
   AtSign,
+  Code2,
   KeyRound,
   MessageCircle,
   MessageSquareCode,
@@ -32,6 +33,7 @@ export const SETTINGS_SECTIONS = [
   'business-profile',
   'widget',
   'billing',
+  'developer-hub',
   'api-access',
   'integrations',
   'customization',
@@ -109,6 +111,12 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     icon: Wallet,
     group: 'workspace',
   },
+  'developer-hub': {
+    id: 'developer-hub',
+    label: 'Developer hub',
+    icon: Code2,
+    group: 'workspace',
+  },
   'api-access': {
     id: 'api-access',
     label: 'API Access',
@@ -155,18 +163,14 @@ export function sectionHref(section: SettingsSection): string {
 /**
  * Resolve a raw `?tab=` value to a section. Legacy tabs collapse onto
  * their new homes:
- *   - Tags / Custom fields / Fields / Deals → "Customization" (tabs)
- *   - Security / Overview / Plan            → "Profile" (Plan is a card there)
- *   - Quick replies / Catalogue             → "Business Profile" (tabs)
- * Anything unknown falls back to the default section.
+ *   - Tags / Custom fields / Fields → "Customization"
+ *   - Security / Overview / Plan    → "Profile" (Plan is a card there)
+ *   - Quick replies / Catalogue     → "Business Profile" (tabs)
+ * Anything unknown falls back to the default section. (The former "Deals"
+ * tab is gone — its currency control moved to the pipeline board.)
  */
 export function resolveSection(raw: string | null): SettingsSection {
-  if (
-    raw === 'tags' ||
-    raw === 'custom-fields' ||
-    raw === 'fields' ||
-    raw === 'deals'
-  ) {
+  if (raw === 'tags' || raw === 'custom-fields' || raw === 'fields') {
     return 'customization';
   }
   if (raw === 'security' || raw === 'overview' || raw === 'plan') return 'profile';

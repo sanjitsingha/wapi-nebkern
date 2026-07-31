@@ -70,7 +70,14 @@ const PLANS = [
   },
 ] as const;
 
-export function Lp2Pricing() {
+export function Lp2Pricing({
+  compareLink = true,
+}: {
+  /** Show the "compare every plan" link under the table. On by default;
+   *  off on /pricing, where the matrix it points at is on the same
+   *  page a screen further down. */
+  compareLink?: boolean;
+} = {}) {
   return (
     <section id="pricing" className="scroll-mt-28 bg-(--lp2-coral-soft) py-20 sm:py-28">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -174,6 +181,21 @@ export function Lp2Pricing() {
           All prices in INR. Cancel any time — your contacts and history stay
           yours.
         </p>
+
+        {compareLink && (
+          <p className="mt-4 text-center">
+            <Link
+              href="/pricing"
+              className={cn(
+                'inline-flex h-11 items-center gap-1.5 rounded-xl border-2 border-(--lp2-ink) bg-white px-5 text-sm font-bold shadow-(--lp2-shadow-sm)',
+                press,
+              )}
+            >
+              Compare every plan, line by line
+              <ArrowRight className="size-4" strokeWidth={2.75} />
+            </Link>
+          </p>
+        )}
       </div>
     </section>
   );

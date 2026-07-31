@@ -7,6 +7,7 @@ import { Loader2, Unlink } from 'lucide-react';
 import type { UserIdentity } from '@supabase/supabase-js';
 
 import { createClient } from '@/lib/supabase/client';
+import { rememberOAuthNext } from '@/lib/auth/oauth-next';
 import { GoogleIcon } from '@/components/auth/google-button';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -79,11 +80,11 @@ export function ConnectedAccountsCard() {
 
   const onLink = async () => {
     setLinking(true);
-    const next = '/settings/profile?tab=security&linked=google';
+    rememberOAuthNext('/settings/profile?tab=security&linked=google');
     const { error } = await supabase.auth.linkIdentity({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
     // On success the browser is already navigating to Google; we only

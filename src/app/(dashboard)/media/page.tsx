@@ -1,5 +1,6 @@
 'use client';
 
+import { InfoHint } from '@/components/ui/info-hint';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -15,11 +16,6 @@ import { MEDIA_MAX_BYTES_BY_KIND } from '@/lib/storage/upload-media';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { GatedButton } from '@/components/ui/gated-button';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import {
   Dialog,
   DialogContent,
@@ -41,7 +37,6 @@ import {
   FileText,
   ExternalLink,
   FolderOpen,
-  Info,
   FileType,
   HardDrive,
   Ruler,
@@ -169,28 +164,17 @@ export default function MediaPage() {
         <div>
           <div className="flex items-center gap-1.5">
             <h1 className="text-2xl font-bold text-foreground">Media</h1>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <button
-                    type="button"
-                    aria-label="Upload size limits"
-                    className="text-muted-foreground transition-colors hover:text-foreground focus:outline-none"
-                  />
-                }
-              >
-                <Info className="size-4" />
-              </TooltipTrigger>
-              {/* Numbers come from MEDIA_MAX_BYTES_BY_KIND so this can't
-                  drift from what the uploader actually enforces. Images
-                  are lower than everything else because that's Meta's
-                  WhatsApp cap, not ours. */}
-              <TooltipContent side="bottom" className="max-w-xs text-left">
-                Maximum upload size: {formatBytes(MEDIA_MAX_BYTES_BY_KIND.image)}{' '}
-                for images, {formatBytes(MEDIA_MAX_BYTES_BY_KIND.document)} for
-                videos and documents.
-              </TooltipContent>
-            </Tooltip>
+            {/* Size numbers come from MEDIA_MAX_BYTES_BY_KIND so they
+                can't drift from what the uploader actually enforces.
+                Images are lower than everything else because that's
+                Meta's WhatsApp cap, not ours. */}
+            <InfoHint label="Media" docs="/docs/media">
+              A reusable library for the files you send. Upload once, then
+              attach the same image or document to any template or campaign.
+              Maximum {formatBytes(MEDIA_MAX_BYTES_BY_KIND.image)} for images
+              and {formatBytes(MEDIA_MAX_BYTES_BY_KIND.document)} for videos
+              and documents.
+            </InfoHint>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             Upload images, videos, and documents once — then reuse their links

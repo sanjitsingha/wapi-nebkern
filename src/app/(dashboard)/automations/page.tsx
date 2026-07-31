@@ -1,5 +1,6 @@
 "use client"
 
+import { InfoHint } from "@/components/ui/info-hint";
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -160,7 +161,14 @@ export default function AutomationsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Automations</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-foreground">Automations</h1>
+            <InfoHint label="Automations" docs="/docs/automations">
+              If-this-then-that rules: a trigger (a keyword, a new contact, a
+              stage change), an optional condition, and an action that runs
+              without anyone watching.
+            </InfoHint>
+          </div>
           <p className="mt-1 text-sm text-muted-foreground">
             Build workflows that react to WhatsApp® events automatically.
           </p>

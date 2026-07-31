@@ -18,7 +18,7 @@ const COLUMNS: { title: string; hue: Lp2Hue; links: { label: string; href: strin
     links: [
       { label: 'Features', href: '/#features' },
       { label: 'Autopilot', href: '/autopilot' },
-      { label: 'Pricing', href: '/#pricing' },
+      { label: 'Pricing', href: '/pricing' },
     ],
   },
   {

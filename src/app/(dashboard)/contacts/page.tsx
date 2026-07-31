@@ -1,5 +1,6 @@
 'use client';
 
+import { InfoHint } from '@/components/ui/info-hint';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -58,14 +59,7 @@ import {
   ArrowUp,
   ArrowDown,
   MessageCircleOff,
-  Info,
 } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { useEntitlements } from '@/hooks/use-entitlements';
 import { ContactForm } from '@/components/contacts/contact-form';
 import { ImportModal } from '@/components/contacts/import-modal';
@@ -425,32 +419,22 @@ export default function ContactsPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-foreground text-2xl font-bold">Contacts</h1>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <button
-                      type="button"
-                      aria-label="Contact limit information"
-                      className="text-muted-foreground hover:text-foreground focus:outline-none"
-                    />
-                  }
-                >
-                  <Info className="size-4" />
-                </TooltipTrigger>
-                <TooltipContent side="right" className="max-w-xs text-left">
-                  {(() => {
-                    const max = entSnapshot?.entitlements.maxContacts ?? null;
-                    const used = entSnapshot?.usage.contacts ?? totalCount;
-                    if (max === null) {
-                      return `Your plan has no contact limit. ${used.toLocaleString()} contact${used === 1 ? '' : 's'} so far.`;
-                    }
-                    const left = Math.max(0, max - used);
-                    return `Your plan includes up to ${max.toLocaleString()} contacts — ${used.toLocaleString()} used, ${left.toLocaleString()} remaining.`;
-                  })()}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            {/* The live plan-quota sentence lives inside the hint rather
+                than in a second icon of its own — one "i" per heading,
+                or the header turns into a row of identical dots. */}
+            <InfoHint label="Contacts" docs="/docs/contacts">
+              Everyone you can message, with the tags, custom fields and
+              conversation history attached to each one.{' '}
+              {(() => {
+                const max = entSnapshot?.entitlements.maxContacts ?? null;
+                const used = entSnapshot?.usage.contacts ?? totalCount;
+                if (max === null) {
+                  return `Your plan has no contact limit — ${used.toLocaleString()} contact${used === 1 ? '' : 's'} so far.`;
+                }
+                const left = Math.max(0, max - used);
+                return `Your plan includes up to ${max.toLocaleString()} contacts — ${used.toLocaleString()} used, ${left.toLocaleString()} remaining.`;
+              })()}
+            </InfoHint>
           </div>
           <p className="text-muted-foreground mt-1 text-sm">
             Manage your contact list.{' '}

@@ -51,7 +51,7 @@ export default function BillingDocsPage() {
         <p>
           Current pricing and what&rsquo;s included in each tier is always
           shown live on the{' '}
-          <Link href="/#pricing">pricing section</Link> of the homepage.
+          <Link href="/pricing">pricing page</Link>.
         </p>
 
         <h2>Choosing a plan</h2>

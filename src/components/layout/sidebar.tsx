@@ -14,30 +14,36 @@ import {
   resolveSection,
   type SettingsSection,
 } from '@/components/settings/settings-sections';
+// Phosphor, not Lucide, for the whole nav — it ships `weight` as a real
+// axis, so the active row's solid icon is the SAME glyph at
+// `weight="fill"` rather than a second import that may or may not exist.
+// Every icon here is therefore guaranteed to have a solid twin.
 import {
-  Bot,
-  ChevronDown,
-  ClipboardList,
-  Coins,
+  CaretDown,
+  ChatCircleDots,
+  ClipboardText,
   Compass,
   FileText,
-  Filter,
+  // Flows gets its own glyph rather than sharing AI Agents' Robot — in
+  // the collapsed rail the icon is the only thing left, so two
+  // destinations cannot wear the same one.
+  FlowArrow,
+  FunnelSimple,
   GitBranch,
   Headset,
-  Home,
+  House,
   Image as ImageIcon,
-  List,
+  Lightning,
+  ListBullets,
   Lock,
   Megaphone,
-  MessageSquare,
-  PanelLeftClose,
-  PanelLeftOpen,
   QrCode,
-  Users,
+  Robot,
+  SidebarSimple,
+  UsersThree,
   X,
-  Zap,
-  type LucideIcon,
-} from 'lucide-react';
+  type Icon as PhosphorIcon,
+} from '@phosphor-icons/react';
 
 // Fixed width of the sidebar's inner content. The <aside> animates its
 // width between this (expanded) and a narrow rail (collapsed) while the
@@ -51,7 +57,7 @@ const CONTENT_W = 'w-64'; // 16rem / 256px
 // live under /settings). `unread` flags the Inbox row for the dot.
 interface NavLink {
   label: string;
-  icon: LucideIcon;
+  icon: PhosphorIcon;
   href: string;
   tab?: SettingsSection;
   badge?: 'New' | 'Beta';
@@ -68,7 +74,7 @@ interface NavLink {
 // An expandable section with a chevron toggle.
 interface NavGroup {
   label: string;
-  icon: LucideIcon;
+  icon: PhosphorIcon;
   badge?: 'New';
   children: NavLink[];
   /** See NavLink.walkthrough. Anchored on the group toggle, which is
@@ -79,14 +85,14 @@ interface NavGroup {
 // Standalone items above the grouped nav (the reference's "Home").
 const homeLink: NavLink = {
   label: 'Home',
-  icon: Home,
+  icon: House,
   href: '/dashboard',
 };
 
 // AI Agents sits on its own, outside any group — a first-class surface.
 const agentsLink: NavLink = {
   label: 'AI Agents',
-  icon: Bot,
+  icon: Robot,
   href: '/agents',
   badge: 'New',
   walkthrough: 'agents',
@@ -95,7 +101,7 @@ const agentsLink: NavLink = {
 const quickLinks: NavLink[] = [
   {
     label: 'Inbox',
-    icon: MessageSquare,
+    icon: ChatCircleDots,
     href: '/inbox',
     unread: true,
     walkthrough: 'inbox',
@@ -113,12 +119,12 @@ const quickLinks: NavLink[] = [
 const groups: NavGroup[] = [
   {
     label: 'Contacts',
-    icon: Users,
+    icon: UsersThree,
     walkthrough: 'contacts',
     children: [
-      { label: 'All Contacts', icon: Users, href: '/contacts' },
-      { label: 'Lists', icon: List, href: '/lists' },
-      { label: 'Segments', icon: Filter, href: '/segments' },
+      { label: 'All Contacts', icon: UsersThree, href: '/contacts' },
+      { label: 'Lists', icon: ListBullets, href: '/lists' },
+      { label: 'Segments', icon: FunnelSimple, href: '/segments' },
     ],
   },
   {
@@ -127,7 +133,7 @@ const groups: NavGroup[] = [
     children: [
       { label: 'Campaigns', icon: Megaphone, href: '/campaigns' },
       { label: 'Templates', icon: FileText, href: '/templates' },
-      { label: 'Forms', icon: ClipboardList, href: '/forms', badge: 'New' },
+      { label: 'Forms', icon: ClipboardText, href: '/forms', badge: 'New' },
       { label: 'Media', icon: ImageIcon, href: '/media' },
       { label: 'QR Generator', icon: QrCode, href: '/qr-code', badge: 'New' },
     ],
@@ -137,23 +143,16 @@ const groups: NavGroup[] = [
     icon: GitBranch,
     children: [
       { label: 'Pipelines', icon: GitBranch, href: '/pipelines' },
-      {
-        // Deals & currency now lives as a tab inside Settings → Customization.
-        label: 'Deals',
-        icon: Coins,
-        href: '/settings/customization?tab=deals',
-        tab: 'customization',
-      },
     ],
   },
   {
     label: 'Automation',
-    icon: Zap,
+    icon: Lightning,
     badge: 'New',
     walkthrough: 'automation',
     children: [
-      { label: 'Automations', icon: Zap, href: '/automations' },
-      { label: 'Flows', icon: Bot, href: '/flows', badge: 'Beta' },
+      { label: 'Automations', icon: Lightning, href: '/automations' },
+      { label: 'Flows', icon: FlowArrow, href: '/flows', badge: 'Beta' },
     ],
   },
 ];
@@ -294,7 +293,11 @@ export function Sidebar({
           link.locked && 'opacity-55 hover:opacity-80'
         )}
       >
+        {/* The active row's icon goes solid. Same glyph, heavier weight —
+            which is why this nav is on Phosphor: `fill` is an axis of the
+            icon, so every destination gets a solid twin for free. */}
         <link.icon
+          weight={active ? 'fill' : 'regular'}
           className={cn('shrink-0', indented ? 'h-5 w-5' : 'h-5.5 w-5.5')}
         />
         <span
@@ -376,7 +379,13 @@ export function Sidebar({
               : 'text-muted-foreground hover:bg-muted hover:text-foreground'
           )}
         >
-          <group.icon className="h-5.5 w-5.5 shrink-0" />
+          {/* A collapsed group whose child is the current page still
+              signals it — so the group header fills too when any child
+              is active, not only when the group is open. */}
+          <group.icon
+            weight={anyActive ? 'fill' : 'regular'}
+            className="h-5.5 w-5.5 shrink-0"
+          />
           <span
             className={cn(
               'flex-1 truncate text-left transition-opacity duration-200',
@@ -395,7 +404,7 @@ export function Sidebar({
               New
             </span>
           )}
-          <ChevronDown
+          <CaretDown
             className={cn(
               'h-4.5 w-4.5 shrink-0 transition-all duration-200',
               open && 'rotate-180',
@@ -478,9 +487,9 @@ export function Sidebar({
                 className="text-muted-foreground hover:bg-muted hover:text-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors"
               >
                 {isCollapsed ? (
-                  <PanelLeftOpen className="h-5 w-5" />
+                  <SidebarSimple className="h-5 w-5" />
                 ) : (
-                  <PanelLeftClose className="h-5 w-5" />
+                  <SidebarSimple className="h-5 w-5" />
                 )}
               </button>
             </div>

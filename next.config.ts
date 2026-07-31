@@ -62,6 +62,16 @@ const SECURITY_HEADERS = [
 
 const nextConfig: NextConfig = {
   /**
+   * Phosphor's root entry is a barrel over ~9,000 icon modules, so a
+   * bare `import { House } from '@phosphor-icons/react'` would pull the
+   * whole set into the nav chunk. Next auto-optimizes a built-in list of
+   * libraries (lucide-react among them) but not this one, so it's named
+   * explicitly — see docs/01-app/02-guides/package-bundling.md.
+   */
+  experimental: {
+    optimizePackageImports: ['@phosphor-icons/react'],
+  },
+  /**
    * Origins (besides localhost) allowed to hit the dev server.
    *
    * Next 16 blocks cross-origin requests to dev-only assets/endpoints

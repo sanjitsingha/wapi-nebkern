@@ -1,5 +1,6 @@
 'use client';
 
+import { InfoHint } from '@/components/ui/info-hint';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -17,13 +18,17 @@ import {
   ChevronDown,
   MoreVertical,
   FileText,
-  Tag,
+  Shapes,
   CircleDot,
   Languages,
   User,
+  CalendarDays,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { softBadge } from '@/lib/badge-colors';
+import {
+  CategoryCell,
+  TEMPLATE_CATEGORY_STYLES,
+} from '@/components/templates/category-badge';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -68,12 +73,6 @@ const STATUS_FILTER_OPTIONS: MessageTemplateStatus[] = [
   'REJECTED',
   'PAUSED',
 ];
-
-const categoryColors: Record<string, string> = {
-  Marketing: softBadge.purple,
-  Utility: softBadge.blue,
-  Authentication: softBadge.amber,
-};
 
 // localStorage key for the "Last sync" hint shown beside the Sync
 // button. Per-device — a coarse "when did I last pull from Meta".
@@ -261,9 +260,16 @@ export function TemplateManager() {
     <section className="animate-in fade-in-50 space-y-4 duration-200">
       <div className="border-border flex flex-wrap items-start justify-between gap-4 border-b pb-4">
         <div>
-          <h1 className="text-foreground text-2xl font-bold tracking-tight">
-            Templates
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-foreground text-2xl font-bold tracking-tight">
+              Templates
+            </h1>
+            <InfoHint label="Templates" docs="/docs/templates">
+              Pre-approved message formats. Meta requires one for any message
+              you start a conversation with, so campaigns and automated
+              follow-ups can only send templates that have passed review.
+            </InfoHint>
+          </div>
           <p className="text-muted-foreground mt-1 text-sm">
             Manage message templates and submit them to Meta for approval.
           </p>
@@ -302,7 +308,7 @@ export function TemplateManager() {
                 <DropdownMenuTrigger
                   render={<Button variant="outline" className="h-11 gap-2" />}
                 >
-                  <Filter className="size-4" />
+                  <Shapes className="size-4" />
                   Category
                   {categoryFilter.length > 0 && (
                     <span className="bg-primary/15 text-primary ml-0.5 rounded-full px-1.5 text-xs font-medium">
@@ -312,15 +318,22 @@ export function TemplateManager() {
                   <ChevronDown className="size-4" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-44">
-                  {CATEGORIES.map((c) => (
-                    <DropdownMenuCheckboxItem
-                      key={c}
-                      checked={categoryFilter.includes(c)}
-                      onCheckedChange={() => toggleCategoryFilter(c)}
-                    >
-                      {c}
-                    </DropdownMenuCheckboxItem>
-                  ))}
+                  {CATEGORIES.map((c) => {
+                    const Icon = TEMPLATE_CATEGORY_STYLES[c].icon;
+                    return (
+                      <DropdownMenuCheckboxItem
+                        key={c}
+                        checked={categoryFilter.includes(c)}
+                        onCheckedChange={() => toggleCategoryFilter(c)}
+                        className="gap-2"
+                      >
+                        <Icon
+                          className={`size-4 ${TEMPLATE_CATEGORY_STYLES[c].iconColor}`}
+                        />
+                        <span>{c}</span>
+                      </DropdownMenuCheckboxItem>
+                    );
+                  })}
                   {categoryFilter.length > 0 && (
                     <>
                       <DropdownMenuSeparator />
@@ -387,11 +400,15 @@ export function TemplateManager() {
           </div>
 
           <div className="border-border bg-card overflow-x-auto rounded-xl border">
-            <Table>
+            {/* Compact rows — trim the body cells' vertical padding (the
+                shared TableCell ships at p-2) so the table reads denser.
+                Headers keep their h-10 since this only targets tbody td. */}
+            <Table className="[&_tbody_td]:py-1.5">
               <TableHeader>
                 <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
+                  <TableHead className="text-muted-foreground" icon={CalendarDays}>Created</TableHead>
                   <TableHead className="text-muted-foreground" icon={FileText}>Name</TableHead>
-                  <TableHead className="text-muted-foreground" icon={Tag}>Category</TableHead>
+                  <TableHead className="text-muted-foreground" icon={Shapes}>Category</TableHead>
                   <TableHead className="text-muted-foreground" icon={CircleDot}>Status</TableHead>
                   <TableHead className="text-muted-foreground hidden md:table-cell" icon={Languages}>
                     Language
@@ -406,7 +423,7 @@ export function TemplateManager() {
                 {filteredTemplates.length === 0 ? (
                   <TableRow className="border-border hover:bg-transparent">
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="text-muted-foreground py-10 text-center text-sm"
                     >
                       No templates match your search or filters.
@@ -425,8 +442,11 @@ export function TemplateManager() {
                     return (
                       <TableRow
                         key={template.id}
-                        className="border-border [&>td]:py-4"
+                        className="border-border"
                       >
+                        <TableCell className="text-muted-foreground whitespace-nowrap">
+                          {new Date(template.created_at).toLocaleDateString()}
+                        </TableCell>
                         <TableCell className="font-medium text-foreground">
                           <div className="flex items-center gap-1.5">
                             <span>{template.name}</span>
@@ -451,11 +471,10 @@ export function TemplateManager() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            className={`text-xs border ${categoryColors[template.category] || ''}`}
-                          >
-                            {template.category}
-                          </Badge>
+                          <CategoryCell
+                            category={template.category}
+                            originalCategory={template.original_category}
+                          />
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1.5">
@@ -491,7 +510,7 @@ export function TemplateManager() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="text-muted-foreground hover:text-foreground hover:bg-muted size-8"
+                                  className="text-muted-foreground hover:text-foreground hover:bg-muted size-7"
                                 />
                               }
                               aria-label="Template actions"

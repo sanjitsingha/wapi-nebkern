@@ -24,11 +24,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GitBranch, Plus, ChevronDown, Settings } from "lucide-react";
+import { GitBranch, Plus, ChevronDown, Settings, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { useCan } from "@/hooks/use-can";
 import { useAuth } from "@/hooks/use-auth";
 import { GatedButton } from "@/components/ui/gated-button";
+import { CurrencyConfigDialog } from "@/components/pipelines/currency-config-dialog";
 
 // Pipeline creation is admin-class (settings-tier write under
 // the new RLS); deal creation is operational and only requires
@@ -61,6 +62,9 @@ export default function PipelinesPage() {
   const [newPipelineName, setNewPipelineName] = useState("");
   const [creating, setCreating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Account-wide default currency, edited from the Config button beside the
+  // pipeline picker (moved off its old dedicated settings page).
+  const [currencyConfigOpen, setCurrencyConfigOpen] = useState(false);
 
   // Deal form state is lifted here so both the top-bar "Add Deal" and
   // the per-column "+" trigger the same Sheet.
@@ -369,6 +373,19 @@ export default function PipelinesPage() {
               )}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Currency config — moved here from a dedicated settings page so
+              it sits next to the deals it governs. Opens a small modal;
+              the modal itself gates editing to admins. */}
+          <Button
+            variant="outline"
+            onClick={() => setCurrencyConfigOpen(true)}
+            title="Configure default currency"
+            className="border-border bg-card text-foreground hover:bg-muted"
+          >
+            <Settings2 className="mr-1 h-4 w-4" />
+            Config
+          </Button>
         </div>
 
         <div className="flex items-center gap-2">
@@ -493,6 +510,12 @@ export default function PipelinesPage() {
         stages={stages}
         defaultStageId={defaultStageId}
         onSaved={refreshDeals}
+      />
+
+      {/* Currency config modal (opened by the Config button in the header). */}
+      <CurrencyConfigDialog
+        open={currencyConfigOpen}
+        onOpenChange={setCurrencyConfigOpen}
       />
     </div>
   );

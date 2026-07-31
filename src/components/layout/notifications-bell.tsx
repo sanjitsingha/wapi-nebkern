@@ -3,16 +3,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
+// Phosphor, matching the header this button sits in.
 import {
   Bell,
-  BellOff,
-  Bot,
+  BellSlash,
+  ChatCircleDots,
   FileText,
   Info,
   Megaphone,
-  MessageSquare,
-  type LucideIcon,
-} from 'lucide-react';
+  Robot,
+  type Icon as PhosphorIcon,
+} from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import { useTotalUnread } from '@/hooks/use-total-unread';
 import {
@@ -38,14 +39,14 @@ function isExternal(href: string): boolean {
 
 const TYPE_META: Record<
   NotificationItem['type'],
-  { icon: LucideIcon; chip: string }
+  { icon: PhosphorIcon; chip: string }
 > = {
   message: {
-    icon: MessageSquare,
+    icon: ChatCircleDots,
     chip: 'bg-primary-soft text-primary',
   },
   handoff: {
-    icon: Bot,
+    icon: Robot,
     chip: 'bg-amber-500/10 text-amber-600 dark:text-amber-300',
   },
   template: {
@@ -218,7 +219,7 @@ export function NotificationsBell() {
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
             <span className="bg-muted flex size-12 items-center justify-center rounded-full">
-              <BellOff className="text-muted-foreground h-5 w-5" />
+              <BellSlash className="text-muted-foreground h-5 w-5" />
             </span>
             <p className="text-foreground mt-3 text-sm font-medium">
               You&apos;re all caught up

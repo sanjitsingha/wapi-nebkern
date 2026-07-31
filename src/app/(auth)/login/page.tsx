@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { MessageSquare, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { AuthBrandPanel } from "@/components/auth/brand-panel";
 import { GoogleAuthButton, AuthDivider } from "@/components/auth/google-button";
+import { rememberOAuthNext } from "@/lib/auth/oauth-next";
 
 // `useSearchParams` opts the component out of static prerendering
 // unless it sits under a Suspense boundary. We split the form into
@@ -48,14 +49,17 @@ function LoginPageInner() {
     setError(null);
     setGoogleLoading(true);
     // Carry the invite token through the OAuth round-trip so the user lands
-    // on the join page after Google sends them back, not /dashboard.
-    const next = inviteToken
-      ? `/join/${encodeURIComponent(inviteToken)}`
-      : "/dashboard";
+    // on the join page after Google sends them back, not /dashboard. It
+    // goes in a cookie, not on `redirectTo` — a query string there has to
+    // be in the Supabase Redirect URLs allow-list in its own right, and a
+    // miss dumps the user on the Site URL instead of here.
+    rememberOAuthNext(
+      inviteToken ? `/join/${encodeURIComponent(inviteToken)}` : "/dashboard",
+    );
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
     // On success the browser is already navigating to Google; we only reach

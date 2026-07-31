@@ -46,6 +46,13 @@ import {
   getRecipientStatus,
 } from '@/lib/broadcast-status';
 import { DeleteCampaignDialog } from '@/components/broadcasts/delete-campaign-dialog';
+import {
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+} from 'recharts';
 
 interface StatCardProps {
   label: string;
@@ -71,50 +78,131 @@ function StatCard({ label, value, total, icon, color }: StatCardProps) {
   );
 }
 
-interface FunnelStep {
+interface OutcomeSlice {
   label: string;
   value: number;
   color: string;
+  hint: string;
 }
 
 /**
- * Pure-CSS funnel chart: decreasing-width rounded bars.
- * Width is relative to the largest step (typically Sent) so we
- * always render a full bar at the top and proportional tails.
+ * Where every recipient ended up, as a donut.
+ *
+ * The slices are deliberately NOT the funnel steps. Sent / Delivered /
+ * Read / Replied are nested subsets — a replied message was also read,
+ * delivered and sent — so putting them in a pie double-counts them and
+ * the angles mean nothing. These five buckets are mutually exclusive and
+ * sum to total_recipients, which is what a share-of-whole chart needs.
+ *
+ * Colour: the four outcome hues are the validated SERIES palette (CVD
+ * separation ≥ 10 ΔE on every adjacent pair, ≥ 3:1 on both surfaces).
+ * "Pending" is deliberately the de-emphasis gray rather than a fifth
+ * hue — nothing has happened to those recipients yet, and a saturated
+ * colour would give the inert bucket the same visual weight as a real
+ * outcome. It fails the palette checker's chroma floor by design.
  */
-function FunnelChart({ steps }: { steps: FunnelStep[] }) {
-  const max = Math.max(...steps.map((s) => s.value), 1);
+function OutcomeDonut({
+  slices,
+  total,
+}: {
+  slices: OutcomeSlice[];
+  total: number;
+}) {
+  const shown = slices.filter((s) => s.value > 0);
+  const share = (v: number) => (total > 0 ? (v / total) * 100 : 0);
+
   return (
     <div className="rounded-xl border border-border bg-card p-4">
-      <h3 className="mb-4 text-sm font-medium text-foreground">Funnel</h3>
-      <div className="space-y-2">
-        {steps.map((step) => {
-          const pctOfMax = Math.max(5, Math.round((step.value / max) * 100));
-          const pctOfSent =
-            steps[0].value > 0
-              ? Math.round((step.value / steps[0].value) * 100)
-              : 0;
-          return (
-            <div key={step.label} className="flex items-center gap-3">
-              <span className="w-20 shrink-0 text-xs text-muted-foreground">
-                {step.label}
-              </span>
-              <div className="relative h-7 flex-1 rounded-full bg-muted">
-                <div
-                  className={`h-7 rounded-full ${step.color} transition-[width] duration-500`}
-                  style={{ width: `${pctOfMax}%` }}
+      <h3 className="text-sm font-medium text-foreground">Outcome breakdown</h3>
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        Every recipient, counted once, by how far the message got.
+      </p>
+
+      {shown.length === 0 ? (
+        <div className="flex h-[220px] items-center justify-center">
+          <p className="text-sm text-muted-foreground">
+            Nothing to chart yet — this campaign hasn&apos;t sent.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="relative mt-3 h-[200px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={shown}
+                  dataKey="value"
+                  nameKey="label"
+                  innerRadius="62%"
+                  outerRadius="88%"
+                  // A 2px gap in the surface colour between segments, so
+                  // adjacent slices read as separate marks rather than one
+                  // continuous ring.
+                  paddingAngle={2}
+                  stroke="var(--card)"
+                  strokeWidth={2}
+                  isAnimationActive={false}
+                >
+                  {shown.map((s) => (
+                    <Cell key={s.label} fill={s.color} />
+                  ))}
+                </Pie>
+                <RechartsTooltip
+                  cursor={false}
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null;
+                    const s = payload[0].payload as OutcomeSlice;
+                    return (
+                      <div className="rounded-lg border border-border bg-popover px-3 py-2 shadow-md">
+                        <p className="text-xs font-medium text-foreground">
+                          {s.label}
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {s.value.toLocaleString()} ·{' '}
+                          {share(s.value).toFixed(1)}% of recipients
+                        </p>
+                        <p className="mt-1 max-w-[200px] text-[11px] text-muted-foreground/80">
+                          {s.hint}
+                        </p>
+                      </div>
+                    );
+                  }}
                 />
-                <span className="absolute inset-0 flex items-center px-3 text-xs font-medium text-foreground">
-                  {step.value.toLocaleString()}
-                  <span className="ml-2 text-muted-foreground/80">
-                    ({pctOfSent}%)
-                  </span>
-                </span>
-              </div>
+              </PieChart>
+            </ResponsiveContainer>
+
+            {/* Hero number in the hole — the denominator every slice is a
+                share of, so the ring needs no axis. */}
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+              <p className="text-2xl font-bold text-foreground tabular-nums">
+                {total.toLocaleString()}
+              </p>
+              <p className="text-[11px] text-muted-foreground">recipients</p>
             </div>
-          );
-        })}
-      </div>
+          </div>
+
+          {/* Legend doubles as the direct labels — five or fewer slices, so
+              every one gets its number rather than a colour-only key. */}
+          <ul className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
+            {shown.map((s) => (
+              <li key={s.label} className="flex items-center gap-2 text-xs">
+                <span
+                  aria-hidden
+                  className="size-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: s.color }}
+                />
+                <span className="truncate text-muted-foreground">{s.label}</span>
+                <span className="ml-auto shrink-0 font-medium text-foreground tabular-nums">
+                  {s.value.toLocaleString()}
+                </span>
+                <span className="w-10 shrink-0 text-right text-muted-foreground tabular-nums">
+                  {share(s.value).toFixed(0)}%
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }
@@ -132,6 +220,14 @@ const SERIES = {
   replied: '#d97706',
   failed: '#ef4444',
 } as const;
+
+/**
+ * The inert bucket in the outcome donut. A neutral on purpose — "nothing
+ * has happened to these yet" should not compete with a real outcome for
+ * attention, so it gets the de-emphasis gray rather than a fifth hue.
+ * slate-500 clears 3:1 against both the light and dark card surfaces.
+ */
+const PENDING_COLOR = '#64748b';
 
 interface RateTile {
   label: string;
@@ -492,6 +588,7 @@ export default function BroadcastDetailPage() {
   );
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -575,6 +672,43 @@ export default function BroadcastDetailPage() {
     downloadBlob(`broadcast-${safeName}-${broadcastId.slice(0, 8)}.csv`, csv);
   }
 
+  /**
+   * Pull the .xlsx from the report route and hand it to the browser.
+   *
+   * Fetched rather than navigated to, so an error comes back as a toast
+   * instead of replacing the page with a JSON blob.
+   */
+  async function handleDownloadReport() {
+    setDownloading(true);
+    try {
+      const res = await fetch(`/api/broadcasts/${broadcastId}/report`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error ?? `Report failed (HTTP ${res.status})`);
+      }
+      // Prefer the filename the server chose — it carries the campaign
+      // name and the date the report was taken.
+      const disposition = res.headers.get('Content-Disposition') ?? '';
+      const match = /filename="([^"]+)"/.exec(disposition);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = match?.[1] ?? 'campaign-report.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success('Report downloaded');
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Could not build the report',
+      );
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   async function handleDelete() {
     setDeleting(true);
     const supabase = createClient();
@@ -616,11 +750,56 @@ export default function BroadcastDetailPage() {
 
   const status = getBroadcastStatus(broadcast.status);
 
-  const funnelSteps: FunnelStep[] = [
-    { label: 'Sent', value: broadcast.sent_count, color: 'bg-primary' },
-    { label: 'Delivered', value: broadcast.delivered_count, color: 'bg-teal-500' },
-    { label: 'Read', value: broadcast.read_count, color: 'bg-blue-500' },
-    { label: 'Replied', value: broadcast.replied_count, color: 'bg-amber-500' },
+  // Mutually exclusive buckets that sum to EXACTLY total_recipients.
+  //
+  // The counters are maintained by a trigger per webhook, so they can be
+  // momentarily inconsistent mid-send — a read receipt can land before
+  // the delivery one, leaving read_count > delivered_count. Subtracting
+  // raw counters and clamping each difference at zero is not enough: the
+  // clamp hides the negative, but the residual "Pending" bucket then
+  // over-counts and the slices sum past 100% (read=600/delivered=500 on
+  // 1000 recipients yields 1100). So the ladder is forced monotonic
+  // first — each stage capped by the one before it — and only then
+  // differenced. Every bucket is non-negative and the total is exact by
+  // construction, whatever the counters say.
+  const clamp = (n: number, max: number) => Math.min(Math.max(0, n), max);
+  const totalR = Math.max(0, broadcast.total_recipients);
+  const deliveredM = clamp(broadcast.delivered_count, totalR);
+  const readM = clamp(broadcast.read_count, deliveredM);
+  const repliedM = clamp(broadcast.replied_count, readM);
+  const failedM = clamp(broadcast.failed_count, totalR - deliveredM);
+
+  const outcomeSlices: OutcomeSlice[] = [
+    {
+      label: 'Replied',
+      value: repliedM,
+      color: SERIES.replied,
+      hint: 'Read the message and wrote back.',
+    },
+    {
+      label: 'Read, no reply',
+      value: readM - repliedM,
+      color: SERIES.read,
+      hint: 'Opened the message but has not responded.',
+    },
+    {
+      label: 'Delivered, unread',
+      value: deliveredM - readM,
+      color: SERIES.delivered,
+      hint: 'Landed on the handset, not opened yet.',
+    },
+    {
+      label: 'Failed',
+      value: failedM,
+      color: SERIES.failed,
+      hint: 'Meta rejected the send — see the error breakdown below.',
+    },
+    {
+      label: 'Pending',
+      value: totalR - deliveredM - failedM,
+      color: PENDING_COLOR,
+      hint: 'Queued or in flight — no delivery receipt back from Meta yet.',
+    },
   ];
 
   // Conversion rates — each relative to the meaningful denominator in the
@@ -702,7 +881,10 @@ export default function BroadcastDetailPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* `flex-wrap`: a draft shows three buttons here and "Download
+            report" is a wide one — without it they overflow the viewport
+            on a phone instead of stacking. */}
+        <div className="flex flex-wrap items-center gap-2">
           {broadcast.status === 'draft' && (
             <Button
               variant="outline"
@@ -715,12 +897,28 @@ export default function BroadcastDetailPage() {
             </Button>
           )}
 
-        {/* Delete — type-to-confirm modal. Mid-send broadcasts can't be
-            deleted because orphaning in-flight Meta messages would leave the
-            funnel inconsistent. */}
+        {/* Report — built server-side and streamed back as .xlsx, so the
+            spreadsheet library never reaches the browser bundle and the
+            recipient sheet isn't capped at one PostgREST page. */}
         <Button
           variant="outline"
-          size="sm"
+          onClick={handleDownloadReport}
+          disabled={downloading}
+          title="Download this campaign's report as an Excel file"
+          className="h-10 border-border px-4 text-foreground"
+        >
+          {downloading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="h-4 w-4" />
+          )}
+          {downloading ? 'Preparing...' : 'Download report'}
+        </Button>
+
+        {/* Delete — type-to-confirm modal. Mid-send broadcasts can't be
+            deleted because orphaning in-flight Meta messages would leave the
+            counts inconsistent. */}
+        <Button
           disabled={broadcast.status === 'sending'}
           onClick={() => setConfirmDelete(true)}
           title={
@@ -728,9 +926,9 @@ export default function BroadcastDetailPage() {
               ? 'Cannot delete while a campaign is actively sending'
               : 'Delete this campaign'
           }
-          className="border-red-200 bg-transparent text-red-700 hover:bg-red-50 disabled:opacity-40 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10"
+          className="h-10 bg-red-600 px-4 text-white hover:bg-red-700 disabled:opacity-40 dark:bg-red-600 dark:hover:bg-red-700"
         >
-          <Trash2 className="h-3.5 w-3.5" />
+          <Trash2 className="h-4 w-4" />
           Delete
         </Button>
         </div>
@@ -796,7 +994,10 @@ export default function BroadcastDetailPage() {
 
       {/* Funnel + engagement timeline */}
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <FunnelChart steps={funnelSteps} />
+        <OutcomeDonut
+          slices={outcomeSlices}
+          total={broadcast.total_recipients}
+        />
         {timeline ? (
           <EngagementTimeline data={timeline} />
         ) : (

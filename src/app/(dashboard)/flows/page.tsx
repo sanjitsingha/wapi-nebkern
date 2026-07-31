@@ -1,5 +1,6 @@
 "use client";
 
+import { InfoHint } from "@/components/ui/info-hint";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -249,6 +250,11 @@ export default function FlowsPage() {
             <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-300">
               Beta
             </span>
+            <InfoHint label="Flows" docs="/docs/flows">
+              A visual builder for multi-step conversations — ask a question,
+              branch on the answer, collect what you need, then hand over to a
+              human at the right moment.
+            </InfoHint>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             Build branching, button-driven WhatsApp conversations. Useful for

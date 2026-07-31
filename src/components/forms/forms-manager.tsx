@@ -1,5 +1,6 @@
 'use client';
 
+import { InfoHint } from '@/components/ui/info-hint';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -148,7 +149,16 @@ export function FormsManager() {
     <section className="animate-in fade-in-50 space-y-4 duration-200">
       <div className="border-border flex flex-wrap items-start justify-between gap-4 border-b pb-4">
         <div>
-          <h1 className="text-foreground text-2xl font-bold tracking-tight">Forms</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-foreground text-2xl font-bold tracking-tight">Forms</h1>
+            {/* No /docs page for Forms yet, so the hint stands alone —
+                InfoHint drops the link when `docs` is omitted. */}
+            <InfoHint label="Forms">
+              A structured questionnaire that opens inside WhatsApp. Answers
+              come back onto the contact record, so you collect details
+              without a back-and-forth conversation.
+            </InfoHint>
+          </div>
           <p className="text-muted-foreground mt-1 text-sm">
             Structured forms that open inside WhatsApp — build one, publish it, then send it
             from any conversation.

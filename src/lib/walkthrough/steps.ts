@@ -76,7 +76,7 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     id: 'settings',
     target: 'settings',
     title: 'Connect your number',
-    body: "Start here: open this menu and go to Settings to link your WhatsApp Business number. Nothing can send or receive until that's connected.",
+    body: "Start here: open Settings to link your WhatsApp Business number. Nothing can send or receive until that's connected.",
     placement: 'bottom',
   },
   {

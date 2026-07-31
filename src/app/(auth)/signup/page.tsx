@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthBrandPanel } from "@/components/auth/brand-panel";
 import { GoogleAuthButton, AuthDivider } from "@/components/auth/google-button";
+import { rememberOAuthNext } from "@/lib/auth/oauth-next";
 import {
   MessageSquare,
   CheckCircle,
@@ -53,14 +54,15 @@ function SignupPageInner() {
     setError(null);
     setGoogleLoading(true);
     // Carry the invite token through so a Google sign-up started from an
-    // invite link lands on the join page afterwards.
-    const next = inviteToken
-      ? `/join/${encodeURIComponent(inviteToken)}`
-      : "/dashboard";
+    // invite link lands on the join page afterwards. Cookie, not query
+    // string — see lib/auth/oauth-next.ts for why.
+    rememberOAuthNext(
+      inviteToken ? `/join/${encodeURIComponent(inviteToken)}` : "/dashboard",
+    );
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
     if (error) {

@@ -1,5 +1,6 @@
 'use client';
 
+import { InfoHint } from '@/components/ui/info-hint';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -127,7 +128,14 @@ export default function SegmentsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Segments</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-foreground">Segments</h1>
+            <InfoHint label="Segments" docs="/docs/segments-and-lists">
+              A saved set of filter rules rather than a fixed roster — a
+              contact joins or leaves the segment on its own as their tags,
+              fields or activity change.
+            </InfoHint>
+          </div>
           <p className="mt-1 text-sm text-muted-foreground">
             Dynamic audiences that stay up to date automatically — built from filter rules, not a fixed contact list.
           </p>

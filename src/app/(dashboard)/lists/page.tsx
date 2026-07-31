@@ -1,5 +1,6 @@
 'use client';
 
+import { InfoHint } from '@/components/ui/info-hint';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -127,7 +128,13 @@ export default function ListsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Lists</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-foreground">Lists</h1>
+            <InfoHint label="Lists" docs="/docs/segments-and-lists">
+              A fixed collection you add contacts to by hand or by import.
+              Unlike a segment, membership only changes when you change it.
+            </InfoHint>
+          </div>
           <p className="mt-1 text-sm text-muted-foreground">
             Organize contacts into collections for campaign audiences.
           </p>
