@@ -8,16 +8,29 @@ const UUID_RE =
 /**
  * Permanently delete a user. Admin-only, irreversible.
  *
- * Deleting the auth user cascades their profile (ON DELETE CASCADE). Two
- * guards:
- *   - Admin-allowlisted accounts are never deletable from here.
- *   - A user who OWNS an account is blocked: `accounts.owner_user_id` is
- *     ON DELETE RESTRICT, so the delete would fail at the DB anyway — we
- *     catch it first and return a clear message. Reassign ownership or
- *     delete that workspace before removing the person.
+ * Two-step by design, because of how the schema is wired.
+ * `accounts.owner_user_id` is ON DELETE RESTRICT — the one FK to
+ * auth.users that doesn't cascade — so Postgres refuses to remove a user
+ * while they still own an account. Every signup owns one (the signup
+ * trigger creates it), so "delete the user" almost always means "delete
+ * their workspace too".
+ *
+ * That's a big enough hammer to require saying so out loud:
+ *
+ *   1st call  -> 409 { requiresAccountDeletion, account: { name, members } }
+ *   2nd call  -> with { deleteOwnedAccount: true }, does it
+ *
+ * Deleting the account row cascades roughly forty tables (contacts,
+ * conversations, deals, invoices, templates, media, webhooks, and the
+ * profiles of every member). Members other than the owner keep their
+ * auth.users row but lose their profile, which leaves them signed in
+ * with no account context — hence the member count in the 409, so the
+ * admin sees what they're about to take down.
+ *
+ * Admin-allowlisted accounts are never deletable from here.
  */
 export async function DELETE(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const admin = await getAdminUser();
@@ -29,6 +42,11 @@ export async function DELETE(
   if (!UUID_RE.test(id)) {
     return NextResponse.json({ error: 'Invalid user id' }, { status: 400 });
   }
+
+  // Body is optional — a bare DELETE is the first, confirmation-seeking
+  // call. Only an explicit flag authorises taking the workspace with it.
+  const body = await request.json().catch(() => null);
+  const deleteOwnedAccount = body?.deleteOwnedAccount === true;
 
   const db = adminDb();
 
@@ -50,16 +68,36 @@ export async function DELETE(
   if (ownErr) {
     return NextResponse.json({ error: ownErr.message }, { status: 500 });
   }
+
   if (owned && owned.length > 0) {
-    const name = owned[0].name;
-    return NextResponse.json(
-      {
-        error:
-          `This user owns the workspace "${name}". Reassign ownership to ` +
-          `another member (or delete that account) before deleting the user.`,
-      },
-      { status: 409 },
-    );
+    const account = owned[0];
+
+    const { count } = await db
+      .from('profiles')
+      .select('user_id', { count: 'exact', head: true })
+      .eq('account_id', account.id);
+    const members = count ?? 0;
+
+    if (!deleteOwnedAccount) {
+      return NextResponse.json(
+        {
+          error: `This user owns the workspace "${account.name}".`,
+          requiresAccountDeletion: true,
+          account: { name: account.name, members },
+        },
+        { status: 409 },
+      );
+    }
+
+    // Cascades the whole tenant. Must happen before the auth user, or
+    // the RESTRICT on owner_user_id blocks it.
+    const { error: accErr } = await db
+      .from('accounts')
+      .delete()
+      .eq('id', account.id);
+    if (accErr) {
+      return NextResponse.json({ error: accErr.message }, { status: 500 });
+    }
   }
 
   const { error } = await db.auth.admin.deleteUser(id);

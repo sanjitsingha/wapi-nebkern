@@ -61,6 +61,10 @@ export default async function AdminUsersPage() {
         isOwner: ownerUserIds.has(u.id),
         isAdmin: isAdminEmail(email),
         suspended: isSuspended(u.banned_until),
+        // Someone who signed up but never entered the emailed code. They
+        // exist in auth.users and hold the address, so they block a
+        // re-signup — which is exactly why they need to be visible here.
+        emailConfirmed: u.email_confirmed_at != null,
         createdAt: u.created_at ?? null,
         lastSignInAt: u.last_sign_in_at ?? null,
       };

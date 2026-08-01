@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -9,18 +9,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthBrandPanel } from "@/components/auth/brand-panel";
 import { GoogleAuthButton, AuthDivider } from "@/components/auth/google-button";
-import { PasswordRequirements } from "@/components/auth/password-requirements";
+import {
+  PasswordErrorList,
+  PasswordRequirementsHint,
+} from "@/components/auth/password-requirements";
 import { rememberOAuthNext } from "@/lib/auth/oauth-next";
-import { firstPasswordError } from "@/lib/auth/password";
+import { isPasswordValid } from "@/lib/auth/password";
 import {
   MessageSquare,
-  CheckCircle,
   User,
   Mail,
   Lock,
   Eye,
   EyeOff,
+  KeyRound,
 } from "lucide-react";
+
+/** Matches the six digits Supabase puts in `{{ .Token }}`. */
+const CODE_LENGTH = 6;
+/** Supabase's own per-email resend limit is 60s by default; sit just
+ *  inside it so the button doesn't invite a request the server refuses. */
+const RESEND_SECONDS = 60;
 
 // `useSearchParams` opts the component out of static prerendering
 // unless wrapped in Suspense — same pattern as /login.
@@ -49,14 +58,37 @@ function SignupPageInner() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  // "form" collects the details; "code" verifies the six digits
+  // Supabase emailed. Same page — no link to open in whichever browser
+  // the user's mail app happens to launch.
+  const [step, setStep] = useState<"form" | "code">("form");
+  const [code, setCode] = useState("");
+  const [notice, setNotice] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState(0);
   // Which provider already owns this address, when it's taken. Drives
   // the follow-up CTA in the error banner — "Sign in" for a password
   // account, "Continue with Google" for a Google one — so a blocked
   // signup ends somewhere useful instead of just being refused.
   const [conflict, setConflict] = useState<"google" | "password" | null>(null);
   const [checkingEmail, setCheckingEmail] = useState(false);
+  // Password rules stay out of the way until the user actually tries to
+  // submit — the full list lives behind the (i) on the label until then.
+  const [showPasswordErrors, setShowPasswordErrors] = useState(false);
   const supabase = createClient();
+
+  // Where verification lands them. A full reload rather than a client
+  // push, so the middleware re-runs server-side and picks the right
+  // gate (/welcome is skipped for password signups, /onboarding isn't).
+  const destination = inviteToken
+    ? `/join/${encodeURIComponent(inviteToken)}`
+    : "/dashboard";
+
+  // Resend cooldown tick.
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const id = setTimeout(() => setCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(id);
+  }, [cooldown]);
 
   /**
    * Ask the server whether `value` is free. Returns the conflict
@@ -122,11 +154,13 @@ function SignupPageInner() {
     setError(null);
     setConflict(null);
 
-    const passwordProblem = firstPasswordError(password);
-    if (passwordProblem) {
-      setError(passwordProblem);
+    // Reported under the field rather than in the banner at the top —
+    // the rules are about that input, so that is where the answer goes.
+    if (!isPasswordValid(password)) {
+      setShowPasswordErrors(true);
       return;
     }
+    setShowPasswordErrors(false);
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
@@ -185,39 +219,181 @@ function SignupPageInner() {
       return;
     }
 
-    setSuccess(true);
+    // If the project has email confirmation switched off, signUp hands
+    // back a live session and never sends a mail — there would be no
+    // code to ask for. Go straight in rather than stranding the user on
+    // a step that cannot complete.
+    if (data.session) {
+      window.location.href = destination;
+      return;
+    }
+
+    setStep("code");
+    setCooldown(RESEND_SECONDS);
     setLoading(false);
   };
 
-  if (success) {
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setNotice(null);
+    setLoading(true);
+
+    // `type: 'signup'` is the confirmation OTP, distinct from the
+    // 'recovery' code on /forgot-password. Verifying returns a real
+    // session, so the user is signed in the moment the code lands.
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: code,
+      type: "signup",
+    });
+
+    if (error) {
+      setError(
+        /expired|invalid/i.test(error.message)
+          ? "That code is invalid or has expired. Request a new one."
+          : error.message,
+      );
+      setLoading(false);
+      return;
+    }
+
+    window.location.href = destination;
+  };
+
+  const handleResend = async () => {
+    if (cooldown > 0 || loading) return;
+    setError(null);
+    setNotice(null);
+    setLoading(true);
+
+    const { error } = await supabase.auth.resend({ type: "signup", email });
+    setLoading(false);
+
+    if (error) {
+      setError(error.message);
+      return;
+    }
+
+    setNotice("We've sent a new code.");
+    setCooldown(RESEND_SECONDS);
+  };
+
+  // Once they've submitted once, the list below the field tracks the
+  // password live — so it clears itself as the user fixes each rule
+  // rather than making them submit again to find out.
+  const passwordInvalid = showPasswordErrors && !isPasswordValid(password);
+
+  if (step === "code") {
     return (
       <div className="flex min-h-screen bg-background">
         <main className="flex w-full flex-col justify-center px-6 py-12 sm:px-12 lg:w-1/2">
-          <div className="mx-auto w-full max-w-sm text-center">
-            <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
-              <CheckCircle className="h-7 w-7 text-primary" />
+          <div className="mx-auto w-full max-w-sm">
+            <div className="mb-10 flex items-center gap-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
+                <MessageSquare className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <span className="text-lg font-semibold tracking-tight text-foreground">
+                wacrm
+              </span>
             </div>
-            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-              Check your email
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              We&apos;ve sent a confirmation link to{" "}
-              <span className="font-medium text-foreground">{email}</span>.
-              Click the link to verify your account.
-            </p>
+
+            <div className="mb-8">
+              <h2 className="text-3xl font-semibold tracking-tight text-foreground">
+                Verify your email
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Enter the six-digit code we sent to{" "}
+                <span className="font-medium text-foreground">{email}</span>.
+              </p>
+            </div>
+
+            {error && (
+              <div className="mb-5 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-500">
+                {error}
+              </div>
+            )}
+            {notice && (
+              <div className="mb-5 rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary">
+                {notice}
+              </div>
+            )}
+
+            <form onSubmit={handleVerify} className="flex flex-col gap-5">
+              <div className="flex flex-col gap-1.5">
+                <Label
+                  htmlFor="code"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Six-digit code
+                </Label>
+                <div className="group relative">
+                  <KeyRound className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+                  <Input
+                    id="code"
+                    // `inputMode` gets the numeric keypad on mobile;
+                    // `one-time-code` lets iOS and Android offer the code
+                    // straight from the notification.
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    autoFocus
+                    placeholder="000000"
+                    value={code}
+                    onChange={(e) =>
+                      setCode(
+                        e.target.value.replace(/\D/g, "").slice(0, CODE_LENGTH),
+                      )
+                    }
+                    required
+                    // `pr-11` matches `pl-11` so the digits sit on the
+                    // true centre — with padding on one side only, the
+                    // tracking pushes them visibly right.
+                    className="h-12 rounded-xl border-border bg-muted/40 pr-11 pl-11 text-center text-lg font-semibold tracking-[0.4em] text-foreground placeholder:font-normal placeholder:tracking-[0.4em] placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-background focus-visible:ring-primary/20"
+                  />
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={loading || code.length < CODE_LENGTH}
+                className="mt-1 h-12 w-full rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:opacity-50"
+              >
+                {loading ? "Verifying..." : "Verify and continue"}
+              </Button>
+
+              <div className="flex items-center justify-between text-sm">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep("form");
+                    setCode("");
+                    setError(null);
+                    setNotice(null);
+                  }}
+                  className="font-medium text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Use another email
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={cooldown > 0 || loading}
+                  className="font-medium text-primary transition-colors hover:text-primary/80 disabled:text-muted-foreground"
+                >
+                  {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}
+                </button>
+              </div>
+            </form>
+
             <Link
               href={
                 inviteToken
                   ? `/login?invite=${encodeURIComponent(inviteToken)}`
                   : "/login"
               }
+              className="mt-8 flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
-              <Button
-                variant="outline"
-                className="mt-8 h-12 w-full rounded-xl border-border text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                Back to sign in
-              </Button>
+              Back to sign in
             </Link>
           </div>
         </main>
@@ -350,12 +526,15 @@ function SignupPageInner() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label
-                htmlFor="password"
-                className="text-sm font-medium text-foreground"
-              >
-                Password
-              </Label>
+              <div className="flex items-center gap-1.5">
+                <Label
+                  htmlFor="password"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Password
+                </Label>
+                <PasswordRequirementsHint />
+              </div>
               <div className="group relative">
                 <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
                 <Input
@@ -365,7 +544,7 @@ function SignupPageInner() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  aria-describedby="password-requirements"
+                  aria-invalid={passwordInvalid || undefined}
                   className="h-12 rounded-xl border-border bg-muted/40 pl-11 pr-11 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-background focus-visible:ring-primary/20"
                 />
                 <button
@@ -381,11 +560,9 @@ function SignupPageInner() {
                   )}
                 </button>
               </div>
-              <PasswordRequirements
-                id="password-requirements"
-                value={password}
-                className="mt-1"
-              />
+              {showPasswordErrors && (
+                <PasswordErrorList value={password} className="mt-1" />
+              )}
             </div>
 
             <div className="flex flex-col gap-1.5">

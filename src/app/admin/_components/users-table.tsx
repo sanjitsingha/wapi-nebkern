@@ -3,7 +3,16 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Search, Loader2, Ban, RotateCcw, Trash2, ShieldCheck } from 'lucide-react';
+import {
+  Search,
+  Loader2,
+  Ban,
+  RotateCcw,
+  Trash2,
+  ShieldCheck,
+  AlertTriangle,
+  MailWarning,
+} from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -43,17 +52,26 @@ export interface UserView {
   /** In the ADMIN_EMAILS allowlist — protected from suspend/delete. */
   isAdmin: boolean;
   suspended: boolean;
+  /** False for a signup that never entered the emailed code. */
+  emailConfirmed: boolean;
   createdAt: string | null;
   lastSignInAt: string | null;
 }
 
-type Filter = 'all' | 'active' | 'suspended';
+type Filter = 'all' | 'active' | 'suspended' | 'unconfirmed';
 
 const FILTERS: { value: Filter; label: string }[] = [
   { value: 'all', label: 'All users' },
   { value: 'active', label: 'Active' },
   { value: 'suspended', label: 'Suspended' },
+  { value: 'unconfirmed', label: 'Unconfirmed email' },
 ];
+
+/** What the API reports back when the user owns a workspace. */
+interface OwnedAccount {
+  name: string;
+  members: number;
+}
 
 export function UsersTable({ rows }: { rows: UserView[] }) {
   const router = useRouter();
@@ -61,12 +79,22 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
   const [filter, setFilter] = useState<Filter>('all');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UserView | null>(null);
+  // Set once the API has told us this user owns a workspace. Its
+  // presence escalates the dialog to the second, louder confirmation —
+  // the one that authorises taking the whole tenant down.
+  const [ownedAccount, setOwnedAccount] = useState<OwnedAccount | null>(null);
+
+  const closeDelete = () => {
+    setDeleteTarget(null);
+    setOwnedAccount(null);
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return rows.filter((r) => {
       if (filter === 'active' && r.suspended) return false;
       if (filter === 'suspended' && !r.suspended) return false;
+      if (filter === 'unconfirmed' && r.emailConfirmed) return false;
       if (!q) return true;
       return (
         (r.email ?? '').toLowerCase().includes(q) ||
@@ -96,19 +124,35 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
     }
   }
 
-  async function confirmDelete() {
+  /**
+   * `cascade` is the user's answer to the second confirmation. The first
+   * call goes without it: if the user owns a workspace the API refuses
+   * with 409 and describes what deleting it would take down, which is
+   * what the escalated dialog then shows.
+   */
+  async function confirmDelete(cascade = false) {
     const u = deleteTarget;
     if (!u) return;
     setBusyId(u.id);
     try {
-      const res = await fetch(`/admin/api/users/${u.id}`, { method: 'DELETE' });
+      const res = await fetch(`/admin/api/users/${u.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deleteOwnedAccount: cascade }),
+      });
       const data = await res.json().catch(() => ({}));
+
+      if (res.status === 409 && data.requiresAccountDeletion) {
+        setOwnedAccount(data.account ?? { name: 'their workspace', members: 1 });
+        return;
+      }
       if (!res.ok) {
         toast.error(data.error ?? 'Delete failed');
         return;
       }
+
       toast.success('User deleted');
-      setDeleteTarget(null);
+      closeDelete();
       router.refresh();
     } finally {
       setBusyId(null);
@@ -200,7 +244,11 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
                       )}
                     </TableCell>
                     <TableCell>
-                      <StatusBadge admin={u.isAdmin} suspended={u.suspended} />
+                      <StatusBadge
+                        admin={u.isAdmin}
+                        suspended={u.suspended}
+                        emailConfirmed={u.emailConfirmed}
+                      />
                     </TableCell>
                     <TableCell className="hidden text-muted-foreground lg:table-cell">
                       {u.createdAt ? fmtDate(u.createdAt) : '—'}
@@ -269,25 +317,58 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
 
       <Dialog
         open={!!deleteTarget}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        onOpenChange={(open) => !open && closeDelete()}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete user?</DialogTitle>
+            <DialogTitle>
+              {ownedAccount ? 'Delete the workspace too?' : 'Delete user?'}
+            </DialogTitle>
             <DialogDescription>
-              This permanently deletes{' '}
-              <span className="font-medium text-foreground">
-                {deleteTarget?.email ?? deleteTarget?.fullName ?? 'this user'}
-              </span>{' '}
-              and their profile. This cannot be undone. If they own a workspace,
-              you&apos;ll need to reassign ownership first.
+              {ownedAccount ? (
+                <>
+                  <span className="font-medium text-foreground">
+                    {deleteTarget?.email ?? deleteTarget?.fullName ?? 'This user'}
+                  </span>{' '}
+                  owns{' '}
+                  <span className="font-medium text-foreground">
+                    {ownedAccount.name}
+                  </span>
+                  , so they can&apos;t be removed on their own. Deleting them
+                  also permanently deletes that workspace and everything in it —
+                  contacts, conversations, deals, invoices, templates and media.
+                </>
+              ) : (
+                <>
+                  This permanently deletes{' '}
+                  <span className="font-medium text-foreground">
+                    {deleteTarget?.email ?? deleteTarget?.fullName ?? 'this user'}
+                  </span>{' '}
+                  and their profile. This cannot be undone.
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
+
+          {/* The case that actually hurts: other people's data goes with
+              it. Only worth shouting about when there are others. */}
+          {ownedAccount && ownedAccount.members > 1 && (
+            <div className="flex gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+              <p>
+                {ownedAccount.members - 1} other member
+                {ownedAccount.members - 1 === 1 ? '' : 's'} will lose access.
+                Their sign-in still works, but they&apos;ll have no workspace
+                left to sign in to.
+              </p>
+            </div>
+          )}
+
           <DialogFooter>
             <Button
               type="button"
               variant="outline"
-              onClick={() => setDeleteTarget(null)}
+              onClick={closeDelete}
               disabled={busyId === deleteTarget?.id}
               className="border-border"
             >
@@ -295,7 +376,7 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
             </Button>
             <Button
               type="button"
-              onClick={confirmDelete}
+              onClick={() => confirmDelete(ownedAccount != null)}
               disabled={busyId === deleteTarget?.id}
               className="bg-destructive text-white hover:bg-destructive/90"
             >
@@ -304,7 +385,7 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
               ) : (
                 <Trash2 className="size-4" />
               )}
-              Delete user
+              {ownedAccount ? 'Delete user and workspace' : 'Delete user'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -316,15 +397,28 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
 function StatusBadge({
   admin,
   suspended,
+  emailConfirmed,
 }: {
   admin: boolean;
   suspended: boolean;
+  emailConfirmed: boolean;
 }) {
   if (admin) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary-soft px-2 py-0.5 text-[11px] font-medium text-primary">
         <ShieldCheck className="size-3" />
         Admin
+      </span>
+    );
+  }
+  // Ranked above active/suspended: an unconfirmed row is the one an
+  // admin is usually hunting for, since it holds an address hostage
+  // without ever having become a usable account.
+  if (!emailConfirmed && !suspended) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+        <MailWarning className="size-3" />
+        Unconfirmed
       </span>
     );
   }
