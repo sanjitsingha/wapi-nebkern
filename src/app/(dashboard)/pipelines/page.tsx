@@ -390,16 +390,6 @@ export default function PipelinesPage() {
 
         <div className="flex items-center gap-2">
           <GatedButton
-            variant="outline"
-            canAct={canEditSettings}
-            gateReason="create pipelines"
-            onClick={() => setNewPipelineOpen(true)}
-            className="border-border bg-card text-foreground hover:bg-muted"
-          >
-            <Plus className="mr-1 h-4 w-4" />
-            Add Pipeline
-          </GatedButton>
-          <GatedButton
             canAct={canCreateDeals}
             gateReason="create deals"
             disabled={!selectedPipelineId || stages.length === 0}
