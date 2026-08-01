@@ -9,7 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthBrandPanel } from "@/components/auth/brand-panel";
 import { GoogleAuthButton, AuthDivider } from "@/components/auth/google-button";
+import { PasswordRequirements } from "@/components/auth/password-requirements";
 import { rememberOAuthNext } from "@/lib/auth/oauth-next";
+import { firstPasswordError } from "@/lib/auth/password";
 import {
   MessageSquare,
   CheckCircle,
@@ -48,7 +50,51 @@ function SignupPageInner() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  // Which provider already owns this address, when it's taken. Drives
+  // the follow-up CTA in the error banner — "Sign in" for a password
+  // account, "Continue with Google" for a Google one — so a blocked
+  // signup ends somewhere useful instead of just being refused.
+  const [conflict, setConflict] = useState<"google" | "password" | null>(null);
+  const [checkingEmail, setCheckingEmail] = useState(false);
   const supabase = createClient();
+
+  /**
+   * Ask the server whether `value` is free. Returns the conflict
+   * message when it isn't, null when it is (or when the check itself
+   * failed — an advisory lookup must never block registration; signUp
+   * is re-checked below and GoTrue owns uniqueness regardless).
+   */
+  const checkEmailAvailable = async (value: string): Promise<string | null> => {
+    try {
+      const res = await fetch("/api/auth/check-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: value }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body || body.available !== false) {
+        setConflict(null);
+        return null;
+      }
+      setConflict(body.provider === "google" ? "google" : "password");
+      return body.message ?? "An account with this email already exists.";
+    } catch {
+      setConflict(null);
+      return null;
+    }
+  };
+
+  // Check on blur so the user learns the address is taken before
+  // filling in two password fields, not after.
+  const handleEmailBlur = async () => {
+    const value = email.trim();
+    if (!value || loading) return;
+    setCheckingEmail(true);
+    const message = await checkEmailAvailable(value);
+    setCheckingEmail(false);
+    if (message) setError(message);
+    else if (conflict) setError(null);
+  };
 
   const handleGoogle = async () => {
     setError(null);
@@ -74,18 +120,30 @@ function SignupPageInner() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setConflict(null);
+
+    const passwordProblem = firstPasswordError(password);
+    if (passwordProblem) {
+      setError(passwordProblem);
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    setLoading(true);
+
+    // Re-check at submit even if the blur check already passed — the
+    // address can be claimed in between, and the user may never have
+    // blurred the field at all (Enter straight from the password box).
+    const taken = await checkEmailAvailable(email.trim());
+    if (taken) {
+      setError(taken);
+      setLoading(false);
       return;
     }
-
-    setLoading(true);
 
     // If we have an invite token, point Supabase's verification
     // email back at the join page so the user can accept after
@@ -95,7 +153,7 @@ function SignupPageInner() {
       ? `${window.location.origin}/join/${encodeURIComponent(inviteToken)}`
       : undefined;
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -108,6 +166,21 @@ function SignupPageInner() {
 
     if (error) {
       setError(error.message);
+      setLoading(false);
+      return;
+    }
+
+    // The decoy. With email confirmation on, GoTrue answers a signup
+    // for an existing address with a synthetic user carrying an EMPTY
+    // identities array and no error — its enumeration protection. Treat
+    // that as "taken" rather than showing "check your email" for an
+    // account that was never created. This is the last line of defence:
+    // it closes the gap between the check above and this call.
+    if (data.user && (data.user.identities?.length ?? 0) === 0) {
+      setConflict("password");
+      setError(
+        "An account with this email already exists. Sign in instead.",
+      );
       setLoading(false);
       return;
     }
@@ -192,7 +265,31 @@ function SignupPageInner() {
           <form onSubmit={handleSignup} className="flex flex-col gap-5">
             {error && (
               <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-500">
-                {error}
+                <p>{error}</p>
+                {/* A refusal with nowhere to go is a dead end — offer the
+                    route that actually works for this address. */}
+                {conflict === "google" && (
+                  <button
+                    type="button"
+                    onClick={handleGoogle}
+                    disabled={googleLoading || loading}
+                    className="mt-2 font-semibold underline underline-offset-4 hover:no-underline disabled:opacity-50"
+                  >
+                    Continue with Google
+                  </button>
+                )}
+                {conflict === "password" && (
+                  <Link
+                    href={
+                      inviteToken
+                        ? `/login?invite=${encodeURIComponent(inviteToken)}`
+                        : "/login"
+                    }
+                    className="mt-2 inline-block font-semibold underline underline-offset-4 hover:no-underline"
+                  >
+                    Go to sign in
+                  </Link>
+                )}
               </div>
             )}
 
@@ -231,11 +328,25 @@ function SignupPageInner() {
                   type="email"
                   placeholder="you@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    // A stale "already taken" banner about the previous
+                    // address would be nonsense once it's been edited.
+                    if (conflict) {
+                      setConflict(null);
+                      setError(null);
+                    }
+                  }}
+                  onBlur={handleEmailBlur}
                   required
                   className="h-12 rounded-xl border-border bg-muted/40 pl-11 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-background focus-visible:ring-primary/20"
                 />
               </div>
+              {checkingEmail && (
+                <p className="text-xs text-muted-foreground">
+                  Checking availability…
+                </p>
+              )}
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -250,10 +361,11 @@ function SignupPageInner() {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="At least 6 characters"
+                  placeholder="Create a strong password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  aria-describedby="password-requirements"
                   className="h-12 rounded-xl border-border bg-muted/40 pl-11 pr-11 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-background focus-visible:ring-primary/20"
                 />
                 <button
@@ -269,6 +381,11 @@ function SignupPageInner() {
                   )}
                 </button>
               </div>
+              <PasswordRequirements
+                id="password-requirements"
+                value={password}
+                className="mt-1"
+              />
             </div>
 
             <div className="flex flex-col gap-1.5">

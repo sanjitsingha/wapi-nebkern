@@ -35,6 +35,19 @@ export interface Profile {
    * `@/lib/auth/roles` rather than comparing this string directly.
    */
   account_role?: AccountRole;
+  /**
+   * Stamped when the user finishes the one-time details step at
+   * /welcome (migration 073). NULL only for OAuth signups that
+   * haven't been through it — password signups collect the same
+   * details on the signup form and are stamped by the trigger.
+   * The middleware gates the app on this being set.
+   */
+  profile_completed_at?: string | null;
+  /**
+   * "How did you hear about us", answered on /welcome. Holds a key
+   * from `REFERRAL_SOURCES`, or `other:<free text>` for Other.
+   */
+  referral_source?: string | null;
   created_at: string;
 }
 

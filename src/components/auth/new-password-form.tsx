@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { Lock, Eye, EyeOff } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
+import { firstPasswordError } from "@/lib/auth/password";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordRequirements } from "@/components/auth/password-requirements";
 
 // Set a new password for the *already-authenticated* user.
 //
@@ -16,8 +18,6 @@ import { Label } from "@/components/ui/label";
 // from the code exchange in /auth/callback — so this only ever has to
 // call `updateUser`. It deliberately does not take the old password:
 // proving control of the mailbox is what the recovery step established.
-
-const MIN_LENGTH = 6;
 
 export function NewPasswordForm({
   /** Where to send the user once the password is saved. They are signed
@@ -41,8 +41,12 @@ export function NewPasswordForm({
     e.preventDefault();
     setError(null);
 
-    if (password.length < MIN_LENGTH) {
-      setError(`Password must be at least ${MIN_LENGTH} characters`);
+    // Same policy as signup — see lib/auth/password.ts. Enforcing it
+    // only at registration would let anyone reset their way to a weaker
+    // password than the signup form ever allowed.
+    const passwordProblem = firstPasswordError(password);
+    if (passwordProblem) {
+      setError(passwordProblem);
       return;
     }
     if (password !== confirmPassword) {
@@ -83,11 +87,12 @@ export function NewPasswordForm({
           <Input
             id="password"
             type={showPassword ? "text" : "password"}
-            placeholder="At least 6 characters"
+            placeholder="Create a strong password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="new-password"
+            aria-describedby="new-password-requirements"
             className="h-12 rounded-xl border-border bg-muted/40 pr-11 pl-11 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-background focus-visible:ring-primary/20"
           />
           <button
@@ -103,6 +108,11 @@ export function NewPasswordForm({
             )}
           </button>
         </div>
+        <PasswordRequirements
+          id="new-password-requirements"
+          value={password}
+          className="mt-1"
+        />
       </div>
 
       <div className="flex flex-col gap-1.5">

@@ -106,6 +106,7 @@ export async function middleware(request: NextRequest) {
     '/segments',
     '/templates',
     '/onboarding',
+    '/welcome',
   ];
   const onProtected = protectedPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path),
@@ -116,17 +117,27 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Onboarding gate — a brand-new account owner must complete the
-  // one-time plan-selection step (start the 14-day trial or subscribe)
-  // before reaching the app. The signup trigger leaves accounts.onboarded_at
-  // NULL (migration 070); it's stamped once the choice is made (the
-  // start-trial route or the Razorpay verify route). The extra lookup only
-  // runs on the in-app surface + the onboarding page itself.
+  // Two one-time gates, in order: WHO ARE YOU (/welcome), then WHICH
+  // PLAN (/onboarding), then the app.
+  //
+  //   profiles.profile_completed_at NULL (migration 073)
+  //     -> an OAuth signup we have no org / attribution for. Password
+  //        signups collect the same details on the signup form, so the
+  //        trigger stamps them complete and they skip this entirely.
+  //        Cleared by POST /api/account/complete-profile.
+  //
+  //   accounts.onboarded_at NULL (migration 070)
+  //     -> the owner hasn't started the 14-day trial or subscribed yet.
+  //        Cleared by the start-trial route or the Razorpay verify route.
+  //
+  // One lookup serves both, and only on the in-app surface plus the two
+  // gate pages themselves.
+  const onWelcome = request.nextUrl.pathname === '/welcome';
   const onOnboarding = request.nextUrl.pathname === '/onboarding';
   if (user && onProtected) {
     const { data: prof } = await supabase
       .from('profiles')
-      .select('account:accounts!inner(onboarded_at)')
+      .select('profile_completed_at, account:accounts!inner(onboarded_at)')
       .eq('user_id', user.id)
       .maybeSingle();
     // Supabase surfaces an !inner join as an object or a single-element
@@ -134,22 +145,29 @@ export async function middleware(request: NextRequest) {
     const accountRow = Array.isArray(prof?.account)
       ? prof?.account[0]
       : prof?.account;
-    // Fail OPEN: a missing profile row, a pre-070 fork without the column,
-    // or a transient read error must never trap a user behind the gate.
+    // Fail OPEN on both: a missing profile row, a pre-070/073 fork
+    // without the column, or a transient read error must never trap a
+    // user behind a gate they have no way to clear.
     const onboarded = accountRow ? accountRow.onboarded_at != null : true;
+    const profileComplete = prof ? prof.profile_completed_at != null : true;
 
-    if (!onboarded && !onOnboarding) {
+    const redirectTo = (pathname: string) => {
       const url = request.nextUrl.clone();
-      url.pathname = '/onboarding';
+      url.pathname = pathname;
       url.search = '';
       return NextResponse.redirect(url);
-    }
-    // Already chosen — don't let them sit on the gate; send them in.
-    if (onboarded && onOnboarding) {
-      const url = request.nextUrl.clone();
-      url.pathname = '/dashboard';
-      url.search = '';
-      return NextResponse.redirect(url);
+    };
+
+    if (!profileComplete) {
+      // Details outrank the plan step — someone with both pending goes
+      // to /welcome first, including when they land on /onboarding.
+      if (!onWelcome) return redirectTo('/welcome');
+    } else {
+      // Done with it; don't let them sit on the gate. Hand them
+      // straight to the next one so this isn't a double redirect.
+      if (onWelcome) return redirectTo(onboarded ? '/dashboard' : '/onboarding');
+      if (!onboarded && !onOnboarding) return redirectTo('/onboarding');
+      if (onboarded && onOnboarding) return redirectTo('/dashboard');
     }
   }
 
