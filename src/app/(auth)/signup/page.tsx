@@ -9,21 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthBrandPanel } from "@/components/auth/brand-panel";
 import { GoogleAuthButton, AuthDivider } from "@/components/auth/google-button";
+import { GoogleGisButton } from "@/components/auth/google-gis-button";
+import { googleGisEnabled } from "@/lib/auth/google-gis";
+import { OtpInput } from "@/components/auth/otp-input";
 import {
   PasswordErrorList,
   PasswordRequirementsHint,
 } from "@/components/auth/password-requirements";
 import { rememberOAuthNext } from "@/lib/auth/oauth-next";
 import { isPasswordValid } from "@/lib/auth/password";
-import {
-  MessageSquare,
-  User,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  KeyRound,
-} from "lucide-react";
+import { MessageSquare, User, Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 /** Matches the six digits Supabase puts in `{{ .Token }}`. */
 const CODE_LENGTH = 6;
@@ -327,30 +322,20 @@ function SignupPageInner() {
                 >
                   Six-digit code
                 </Label>
-                <div className="group relative">
-                  <KeyRound className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
-                  <Input
-                    id="code"
-                    // `inputMode` gets the numeric keypad on mobile;
-                    // `one-time-code` lets iOS and Android offer the code
-                    // straight from the notification.
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    autoFocus
-                    placeholder="000000"
-                    value={code}
-                    onChange={(e) =>
-                      setCode(
-                        e.target.value.replace(/\D/g, "").slice(0, CODE_LENGTH),
-                      )
-                    }
-                    required
-                    // `pr-11` matches `pl-11` so the digits sit on the
-                    // true centre — with padding on one side only, the
-                    // tracking pushes them visibly right.
-                    className="h-12 rounded-xl border-border bg-muted/40 pr-11 pl-11 text-center text-lg font-semibold tracking-[0.4em] text-foreground placeholder:font-normal placeholder:tracking-[0.4em] placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-background focus-visible:ring-primary/20"
-                  />
-                </div>
+                <OtpInput
+                  id="code"
+                  value={code}
+                  // Clear the rejection as soon as they start correcting
+                  // it, so the boxes aren't still red under a fresh code.
+                  onChange={(v) => {
+                    setCode(v);
+                    if (error) setError(null);
+                  }}
+                  length={CODE_LENGTH}
+                  disabled={loading}
+                  autoFocus
+                  invalid={!!error}
+                />
               </div>
 
               <Button
@@ -430,11 +415,29 @@ function SignupPageInner() {
           </div>
 
           <div className="mb-6 flex flex-col gap-5">
-            <GoogleAuthButton
-              label="Sign up with Google"
-              onClick={handleGoogle}
-              disabled={googleLoading || loading}
-            />
+            {/* See login/page.tsx — GIS avoids the supabase.co redirect so
+                Google's card names this site. Redirect button is default. */}
+            {googleGisEnabled() ? (
+              <GoogleGisButton
+                destination={destination}
+                label="Sign up with Google"
+                text="signup_with"
+                onError={setError}
+                fallback={
+                  <GoogleAuthButton
+                    label="Sign up with Google"
+                    onClick={handleGoogle}
+                    disabled={googleLoading || loading}
+                  />
+                }
+              />
+            ) : (
+              <GoogleAuthButton
+                label="Sign up with Google"
+                onClick={handleGoogle}
+                disabled={googleLoading || loading}
+              />
+            )}
             <AuthDivider />
           </div>
 

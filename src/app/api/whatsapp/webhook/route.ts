@@ -5,7 +5,10 @@ import { getMediaUrl, downloadMedia } from '@/lib/whatsapp/meta-api'
 import { normalizePhone } from '@/lib/whatsapp/phone-utils'
 import { findExistingContact, isUniqueViolation } from '@/lib/contacts/dedupe'
 import { verifyMetaWebhookSignature } from '@/lib/whatsapp/webhook-signature'
-import { runAutomationsForTrigger } from '@/lib/automations/engine'
+import {
+  runAutomationsForTrigger,
+  resumeRunsAwaitingReply,
+} from '@/lib/automations/engine'
 import { dispatchInboundToFlows } from '@/lib/flows/engine'
 import { triggerAiReplyEngine } from '@/lib/ai/dispatch'
 import { emitWebhookEvent } from '@/lib/webhooks/emit'
@@ -56,6 +59,23 @@ interface WhatsAppMessage {
      *  nested object — see parseFlowCompletion in lib/whatsapp/forms. */
     nfm_reply?: { name: string; response_json: unknown }
   }
+  /**
+   * Set when the customer taps a QUICK_REPLY button on a TEMPLATE.
+   *
+   * Deliberately separate from `interactive` above: Meta delivers a
+   * template button tap as its own top-level `type: "button"` message
+   * with a different shape — `text` is the button's visible label and
+   * `payload` is whatever we registered against it. Interactive session
+   * messages use `interactive.button_reply` instead.
+   *
+   * This distinction matters for drip campaigns: outside the 24-hour
+   * window only templates can be sent, so a template button is the ONLY
+   * way to offer a tappable choice to a contact who has been quiet for
+   * days. Without this branch such a tap lands in the `default` case and
+   * is recorded as "[Unsupported message type: button]", which no
+   * keyword trigger or awaiting automation can ever match.
+   */
+  button?: { payload?: string; text?: string }
   /** Present when the customer swipe-replies to one of our messages. */
   context?: { id: string }
 }
@@ -683,7 +703,9 @@ async function processMessage(
       ? message.type
       : message.type === 'sticker'
         ? 'image'   // stickers are images
-        : 'text'    // reaction, unknown → text fallback
+        : message.type === 'button'
+          ? 'interactive' // template quick-reply tap — a button press either way
+          : 'text'    // reaction, unknown → text fallback
 
   // A completed Form: look up which one this flow_token was sent for
   // (via the outbound message we stamped it on) and use its field
@@ -853,6 +875,26 @@ async function processMessage(
   // failure is still caught so one broken automation can't fail the
   // whole dispatch or delay the webhook's ack past the others.
   const inboundText = contentText ?? message.text?.body ?? ''
+
+  // Wake any sequence parked on this contact's answer BEFORE dispatching
+  // triggers.
+  //
+  // Order matters. A parked run is mid-conversation — it asked a
+  // question and this message is the reply — so it has the stronger
+  // claim on the message than a fresh `new_message_received` automation
+  // that merely happens to fire on everything. Resuming first also means
+  // a branch that adds or removes a tag has done so before any
+  // tag-sensitive trigger evaluates, rather than racing it.
+  //
+  // Not suppressed by `flowConsumed`: a Flow consuming the message is
+  // about which chatbot owns the conversation, and has no bearing on a
+  // drip campaign that has been waiting days for this person to answer.
+  await resumeRunsAwaitingReply({
+    accountId,
+    contactId: contactRecord.id,
+    messageText: inboundText,
+  }).catch((err) => console.error('[automations] reply resume failed:', err))
+
   const automationTriggers: (
     | 'new_contact_created'
     | 'first_inbound_message'
@@ -1233,6 +1275,23 @@ async function parseMessageContent(
         }
       }
       return { ...empty, contentText: '[Interactive reply]' }
+    }
+
+    // Template QUICK_REPLY tap. Mirrors the interactive branch above:
+    // the visible label becomes contentText so keyword triggers and the
+    // inbox both see what the customer actually pressed, and the
+    // payload is kept as the stable id for routing.
+    case 'button': {
+      const label = message.button?.text?.trim() || null
+      const payload = message.button?.payload?.trim() || null
+      if (label || payload) {
+        return {
+          ...empty,
+          contentText: label || payload,
+          interactiveReplyId: payload,
+        }
+      }
+      return { ...empty, contentText: '[Button reply]' }
     }
 
     default:

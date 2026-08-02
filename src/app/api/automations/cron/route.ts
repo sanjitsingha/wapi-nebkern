@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/automations/admin-client'
 import { resumePendingExecution } from '@/lib/automations/engine'
 import type { AutomationContext } from '@/lib/automations/engine'
+import type { AutomationBranch } from '@/types'
 import { recordCronHeartbeat } from '@/lib/system/cron-heartbeat'
 
 /**
@@ -73,9 +74,14 @@ export async function GET(request: Request) {
       contact_id: (row.contact_id as string | null) ?? null,
       log_id: (row.log_id as string | null) ?? null,
       parent_step_id: (row.parent_step_id as string | null) ?? null,
-      branch: (row.branch as 'yes' | 'no' | null) ?? null,
+      branch: (row.branch as AutomationBranch | null) ?? null,
       next_step_position: row.next_step_position as number,
       context: (row.context as AutomationContext) ?? {},
+      // A wait_for_reply row surfacing here means its deadline passed
+      // with no answer — the engine reads these to route it into the
+      // 'timeout' branch instead of continuing the parent scope.
+      wait_kind: (row.wait_kind as 'timer' | 'reply' | null) ?? 'timer',
+      reply_step_id: (row.reply_step_id as string | null) ?? null,
     })
     processed++
   }

@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 interface GoogleAuthButtonProps {
@@ -9,6 +10,17 @@ interface GoogleAuthButtonProps {
   /** Starts the Supabase Google OAuth flow — supplied by the login/signup
    *  page (`supabase.auth.signInWithOAuth({ provider: 'google' })`). */
   onClick?: () => void;
+  /**
+   * Render as a visual shell only — no focus, hidden from assistive tech,
+   * ignores pointer events.
+   *
+   * Used by GoogleGisButton, which paints this underneath Google's own
+   * (transparent) rendered button so the app keeps its styling while
+   * Google's iframe takes the real click. Without this the two would
+   * stack: two tab stops and two "Sign in with Google" announcements for
+   * one control.
+   */
+  decorative?: boolean;
 }
 
 /**
@@ -20,6 +32,7 @@ export function GoogleAuthButton({
   label = "Continue with Google",
   disabled,
   onClick,
+  decorative = false,
 }: GoogleAuthButtonProps) {
   return (
     <Button
@@ -27,7 +40,15 @@ export function GoogleAuthButton({
       variant="outline"
       disabled={disabled}
       onClick={onClick}
-      className="h-12 w-full gap-3 rounded-xl border-border bg-background text-sm font-medium text-foreground transition hover:bg-muted disabled:opacity-50"
+      tabIndex={decorative ? -1 : undefined}
+      aria-hidden={decorative || undefined}
+      className={cn(
+        "h-12 w-full gap-3 rounded-xl border-border bg-background text-sm font-medium text-foreground transition hover:bg-muted disabled:opacity-50",
+        // The real control sits on top, so hover has to come from the
+        // wrapper (`group`) rather than this element — the pointer never
+        // actually touches it.
+        decorative && "pointer-events-none group-hover:bg-muted",
+      )}
     >
       <GoogleIcon />
       {label}

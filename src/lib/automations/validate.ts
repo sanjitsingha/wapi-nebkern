@@ -23,7 +23,7 @@ export interface ValidationIssue {
 interface StepLike {
   step_type: string
   step_config: Record<string, unknown>
-  branches?: { yes?: StepLike[]; no?: StepLike[] }
+  branches?: { yes?: StepLike[]; no?: StepLike[]; timeout?: StepLike[] }
 }
 
 export function validateStepsForActivation(steps: StepLike[]): ValidationIssue[] {
@@ -43,9 +43,17 @@ function walk(steps: StepLike[], prefix: string, issues: ValidationIssue[]): voi
   steps.forEach((s, i) => {
     const path = `${prefix}steps[${i}]`
     validateOne(s, path, issues)
-    if (s.step_type === 'condition' && s.branches) {
+    // Both branching step types carry their children in buckets; a
+    // wait_for_reply adds `timeout` for the contact who never answers.
+    // Walking it matters — steps buried in an unvalidated branch are
+    // exactly the ones nobody notices until they fire days later.
+    if (
+      (s.step_type === 'condition' || s.step_type === 'wait_for_reply') &&
+      s.branches
+    ) {
       if (s.branches.yes) walk(s.branches.yes, `${path}.yes.`, issues)
       if (s.branches.no) walk(s.branches.no, `${path}.no.`, issues)
+      if (s.branches.timeout) walk(s.branches.timeout, `${path}.timeout.`, issues)
     }
   })
 }
@@ -123,6 +131,25 @@ function validateOne(step: StepLike, path: string, issues: ValidationIssue[]): v
         issues.push({ path: `${path}.title`, message: 'title is required' })
       }
       break
+    case 'wait_for_reply': {
+      // The timeout is mandatory, not a nicety. A parked run with no
+      // deadline waits for a reply that may never come, holding its log
+      // open forever — and most contacts never answer.
+      const amount = c.timeout_amount
+      if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
+        issues.push({
+          path: `${path}.timeout_amount`,
+          message: 'wait-for-reply timeout must be greater than 0',
+        })
+      }
+      if (!['minutes', 'hours', 'days'].includes(String(c.timeout_unit))) {
+        issues.push({
+          path: `${path}.timeout_unit`,
+          message: 'wait-for-reply timeout unit must be minutes, hours, or days',
+        })
+      }
+      break
+    }
     case 'wait':
       if (typeof c.amount !== 'number' || !Number.isFinite(c.amount) || c.amount <= 0) {
         issues.push({ path: `${path}.amount`, message: 'wait amount must be greater than 0' })

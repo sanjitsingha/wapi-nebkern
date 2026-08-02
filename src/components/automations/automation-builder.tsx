@@ -31,6 +31,7 @@ import {
   ArrowDown,
   ArrowUp,
   MousePointerClick,
+  MessageSquareReply,
   X,
 } from "lucide-react"
 
@@ -46,6 +47,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import type {
   AccountMember,
+  AutomationBranch,
   AutomationStepType,
   AutomationTriggerType,
   CustomField,
@@ -65,7 +67,12 @@ export interface BuilderStep {
   cid: string
   step_type: AutomationStepType
   step_config: Record<string, unknown>
-  branches?: { yes: BuilderStep[]; no: BuilderStep[] }
+  branches?: {
+    yes: BuilderStep[]
+    no: BuilderStep[]
+    /** Only a wait_for_reply uses this; a condition leaves it empty. */
+    timeout: BuilderStep[]
+  }
 }
 
 export interface BuilderInitial {
@@ -99,6 +106,11 @@ const STEP_META: Record<AutomationStepType, StepMeta> = {
   update_contact_field: { label: "Update Contact Field", icon: PencilLine, border: "border-l-primary" },
   create_deal: { label: "Create Deal", icon: Briefcase, border: "border-l-primary" },
   wait: { label: "Wait", icon: Hourglass, border: "border-l-border" },
+  wait_for_reply: {
+    label: "Wait for Reply",
+    icon: MessageSquareReply,
+    border: "border-l-amber-500",
+  },
   condition: { label: "Condition (If/Else)", icon: GitBranch, border: "border-l-amber-500" },
   send_webhook: { label: "Send Webhook", icon: Webhook, border: "border-l-primary" },
   close_conversation: { label: "Close Conversation", icon: CircleSlash, border: "border-l-primary" },
@@ -114,10 +126,34 @@ const ADDABLE_STEPS: AutomationStepType[] = [
   "update_contact_field",
   "create_deal",
   "wait",
+  "wait_for_reply",
   "condition",
   "send_webhook",
   "close_conversation",
 ]
+
+/**
+ * Step types whose children live in branch buckets instead of following
+ * inline. They render their outcomes as columns and have no linear
+ * "continue" connector — anything after them belongs inside a branch.
+ */
+const BRANCHING_STEPS: AutomationStepType[] = ["condition", "wait_for_reply"]
+
+/** Which outcome columns a branching step shows, and how they read. */
+const BRANCH_COLUMNS: Record<
+  string,
+  { branch: AutomationBranch; label: string; color: string }[]
+> = {
+  condition: [
+    { branch: "yes", label: "Yes", color: "text-primary" },
+    { branch: "no", label: "No", color: "text-rose-400" },
+  ],
+  wait_for_reply: [
+    { branch: "yes", label: "Reply matches", color: "text-primary" },
+    { branch: "no", label: "Other reply", color: "text-rose-400" },
+    { branch: "timeout", label: "No reply", color: "text-muted-foreground" },
+  ],
+}
 
 const TRIGGER_OPTIONS: { value: AutomationTriggerType; label: string; hint: string }[] = [
   { value: "new_message_received", label: "New Message Received", hint: "Any incoming message" },
@@ -161,6 +197,11 @@ function blankConfig(type: AutomationStepType): Record<string, unknown> {
       return { pipeline_id: "", stage_id: "", title: "", value: 0 }
     case "wait":
       return { amount: 1, unit: "hours" }
+    case "wait_for_reply":
+      // 3 days is the drip-campaign default: long enough that a contact
+      // who checks WhatsApp a few times a week still gets counted as a
+      // reply, short enough that the sequence doesn't stall for a week.
+      return { match_value: "", timeout_amount: 3, timeout_unit: "days" }
     case "condition":
       return { subject: "tag_presence", operand: "", value: "" }
     case "send_webhook":
@@ -580,7 +621,9 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
       cid: cid(),
       step_type: type,
       step_config: blankConfig(type),
-      branches: type === "condition" ? { yes: [], no: [] } : undefined,
+      branches: BRANCHING_STEPS.includes(type)
+        ? { yes: [], no: [], timeout: [] }
+        : undefined,
     }
     setState((s) => ({ ...s, steps: insertAt(s.steps, parent, index, node) }))
     setExpandedId(node.cid)
@@ -883,11 +926,11 @@ function KeywordMatchConfig({
 
 type ParentScope =
   | { kind: "root" }
-  | { kind: "branch"; parentCid: string; branch: "yes" | "no" }
+  | { kind: "branch"; parentCid: string; branch: AutomationBranch }
 
 type StepPath = (
   | { kind: "root"; index: number }
-  | { kind: "branch"; parentCid: string; branch: "yes" | "no"; index: number }
+  | { kind: "branch"; parentCid: string; branch: AutomationBranch; index: number }
 )[]
 
 interface StepListProps {
@@ -953,13 +996,17 @@ function StepRenderer({
   const meta = STEP_META[step.step_type]
   const Icon = meta.icon
   const expanded = props.expandedId === step.cid
-  const isCondition = step.step_type === "condition"
+  const isBranching = BRANCHING_STEPS.includes(step.step_type)
+  const branchCount = (BRANCH_COLUMNS[step.step_type] ?? []).length
   // Card widths on mobile fill the full canvas column (max-w-2xl px-4
   // still keeps them reasonable). On sm+ the original fixed widths
-  // come back so the flow visual stays recognisable.
-  const width = isCondition
-    ? "w-full max-w-[400px] sm:w-[400px]"
-    : "w-full max-w-[320px] sm:w-80"
+  // come back so the flow visual stays recognisable. A three-outcome
+  // step gets more room so its columns don't crush.
+  const width = !isBranching
+    ? "w-full max-w-[320px] sm:w-80"
+    : branchCount === 3
+      ? "w-full max-w-[560px] sm:w-[560px]"
+      : "w-full max-w-[400px] sm:w-[400px]"
 
   return (
     <>
@@ -981,7 +1028,13 @@ function StepRenderer({
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                {isCondition ? "Condition" : step.step_type === "wait" ? "Wait" : "Action"}
+                {step.step_type === "condition"
+                  ? "Condition"
+                  : step.step_type === "wait_for_reply"
+                    ? "Wait for reply"
+                    : step.step_type === "wait"
+                      ? "Wait"
+                      : "Action"}
               </div>
               <div className="truncate text-sm font-medium text-foreground">{meta.label}</div>
               <div className="truncate text-[11px] text-muted-foreground">{previewFor(step)}</div>
@@ -1030,15 +1083,16 @@ function StepRenderer({
           )}
         </div>
 
-        {isCondition && (
+        {isBranching && (
           <ConditionBranches step={step} parentPath={path} {...props} />
         )}
       </div>
 
-      {/* A condition branches into Yes/No (rendered above by
-          ConditionBranches), so it has no linear "continue" path — adding
-          the trailing connector here would produce a spurious third output. */}
-      {!isCondition && (
+      {/* A branching step's outcomes are rendered above by
+          ConditionBranches, so it has no linear "continue" path — adding
+          the trailing connector here would produce a spurious extra
+          output that could never be reached. */}
+      {!isBranching && (
         <AddButton
           onPick={(t) => props.addStepAt(parentScope, index + 1, t)}
         />
@@ -1055,30 +1109,36 @@ function ConditionBranches({
   step: BuilderStep
   parentPath: StepPath
 } & Omit<StepListProps, "steps" | "parentPath">) {
-  const yes = step.branches?.yes ?? []
-  const no = step.branches?.no ?? []
-  // Build the child scope by appending a branch marker. The scope the
-  // StepList uses is driven by the LAST element of parentPath, so the
-  // tail's `index` doesn't matter — it's replaced per child during walks.
-  const yesPath: StepPath = [
-    ...parentPath,
-    { kind: "branch", parentCid: step.cid, branch: "yes", index: 0 },
-  ]
-  const noPath: StepPath = [
-    ...parentPath,
-    { kind: "branch", parentCid: step.cid, branch: "no", index: 0 },
-  ]
+  const columns = BRANCH_COLUMNS[step.step_type] ?? BRANCH_COLUMNS.condition
   return (
-    // Stack Yes/No vertically on mobile — two columns at 375px would
-    // cram each branch to ~170px which is too narrow for the nested
-    // cards. Two-column grid returns on sm+.
-    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-      <BranchColumn label="Yes" color="text-primary">
-        <StepList {...props} steps={yes} parentPath={yesPath} />
-      </BranchColumn>
-      <BranchColumn label="No" color="text-rose-400">
-        <StepList {...props} steps={no} parentPath={noPath} />
-      </BranchColumn>
+    // Stack vertically on mobile — even two columns at 375px would cram
+    // each branch to ~170px, too narrow for the nested cards. The column
+    // count on sm+ follows the step: 2 for a condition, 3 for a
+    // wait_for_reply.
+    <div
+      className={cn(
+        "mt-3 grid grid-cols-1 gap-3",
+        columns.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2",
+      )}
+    >
+      {columns.map((col) => {
+        // Build the child scope by appending a branch marker. The scope
+        // StepList uses is driven by the LAST element of parentPath, so
+        // the tail's `index` doesn't matter — walks replace it per child.
+        const path: StepPath = [
+          ...parentPath,
+          { kind: "branch", parentCid: step.cid, branch: col.branch, index: 0 },
+        ]
+        return (
+          <BranchColumn key={col.branch} label={col.label} color={col.color}>
+            <StepList
+              {...props}
+              steps={step.branches?.[col.branch] ?? []}
+              parentPath={path}
+            />
+          </BranchColumn>
+        )
+      })}
     </div>
   )
 }
@@ -1297,6 +1357,47 @@ function StepEditor({
             </select>
           </FieldBlock>
         </div>
+      )
+    case "wait_for_reply":
+      return (
+        <>
+          <FieldBlock label="Reply matches (leave empty for any reply)">
+            <Input
+              placeholder="Yes, keep going"
+              value={(cfg.match_value as string) ?? ""}
+              onChange={(e) => set({ match_value: e.target.value })}
+              className="bg-muted text-foreground"
+            />
+          </FieldBlock>
+          <p className="-mt-1 mb-2 text-[11px] leading-relaxed text-muted-foreground">
+            Matched case-insensitively against what the contact sends. For a
+            template button, use the button&apos;s exact label.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <FieldBlock label="Give up after">
+              <Input
+                type="number"
+                min={1}
+                value={(cfg.timeout_amount as number) ?? 3}
+                onChange={(e) =>
+                  set({ timeout_amount: Math.max(1, Number(e.target.value)) })
+                }
+                className="bg-muted text-foreground"
+              />
+            </FieldBlock>
+            <FieldBlock label="Unit">
+              <select
+                value={(cfg.timeout_unit as string) ?? "days"}
+                onChange={(e) => set({ timeout_unit: e.target.value })}
+                className="w-full rounded-md border border-border bg-muted px-2 py-1.5 text-sm text-foreground"
+              >
+                <option value="minutes">Minutes</option>
+                <option value="hours">Hours</option>
+                <option value="days">Days</option>
+              </select>
+            </FieldBlock>
+          </div>
+        </>
       )
     case "condition":
       return (
@@ -1581,7 +1682,7 @@ function moveInBranches(
 interface ApiStep {
   step_type: string
   step_config: Record<string, unknown>
-  branches?: { yes?: ApiStep[]; no?: ApiStep[] }
+  branches?: { yes?: ApiStep[]; no?: ApiStep[]; timeout?: ApiStep[] }
 }
 
 export function toApiSteps(steps: BuilderStep[]): ApiStep[] {
@@ -1589,7 +1690,11 @@ export function toApiSteps(steps: BuilderStep[]): ApiStep[] {
     step_type: s.step_type,
     step_config: s.step_config,
     branches: s.branches
-      ? { yes: toApiSteps(s.branches.yes), no: toApiSteps(s.branches.no) }
+      ? {
+          yes: toApiSteps(s.branches.yes),
+          no: toApiSteps(s.branches.no),
+          timeout: toApiSteps(s.branches.timeout ?? []),
+        }
       : undefined,
   }))
 }
@@ -1602,7 +1707,11 @@ export interface ServerStepNode {
   id: string
   step_type: string
   step_config: Record<string, unknown>
-  branches: { yes: ServerStepNode[]; no: ServerStepNode[] }
+  branches: {
+    yes: ServerStepNode[]
+    no: ServerStepNode[]
+    timeout?: ServerStepNode[]
+  }
 }
 
 export function fromServerSteps(nodes: ServerStepNode[]): BuilderStep[] {
@@ -1610,12 +1719,12 @@ export function fromServerSteps(nodes: ServerStepNode[]): BuilderStep[] {
     cid: cid(),
     step_type: n.step_type as AutomationStepType,
     step_config: n.step_config ?? {},
-    branches:
-      n.step_type === "condition"
-        ? {
-            yes: fromServerSteps(n.branches?.yes ?? []),
-            no: fromServerSteps(n.branches?.no ?? []),
-          }
-        : undefined,
+    branches: BRANCHING_STEPS.includes(n.step_type as AutomationStepType)
+      ? {
+          yes: fromServerSteps(n.branches?.yes ?? []),
+          no: fromServerSteps(n.branches?.no ?? []),
+          timeout: fromServerSteps(n.branches?.timeout ?? []),
+        }
+      : undefined,
   }))
 }

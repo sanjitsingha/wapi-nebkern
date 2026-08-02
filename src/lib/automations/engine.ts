@@ -12,6 +12,8 @@ import type {
   TagStepConfig,
   UpdateContactFieldStepConfig,
   WaitStepConfig,
+  WaitForReplyStepConfig,
+  AutomationBranch,
   CreateDealStepConfig,
   AssignConversationStepConfig,
 } from '@/types'
@@ -125,9 +127,12 @@ export async function resumePendingExecution(pending: {
   contact_id: string | null
   log_id: string | null
   parent_step_id: string | null
-  branch: 'yes' | 'no' | null
+  branch: AutomationBranch | null
   next_step_position: number
   context: AutomationContext
+  /** 'reply' rows reaching the cron means the deadline won, not a reply. */
+  wait_kind?: 'timer' | 'reply' | null
+  reply_step_id?: string | null
 }): Promise<void> {
   const db = supabaseAdmin()
   const { data: automation, error } = await db
@@ -142,22 +147,123 @@ export async function resumePendingExecution(pending: {
     return
   }
 
+  // A `reply` row that the CRON picks up is a run whose deadline expired
+  // without the contact ever answering. That's the timeout branch — not
+  // a continuation of the parent scope, so it descends into the
+  // wait_for_reply step's children like a resumed reply would.
+  const timedOut = pending.wait_kind === 'reply' && !!pending.reply_step_id
+
   try {
     await executeStepsFrom({
       automation: automation as Automation,
       contactId: pending.contact_id,
       context: pending.context ?? {},
-      parentStepId: pending.parent_step_id,
-      branch: pending.branch,
-      startPosition: pending.next_step_position,
+      parentStepId: timedOut ? pending.reply_step_id! : pending.parent_step_id,
+      branch: timedOut ? 'timeout' : pending.branch,
+      startPosition: timedOut ? 0 : pending.next_step_position,
       logId: pending.log_id,
-      triggerEvent: 'resumed_wait',
+      triggerEvent: timedOut ? 'reply_timeout' : 'resumed_wait',
     })
     await markPending(pending.id, 'done')
   } catch (err) {
     console.error('[automations] resume failed:', err)
     await markPending(pending.id, 'failed')
   }
+}
+
+/**
+ * Wake every run parked on this contact's reply. Called from the webhook
+ * for each inbound message, before automation triggers are dispatched.
+ *
+ * A contact can legitimately be parked in several sequences at once, so
+ * this resumes all of them — each decides its own branch from the same
+ * message.
+ *
+ * The claim (`pending → running`, conditional on it still being
+ * `pending`) is what keeps a fast double-message from resuming the same
+ * run twice; the cron's timeout sweep uses the identical guard, so
+ * whichever fires first wins and the other finds nothing to claim.
+ *
+ * Returns how many runs were resumed, for logging.
+ */
+export async function resumeRunsAwaitingReply(args: {
+  accountId: string
+  contactId: string
+  messageText: string
+}): Promise<number> {
+  const db = supabaseAdmin()
+
+  const { data: parked, error } = await db
+    .from('automation_pending_executions')
+    .select('*')
+    .eq('account_id', args.accountId)
+    .eq('contact_id', args.contactId)
+    .eq('wait_kind', 'reply')
+    .eq('status', 'pending')
+  if (error) {
+    console.error('[automations] awaiting-reply lookup failed:', error)
+    return 0
+  }
+  if (!parked || parked.length === 0) return 0
+
+  let resumed = 0
+  for (const row of parked) {
+    const { data: claim } = await db
+      .from('automation_pending_executions')
+      .update({ status: 'running' })
+      .eq('id', row.id)
+      .eq('status', 'pending')
+      .select('id')
+      .maybeSingle()
+    if (!claim) continue
+
+    const { data: automation } = await db
+      .from('automations')
+      .select('*')
+      .eq('id', row.automation_id)
+      .single()
+    if (!automation) {
+      await markPending(row.id as string, 'failed')
+      continue
+    }
+
+    const { data: step } = await db
+      .from('automation_steps')
+      .select('step_config')
+      .eq('id', row.reply_step_id)
+      .maybeSingle()
+    const cfg = (step?.step_config ?? {}) as WaitForReplyStepConfig
+    const needle = (cfg.match_value ?? '').trim().toLowerCase()
+    // No configured value means "any reply counts" — everything that
+    // arrives is an answer, so it all goes down `yes`.
+    const branch: AutomationBranch =
+      !needle || args.messageText.toLowerCase().includes(needle) ? 'yes' : 'no'
+
+    try {
+      await executeStepsFrom({
+        automation: automation as Automation,
+        contactId: args.contactId,
+        // The reply is what the branch steps interpolate and what any
+        // nested condition reads, so it replaces the trigger's stale
+        // message_text rather than sitting alongside it.
+        context: {
+          ...((row.context as AutomationContext) ?? {}),
+          message_text: args.messageText,
+        },
+        parentStepId: row.reply_step_id as string,
+        branch,
+        startPosition: 0,
+        logId: (row.log_id as string | null) ?? null,
+        triggerEvent: 'reply_received',
+      })
+      await markPending(row.id as string, 'done')
+      resumed++
+    } catch (err) {
+      console.error('[automations] reply resume failed:', err)
+      await markPending(row.id as string, 'failed')
+    }
+  }
+  return resumed
 }
 
 // ------------------------------------------------------------
@@ -218,7 +324,7 @@ interface ExecuteArgs {
   contactId: string | null
   context: AutomationContext
   parentStepId: string | null
-  branch: 'yes' | 'no' | null
+  branch: AutomationBranch | null
   startPosition: number
   logId: string | null
   triggerEvent: string
@@ -281,6 +387,53 @@ async function executeStepsFrom(args: ExecuteArgs): Promise<void> {
         step_type: step.step_type,
         status: 'success',
         detail: `waiting ${cfg.amount} ${cfg.unit}`,
+      })
+      status = 'partial'
+      await appendResults(args.logId, results, status, errorMessage)
+      return
+    }
+
+    // `wait_for_reply` is the second suspension point. Same parking
+    // mechanism as `wait`, but two ways to wake:
+    //
+    //   the contact replies  -> the webhook resumes it into yes/no
+    //   run_at passes first  -> the cron resumes it into timeout
+    //
+    // So `run_at` is a give-up deadline here rather than a schedule.
+    // The step's own id is stored because the branches hang off it as
+    // children, exactly like a condition's — resume descends into
+    // those rather than continuing at next_step_position.
+    if (step.step_type === 'wait_for_reply') {
+      const cfg = step.step_config as WaitForReplyStepConfig
+      const ms = waitMs({
+        amount: cfg.timeout_amount ?? 3,
+        unit: cfg.timeout_unit ?? 'days',
+      })
+      if (!args.contactId) {
+        // No contact means nothing can ever reply — parking here would
+        // strand the run until its timeout for no reason.
+        throw new Error('wait_for_reply needs a contact')
+      }
+      await db.from('automation_pending_executions').insert({
+        automation_id: args.automation.id,
+        account_id: args.automation.account_id,
+        user_id: args.automation.user_id,
+        contact_id: args.contactId,
+        log_id: args.logId,
+        parent_step_id: args.parentStepId,
+        branch: args.branch,
+        next_step_position: step.position + 1,
+        context: args.context,
+        wait_kind: 'reply',
+        reply_step_id: step.id,
+        run_at: new Date(Date.now() + ms).toISOString(),
+        status: 'pending',
+      })
+      results.push({
+        step_id: step.id,
+        step_type: step.step_type,
+        status: 'success',
+        detail: `awaiting reply (up to ${cfg.timeout_amount} ${cfg.timeout_unit})`,
       })
       status = 'partial'
       await appendResults(args.logId, results, status, errorMessage)

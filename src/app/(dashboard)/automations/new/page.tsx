@@ -74,7 +74,9 @@ function expandFromSeeds(rows: SeedRow[]): BuilderStep[] {
     step_type: r.step_type,
     step_config: r.step_config,
     branches:
-      r.step_type === "condition" ? { yes: [], no: [] } : undefined,
+      r.step_type === "condition" || r.step_type === "wait_for_reply"
+        ? { yes: [], no: [], timeout: [] }
+        : undefined,
   }))
   const roots: BuilderStep[] = []
   rows.forEach((r, i) => {
@@ -83,7 +85,7 @@ function expandFromSeeds(rows: SeedRow[]): BuilderStep[] {
       return
     }
     const parent = nodes[r.parent_index]
-    if (!parent.branches) parent.branches = { yes: [], no: [] }
+    if (!parent.branches) parent.branches = { yes: [], no: [], timeout: [] }
     parent.branches[r.branch ?? "yes"].push(nodes[i])
   })
   return roots

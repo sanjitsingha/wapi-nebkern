@@ -92,29 +92,28 @@ export async function POST(request: Request) {
 
     const db = supabaseAdmin();
 
-    // Idempotency: a retried verify for an already-recorded payment just
-    // reports the existing state instead of extending the period twice.
-    const { data: existing } = await db
-      .from('invoices')
-      .select('id, invoice_number, period_end')
-      .eq('payment_reference', paymentId)
-      .maybeSingle();
-    if (existing) {
-      return NextResponse.json({
-        planKey,
-        alreadyProcessed: true,
-        invoiceNumber: existing.invoice_number,
-        periodEnd: existing.period_end,
-      });
-    }
-
     // Plan row (not filtered on is_active — the payment already happened;
     // deactivating a plan stops new orders, not verification of paid ones).
-    const { data: plan } = await db
+    //
+    // Every read below checks `error` separately from an empty result. A
+    // service-role query that FAILS and one that finds nothing are wildly
+    // different problems — the money has already left the customer's
+    // account by this point, and reporting a dropped connection as "your
+    // plan no longer exists" sends them to support with the wrong story.
+    const { data: plan, error: planErr } = await db
       .from('billing_plans')
       .select('key, name, amount, currency, interval')
       .eq('key', planKey)
       .maybeSingle();
+    if (planErr) {
+      console.error('[razorpay/verify] plan lookup failed:', planErr);
+      return NextResponse.json(
+        {
+          error: `Payment received but activation failed — contact support quoting ${paymentId}.`,
+        },
+        { status: 500 },
+      );
+    }
     if (!plan) {
       console.error(`[razorpay/verify] paid order for unknown plan "${planKey}"`);
       return NextResponse.json(
@@ -128,18 +127,65 @@ export async function POST(request: Request) {
 
     // Stack onto an unexpired period of the same plan, else start now —
     // the same semantics as activation-code redemption (migration 065).
-    const { data: account } = await db
+    const { data: account, error: accountErr } = await db
       .from('accounts')
-      .select('billing_plan_key, current_period_end, onboarded_at')
+      .select('billing_plan_key, subscription_status, current_period_end, onboarded_at')
       .eq('id', ctx.accountId)
       .maybeSingle();
+    if (accountErr || !account) {
+      console.error('[razorpay/verify] account read failed:', accountErr);
+      return NextResponse.json(
+        {
+          error: `Payment received but activation failed — contact support quoting ${paymentId}.`,
+        },
+        { status: 500 },
+      );
+    }
+
+    // Idempotency: a retried verify for an already-recorded payment must
+    // not extend the period twice.
+    //
+    // Checked HERE, after the account read, rather than up front — an
+    // invoice row proves the payment was recorded, not that the plan was
+    // activated. The activation and the ledger write are two separate
+    // statements, so a crash between them leaves exactly that state, and
+    // an early return on the invoice alone would strand the customer:
+    // charged, recorded, and permanently un-activated because every retry
+    // short-circuits. Only skip the work when the account actually shows
+    // the plan live.
+    const { data: existing, error: existingErr } = await db
+      .from('invoices')
+      .select('id, invoice_number, period_end')
+      .eq('payment_reference', paymentId)
+      .maybeSingle();
+    if (existingErr) {
+      console.error('[razorpay/verify] invoice lookup failed:', existingErr);
+      return NextResponse.json(
+        {
+          error: `Payment received but activation failed — contact support quoting ${paymentId}.`,
+        },
+        { status: 500 },
+      );
+    }
+    const alreadyActive =
+      account.billing_plan_key === plan.key &&
+      account.subscription_status === 'active';
+    if (existing && alreadyActive) {
+      return NextResponse.json({
+        planKey: plan.key,
+        planName: plan.name,
+        alreadyProcessed: true,
+        invoiceNumber: existing.invoice_number,
+        periodEnd: existing.period_end,
+      });
+    }
 
     const now = new Date();
     const currentEnd = account?.current_period_end
       ? new Date(account.current_period_end)
       : null;
     const stacking =
-      account?.billing_plan_key === plan.key &&
+      account.billing_plan_key === plan.key &&
       currentEnd !== null &&
       currentEnd > now;
     const base = stacking ? (currentEnd as Date) : now;
@@ -158,45 +204,57 @@ export async function POST(request: Request) {
     // Paying IS a completed plan-selection choice — clear the onboarding
     // gate (migration 070) so a first payment lands the user in the app.
     // Only stamp it once, to preserve the original onboarding time.
-    if (!account?.onboarded_at) accountUpdate.onboarded_at = now.toISOString();
+    if (!account.onboarded_at) accountUpdate.onboarded_at = now.toISOString();
 
     const { error: updateErr } = await db
       .from('accounts')
       .update(accountUpdate)
       .eq('id', ctx.accountId);
-    if (updateErr) {
-      console.error('[razorpay/verify] account update failed:', updateErr);
-      return NextResponse.json(
-        { error: 'Payment received but activation failed — contact support.' },
-        { status: 500 },
-      );
-    }
 
     // Record the payment in the invoices ledger (tenant sees it in
     // Settings → Plan; printable at /invoices/[id]).
-    const { data: invoice, error: invoiceErr } = await db
-      .from('invoices')
-      .insert({
-        account_id: ctx.accountId,
-        plan_key: plan.key,
-        description: `${plan.name} plan — ${interval === 'yearly' ? '1 year' : '1 month'} (Razorpay)`,
-        amount: Number(order.amount) || plan.amount,
-        currency: plan.currency,
-        status: 'paid',
-        period_start: base.toISOString(),
-        period_end: end.toISOString(),
-        paid_at: now.toISOString(),
-        payment_method: 'razorpay',
-        payment_reference: paymentId,
-        notes: `Razorpay order ${orderId}`,
-        created_by: ctx.userId,
-      })
-      .select('id, invoice_number')
-      .single();
-    if (invoiceErr) {
-      // The plan IS active — don't fail the whole request over ledger
-      // bookkeeping; log loudly instead.
-      console.error('[razorpay/verify] invoice insert failed:', invoiceErr);
+    //
+    // Written even when activation just failed, and that ordering is the
+    // point: the customer has been charged either way, and an invoice is
+    // the only durable trace of it on our side. Losing the row because
+    // the accounts UPDATE errored is how a payment becomes invisible to
+    // everyone except Razorpay's dashboard. `existing` means a previous
+    // attempt already wrote it — skip the insert, keep the activation.
+    let invoice = existing ?? null;
+    if (!existing) {
+      const { data: inserted, error: invoiceErr } = await db
+        .from('invoices')
+        .insert({
+          account_id: ctx.accountId,
+          plan_key: plan.key,
+          description: `${plan.name} plan — ${interval === 'yearly' ? '1 year' : '1 month'} (Razorpay)`,
+          amount: Number(order.amount) || plan.amount,
+          currency: plan.currency,
+          status: 'paid',
+          period_start: base.toISOString(),
+          period_end: end.toISOString(),
+          paid_at: now.toISOString(),
+          payment_method: 'razorpay',
+          payment_reference: paymentId,
+          notes: `Razorpay order ${orderId}`,
+          created_by: ctx.userId,
+        })
+        .select('id, invoice_number, period_end')
+        .single();
+      if (invoiceErr) {
+        console.error('[razorpay/verify] invoice insert failed:', invoiceErr);
+      }
+      invoice = inserted ?? null;
+    }
+
+    if (updateErr) {
+      console.error('[razorpay/verify] account update failed:', updateErr);
+      return NextResponse.json(
+        {
+          error: `Payment received but activation failed — contact support quoting ${paymentId}.`,
+        },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({

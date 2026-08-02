@@ -39,7 +39,13 @@ const SECURITY_HEADERS = [
       // Next.js needs 'unsafe-inline' for its inline hydration script
       // and 'unsafe-eval' in dev + some production optimisations.
       // Nonce-based CSP is a later project.
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      // Razorpay Standard Checkout injects checkout.js from its own CDN
+      // (see src/components/billing/razorpay-checkout.ts) — without it
+      // listed, enforcing this policy kills the payment modal outright.
+      // accounts.google.com serves the Google Identity Services client
+      // (src/lib/auth/google-gis.ts). Without it the GIS button silently
+      // never renders — no error, just a missing sign-in option.
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://accounts.google.com https://gstatic.com https://www.gstatic.com",
       // Tailwind + inline style attributes on lots of components.
       "style-src 'self' 'unsafe-inline'",
       // Supabase public-bucket avatars, contact avatars (arbitrary
@@ -52,7 +58,13 @@ const SECURITY_HEADERS = [
       "font-src 'self' data:",
       // Supabase REST + realtime (WSS). All Meta API calls happen
       // server-side, so graph.facebook.com does not belong here.
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://lumberjack.razorpay.com https://accounts.google.com",
+      // The checkout modal is an iframe off Razorpay's domain, and the
+      // bank/UPI step redirects inside it — no frame-src means this
+      // falls back to default-src 'self' and the modal renders blank.
+      // Google's Sign in with Google button and One Tap card are iframes
+      // off accounts.google.com for the same reason.
+      "frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com https://accounts.google.com",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",

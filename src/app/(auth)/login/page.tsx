@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { MessageSquare, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { AuthBrandPanel } from "@/components/auth/brand-panel";
 import { GoogleAuthButton, AuthDivider } from "@/components/auth/google-button";
+import { GoogleGisButton } from "@/components/auth/google-gis-button";
+import { googleGisEnabled } from "@/lib/auth/google-gis";
 import { rememberOAuthNext } from "@/lib/auth/oauth-next";
 
 // `useSearchParams` opts the component out of static prerendering
@@ -32,6 +34,13 @@ function LoginPageInner() {
   // page to accept rather than to /dashboard.
   const inviteToken = searchParams.get("invite");
 
+  // Where a successful sign-in lands. The redirect flow stashes this in a
+  // cookie for /auth/callback to read; GIS has no round trip to lose it
+  // across, so it navigates here directly.
+  const destination = inviteToken
+    ? `/join/${encodeURIComponent(inviteToken)}`
+    : "/dashboard";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -53,9 +62,7 @@ function LoginPageInner() {
     // goes in a cookie, not on `redirectTo` — a query string there has to
     // be in the Supabase Redirect URLs allow-list in its own right, and a
     // miss dumps the user on the Site URL instead of here.
-    rememberOAuthNext(
-      inviteToken ? `/join/${encodeURIComponent(inviteToken)}` : "/dashboard",
-    );
+    rememberOAuthNext(destination);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -120,11 +127,31 @@ function LoginPageInner() {
           </div>
 
           <div className="mb-6 flex flex-col gap-5">
-            <GoogleAuthButton
-              label="Continue with Google"
-              onClick={handleGoogle}
-              disabled={googleLoading || loading}
-            />
+            {/* GIS skips the supabase.co redirect so Google's card names
+                this site instead of the project ref. Off unless switched
+                on; the redirect button below is the proven path and stays
+                the default. */}
+            {googleGisEnabled() ? (
+              <GoogleGisButton
+                destination={destination}
+                label="Continue with Google"
+                text="continue_with"
+                onError={setError}
+                fallback={
+                  <GoogleAuthButton
+                    label="Continue with Google"
+                    onClick={handleGoogle}
+                    disabled={googleLoading || loading}
+                  />
+                }
+              />
+            ) : (
+              <GoogleAuthButton
+                label="Continue with Google"
+                onClick={handleGoogle}
+                disabled={googleLoading || loading}
+              />
+            )}
             <AuthDivider />
           </div>
 

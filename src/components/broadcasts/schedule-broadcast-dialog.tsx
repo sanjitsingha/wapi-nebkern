@@ -108,8 +108,35 @@ export function ScheduleBroadcastDialog({
     }
   };
 
+  /**
+   * Every way out of the dialog routes through here — the X, Escape, a
+   * click on the overlay — not just the footer buttons.
+   *
+   * On the success screen that matters: letting those merely close the
+   * dialog drops the user back on a campaign form still filled in with
+   * the campaign they just scheduled, with nothing on screen saying it
+   * worked. It reads as a failure, so they schedule it again, and now
+   * two identical broadcasts are queued. Dismissing success does what
+   * its primary button does.
+   *
+   * Mid-submit, dismissal is refused outright. The request completes
+   * either way, so a dialog closed at that moment would schedule the
+   * campaign invisibly — the same duplicate, with no success screen to
+   * even hint at it.
+   */
+  const handleOpenChange = (next: boolean) => {
+    if (!next) {
+      if (phase === 'submitting') return;
+      if (phase === 'success' && onDone) {
+        onDone();
+        return;
+      }
+    }
+    onOpenChange(next);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="border-border bg-popover sm:max-w-md">
         {phase === 'success' ? (
           <>
@@ -156,7 +183,7 @@ export function ScheduleBroadcastDialog({
             <DialogFooter>
               <Button
                 type="button"
-                onClick={() => (onDone ? onDone() : onOpenChange(false))}
+                onClick={() => handleOpenChange(false)}
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 View campaigns
@@ -210,7 +237,7 @@ export function ScheduleBroadcastDialog({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleOpenChange(false)}
                 disabled={phase === 'submitting'}
                 className="border-border text-muted-foreground"
               >

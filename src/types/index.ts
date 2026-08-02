@@ -789,6 +789,7 @@ export type AutomationStepType =
   | 'update_contact_field'
   | 'create_deal'
   | 'wait'
+  | 'wait_for_reply'
   | 'condition'
   | 'send_webhook'
   | 'close_conversation';
@@ -878,6 +879,27 @@ export interface WaitStepConfig {
   unit: 'minutes' | 'hours' | 'days';
 }
 
+/** Which branch a parked run resumes into. `timeout` = never answered. */
+export type AutomationBranch = 'yes' | 'no' | 'timeout';
+
+/**
+ * Suspends the run until the contact sends ANY message, then routes on
+ * what they said. Unlike `wait`, which only ever counts down a clock.
+ *
+ * `match_value` is a case-insensitive substring test against the reply —
+ * for a template QUICK_REPLY tap that is the button's visible label, so
+ * matching on the label routes the tap. Empty means "any reply counts",
+ * which sends every answer down the `yes` branch.
+ *
+ * The timeout is not optional. Most contacts never answer, and a run
+ * with no deadline would sit parked forever holding a log open.
+ */
+export interface WaitForReplyStepConfig {
+  match_value?: string;
+  timeout_amount: number;
+  timeout_unit: 'minutes' | 'hours' | 'days';
+}
+
 export type ConditionSubject =
   | 'contact_field'
   | 'tag_presence'
@@ -907,6 +929,7 @@ export type AutomationStepConfig =
   | UpdateContactFieldStepConfig
   | CreateDealStepConfig
   | WaitStepConfig
+  | WaitForReplyStepConfig
   | ConditionStepConfig
   | SendWebhookStepConfig
   | Record<string, never>

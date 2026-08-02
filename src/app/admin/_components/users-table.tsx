@@ -67,10 +67,18 @@ const FILTERS: { value: Filter; label: string }[] = [
   { value: 'unconfirmed', label: 'Unconfirmed email' },
 ];
 
-/** What the API reports back when the user owns a workspace. */
-interface OwnedAccount {
-  name: string;
-  members: number;
+/** What the API reports back when the user owns one or more workspaces. */
+interface OwnedAccounts {
+  /** Every workspace that gets destroyed alongside the user. */
+  workspaces: string[];
+  /** Distinct other people who lose their workspace with it. */
+  otherMembers: number;
+}
+
+/** "a", "a and b", "a, b and c" — for reading out workspace names. */
+function listNames(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? 'their workspace';
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
 export function UsersTable({ rows }: { rows: UserView[] }) {
@@ -82,7 +90,7 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
   // Set once the API has told us this user owns a workspace. Its
   // presence escalates the dialog to the second, louder confirmation —
   // the one that authorises taking the whole tenant down.
-  const [ownedAccount, setOwnedAccount] = useState<OwnedAccount | null>(null);
+  const [ownedAccount, setOwnedAccount] = useState<OwnedAccounts | null>(null);
 
   const closeDelete = () => {
     setDeleteTarget(null);
@@ -143,7 +151,12 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
       const data = await res.json().catch(() => ({}));
 
       if (res.status === 409 && data.requiresAccountDeletion) {
-        setOwnedAccount(data.account ?? { name: 'their workspace', members: 1 });
+        setOwnedAccount({
+          workspaces: data.workspaces?.length
+            ? data.workspaces
+            : ['their workspace'],
+          otherMembers: data.otherMembers ?? 0,
+        });
         return;
       }
       if (!res.ok) {
@@ -322,7 +335,11 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {ownedAccount ? 'Delete the workspace too?' : 'Delete user?'}
+              {ownedAccount
+                ? ownedAccount.workspaces.length > 1
+                  ? 'Delete the workspaces too?'
+                  : 'Delete the workspace too?'
+                : 'Delete user?'}
             </DialogTitle>
             <DialogDescription>
               {ownedAccount ? (
@@ -332,11 +349,18 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
                   </span>{' '}
                   owns{' '}
                   <span className="font-medium text-foreground">
-                    {ownedAccount.name}
+                    {listNames(ownedAccount.workspaces)}
                   </span>
                   , so they can&apos;t be removed on their own. Deleting them
-                  also permanently deletes that workspace and everything in it —
-                  contacts, conversations, deals, invoices, templates and media.
+                  also permanently deletes{' '}
+                  {ownedAccount.workspaces.length > 1
+                    ? 'those workspaces'
+                    : 'that workspace'}{' '}
+                  and everything in {ownedAccount.workspaces.length > 1
+                    ? 'them'
+                    : 'it'}{' '}
+                  — contacts, conversations, deals, invoices, templates and
+                  media.
                 </>
               ) : (
                 <>
@@ -352,12 +376,12 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
 
           {/* The case that actually hurts: other people's data goes with
               it. Only worth shouting about when there are others. */}
-          {ownedAccount && ownedAccount.members > 1 && (
+          {ownedAccount && ownedAccount.otherMembers > 0 && (
             <div className="flex gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" />
               <p>
-                {ownedAccount.members - 1} other member
-                {ownedAccount.members - 1 === 1 ? '' : 's'} will lose access.
+                {ownedAccount.otherMembers} other member
+                {ownedAccount.otherMembers === 1 ? '' : 's'} will lose access.
                 Their sign-in still works, but they&apos;ll have no workspace
                 left to sign in to.
               </p>
@@ -385,7 +409,11 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
               ) : (
                 <Trash2 className="size-4" />
               )}
-              {ownedAccount ? 'Delete user and workspace' : 'Delete user'}
+              {ownedAccount
+                ? ownedAccount.workspaces.length > 1
+                  ? 'Delete user and workspaces'
+                  : 'Delete user and workspace'
+                : 'Delete user'}
             </Button>
           </DialogFooter>
         </DialogContent>
