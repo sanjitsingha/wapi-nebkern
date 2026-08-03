@@ -20,6 +20,7 @@ import {
 
 import { useAuth } from '@/hooks/use-auth';
 import { useCan } from '@/hooks/use-can';
+import { invalidateConnectedChannels } from '@/hooks/use-connected-channels';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -76,6 +77,11 @@ export function InstagramConfig() {
     async (acctId: string) => {
       setLoading(true);
       try {
+        // Connecting and disconnecting both land here — let the inbox
+        // know its channel tabs may have changed, since that hook caches
+        // per page load and this panel does not navigate on disconnect.
+        invalidateConnectedChannels();
+
         const { data } = await supabase
           .from('instagram_config')
           .select('*')
@@ -138,6 +144,10 @@ export function InstagramConfig() {
   // ?ig_error=... (a full page navigation, not an XHR) — surface that
   // as a toast once, then strip the params so a refresh doesn't
   // re-fire it.
+  //
+  // This page keeps the full-page login on purpose. The popup variant
+  // lives only on the combined panel (/settings/meta), where staying put
+  // is the whole point; here the redirect is already the arrival path.
   useEffect(() => {
     const connected = searchParams.get('ig_connected');
     const username = searchParams.get('ig_username');

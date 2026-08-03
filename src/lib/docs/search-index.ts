@@ -31,7 +31,7 @@ const TERMS: Record<string, string> = {
   whatsapp:
     'connecting your number embedded signup manual connect phone number ID WABA access token verify token 2-step PIN registration status phone health quality rating messaging limit tier business profile about description address email websites category vertical profile photo catalog commerce manager cart calling call icon layer A layer B',
   'instagram-messenger':
-    'coming soon status DM only free-form text delivered read receipts facebook login',
+    'connect instagram messenger facebook login one button meta tech provider page picker linked instagram professional account webhook callback URL verify token DM only free-form text delivered read receipts disconnect reconnect',
   inbox:
     'conversation status open pending closed assignment teammate flow bot AI agent filter channel tabs all whatsapp messenger instagram tags 24-hour reply window session window composing message text image video document voice note templates reply quote reactions delivery status sending sent delivered read failed notes contact search unread presence',
   contacts:

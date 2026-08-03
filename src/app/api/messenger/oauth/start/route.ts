@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { randomUUID } from 'crypto';
 
 import { requireRole, toErrorResponse } from '@/lib/auth/account';
 import { buildFacebookAuthorizeUrl } from '@/lib/messenger/meta-api';
 import { MESSENGER_OAUTH_STATE_COOKIE } from '@/lib/messenger/oauth-cookie';
+import { oauthTabResponse } from '@/lib/oauth/tab-response';
+import { buildOAuthState, wantsTab } from '@/lib/oauth/state';
 
 /**
  * GET /api/messenger/oauth/start
@@ -19,22 +20,30 @@ import { MESSENGER_OAUTH_STATE_COOKIE } from '@/lib/messenger/oauth-cookie';
  * whitelisted.
  */
 export async function GET(request: Request) {
+  // `?tab=1` — the combined panel (/settings/meta) opens this in a
+  // tab, so both the callback AND any refusal here report back
+  // through postMessage rather than leaving raw JSON in the window.
+  const tab = wantsTab(request);
+
+  function refuse(message: string, status: number): NextResponse {
+    return tab
+      ? oauthTabResponse({ error: message })
+      : NextResponse.json({ error: message }, { status });
+  }
+
   try {
     await requireRole('admin');
 
     const appId = process.env.META_APP_ID;
     if (!appId) {
-      return NextResponse.json(
-        {
-          error:
-            'Facebook Login is not configured on this server. Set META_APP_ID and META_APP_SECRET (Meta for Developers → your App → Facebook Login) and restart.',
-        },
-        { status: 503 },
+      return refuse(
+        'Facebook Login is not configured on this server. Set META_APP_ID and META_APP_SECRET (Meta for Developers → your App → Facebook Login) and restart.',
+        503,
       );
     }
 
     const redirectUri = `${new URL(request.url).origin}/api/messenger/oauth/callback`;
-    const state = randomUUID();
+    const state = buildOAuthState(tab);
 
     const authorizeUrl = buildFacebookAuthorizeUrl({ appId, redirectUri, state });
 
@@ -48,6 +57,14 @@ export async function GET(request: Request) {
     });
     return response;
   } catch (err) {
+    if (tab) {
+      return oauthTabResponse({
+        error:
+          err instanceof Error
+            ? err.message
+            : 'You must be signed in as an admin to connect Messenger.',
+      });
+    }
     return toErrorResponse(err);
   }
 }

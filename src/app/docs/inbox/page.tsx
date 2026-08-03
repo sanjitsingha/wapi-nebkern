@@ -60,10 +60,12 @@ export default function InboxDocsPage() {
         <h2>Channel tabs</h2>
         <p>
           Above the search box, tabs split the inbox into{' '}
-          <strong>All / WhatsApp / Messenger / Instagram</strong>, each
-          showing a live count. WhatsApp is the channel available today —
-          see <Link href="/docs/instagram-messenger">Instagram &amp; Messenger</Link>{' '}
-          for their status.
+          <strong>All / WhatsApp / Messenger / Instagram</strong>. A channel
+          you haven&apos;t connected shows as a greyed-out logo; connect it and
+          its tab becomes selectable, filtering the list to that channel
+          alone. <strong>All</strong> appears once more than one channel is
+          live. See{' '}
+          <Link href="/docs/instagram-messenger">Instagram &amp; Messenger</Link>.
         </p>
 
         <h2>Tags and other filters</h2>

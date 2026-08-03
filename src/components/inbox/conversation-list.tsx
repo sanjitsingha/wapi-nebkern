@@ -10,6 +10,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { useConnectedChannels } from "@/hooks/use-connected-channels";
 import { cn } from "@/lib/utils";
 import type {
   Conversation,
@@ -121,21 +122,31 @@ const CHANNEL_OPTIONS: {
   { label: "Messenger", value: "messenger", Logo: MessengerLogo },
 ];
 
-// Which channels are actually usable today. WhatsApp is live; Messenger
-// and Instagram are wired up in the backend but not yet exposed here.
-// Widen this set to promote a channel from "coming soon" to a real tab —
-// the icons, filter logic and default-selection all follow from it.
-const LIVE_CHANNELS = new Set<ChannelFilter>(["whatsapp"]);
-const CHANNEL_TABS = CHANNEL_OPTIONS.filter((o) => LIVE_CHANNELS.has(o.value));
+// Which channels are selectable is no longer a constant: Messenger and
+// Instagram become real tabs the moment this account connects them in
+// Settings, and drop back to greyed-out logos if they are disconnected.
+// WhatsApp is always a tab — it is the product's core channel, and its
+// threads exist whether or not a number is currently attached.
+//
+// A channel nobody has connected stays visible but unclickable rather
+// than disappearing: the point is to show the inbox covers it, and a tab
+// that filters to an empty list is a worse answer than a tooltip.
+function splitChannels(connected: { messenger: boolean; instagram: boolean }) {
+  const live = new Set<ChannelFilter>(["whatsapp"]);
+  if (connected.messenger) live.add("messenger");
+  if (connected.instagram) live.add("instagram");
 
-// The not-yet-live platforms, shown beside the live tab as full-colour
-// but non-clickable logos with a "coming soon" tooltip — so people can
-// see the channels are planned without being able to select an empty one.
-// "all" is excluded (it's not a platform); everything else not live lands
-// here automatically, so promoting a channel above removes it from here.
-const COMING_SOON_CHANNELS = CHANNEL_OPTIONS.filter(
-  (o) => o.value !== "all" && !LIVE_CHANNELS.has(o.value),
-);
+  const platforms = CHANNEL_OPTIONS.filter((o) => o.value !== "all");
+  const tabs = platforms.filter((o) => live.has(o.value));
+
+  return {
+    live,
+    // "All" only earns a tab once there is more than one channel to mix;
+    // with a single channel it would be a synonym for the tab beside it.
+    tabs: tabs.length > 1 ? [CHANNEL_OPTIONS[0], ...tabs] : tabs,
+    comingSoon: platforms.filter((o) => !live.has(o.value)),
+  };
+}
 
 const FILTER_OPTIONS: { label: string; value: InboxFilter }[] = [
   { label: "All", value: "all" },
@@ -160,12 +171,28 @@ export function ConversationList({
   resyncToken = 0,
 }: ConversationListProps) {
   const [search, setSearch] = useState("");
-  // Start on the first live channel tab. Today that's WhatsApp (the only
-  // one shown); if "All" is re-added as the leading tab this reverts to
-  // "all" on its own — no separate default to keep in sync.
-  const [channel, setChannel] = useState<ChannelFilter>(
-    CHANNEL_TABS[0]?.value ?? "all",
-  );
+
+  // Which tabs exist depends on what this account has connected, which
+  // arrives a beat after mount — so the bar starts as WhatsApp alone and
+  // widens once the answer lands.
+  const { channels: connectedChannels } = useConnectedChannels();
+  const { live: liveChannels, tabs: channelTabs, comingSoon: comingSoonChannels } =
+    useMemo(() => splitChannels(connectedChannels), [connectedChannels]);
+
+  // Only an explicit pick is stored; the channel actually in force is
+  // derived. That keeps two awkward cases honest without an effect:
+  // before the connected-channel answer arrives there is nothing to
+  // reconcile, and a channel disconnected mid-session simply stops being
+  // selectable — the filter falls back to the first tab instead of
+  // stranding the user on an empty list with no lit tab.
+  const [channelChoice, setChannelChoice] = useState<ChannelFilter | null>(null);
+  const channel: ChannelFilter =
+    channelChoice &&
+    (channelChoice === "all"
+      ? channelTabs.some((t) => t.value === "all")
+      : liveChannels.has(channelChoice))
+      ? channelChoice
+      : (channelTabs[0]?.value ?? "all");
   const [filter, setFilter] = useState<InboxFilter>("all");
   // Multi-select: any mix of AI Agent / Bot / Team member. Empty = anyone.
   const [assignees, setAssignees] = useState<AssigneeFilter[]>([]);
@@ -403,20 +430,19 @@ export function ConversationList({
 
   return (
     <div className="flex h-full w-full flex-col border-r border-border bg-card lg:w-96">
-      {/* Channel bar — the live channel (WhatsApp) is an active pill with
-          its logo and name; the not-yet-live platforms follow as
-          full-colour, non-clickable logos, each split off by a vertical
-          divider and explaining themselves with a "coming soon" tooltip
-          on hover. */}
+      {/* Channel bar — every connected channel is a pill with its logo and
+          name; the ones this account hasn't connected follow as
+          full-colour but non-clickable logos, each split off by a vertical
+          divider and explaining themselves with a tooltip on hover. */}
       <div className="flex items-center gap-2.5 border-b border-border px-3 py-2.5">
-        {CHANNEL_TABS.map((opt) => {
+        {channelTabs.map((opt) => {
           const active = channel === opt.value;
           const Logo = opt.Logo;
           return (
             <button
               key={opt.value}
               type="button"
-              onClick={() => setChannel(opt.value)}
+              onClick={() => setChannelChoice(opt.value)}
               className={cn(
                 "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap transition-colors",
                 active
@@ -430,12 +456,15 @@ export function ConversationList({
           );
         })}
 
-        {/* Coming-soon channels. A divider precedes each one, so the row
+        {/* Not-connected channels. A divider precedes each one, so the row
             reads WhatsApp │ Instagram │ Messenger. The trigger is a span
             (not a disabled button) so hover still fires the tooltip;
-            cursor-not-allowed + aria-disabled convey it can't be picked. */}
-        {COMING_SOON_CHANNELS.map((opt) => {
+            cursor-not-allowed + aria-disabled convey it can't be picked.
+            The tooltip names the way to fix it rather than just saying
+            no — connecting is two clicks away in Settings. */}
+        {comingSoonChannels.map((opt) => {
           const Logo = opt.Logo;
+          const hint = `${opt.label} — connect it in Settings → Instagram & Messenger`;
           return (
             <Fragment key={opt.value}>
               <span
@@ -447,14 +476,14 @@ export function ConversationList({
                   render={
                     <span
                       aria-disabled
-                      aria-label={`${opt.label} — coming soon`}
+                      aria-label={hint}
                       className="flex cursor-not-allowed items-center opacity-60 transition-opacity hover:opacity-100"
                     >
                       {Logo && <Logo className="size-4 shrink-0" />}
                     </span>
                   }
                 />
-                <TooltipContent>{opt.label} · Coming soon</TooltipContent>
+                <TooltipContent>{hint}</TooltipContent>
               </Tooltip>
             </Fragment>
           );

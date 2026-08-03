@@ -10,6 +10,8 @@ import {
 import { encrypt } from '@/lib/whatsapp/encryption';
 import { finalizeMessengerPage } from '@/lib/messenger/server-config';
 import { MESSENGER_OAUTH_STATE_COOKIE } from '@/lib/messenger/oauth-cookie';
+import { oauthTabResponse } from '@/lib/oauth/tab-response';
+import { isTabState } from '@/lib/oauth/state';
 
 /**
  * GET /api/messenger/oauth/callback
@@ -23,18 +25,34 @@ import { MESSENGER_OAUTH_STATE_COOKIE } from '@/lib/messenger/oauth-cookie';
  * Pages parks the (encrypted) user token on the row and sends the
  * operator back to Settings to pick one.
  *
- * Always redirects to /settings/messenger with ?fb_connected / ?fb_pick
- * / ?fb_error rather than returning JSON — no XHR caller is waiting.
+ * Two endings, decided by the `state` the start route minted: a tab
+ * gets a page that postMessages the outcome to its opener and closes; a
+ * plain navigation gets a 302 to /settings/messenger with the same
+ * values as ?fb_* params. Never JSON — no XHR caller is waiting.
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const settingsUrl = new URL('/settings/messenger', url.origin);
 
-  function fail(message: string): NextResponse {
-    settingsUrl.searchParams.set('fb_error', message);
-    const res = NextResponse.redirect(settingsUrl);
+  // Attacker-controlled until `state` is checked against the cookie, so
+  // it decides nothing beyond the shape of an early "no".
+  const tab = isTabState(url.searchParams.get('state') ?? '');
+
+  function finish(params: Record<string, string | null>): NextResponse {
+    const res = tab
+      ? oauthTabResponse(params)
+      : (() => {
+          for (const [key, value] of Object.entries(params)) {
+            if (value) settingsUrl.searchParams.set(`fb_${key}`, value);
+          }
+          return NextResponse.redirect(settingsUrl);
+        })();
     res.cookies.delete(MESSENGER_OAUTH_STATE_COOKIE);
     return res;
+  }
+
+  function fail(message: string): NextResponse {
+    return finish({ error: message });
   }
 
   const fbError =
@@ -142,18 +160,11 @@ export async function GET(request: Request) {
       });
       if (!result.ok) return fail(result.error);
 
-      settingsUrl.searchParams.set('fb_connected', '1');
-      settingsUrl.searchParams.set('fb_page', result.pageName);
-      const res = NextResponse.redirect(settingsUrl);
-      res.cookies.delete(MESSENGER_OAUTH_STATE_COOKIE);
-      return res;
+      return finish({ connected: '1', page: result.pageName });
     }
 
     // Several Pages — let the operator pick in Settings.
-    settingsUrl.searchParams.set('fb_pick', '1');
-    const res = NextResponse.redirect(settingsUrl);
-    res.cookies.delete(MESSENGER_OAUTH_STATE_COOKIE);
-    return res;
+    return finish({ pick: '1' });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('[messenger-oauth] callback failed:', message);

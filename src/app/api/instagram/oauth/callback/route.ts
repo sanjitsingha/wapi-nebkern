@@ -10,6 +10,8 @@ import {
 import { encrypt } from '@/lib/whatsapp/encryption'
 import { supabaseAdmin } from '@/lib/flows/admin-client'
 import { INSTAGRAM_OAUTH_STATE_COOKIE } from '@/lib/instagram/oauth-cookie'
+import { oauthTabResponse } from '@/lib/oauth/tab-response'
+import { isTabState } from '@/lib/oauth/state'
 
 /**
  * GET /api/instagram/oauth/callback
@@ -19,20 +21,34 @@ import { INSTAGRAM_OAUTH_STATE_COOKIE } from '@/lib/instagram/oauth-cookie'
  * to our own origin, so the caller's normal auth session cookies are
  * present — no separate token needed to know who's connecting.
  *
- * Always redirects back to /settings/instagram (with ?ig_connected=1
- * or ?ig_error=... for the UI to show a toast) rather than returning
- * JSON — there's no XHR caller waiting on this response, it's a full
- * page navigation.
+ * Two endings, decided by the `state` the start route minted: a tab
+ * gets a page that postMessages the outcome to its opener and closes; a
+ * plain navigation gets a 302 to /settings/instagram with the same
+ * values as ?ig_* params. Never JSON — no XHR caller is waiting.
  */
 export async function GET(request: Request) {
   const url = new URL(request.url)
   const settingsUrl = new URL('/settings/instagram', url.origin)
 
-  function fail(message: string): NextResponse {
-    settingsUrl.searchParams.set('ig_error', message)
-    const res = NextResponse.redirect(settingsUrl)
+  // Attacker-controlled until `state` is checked against the cookie, so
+  // it decides nothing beyond the shape of an early "no".
+  const tab = isTabState(url.searchParams.get('state') ?? '')
+
+  function finish(params: Record<string, string | null>): NextResponse {
+    const res = tab
+      ? oauthTabResponse(params)
+      : (() => {
+          for (const [key, value] of Object.entries(params)) {
+            if (value) settingsUrl.searchParams.set(`ig_${key}`, value)
+          }
+          return NextResponse.redirect(settingsUrl)
+        })()
     res.cookies.delete(INSTAGRAM_OAUTH_STATE_COOKIE)
     return res
+  }
+
+  function fail(message: string): NextResponse {
+    return finish({ error: message })
   }
 
   const igError = url.searchParams.get('error_description') || url.searchParams.get('error')
@@ -144,11 +160,7 @@ export async function GET(request: Request) {
       }
     }
 
-    settingsUrl.searchParams.set('ig_connected', '1')
-    if (accountInfo.username) settingsUrl.searchParams.set('ig_username', accountInfo.username)
-    const res = NextResponse.redirect(settingsUrl)
-    res.cookies.delete(INSTAGRAM_OAUTH_STATE_COOKIE)
-    return res
+    return finish({ connected: '1', username: accountInfo.username ?? null })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     console.error('[instagram-oauth] callback failed:', message)

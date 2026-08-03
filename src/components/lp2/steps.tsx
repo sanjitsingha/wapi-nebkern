@@ -18,7 +18,7 @@ const STEPS = [
     n: '1',
     hue: 'lemon',
     title: 'Connect your number',
-    body: 'Embedded signup walks you through the official WhatsApp Business API in a few clicks. Keep the number you already print on your packaging.',
+    body: 'We are an official Meta Tech Provider, so embedded signup puts you straight onto the WhatsApp Business API in a few clicks. Keep the number you already print on your packaging.',
     time: '~10 minutes',
   },
   {

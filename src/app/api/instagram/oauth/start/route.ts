@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
-import { randomUUID } from 'crypto'
 
 import { requireRole, toErrorResponse } from '@/lib/auth/account'
 import { buildInstagramAuthorizeUrl } from '@/lib/instagram/meta-api'
 import { INSTAGRAM_OAUTH_STATE_COOKIE } from '@/lib/instagram/oauth-cookie'
+import { oauthTabResponse } from '@/lib/oauth/tab-response'
+import { buildOAuthState, wantsTab } from '@/lib/oauth/state'
 import {
   featureBlockedResponse,
   getAccountEntitlements,
@@ -19,26 +20,41 @@ import {
  * links here.
  */
 export async function GET(request: Request) {
+  // `?tab=1` — the combined panel (/settings/meta) opens this in a
+  // tab, so both the callback AND any refusal here report back
+  // through postMessage rather than leaving raw JSON in the window.
+  const tab = wantsTab(request)
+
+  function refuse(message: string, status: number): NextResponse {
+    return tab
+      ? oauthTabResponse({ error: message })
+      : NextResponse.json({ error: message }, { status })
+  }
+
   try {
     const ctx = await requireRole('admin')
 
     // Plan gate — the Instagram channel is a per-plan feature (062).
     const ent = await getAccountEntitlements(ctx.supabase, ctx.accountId)
-    if (!ent.allowInstagram) return featureBlockedResponse('Instagram DMs')
+    if (!ent.allowInstagram) {
+      return tab
+        ? oauthTabResponse({
+            error:
+              'Instagram DMs are not included in your current plan. Upgrade to enable them.',
+          })
+        : featureBlockedResponse('Instagram DMs')
+    }
 
     const appId = process.env.INSTAGRAM_APP_ID
     if (!appId) {
-      return NextResponse.json(
-        {
-          error:
-            'Instagram Login is not configured on this server. Set INSTAGRAM_APP_ID and INSTAGRAM_APP_SECRET (Meta for Developers → your App → Instagram → Business Login) and restart.',
-        },
-        { status: 503 },
+      return refuse(
+        'Instagram Login is not configured on this server. Set INSTAGRAM_APP_ID and INSTAGRAM_APP_SECRET (Meta for Developers → your App → Instagram → Business Login) and restart.',
+        503,
       )
     }
 
     const redirectUri = `${new URL(request.url).origin}/api/instagram/oauth/callback`
-    const state = randomUUID()
+    const state = buildOAuthState(tab)
 
     const authorizeUrl = buildInstagramAuthorizeUrl({ appId, redirectUri, state })
 
@@ -52,6 +68,14 @@ export async function GET(request: Request) {
     })
     return response
   } catch (err) {
+    if (tab) {
+      return oauthTabResponse({
+        error:
+          err instanceof Error
+            ? err.message
+            : 'You must be signed in as an admin to connect Instagram.',
+      })
+    }
     return toErrorResponse(err)
   }
 }

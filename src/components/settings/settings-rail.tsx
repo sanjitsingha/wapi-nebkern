@@ -18,7 +18,16 @@ import {
   type SettingsSection,
 } from './settings-sections';
 
-/** Sections that exist only on plans with the matching feature flag. */
+/**
+ * Sections that exist only on plans with the matching feature flag.
+ *
+ * The combined "Instagram & Messenger" section is deliberately absent
+ * even though Instagram is plan-gated: it also carries Messenger, which
+ * every plan gets, so locking it would hide a channel the account owns.
+ * Its Instagram half is gated server-side at connect time instead. The
+ * single-channel Instagram section below IS locked — there is nothing to
+ * show on it without the entitlement.
+ */
 const SECTION_FEATURE = {
   calling: 'allowCalling',
   instagram: 'allowInstagram',

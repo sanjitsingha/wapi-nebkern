@@ -62,9 +62,8 @@ export const DOCS_NAV: DocsCategory[] = [
       {
         slug: 'instagram-messenger',
         title: 'Instagram & Messenger',
-        description: 'Status of the Instagram and Facebook Messenger channels.',
+        description: 'Connect both inboxes in a single Facebook login.',
         icon: AtSign,
-        badge: 'Coming soon',
       },
     ],
   },

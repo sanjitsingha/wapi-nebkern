@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     absolute: 'wacrm — Make WhatsApp your happiest sales channel',
   },
   description:
-    'One shared inbox, AI agents that reply in seconds, and campaigns, pipelines and automations that turn every WhatsApp question into a paid order.',
+    'One shared inbox, AI agents that reply in seconds, and campaigns, pipelines and automations that turn every WhatsApp question into a paid order. From an official Meta Tech Provider.',
   robots: { index: true, follow: true },
 };
 

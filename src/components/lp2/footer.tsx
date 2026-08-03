@@ -101,7 +101,7 @@ export function Lp2Footer() {
               same as the live footer, and the page is static enough
               that a hardcoded year would go stale silently. */}
           <p>© {new Date().getFullYear()} wacrm · Self-hostable CRM for WhatsApp</p>
-          <p>Built on the official WhatsApp Business API</p>
+          <p>Official Meta Tech Provider · Built on the WhatsApp Business API</p>
         </div>
       </div>
     </footer>

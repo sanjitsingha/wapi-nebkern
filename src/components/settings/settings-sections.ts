@@ -1,5 +1,6 @@
 import {
   AtSign,
+  Camera,
   Code2,
   KeyRound,
   MessageCircle,
@@ -28,6 +29,7 @@ export const SETTINGS_SECTIONS = [
   'profile',
   'whatsapp',
   'calling',
+  'meta',
   'instagram',
   'messenger',
   'business-profile',
@@ -79,19 +81,30 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     icon: Phone,
     group: 'workspace',
   },
+  // The short path: one Facebook login returns the Page (Messenger) and
+  // the Instagram professional account linked to it, sharing one access
+  // token. Listed before the two single-channel sections because it is
+  // what almost everyone should click.
+  meta: {
+    id: 'meta',
+    label: 'Instagram & Messenger',
+    icon: AtSign,
+    group: 'workspace',
+  },
+  // The long paths, kept for connecting one channel on its own, reading
+  // a webhook callback URL / verify token, or entering credentials by
+  // hand when the combined login can't reach an account.
   instagram: {
     id: 'instagram',
     label: 'Instagram',
-    icon: AtSign,
+    icon: Camera,
     group: 'workspace',
-    comingSoon: true,
   },
   messenger: {
     id: 'messenger',
     label: 'Messenger',
     icon: MessageCircle,
     group: 'workspace',
-    comingSoon: true,
   },
   'business-profile': {
     id: 'business-profile',

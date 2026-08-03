@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 
 import { useCan } from '@/hooks/use-can';
+import { invalidateConnectedChannels } from '@/hooks/use-connected-channels';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -64,6 +65,11 @@ export function MessengerConfig() {
   const loadStatus = useCallback(async () => {
     setLoading(true);
     try {
+      // Connecting and disconnecting both land here — let the inbox know
+      // its channel tabs may have changed, since that hook caches per
+      // page load and this panel does not navigate on disconnect.
+      invalidateConnectedChannels();
+
       const res = await fetch('/api/messenger/config');
       const body = await res.json();
       if (body.connected) {
@@ -110,6 +116,10 @@ export function MessengerConfig() {
   // The OAuth callback returns here with ?fb_connected=1&fb_page=…,
   // ?fb_pick=1 (several Pages to choose from), or ?fb_error=… — a full
   // page navigation, not an XHR. Surface it once, then strip the params.
+  //
+  // This page keeps the full-page login on purpose. The popup variant
+  // lives only on the combined panel (/settings/meta), where staying put
+  // is the whole point; here the redirect is already the arrival path.
   useEffect(() => {
     const justConnected = searchParams.get('fb_connected');
     const pickPage = searchParams.get('fb_pick');

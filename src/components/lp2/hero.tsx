@@ -1,5 +1,13 @@
 import Link from 'next/link';
-import { ArrowRight, CheckCheck, Play, Sparkles, Star, Zap } from 'lucide-react';
+import {
+  ArrowRight,
+  BadgeCheck,
+  CheckCheck,
+  Play,
+  Sparkles,
+  Star,
+  Zap,
+} from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import {
@@ -139,6 +147,21 @@ function Copy() {
             selling on WhatsApp
           </p>
         </div>
+      </div>
+
+      {/* Meta Tech Provider credential. Deliberately down here with the
+          stars rather than up in the announcement pill: that slot is for
+          news a reader acts on, and this is the thing they look for at
+          the moment they start believing the pitch. Outlined white so it
+          reads as a stamp, not another CTA. */}
+      <div className="mt-5 flex justify-center lg:justify-start">
+        <span className="inline-flex items-center gap-2 rounded-full border-2 border-(--lp2-ink) bg-white px-3.5 py-1.5 text-xs font-extrabold shadow-(--lp2-shadow-sm)">
+          <BadgeCheck
+            className="size-4 shrink-0 text-(--lp2-grass)"
+            strokeWidth={2.75}
+          />
+          Official Meta Tech Provider
+        </span>
       </div>
 
       {/* Confetti anchored to the copy column so it doesn't crowd the
