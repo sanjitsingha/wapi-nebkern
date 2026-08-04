@@ -23,7 +23,10 @@ import {
   Loader2,
   PanelRightClose,
   ExternalLink,
+  PhoneCall,
 } from "lucide-react";
+import { useCallCenter } from "@/components/calls/call-center";
+import { ContactCallHistory } from "@/components/calls/contact-call-history";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -41,6 +44,9 @@ interface ContactSidebarProps {
 
 export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) {
   const { accountId } = useAuth();
+  // Null outside the dashboard shell (the provider lives there), which is
+  // why every use below is optional rather than assumed.
+  const callCenter = useCallCenter();
   const [copied, setCopied] = useState(false);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [notes, setNotes] = useState<ContactNote[]>([]);
@@ -296,13 +302,29 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
               </span>
             )}
 
-            <Link
-              href={`/contacts/${contact.id}`}
-              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted hover:text-primary"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              View contact
-            </Link>
+            <div className="mt-3 flex items-center gap-2">
+              {/* Calling is WhatsApp-only and needs a number — an
+                  Instagram or Messenger contact has nothing to dial. */}
+              {contact.phone && callCenter && (
+                <button
+                  type="button"
+                  onClick={() => void callCenter.placeCall(contact.phone!, displayName)}
+                  disabled={callCenter.busy}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-soft px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
+                >
+                  <PhoneCall className="h-3.5 w-3.5" />
+                  Call
+                </button>
+              )}
+
+              <Link
+                href={`/contacts/${contact.id}`}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted hover:text-primary"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                View contact
+              </Link>
+            </div>
           </div>
 
           {/* Phone */}
@@ -346,6 +368,18 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
               </div>
             )}
           </div>
+
+          {/* Calls with this contact. WhatsApp-only, so it is hidden
+              entirely for a contact reached on Instagram or Messenger
+              rather than showing a permanently empty section. */}
+          {contact.phone && (
+            <div className="mt-4">
+              <p className="px-3 pb-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                Calls
+              </p>
+              <ContactCallHistory contactId={contact.id} />
+            </div>
+          )}
 
           {/* Mark as Spam */}
           <button

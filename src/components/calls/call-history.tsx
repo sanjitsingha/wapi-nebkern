@@ -3,23 +3,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { formatDistanceToNow, format } from 'date-fns';
-import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  Loader2,
-  Phone,
-  PhoneMissed,
-  PhoneOff,
-  RefreshCw,
-  Search,
-  TriangleAlert,
-} from 'lucide-react';
+import { Delete, Loader2, Phone, RefreshCw, Search } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
+import { avatarColor } from '@/lib/avatar-color';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useCallCenter } from './call-center';
+// Outcome icons and duration formatting are shared with the inbox side
+// panel — two places showing the same call must not describe it two ways.
+import { callOutcome, formatCallDuration } from './contact-call-history';
 
 // ============================================================
 // WhatsApp call history.
@@ -60,34 +60,6 @@ const FILTERS: { label: string; value: StatusFilter }[] = [
   { label: 'Incoming', value: 'inbound' },
   { label: 'Outgoing', value: 'outbound' },
 ];
-
-/** Outcome → how the row reads. `ringing` is deliberately its own look:
- *  it is not a result, it is the absence of one. */
-function statusStyle(status: string, direction: string) {
-  switch (status) {
-    case 'completed':
-      return {
-        Icon: direction === 'inbound' ? ArrowDownLeft : ArrowUpRight,
-        tone: 'text-primary',
-        label: direction === 'inbound' ? 'Incoming' : 'Outgoing',
-      };
-    case 'missed':
-      return { Icon: PhoneMissed, tone: 'text-red-500', label: 'Missed' };
-    case 'declined':
-      return { Icon: PhoneOff, tone: 'text-amber-500', label: 'Declined' };
-    case 'ringing':
-      return { Icon: Phone, tone: 'text-muted-foreground', label: 'No end recorded' };
-    default:
-      return { Icon: TriangleAlert, tone: 'text-muted-foreground', label: 'Failed' };
-  }
-}
-
-function formatDuration(seconds: number | null): string {
-  if (!seconds || seconds <= 0) return '—';
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return m > 0 ? `${m}m ${s}s` : `${s}s`;
-}
 
 export function CallHistory() {
   const supabase = useMemo(() => createClient(), []);
@@ -265,19 +237,34 @@ export function CallHistory() {
         ) : (
           <ul className="divide-y divide-border">
             {visible.map((call) => {
-              const { Icon, tone, label } = statusStyle(call.status, call.direction);
+              const { Icon, tone, label } = callOutcome(call.status, call.direction);
               const when = call.started_at ?? call.created_at;
               const name =
                 call.contact?.name?.trim() || call.contact?.phone || 'Unknown number';
+              // Same seed as the conversation list, thread header and
+              // contact panel (`contact.id || displayName`), so a person
+              // wears one colour everywhere in the app.
+              const avatar = avatarColor(call.contact?.id || name);
               return (
                 <li key={call.id} className="flex items-center gap-3 px-4 py-3">
-                  <span
-                    className={cn(
-                      'flex size-9 shrink-0 items-center justify-center rounded-full bg-muted',
-                      tone,
-                    )}
-                  >
-                    <Icon className="size-4" />
+                  <span className="relative shrink-0">
+                    <span
+                      className="flex size-9 items-center justify-center rounded-full text-sm font-semibold"
+                      style={{ backgroundColor: avatar.bg, color: avatar.fg }}
+                    >
+                      {name.charAt(0).toUpperCase()}
+                    </span>
+                    {/* The outcome rides as a badge on the avatar rather
+                        than replacing it — the colour is the identity,
+                        the icon is what happened. */}
+                    <span
+                      className={cn(
+                        'absolute -right-0.5 -bottom-0.5 flex size-4 items-center justify-center rounded-full bg-card',
+                        tone,
+                      )}
+                    >
+                      <Icon className="size-3" />
+                    </span>
                   </span>
 
                   <div className="min-w-0 flex-1">
@@ -294,7 +281,7 @@ export function CallHistory() {
 
                   <div className="shrink-0 text-right">
                     <p className="text-sm font-medium text-foreground">
-                      {formatDuration(call.duration_seconds)}
+                      {formatCallDuration(call.duration_seconds)}
                     </p>
                     {/* Absolute time in the title: "3 days ago" is easier
                         to scan but useless when someone needs the actual
@@ -357,12 +344,32 @@ export function CallHistory() {
   );
 }
 
+// A phone keypad, letters and all. The sub-labels carry no function —
+// they are what makes a 3×4 grid of digits read as a dialpad at a glance
+// instead of a numeric keyboard.
+const KEYPAD: { digit: string; letters?: string }[] = [
+  { digit: '1' },
+  { digit: '2', letters: 'ABC' },
+  { digit: '3', letters: 'DEF' },
+  { digit: '4', letters: 'GHI' },
+  { digit: '5', letters: 'JKL' },
+  { digit: '6', letters: 'MNO' },
+  { digit: '7', letters: 'PQRS' },
+  { digit: '8', letters: 'TUV' },
+  { digit: '9', letters: 'WXYZ' },
+  { digit: '*' },
+  { digit: '0', letters: '+' },
+  { digit: '#' },
+];
+
 /**
  * Dial a number that isn't in the list yet.
  *
- * Deliberately raw E.164 with no country-code picker: WhatsApp itself
- * identifies people by full international number, and a picker that
- * guesses the wrong default is how calls go to the wrong country.
+ * Raw international number, no country-code picker: WhatsApp identifies
+ * people by full E.164, and a picker that guesses the wrong default is
+ * how calls go to the wrong country. The field stays typeable — the
+ * keypad is for the phone-shaped half of the audience, the keyboard for
+ * everyone pasting a number from somewhere else.
  */
 function Dialer() {
   const callCenter = useCallCenter();
@@ -370,15 +377,6 @@ function Dialer() {
   const [number, setNumber] = useState('');
 
   if (!callCenter) return null;
-
-  if (!open) {
-    return (
-      <Button size="sm" onClick={() => setOpen(true)} disabled={callCenter.busy}>
-        <Phone className="size-4" />
-        New call
-      </Button>
-    );
-  }
 
   const dial = () => {
     const trimmed = number.trim();
@@ -388,26 +386,91 @@ function Dialer() {
     setOpen(false);
   };
 
+  const press = (digit: string) => {
+    // Long-press-free "+": 0 is the only key that carries it, matching
+    // every hardware dialpad, and it only makes sense leading.
+    setNumber((prev) => (digit === '+' && prev.length > 0 ? prev : prev + digit));
+  };
+
   return (
-    <div className="flex items-center gap-1.5">
-      <Input
-        autoFocus
-        value={number}
-        onChange={(e) => setNumber(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') dial();
-          if (e.key === 'Escape') setOpen(false);
-        }}
-        placeholder="+91 98765 43210"
-        className="h-9 w-44 text-sm"
-      />
-      <Button size="sm" onClick={dial} disabled={!number.trim() || callCenter.busy}>
-        Call
+    <>
+      <Button size="sm" onClick={() => setOpen(true)} disabled={callCenter.busy}>
+        <Phone className="size-4" />
+        New call
       </Button>
-      <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
-        Cancel
-      </Button>
-    </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle>New call</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="relative">
+              <Input
+                autoFocus
+                value={number}
+                onChange={(e) => setNumber(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') dial();
+                }}
+                placeholder="+91 98765 43210"
+                // Tabular figures so digits don't jiggle as they land.
+                className="h-12 pr-10 text-center font-mono text-lg tracking-wider tabular-nums"
+                aria-label="Number to call"
+              />
+              {number && (
+                <button
+                  type="button"
+                  onClick={() => setNumber((p) => p.slice(0, -1))}
+                  aria-label="Delete last digit"
+                  className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <Delete className="size-4" />
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              {KEYPAD.map((key) => (
+                <button
+                  key={key.digit}
+                  type="button"
+                  onClick={() => press(key.digit === '0' ? '0' : key.digit)}
+                  // The 0 key doubles as "+" on a long press everywhere
+                  // else; here the secondary label is a second target
+                  // rather than a hidden gesture nobody discovers.
+                  onContextMenu={(e) => {
+                    if (key.digit !== '0') return;
+                    e.preventDefault();
+                    press('+');
+                  }}
+                  className="flex h-14 flex-col items-center justify-center rounded-xl border border-border bg-card transition-colors hover:bg-muted active:bg-primary-soft"
+                >
+                  <span className="text-lg leading-none font-semibold text-foreground">
+                    {key.digit}
+                  </span>
+                  {key.letters && (
+                    <span className="mt-0.5 text-[9px] leading-none font-medium tracking-widest text-muted-foreground">
+                      {key.letters}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <Button
+              onClick={dial}
+              disabled={!number.trim() || callCenter.busy}
+              className="h-12 w-full bg-primary text-base"
+            >
+              <Phone className="size-4" />
+              Call
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
