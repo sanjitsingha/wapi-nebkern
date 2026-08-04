@@ -110,9 +110,22 @@ export function DealForm({
     if (!open) return;
     let cancelled = false;
     (async () => {
+      // Named columns instead of `*`. This used to pull every column of
+      // every contact in the account — custom field values, notes, the
+      // lot — each time the sheet opened, to render a dropdown that
+      // shows a name and a phone number.
+      //
+      // Not capped: the picker below is a native <select> holding every
+      // contact as an <option>, so a limit would make anyone past the
+      // cut-off unselectable. Narrowing the columns is the change that
+      // is safe today; making this a searchable combobox backed by a
+      // limited query is the follow-up that would let it be capped.
       const [c, p] = await Promise.all([
-        supabase.from("contacts").select("*").order("name"),
-        supabase.from("profiles").select("*").order("full_name"),
+        supabase.from("contacts").select("id, name, phone").order("name"),
+        supabase
+          .from("profiles")
+          .select("id, user_id, full_name, email, avatar_url")
+          .order("full_name"),
       ]);
       if (cancelled) return;
       setContacts((c.data ?? []) as Contact[]);

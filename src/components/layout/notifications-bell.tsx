@@ -64,7 +64,21 @@ const TYPE_META: Record<
 };
 
 const SEEN_KEY = 'wacrm:notifications-seen-at';
-const POLL_MS = 45_000;
+
+/**
+ * Background refresh cadence for the feed.
+ *
+ * Was 45s, which cost far more than it looked: /api/notifications runs
+ * five queries, and every tick also paid for auth. Eighty ticks an hour
+ * per open tab, for a dropdown most people open a few times a day.
+ *
+ * Three things make a slow poll safe here. The message half of the
+ * badge comes from `useTotalUnread`, which is realtime and instant. The
+ * feed is refetched when the popover opens, which is the only moment
+ * its contents are actually read. And a tab returning to the foreground
+ * refetches immediately.
+ */
+const POLL_MS = 180_000;
 
 function loadSeenAt(): number {
   if (typeof window === 'undefined') return 0;
@@ -127,10 +141,18 @@ export function NotificationsBell() {
     });
   }, []);
 
-  // Initial load + slow poll. `totalUnread` is realtime (supabase
-  // channel), so a new inbound message also re-runs this effect — a
-  // fresh fetch plus a restarted interval — without waiting for the
-  // poll tick.
+  // Initial load + slow background poll.
+  //
+  // Deliberately NOT keyed on `totalUnread`. It used to be, which meant
+  // every inbound message tore down the interval, refetched all five
+  // queries, and started a new one — so the busier the inbox, the more
+  // the bell cost, exactly when the server was already busiest.
+  //
+  // Nothing is lost by dropping it: the badge's message count now reads
+  // `totalUnread` directly (see badgeCount below), which is realtime, so
+  // it still moves the instant a message arrives. This feed only
+  // supplies the popover's CONTENTS, and those are refetched when the
+  // popover opens — the one moment anybody reads them.
   useEffect(() => {
     let cancelled = false;
     const load = () =>
@@ -138,7 +160,15 @@ export function NotificationsBell() {
         if (!cancelled && next) setItems(next);
       });
     load();
-    const t = setInterval(load, POLL_MS);
+
+    // A hidden tab has nobody looking at it. Skip the tick rather than
+    // paying for a feed nobody can see; the visibility handler below
+    // catches it up the moment the tab comes back.
+    const tick = () => {
+      if (document.visibilityState === 'visible') load();
+    };
+    const t = setInterval(tick, POLL_MS);
+
     // Refetch when the user returns to the tab — so an announcement sent
     // from the admin panel (a different tab) shows up immediately instead
     // of waiting for the next poll tick.
@@ -153,16 +183,23 @@ export function NotificationsBell() {
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onFocus);
     };
-  }, [totalUnread]);
+  }, []);
 
   const isEventUnseen = (n: NotificationItem, since: number) =>
     n.type !== 'message' && new Date(n.at).getTime() > since;
 
   // Messages count until read in the inbox; events count until the bell
   // is opened.
+  //
+  // The message half comes from `totalUnread` rather than from the
+  // fetched feed. Both report the same thing — conversations with
+  // unread inbound messages — but `totalUnread` rides the Realtime
+  // channel, so the badge moves the instant a message lands. It used to
+  // be read off `items`, which meant the only way to keep the badge
+  // live was to refetch the whole five-query feed on every inbound
+  // message. This is both cheaper and faster.
   const badgeCount =
-    items.filter((n) => n.type === 'message' || isEventUnseen(n, seenAt))
-      .length;
+    totalUnread + items.filter((n) => isEventUnseen(n, seenAt)).length;
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);

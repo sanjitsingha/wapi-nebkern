@@ -237,9 +237,12 @@ export function ConversationList({
   useEffect(() => {
     let cancelled = false;
     const supabase = createClient();
+    // Only what the assignee dropdown renders — `*` pulled every
+    // profile column (including beta_features and account metadata)
+    // for every team member, on every inbox mount.
     supabase
       .from("profiles")
-      .select("*")
+      .select("id, user_id, full_name, email, avatar_url")
       .order("full_name")
       .then(({ data }) => {
         if (cancelled) return;
@@ -305,10 +308,22 @@ export function ConversationList({
       const [convsRes, tagsRes] = await Promise.all([
         supabase
           .from("conversations")
-          // Include contact_tags so we can filter by tag client-side
-          .select("*, contact:contacts(*, contact_tags(tag_id))")
+          // Named contact columns, not `contacts(*)`. The row renders
+          // six fields; `*` shipped every column of the contacts table —
+          // including custom-field payloads and notes — for every
+          // conversation, on every inbox mount. contact_tags stays
+          // because tag filtering below is client-side.
+          //
+          // Deliberately NOT limited: search and the tag/date filters
+          // all run over the loaded array, so capping rows here would
+          // silently hide older conversations from them. Narrowing the
+          // payload is the safe win; server-side filtering with real
+          // pagination is the follow-up.
+          .select(
+            "*, contact:contacts(id, name, phone, avatar_url, instagram_id, messenger_id, contact_tags(tag_id))",
+          )
           .order("last_message_at", { ascending: false }),
-        supabase.from("tags").select("*").order("name"),
+        supabase.from("tags").select("id, name, color").order("name"),
       ]);
 
       if (cancelled) return;

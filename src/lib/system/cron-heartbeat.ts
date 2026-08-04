@@ -18,6 +18,11 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  * should be pinging them at. `intervalSeconds` drives the console's
  * "overdue" detection — a job silent for well past its interval is
  * flagged, which usually means the external pinger/Cron stopped.
+ *
+ * KEEP IN STEP with the JOBS table in scripts/run-crons.mjs. These are
+ * the same cadences expressed twice — once for the pinger, once for the
+ * console that judges it — so changing one without the other either
+ * flags healthy jobs as overdue or stops flagging genuinely dead ones.
  */
 export const KNOWN_CRONS = {
   webhooks_dispatch: {
@@ -28,17 +33,17 @@ export const KNOWN_CRONS = {
   broadcasts: {
     label: 'Broadcast scheduler',
     description: 'Sends due scheduled broadcast campaigns',
-    intervalSeconds: 60,
+    intervalSeconds: 120,
   },
   automations: {
     label: 'Automations engine',
     description: 'Resumes due automation steps',
-    intervalSeconds: 60,
+    intervalSeconds: 120,
   },
   flows: {
     label: 'Flows timeout sweep',
     description: 'Times out abandoned chatbot flow runs',
-    intervalSeconds: 300,
+    intervalSeconds: 900,
   },
 } as const;
 

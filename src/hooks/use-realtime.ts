@@ -44,14 +44,30 @@ export function useRealtime({
 
     const supabase = createClient();
 
+    // INSERT and UPDATE only, on both tables. `event: "*"` also carried
+    // DELETE, and neither handler does anything with one — the inbox
+    // has no path that removes a message or a conversation from under
+    // the user. Every DELETE delivered was a Realtime message billed
+    // against the monthly allowance and then dropped on the floor.
     const channel = supabase
       .channel(channelName)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "messages" },
+        { event: "INSERT", schema: "public", table: "messages" },
         (payload) => {
           onMessageRef.current?.({
-            eventType: payload.eventType as RealtimeEvent<Message>["eventType"],
+            eventType: "INSERT",
+            new: payload.new as Message,
+            old: payload.old as Partial<Message>,
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages" },
+        (payload) => {
+          onMessageRef.current?.({
+            eventType: "UPDATE",
             new: payload.new as Message,
             old: payload.old as Partial<Message>,
           });

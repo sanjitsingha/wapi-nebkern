@@ -361,6 +361,18 @@ export interface Message {
   message_id?: string;
   status: MessageStatus;
   created_at: string;
+  /**
+   * Bumped by a trigger on every UPDATE (migration 078). The inbox
+   * polls on this rather than `created_at` so one incremental query
+   * catches both new messages and status transitions
+   * (sending → sent → delivered → read), and returns nothing at all
+   * when the thread is idle.
+   */
+  updated_at?: string;
+  /** Account that owns this message. Denormalised from the parent
+   *  conversation by a trigger (migration 078) so the RLS policy — and
+   *  therefore Realtime — can resolve it without a join. */
+  account_id?: string;
   reply_to_message_id?: string;
   /**
    * Only set when `content_type === 'interactive'` — the stable id of

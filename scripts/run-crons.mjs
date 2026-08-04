@@ -35,11 +35,30 @@ const base = BASE_URL.replace(/\/$/, '');
 
 // `everyTicks` throttles the jobs that don't need minute precision, so a
 // 60s loop doesn't hammer the flow-timeout sweep pointlessly.
+//
+// These cadences are a running cost even with zero activity: each tick
+// is a due-work scan plus a liveness heartbeat, around the clock,
+// whether or not anyone is using the app. They are tuned to how much
+// lateness each job can actually tolerate:
+//
+//   webhooks    every minute — an integration delivery queue; latency
+//                here is visible to whatever the customer wired up.
+//   broadcasts  every 2 min  — a scheduled campaign landing up to two
+//                minutes after its slot is not a product regression.
+//   automations every 2 min  — same reasoning; the waits these resume
+//                are minutes-to-days long.
+//   flows       every 15 min — a timeout sweep for abandoned chatbot
+//                runs, whose deadlines are measured in hours.
+//
+// KEEP IN STEP with KNOWN_CRONS in src/lib/system/cron-heartbeat.ts —
+// its `intervalSeconds` drives the admin System Health console's
+// "overdue" detection, so a cadence change here without a change there
+// makes every job look dead.
 const JOBS = [
   { key: 'webhooks', path: '/api/webhooks/dispatch', everyTicks: 1 },
-  { key: 'broadcasts', path: '/api/broadcasts/cron', everyTicks: 1 },
-  { key: 'automations', path: '/api/automations/cron', everyTicks: 1 },
-  { key: 'flows', path: '/api/flows/cron', everyTicks: 5 },
+  { key: 'broadcasts', path: '/api/broadcasts/cron', everyTicks: 2 },
+  { key: 'automations', path: '/api/automations/cron', everyTicks: 2 },
+  { key: 'flows', path: '/api/flows/cron', everyTicks: 15 },
 ];
 
 let tick = 0;

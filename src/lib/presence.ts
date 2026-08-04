@@ -13,15 +13,25 @@
 // testable. See presence.test.ts.
 // ============================================================
 
-/** How often the active client heartbeats its own presence row. */
-export const HEARTBEAT_MS = 30_000;
+/**
+ * How often the active client heartbeats its own presence row.
+ *
+ * Was 30s. Doubling it halves a write that every signed-in tab makes
+ * around the clock, and presence is inherently approximate — nobody can
+ * tell whether a colleague's dot went green one minute ago or two.
+ * Transitions (returning to the tab, toggling availability) still beat
+ * immediately, so the responsive cases are unaffected; this only slows
+ * the steady-state keepalive.
+ */
+export const HEARTBEAT_MS = 60_000;
 
 /**
  * A member whose last heartbeat is older than this is treated as
  * offline regardless of its stored status. ~2.5 missed beats, so a
- * single dropped heartbeat doesn't flap a member offline.
+ * single dropped heartbeat doesn't flap a member offline. Scales with
+ * HEARTBEAT_MS — keep the ratio if you change one.
  */
-export const OFFLINE_AFTER_MS = 75_000;
+export const OFFLINE_AFTER_MS = 150_000;
 
 /** No input / hidden tab for this long flips the client to 'away'. */
 export const IDLE_AFTER_MS = 5 * 60_000;

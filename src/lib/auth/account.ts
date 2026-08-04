@@ -25,8 +25,9 @@
 //   }
 // ============================================================
 
+import { cache } from "react";
 import { NextResponse } from "next/server";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/server";
 import { hasMinRole, isAccountRole, type AccountRole } from "./roles";
@@ -103,7 +104,42 @@ export interface AccountContext {
  * Use `requireRole(min)` instead when the route also needs a
  * minimum-role check — it's a thin wrapper over this.
  */
-export async function getCurrentAccount(): Promise<AccountContext> {
+/**
+ * Read account context off the user's `app_metadata`, which
+ * `auth.getUser()` already returned — no second round trip.
+ *
+ * Migration 079 mirrors `account_id`, `account_role` and `account_name`
+ * there and keeps them in step with `profiles` / `accounts` via
+ * triggers. `getUser()` reads the live auth row rather than the copy
+ * baked into the client's JWT, so a role change is visible on the next
+ * request without waiting for a token refresh.
+ *
+ * Returns null when any key is absent — a session from before 079, or
+ * the brief window during signup before the trigger has run — and the
+ * caller falls back to querying `profiles`.
+ */
+function claimsFromAppMetadata(
+  user: User,
+): { accountId: string; role: AccountRole; accountName: string } | null {
+  const meta = user.app_metadata as Record<string, unknown> | undefined;
+  if (!meta) return null;
+
+  const accountId = meta.account_id;
+  const role = meta.account_role;
+  const accountName = meta.account_name;
+
+  if (
+    typeof accountId !== "string" ||
+    typeof role !== "string" ||
+    typeof accountName !== "string" ||
+    !isAccountRole(role)
+  ) {
+    return null;
+  }
+  return { accountId, role, accountName };
+}
+
+async function loadCurrentAccount(): Promise<AccountContext> {
   const supabase = await createClient();
 
   const {
@@ -114,6 +150,21 @@ export async function getCurrentAccount(): Promise<AccountContext> {
     throw new UnauthorizedError();
   }
 
+  // Fast path: everything we need arrived with the user object.
+  const claims = claimsFromAppMetadata(user);
+  if (claims) {
+    return {
+      supabase,
+      userId: user.id,
+      accountId: claims.accountId,
+      role: claims.role,
+      account: { id: claims.accountId, name: claims.accountName },
+    };
+  }
+
+  // Fallback — the original query. Reached only by sessions predating
+  // migration 079 and by a profile the trigger has not stamped yet.
+  //
   // Selecting through the FK gives us the account name in one
   // query — `account:accounts!inner(id,name)` is Supabase's
   // explicit-join syntax. `!inner` so a NULL account_id (which
@@ -154,6 +205,17 @@ export async function getCurrentAccount(): Promise<AccountContext> {
     account: { id: accountRow.id, name: accountRow.name },
   };
 }
+
+/**
+ * Request-scoped memo around `loadCurrentAccount`.
+ *
+ * Several routes resolve the context more than once — a `getCurrentAccount`
+ * in a helper plus a `requireRole` in the handler, say. React's `cache()`
+ * scopes the result to the current request, so the second call is free
+ * instead of repeating an auth round trip. Nothing leaks between
+ * requests: the cache lifetime is the render/request pass.
+ */
+export const getCurrentAccount = cache(loadCurrentAccount);
 
 /**
  * Resolve the caller's account context and enforce a minimum role.

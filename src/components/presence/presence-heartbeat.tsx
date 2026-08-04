@@ -41,6 +41,9 @@ export function PresenceHeartbeat() {
     const supabase = createClient();
     let cancelled = false;
     let lastBeatAt = 0;
+    /** Status of the last beat we actually sent, so a steady state can
+     *  be recognised and skipped. */
+    let lastSentStatus: StoredPresence | null = null;
     lastActivityRef.current = Date.now();
 
     const markActive = () => {
@@ -54,16 +57,36 @@ export function PresenceHeartbeat() {
       return "online";
     };
 
-    const beat = async () => {
+    const beat = async (reason: "interval" | "transition" = "interval") => {
       if (cancelled) return;
+      const status = currentStatus();
+
+      // A backgrounded tab has nothing new to say. Once it has reported
+      // 'away' (or 'offline') the row is already correct, and repeating
+      // it every minute for hours is a write per minute per open tab
+      // that changes nothing. Viewers derive 'offline' from staleness,
+      // so letting the row go stale is the CORRECT outcome for a tab
+      // nobody is looking at — the moment it comes back, the
+      // visibilitychange handler beats immediately with 'online'.
+      //
+      // Transitions always beat: that is the whole point of them.
+      if (
+        reason === "interval" &&
+        status !== "online" &&
+        status === lastSentStatus
+      ) {
+        return;
+      }
+
       // Coalesce bursts: a tab refocus fires visibilitychange AND focus
       // together, so skip a beat within 1s of the last to avoid two RPCs
-      // in the same frame. The 30s interval is never affected.
+      // in the same frame. The interval is never affected.
       const t = Date.now();
       if (t - lastBeatAt < 1_000) return;
       lastBeatAt = t;
+      lastSentStatus = status;
       const { error } = await supabase.rpc("touch_presence", {
-        p_status: currentStatus(),
+        p_status: status,
       });
       if (error && !cancelled) {
         // Non-fatal: presence is best-effort. Log once per failure so a
@@ -88,13 +111,13 @@ export function PresenceHeartbeat() {
     // the visibilitychange + focus double-fire.
     const onReturn = () => {
       if (!document.hidden) markActive();
-      void beat();
+      void beat("transition");
     };
     document.addEventListener("visibilitychange", onReturn);
     window.addEventListener("focus", onReturn);
 
-    void beat();
-    const interval = setInterval(() => void beat(), HEARTBEAT_MS);
+    void beat("transition");
+    const interval = setInterval(() => void beat("interval"), HEARTBEAT_MS);
 
     return () => {
       cancelled = true;

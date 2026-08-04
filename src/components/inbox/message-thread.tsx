@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePresence } from "@/hooks/use-presence";
 import { PresenceDot } from "@/components/presence/presence-dot";
 import { presenceLabel } from "@/lib/presence";
+import { MESSAGE_COLUMNS } from "@/lib/inbox/messages";
 import { avatarColor } from "@/lib/avatar-color";
 import { cn } from "@/lib/utils";
 import type {
@@ -322,9 +323,11 @@ export function MessageThread({
     (async () => {
       setLoading(true);
 
+      // Explicit columns, shared with the inbox's incremental poll so
+      // a merged row never has fewer fields than the one it replaces.
       const { data, error } = await supabase
         .from("messages")
-        .select("*")
+        .select(MESSAGE_COLUMNS)
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true });
 

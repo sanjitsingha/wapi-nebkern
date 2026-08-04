@@ -5,6 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Conversation, Message, Contact, ConversationStatus } from "@/types";
 import { useRealtime } from "@/hooks/use-realtime";
+import {
+  MESSAGE_COLUMNS,
+  MESSAGE_SYNC_INTERVAL_MS,
+  MESSAGE_SYNC_LIMIT,
+} from "@/lib/inbox/messages";
 import { ConversationList } from "@/components/inbox/conversation-list";
 import { MessageThread } from "@/components/inbox/message-thread";
 import { ContactSidebar } from "@/components/inbox/contact-sidebar";
@@ -374,20 +379,24 @@ export default function InboxPage() {
   }, []);
 
   /**
-   * Polling fallback for the OPEN thread.
+   * Safety net for the OPEN thread — an INCREMENTAL sync, not a refetch.
    *
-   * Realtime postgres_changes on `messages` is unreliable here: the
-   * table's RLS policy joins `conversations` (messages_select ->
-   * is_account_member(c.account_id)), and Supabase Realtime evaluates
-   * such cross-table policies poorly, so a customer's reply is saved but
-   * its INSERT event often never reaches the client — the open thread
-   * sits stale until the next manual refetch.
+   * History: Realtime postgres_changes on `messages` used to be
+   * unreliable, because the table's RLS policy reached through
+   * `conversations` and Supabase Realtime evaluates cross-table
+   * policies poorly. The workaround was to re-fetch the whole thread
+   * every 5 seconds — which, on a 100-message conversation, is ~17 GB
+   * of egress a month for ONE user. Migration 078 gave `messages` its
+   * own `account_id` and flattened the policy, so Realtime now
+   * delivers; this loop is the gap-filler for a dropped socket, not
+   * the transport.
    *
-   * While a conversation is open and the tab is visible, re-fetch its
-   * messages every few seconds and merge by id: no loading flash, no
-   * scroll jump, and idle polls are skipped when nothing changed. This
-   * guarantees inbound messages surface within a few seconds regardless
-   * of realtime; realtime still provides the instant path when it works.
+   * The query asks only for rows changed since our watermark, so an
+   * idle thread transfers an empty array rather than its entire
+   * history. `updated_at` (also 078) rather than `created_at`, because
+   * a message's status keeps moving after insert — sending → sent →
+   * delivered → read — and a created_at watermark would freeze the
+   * delivery ticks.
    */
   useEffect(() => {
     const convId = activeConversation?.id;
@@ -395,30 +404,69 @@ export default function InboxPage() {
     const supabase = createClient();
     let cancelled = false;
 
+    // Highest `updated_at` we have already merged. Empty string means
+    // "everything", which is correct for the first tick after a
+    // conversation switch — the initial load has usually populated
+    // state by then, so the watermark advances immediately.
+    let watermark = "";
+
     const poll = async () => {
       if (document.visibilityState !== "visible") return;
-      const { data, error } = await supabase
+
+      const query = supabase
         .from("messages")
-        .select("*")
+        .select(MESSAGE_COLUMNS)
         .eq("conversation_id", convId)
-        .order("created_at", { ascending: true });
-      if (cancelled || error || !data) return;
+        .order("updated_at", { ascending: true })
+        .limit(MESSAGE_SYNC_LIMIT);
+
+      const { data, error } = watermark
+        ? await query.gt("updated_at", watermark)
+        : await query;
+
+      if (cancelled || error || !data || data.length === 0) return;
+
+      // Advance the watermark before merging: even a row we end up
+      // discarding as a duplicate has been accounted for.
+      const newest = data[data.length - 1]?.updated_at;
+      if (newest) watermark = newest;
+
       setMessages((prev) => {
-        // Keep any in-flight optimistic rows that aren't persisted yet.
-        const pendingTemps = prev.filter((m) => m.id.startsWith("temp-"));
-        const prevReal = prev.filter((m) => !m.id.startsWith("temp-"));
-        // Skip the state update when nothing changed so an idle thread
-        // doesn't re-render (and the scroll position doesn't move).
-        const unchanged =
-          pendingTemps.length === 0 &&
-          prevReal.length === data.length &&
-          prevReal.every((m, i) => m.id === data[i]?.id);
-        if (unchanged) return prev;
-        return [...data, ...pendingTemps];
+        const byId = new Map(prev.map((m) => [m.id, m]));
+        let changed = false;
+
+        for (const row of data as Message[]) {
+          const existing = byId.get(row.id);
+          if (!existing) {
+            byId.set(row.id, row);
+            changed = true;
+          } else if (existing.status !== row.status) {
+            // Status transition on a row we already show.
+            byId.set(row.id, { ...existing, ...row });
+            changed = true;
+          }
+        }
+        if (!changed) return prev;
+
+        // A persisted row supersedes its optimistic stand-in. Match on
+        // content rather than id — the temp id never reaches the DB.
+        const real = [...byId.values()].filter((m) => !m.id.startsWith("temp-"));
+        const stillPending = [...byId.values()].filter(
+          (m) =>
+            m.id.startsWith("temp-") &&
+            !real.some(
+              (r) =>
+                r.sender_type !== "customer" &&
+                r.content_text === m.content_text,
+            ),
+        );
+
+        real.sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
+        return [...real, ...stillPending];
       });
     };
 
-    const id = setInterval(poll, 5000);
+    const id = setInterval(poll, MESSAGE_SYNC_INTERVAL_MS);
     return () => {
       cancelled = true;
       clearInterval(id);
