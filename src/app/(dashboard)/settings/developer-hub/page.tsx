@@ -2,8 +2,9 @@ import Link from 'next/link';
 import { ArrowUpRight, KeyRound } from 'lucide-react';
 
 import { AiConfig } from '@/components/agents/ai-config';
+import { SettingsPanelHead } from '@/components/settings/settings-panel-head';
 
-// Settings → Developer hub.
+// Settings → AI & models (route id stays `developer-hub`).
 //
 // The technical half of the AI agent — which provider, whose API key,
 // which model, and the behaviour that drives it. It used to live on
@@ -14,15 +15,11 @@ import { AiConfig } from '@/components/agents/ai-config';
 export default function DeveloperHubPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight text-foreground">
-          Developer hub
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Model provider, credentials and agent behaviour. Bring your own key —
-          it is stored encrypted and never leaves your workspace.
-        </p>
-      </div>
+      <SettingsPanelHead
+        title="AI & models"
+        description="Model provider, credentials and agent behaviour. Bring your own key — it is stored encrypted and never leaves your workspace."
+        className="mb-0"
+      />
 
       <AiConfig />
 

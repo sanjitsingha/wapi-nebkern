@@ -1,17 +1,18 @@
 import {
   AtSign,
   Camera,
-  Code2,
   KeyRound,
   MessageCircle,
   MessageSquareCode,
   Phone,
   PlugZap,
-  SlidersHorizontal,
+  Sparkles,
   Store,
+  Tags,
   User,
   UsersRound,
   Wallet,
+  Webhook,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -24,22 +25,33 @@ import {
  * in `resolveSection`. There is no Overview landing: `/settings`
  * redirects to the default section, and Profile & security is one
  * combined section.
+ *
+ * This is every valid section route. What the rail actually shows is
+ * `RAIL_SECTIONS` — sections marked `hiddenUnder` stay routable but are
+ * reached from their parent section instead of from the nav.
+ *
+ * Order matters: the rail filters this array per group and keeps its
+ * order, so this is also the top-to-bottom order within each group.
  */
 export const SETTINGS_SECTIONS = [
+  // Account — you, not the workspace.
   'profile',
+  // Workspace — the business everyone on the team shares.
+  'business-profile',
+  'members',
+  'billing',
+  'customization',
+  // Channels — every way a conversation can reach the inbox.
   'whatsapp',
   'calling',
   'meta',
   'instagram',
   'messenger',
-  'business-profile',
   'widget',
-  'billing',
-  'developer-hub',
+  // Developers — credentials and wiring to other software.
   'api-access',
   'integrations',
-  'customization',
-  'members',
+  'developer-hub',
 ] as const;
 
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
@@ -51,7 +63,7 @@ export interface SectionMeta {
   id: SettingsSection;
   label: string;
   icon: LucideIcon;
-  group: 'account' | 'workspace';
+  group: 'account' | 'workspace' | 'channels' | 'developers';
   /**
    * Shelved channel: the rail shows the entry with a "Soon" badge and
    * makes it non-navigable, and the section's page renders the
@@ -60,62 +72,45 @@ export interface SectionMeta {
    * this", this one says "nobody has this yet".
    */
   comingSoon?: boolean;
+  /**
+   * Sub-page of another section: the route stays live and deep-linkable,
+   * but it gets no rail entry of its own — you reach it from the parent,
+   * and the parent's entry is what lights up while you're on it.
+   *
+   * Used to keep one nav row per job. Two sections that configure the
+   * same thing read as a duplicate even when one is a deeper cut of the
+   * other, so the deeper one hides behind its parent instead.
+   */
+  hiddenUnder?: SettingsSection;
 }
 
+/**
+ * Labels are sentence case throughout — only brand names keep their own
+ * capitals (WhatsApp, Instagram, Messenger). Each label names what the
+ * page actually does rather than the drawer it once lived in.
+ *
+ * Declared in the same order as SETTINGS_SECTIONS.
+ */
 export const SECTION_META: Record<SettingsSection, SectionMeta> = {
+  /* ── Account ─────────────────────────────────────────────────────── */
   profile: {
     id: 'profile',
     label: 'Profile',
     icon: User,
     group: 'account',
   },
-  whatsapp: {
-    id: 'whatsapp',
-    label: 'WhatsApp',
-    icon: PlugZap,
-    group: 'workspace',
-  },
-  calling: {
-    id: 'calling',
-    label: 'Calling',
-    icon: Phone,
-    group: 'workspace',
-  },
-  // The short path: one Facebook login returns the Page (Messenger) and
-  // the Instagram professional account linked to it, sharing one access
-  // token. Listed before the two single-channel sections because it is
-  // what almost everyone should click.
-  meta: {
-    id: 'meta',
-    label: 'Instagram & Messenger',
-    icon: AtSign,
-    group: 'workspace',
-  },
-  // The long paths, kept for connecting one channel on its own, reading
-  // a webhook callback URL / verify token, or entering credentials by
-  // hand when the combined login can't reach an account.
-  instagram: {
-    id: 'instagram',
-    label: 'Instagram',
-    icon: Camera,
-    group: 'workspace',
-  },
-  messenger: {
-    id: 'messenger',
-    label: 'Messenger',
-    icon: MessageCircle,
-    group: 'workspace',
-  },
+
+  /* ── Workspace ───────────────────────────────────────────────────── */
   'business-profile': {
     id: 'business-profile',
-    label: 'Business Profile',
+    label: 'Business profile',
     icon: Store,
     group: 'workspace',
   },
-  widget: {
-    id: 'widget',
-    label: 'Chat Widget',
-    icon: MessageSquareCode,
+  members: {
+    id: 'members',
+    label: 'Team members',
+    icon: UsersRound,
     group: 'workspace',
   },
   billing: {
@@ -124,35 +119,89 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     icon: Wallet,
     group: 'workspace',
   },
-  'developer-hub': {
-    id: 'developer-hub',
-    label: 'Developer hub',
-    icon: Code2,
+  // Named for its contents, not the drawer: the page is the fields and
+  // tags manager and nothing else, now that the currency control has
+  // moved to the pipeline board.
+  customization: {
+    id: 'customization',
+    label: 'Fields & tags',
+    icon: Tags,
     group: 'workspace',
   },
+
+  /* ── Channels ────────────────────────────────────────────────────── */
+  whatsapp: {
+    id: 'whatsapp',
+    label: 'WhatsApp',
+    icon: PlugZap,
+    group: 'channels',
+  },
+  calling: {
+    id: 'calling',
+    label: 'Calling',
+    icon: Phone,
+    group: 'channels',
+  },
+  // The one Meta row in the rail: a single Facebook login returns the
+  // Page (Messenger) and the Instagram professional account linked to
+  // it, sharing one access token. Both channels are connected,
+  // reconnected and disconnected from here — together or one at a time.
+  meta: {
+    id: 'meta',
+    label: 'Instagram & Messenger',
+    icon: AtSign,
+    group: 'channels',
+  },
+  // The long paths — reached from "Full setup" on the combined section
+  // above, not from the rail. Same two channels, so a rail row each
+  // would be three entries for one job. Still live routes: they hold
+  // the webhook callback URL / verify token readouts and manual
+  // credential entry, and each channel's OAuth callback redirects here.
+  instagram: {
+    id: 'instagram',
+    label: 'Instagram',
+    icon: Camera,
+    group: 'channels',
+    hiddenUnder: 'meta',
+  },
+  messenger: {
+    id: 'messenger',
+    label: 'Messenger',
+    icon: MessageCircle,
+    group: 'channels',
+    hiddenUnder: 'meta',
+  },
+  // A channel too: the website widget is where a conversation starts,
+  // not a cosmetic setting.
+  widget: {
+    id: 'widget',
+    label: 'Chat widget',
+    icon: MessageSquareCode,
+    group: 'channels',
+  },
+
+  /* ── Developers ──────────────────────────────────────────────────── */
   'api-access': {
     id: 'api-access',
-    label: 'API Access',
+    label: 'API access',
     icon: KeyRound,
-    group: 'workspace',
+    group: 'developers',
   },
+  // Its own glyph rather than another PlugZap — WhatsApp already wears
+  // that one, and two identical icons in one rail read as a mistake.
   integrations: {
     id: 'integrations',
     label: 'Integrations',
-    icon: PlugZap,
-    group: 'workspace',
+    icon: Webhook,
+    group: 'developers',
   },
-  customization: {
-    id: 'customization',
-    label: 'Customization',
-    icon: SlidersHorizontal,
-    group: 'workspace',
-  },
-  members: {
-    id: 'members',
-    label: 'Team members',
-    icon: UsersRound,
-    group: 'workspace',
+  // "Developer hub" said where it sat, not what it held: the page is the
+  // AI provider, its credentials and the model behind the agent.
+  'developer-hub': {
+    id: 'developer-hub',
+    label: 'AI & models',
+    icon: Sparkles,
+    group: 'developers',
   },
 };
 
@@ -162,10 +211,26 @@ export const RAIL_GROUPS: {
 }[] = [
   { label: 'Account', group: 'account' },
   { label: 'Workspace', group: 'workspace' },
+  { label: 'Channels', group: 'channels' },
+  { label: 'Developers', group: 'developers' },
 ];
 
 export function isSection(value: string | null): value is SettingsSection {
   return !!value && (SETTINGS_SECTIONS as readonly string[]).includes(value);
+}
+
+/** The sections that get a rail entry — sub-pages are reached from their parent. */
+export const RAIL_SECTIONS = SETTINGS_SECTIONS.filter(
+  (s) => !SECTION_META[s].hiddenUnder,
+);
+
+/**
+ * Which rail entry lights up for a section. A sub-page has no row of its
+ * own, so it highlights its parent — otherwise the rail would show
+ * nothing selected and the page would feel orphaned.
+ */
+export function railSection(section: SettingsSection): SettingsSection {
+  return SECTION_META[section].hiddenUnder ?? section;
 }
 
 /** Canonical URL for a settings section. */

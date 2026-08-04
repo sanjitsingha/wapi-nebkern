@@ -122,8 +122,10 @@ export function BillingConfig() {
 
   return (
     <div>
+      {/* "Billing & usage" names the whole section and is rendered by the
+          page above; this panel is the WhatsApp half of it. */}
       <SettingsPanelHead
-        title="Billing & usage"
+        title="WhatsApp usage"
         description="Your estimated WhatsApp spend this billing period, from Meta's conversation analytics. Meta does not expose a live wallet balance via API — open WhatsApp Manager for your actual balance and invoices."
       />
 

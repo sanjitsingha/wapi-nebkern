@@ -11,9 +11,10 @@ import { useEntitlements } from '@/hooks/use-entitlements';
 import {
   DEFAULT_SECTION,
   RAIL_GROUPS,
+  RAIL_SECTIONS,
   SECTION_META,
-  SETTINGS_SECTIONS,
   isSection,
+  railSection,
   sectionHref,
   type SettingsSection,
 } from './settings-sections';
@@ -24,22 +25,22 @@ import {
  * The combined "Instagram & Messenger" section is deliberately absent
  * even though Instagram is plan-gated: it also carries Messenger, which
  * every plan gets, so locking it would hide a channel the account owns.
- * Its Instagram half is gated server-side at connect time instead. The
- * single-channel Instagram section below IS locked — there is nothing to
- * show on it without the entitlement.
+ * Its Instagram half is gated server-side at connect time, and the
+ * Instagram sub-page carries its own FeatureGate.
  */
 const SECTION_FEATURE = {
   calling: 'allowCalling',
-  instagram: 'allowInstagram',
   'api-access': 'allowIntegrations',
   integrations: 'allowIntegrations',
 } as const;
 
 const RAIL_DESKTOP_MIN_PX = 1024;
 
+// Which rail entry is current. Sub-pages (Instagram, Messenger) have no
+// row of their own, so they resolve to the parent row that owns them.
 function getActiveSection(pathname: string): SettingsSection {
   const segment = pathname.replace(/^\/settings\/?/, '');
-  return isSection(segment) ? segment : DEFAULT_SECTION;
+  return railSection(isSection(segment) ? segment : DEFAULT_SECTION);
 }
 
 export function SettingsRail() {
@@ -75,12 +76,22 @@ export function SettingsRail() {
         'lg:flex-col lg:overflow-visible lg:pb-0',
       )}
     >
-      {RAIL_GROUPS.map(({ label, group }) => {
-        const items = SETTINGS_SECTIONS.filter(
+      {RAIL_GROUPS.map(({ label, group }, groupIndex) => {
+        const items = RAIL_SECTIONS.filter(
           (s) => SECTION_META[s].group === group,
         );
         return (
-          <div key={group} className="flex shrink-0 gap-1 lg:flex-col lg:gap-2">
+          <div
+            key={group}
+            className={cn(
+              'flex shrink-0 gap-1 lg:flex-col lg:gap-2',
+              // Mobile hides the group headings, so without this the four
+              // groups run together as one long strip of chips. The rule
+              // is the only thing marking where one ends. Desktop has the
+              // headings and doesn't need it.
+              groupIndex > 0 && 'ml-1 border-l border-border pl-2 lg:ml-0 lg:border-l-0 lg:pl-0',
+            )}
+          >
             {label ? (
               <div className="hidden px-3 pt-4 pb-2 text-[11px] font-semibold tracking-[0.09em] text-muted-foreground uppercase lg:block">
                 {label}

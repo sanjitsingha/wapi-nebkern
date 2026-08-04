@@ -9,7 +9,6 @@ import {
   Send,
   Eye,
   Copy,
-  Webhook as WebhookIcon,
   CheckCircle2,
   XCircle,
   Clock,
@@ -29,6 +28,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { WEBHOOK_EVENTS } from '@/lib/webhooks/events';
+import { SettingsPanelHead } from './settings-panel-head';
 
 interface Endpoint {
   id: string;
@@ -145,29 +145,30 @@ export function WebhooksPanel() {
 
   return (
     <div className="space-y-6">
-      <Card className="p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className="bg-primary/10 text-primary rounded-full p-2">
-              <WebhookIcon className="h-4 w-4" />
-            </div>
-            <div>
-              <h2 className="text-foreground text-lg font-semibold">Webhooks</h2>
-              <p className="text-muted-foreground mt-1 max-w-xl text-sm">
-                Get a signed HTTP callback when things happen in your workspace —
-                connect Zapier, Make, n8n, or your own backend. Each request is
-                signed with the endpoint&apos;s secret (header{' '}
-                <code className="text-xs">X-Wacrm-Signature: sha256=…</code>).
-              </p>
-            </div>
-          </div>
-          <Button onClick={() => setCreateOpen(true)} className="shrink-0">
+      {/* Section header, not a card header — every settings section opens
+          with this same block, so this one sits above the Card rather
+          than inside it. */}
+      <SettingsPanelHead
+        title="Integrations"
+        description={
+          <>
+            Get a signed HTTP callback when things happen in your workspace —
+            connect Zapier, Make, n8n, or your own backend. Each request is
+            signed with the endpoint&apos;s secret (header{' '}
+            <code className="text-xs">X-Wacrm-Signature: sha256=…</code>).
+          </>
+        }
+        action={
+          <Button onClick={() => setCreateOpen(true)}>
             <Plus className="h-4 w-4" />
             Add endpoint
           </Button>
-        </div>
+        }
+        className="mb-0"
+      />
 
-        <div className="mt-6 space-y-3">
+      <Card className="p-6">
+        <div className="space-y-3">
           {endpoints.length === 0 ? (
             <div className="border-border rounded-lg border border-dashed p-6 text-center">
               <p className="text-muted-foreground text-sm">

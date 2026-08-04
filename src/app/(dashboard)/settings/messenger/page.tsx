@@ -4,13 +4,15 @@ import { ArrowLeft } from 'lucide-react';
 
 import { MessengerConfig } from '@/components/settings/messenger-config';
 
-// Messenger on its own — the separate setup path, for connecting just
-// this channel, reading its webhook callback URL and verify token, or
+// Messenger on its own — the full-setup path, for connecting just this
+// channel, reading its webhook callback URL and verify token, or
 // switching Pages without touching Instagram.
 //
-// Most people should use the combined connect at /settings/meta instead:
-// one Facebook login brings in this Page AND the Instagram account
-// linked to it. Hence the way back at the top rather than a buried link.
+// A sub-page of /settings/meta, not a rail section: the combined connect
+// is what almost everyone should use — one Facebook login brings in this
+// Page AND the Instagram account linked to it — so the nav offers that
+// one entry and this page is reached from it. Hence the way back at the
+// top rather than a buried link.
 //
 // Suspense boundary because the panel reads ?fb_* params via
 // useSearchParams — the redirect fallback of the OAuth callback comes
@@ -23,7 +25,7 @@ export default function MessengerPage() {
         className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        Connect Instagram &amp; Messenger together
+        Back to Instagram &amp; Messenger
       </Link>
 
       <Suspense fallback={null}>
