@@ -30,6 +30,7 @@
   "scripts": {
     "dev": "next dev",
     "cron": "node --env-file=.env.local scripts/run-crons.mjs",
+    "verify:r2": "node --env-file=.env.local scripts/verify-r2.mjs",
     "webhooks:cron": "node --env-file=.env.local scripts/dispatch-webhooks.mjs",
     "build": "next build",
     "start": "next start",
@@ -41,6 +42,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1102.0",
+    "@aws-sdk/s3-request-presigner": "^3.1102.0",
     "@base-ui/react": "^1.5.0",
     "@dagrejs/dagre": "^3.0.0",
     "@dnd-kit/core": "^6.3.1",
@@ -79,6 +82,7 @@
     "eslint-config-next": "16.2.6",
     "prettier": "^3.8.4",
     "prettier-plugin-tailwindcss": "^0.8.0",
+    "supabase": "^2.111.0",
     "tailwindcss": "^4",
     "typescript": "^6",
     "vitest": "^4.1.9"

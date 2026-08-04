@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Loader2, Upload, Trash2, Mail, CircleAlert } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
+import { uploadAccountMedia } from '@/lib/storage/upload-media';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +16,10 @@ import {
   AvatarImage,
 } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
+
+/** Matches the Supabase bucket name, and the R2 path prefix allow-listed
+ *  in /api/storage/upload-url. */
+const AVATAR_BUCKET = 'avatars';
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 const ALLOWED_MIME = new Set([
@@ -114,23 +119,18 @@ export function ProfileForm() {
       let nextAvatarUrl: string | null = profile.avatar_url ?? null;
 
       // Upload a newly-staged image, if any.
+      //
+      // Routed through the shared helper so avatars land on the same
+      // backend as every other upload — Cloudflare R2 where it is
+      // configured, Supabase Storage otherwise. This used to call
+      // Supabase Storage directly with a user-scoped path, which was
+      // the one upload in the app that bypassed the shared path
+      // convention and the plan storage check.
       if (pendingAvatar) {
-        const ext =
-          pendingAvatar.name.split('.').pop()?.toLowerCase() || 'png';
-        const path = `${user.id}/avatar-${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(path, pendingAvatar, {
-            cacheControl: '3600',
-            upsert: true,
-            contentType: pendingAvatar.type,
-          });
-        if (uploadError) {
-          throw new Error(`Upload failed: ${uploadError.message}`);
-        }
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from('avatars').getPublicUrl(path);
+        const { publicUrl } = await uploadAccountMedia(
+          AVATAR_BUCKET,
+          pendingAvatar,
+        );
         nextAvatarUrl = publicUrl;
       } else if (removeAvatar) {
         nextAvatarUrl = null;
