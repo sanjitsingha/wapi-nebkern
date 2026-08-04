@@ -242,7 +242,6 @@ const SECTIONS: LegalSection[] = [
 export default function Lp2TermsPage() {
   return (
     <LegalPage
-      kicker="Terms"
       title="Terms & Conditions"
       hue="grape"
       updated="25 July 2026"

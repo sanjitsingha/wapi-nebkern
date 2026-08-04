@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { MessageCircle } from 'lucide-react';
 
 import type { Lp2Hue } from './decor';
+import { LEGAL_LINKS } from './legal-links';
 
 // ============================================================
 // Footer. Ink panel, so the page closes the way the social-proof strip
@@ -31,16 +32,6 @@ const COLUMNS: { title: string; hue: Lp2Hue; links: { label: string; href: strin
     ],
   },
   {
-    title: 'Legal',
-    hue: 'grape',
-    links: [
-      { label: 'Privacy Policy', href: '/privacy' },
-      { label: 'Terms & Conditions', href: '/terms' },
-      { label: 'Cancellation & Refunds', href: '/refunds' },
-      { label: 'Acceptable Use', href: '/acceptable-use' },
-    ],
-  },
-  {
     title: 'Account',
     hue: 'coral',
     links: [
@@ -50,13 +41,18 @@ const COLUMNS: { title: string; hue: Lp2Hue; links: { label: string; href: strin
   },
 ];
 
+// The policies get their own band below the columns rather than a fourth
+// column of their own: there are eleven, and a column that long would
+// tower over its neighbours. The list itself lives in `legal-links.ts`,
+// shared with the sidebar on the legal pages so the two cannot drift.
+
 export function Lp2Footer() {
   return (
     <footer className="border-t-2 border-(--lp2-ink) bg-(--lp2-ink) text-white">
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-        {/* Six columns, not five: the blurb takes two and there are now
-            four link columns since Legal was added. */}
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-6">
+        {/* Five columns: the blurb takes two, then three link columns.
+            Legal moved out to its own band below — see LEGAL_LINKS. */}
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-2">
             <Link href="/" className="flex items-center gap-2.5">
               <span className="flex size-9 items-center justify-center rounded-xl border-2 border-white bg-(--lp2-grass)">
@@ -96,7 +92,32 @@ export function Lp2Footer() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-2 border-t border-white/15 pt-6 text-xs font-medium text-white/55 sm:flex-row">
+        {/* Legal band. Its own row so all eleven policies fit without one
+            column running three times the height of its neighbours. */}
+        <div className="mt-12 border-t border-white/15 pt-8">
+          <p className="flex items-center gap-2 text-sm font-extrabold">
+            <span
+              aria-hidden
+              className="size-2.5 rounded-full"
+              style={{ backgroundColor: 'var(--lp2-grape)' }}
+            />
+            Legal &amp; policies
+          </p>
+          <ul className="mt-4 grid gap-x-8 gap-y-2.5 sm:grid-cols-2 lg:grid-cols-4">
+            {LEGAL_LINKS.map((l) => (
+              <li key={l.href}>
+                <Link
+                  href={l.href}
+                  className="text-sm font-medium text-white/65 transition-colors hover:text-white"
+                >
+                  {l.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="mt-10 flex flex-col items-center justify-between gap-2 border-t border-white/15 pt-6 text-xs font-medium text-white/55 sm:flex-row">
           {/* Rendered per request rather than frozen at build time —
               same as the live footer, and the page is static enough
               that a hardcoded year would go stale silently. */}

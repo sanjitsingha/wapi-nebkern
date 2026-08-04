@@ -160,7 +160,6 @@ const SECTIONS: LegalSection[] = [
 export default function Lp2AcceptableUsePage() {
   return (
     <LegalPage
-      kicker="Fair play"
       title="Acceptable Use Policy"
       hue="coral"
       updated="25 July 2026"

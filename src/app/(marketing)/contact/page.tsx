@@ -100,7 +100,6 @@ const SECTIONS: LegalSection[] = [
 export default function Lp2ContactPage() {
   return (
     <LegalPage
-      kicker="Say hello"
       title="Contact us"
       hue="pop"
       updated="25 July 2026"

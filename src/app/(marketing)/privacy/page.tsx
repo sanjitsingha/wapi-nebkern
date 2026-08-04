@@ -199,7 +199,6 @@ const SECTIONS: LegalSection[] = [
 export default function Lp2PrivacyPage() {
   return (
     <LegalPage
-      kicker="Privacy"
       title="Privacy Policy"
       hue="sky"
       updated="25 July 2026"

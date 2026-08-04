@@ -5,23 +5,24 @@ import { cn } from '@/lib/utils';
 import type { Lp2Hue } from './decor';
 import { Lp2Nav } from './nav';
 import { Lp2Footer } from './footer';
+import { LegalNav } from './legal-nav';
 
 // ============================================================
-// Shared shell for the legal pages (privacy, terms, refunds,
-// acceptable use, contact).
+// Shared shell for the legal pages — the eleven policies in
+// `legal-links.ts`, plus contact.
 //
 // Same nav/footer as the rest of the site, but deliberately restrained
-// in the body: no blobs, no rotated stickers, no hard offset shadows.
-// A policy someone might need to read carefully — or a payment
-// gateway's reviewer might screenshot — should read as a document,
-// not a marketing page. The per-section hue survives only as a soft
-// tint, not a solid sticker fill.
+// in the body: no blobs, no rotated stickers, no hard offset shadows,
+// no coloured banding. A policy someone might need to read carefully —
+// or a payment gateway's reviewer might screenshot — should read as a
+// document, not a marketing page. The per-section hue survives only as
+// a soft tint behind the section numbers.
 //
-// All five policies are the same page with different words, so
-// they're structured data rendered by one component. That's not just
-// DRY: legal pages have to agree with each other, and the fastest way
-// to end up with a Terms page that contradicts the Privacy page is to
-// hand-build each one.
+// Every policy is the same page with different words, so they're
+// structured data rendered by one component. That's not just DRY: legal
+// pages have to agree with each other, and the fastest way to end up
+// with a Terms page that contradicts the Privacy page is to hand-build
+// each one.
 //
 // PLACEHOLDERS: policy text uses {{TOKEN}} markers for facts only the
 // business owner knows (legal entity name, address, contact email).
@@ -43,6 +44,15 @@ const PLACEHOLDERS: Record<string, string> = {
   PHONE: 'YOUR PHONE NUMBER',
   CITY: 'YOUR CITY',
   GRIEVANCE: 'GRIEVANCE OFFICER NAME',
+  // Infrastructure facts. The subprocessor list and security policy name
+  // real vendors where the code proves them (Supabase, Meta, Razorpay,
+  // the AI providers) — these two are deployment choices the code can't
+  // know, so they stay placeholders rather than plausible guesses. A
+  // subprocessor list that names the wrong host is worse than one that
+  // visibly needs filling in.
+  HOSTING: 'YOUR HOSTING PROVIDER',
+  REGION: 'YOUR DATA REGION',
+  SECURITY_EMAIL: 'YOUR SECURITY CONTACT EMAIL',
 };
 
 export type LegalBlock =
@@ -173,15 +183,12 @@ function Blocks({ blocks }: { blocks: LegalBlock[] }) {
 
 export function LegalPage({
   title,
-  kicker,
   updated,
   intro,
   sections,
   hue = 'sky',
 }: {
   title: string;
-  /** One line above the title — what this document is for. */
-  kicker: string;
   /** Human-readable "last updated" date. Change it when you change the
    *  text; a stale date on a policy is its own small liability. */
   updated: string;
@@ -195,13 +202,12 @@ export function LegalPage({
 
       <main>
         {/* ── Header band ──
-            No blobs, no rotation, no sticker shadow — a policy page
-            reads as a document. The hue survives only as a thin left
-            rule and a soft-tinted kicker, not a solid stamped badge. */}
-        <section
-          className="border-b border-(--lp2-ink)/10 pt-8 sm:pt-10"
-          style={{ borderTopWidth: 3, borderTopColor: `var(--lp2-${hue})` }}
-        >
+            No blobs, no rotation, no sticker shadow, and no coloured
+            rule across the top — a policy page reads as a document, and
+            a stripe that changes colour per document just makes eleven
+            of them look like eleven unrelated sites. The hue survives
+            only on the section numbers below. */}
+        <section className="border-b border-(--lp2-ink)/10 pt-8 sm:pt-10">
           <div className="mx-auto max-w-4xl px-4 pt-4 pb-14 sm:px-6">
             <Link
               href="/"
@@ -211,14 +217,7 @@ export function LegalPage({
               Back home
             </Link>
 
-            <span
-              className="mt-6 inline-flex rounded-full px-3.5 py-1.5 text-xs font-bold tracking-wide uppercase"
-              style={{ backgroundColor: `var(--lp2-${hue}-soft)` }}
-            >
-              {kicker}
-            </span>
-
-            <h1 className="lp2-display mt-5 text-4xl font-extrabold text-balance sm:text-5xl">
+            <h1 className="lp2-display mt-6 text-4xl font-extrabold text-balance sm:text-5xl">
               {title}
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-pretty text-(--lp2-ink-soft)">
@@ -233,30 +232,13 @@ export function LegalPage({
         {/* ── Body ── */}
         <section className="bg-white">
           <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[16rem_1fr] lg:gap-14">
-            {/* Contents. Sticky on desktop only — these documents run
-                long and jumping between clauses is the main way anyone
-                actually reads them. */}
-            <nav
-              aria-label="On this page"
-              className="lg:sticky lg:top-24 lg:self-start"
-            >
-              <p className="text-xs font-extrabold tracking-wide uppercase">
-                On this page
-              </p>
-              <ol className="mt-4 space-y-1.5">
-                {sections.map((s, i) => (
-                  <li key={s.id}>
-                    <a
-                      href={`#${s.id}`}
-                      className="flex gap-2.5 rounded-xl px-2.5 py-1.5 text-sm font-semibold text-(--lp2-ink-soft) transition-colors hover:bg-(--lp2-cream) hover:text-(--lp2-ink)"
-                    >
-                      <span className="text-(--lp2-ink)/35">{i + 1}.</span>
-                      {s.heading}
-                    </a>
-                  </li>
-                ))}
-              </ol>
-            </nav>
+            {/* The other documents, not this one's headings. Sticky on
+                desktop, and it parks at top-32 rather than top-24: the
+                floating nav pill's bottom edge lands around 92px, so
+                anything less than this pulls up flush against it. */}
+            <div className="lg:sticky lg:top-32 lg:self-start">
+              <LegalNav />
+            </div>
 
             <div className="min-w-0">
               <DraftNotice />

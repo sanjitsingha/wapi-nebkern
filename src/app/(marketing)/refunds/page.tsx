@@ -148,7 +148,6 @@ const SECTIONS: LegalSection[] = [
 export default function Lp2RefundsPage() {
   return (
     <LegalPage
-      kicker="Billing"
       title="Cancellation & Refunds"
       hue="tangerine"
       updated="25 July 2026"
