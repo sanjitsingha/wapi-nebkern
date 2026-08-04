@@ -20,6 +20,7 @@
 
 import {
   DeleteObjectCommand,
+  GetBucketCorsCommand,
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
@@ -183,7 +184,64 @@ for (let attempt = 1; attempt <= 3; attempt++) {
   }
 }
 
-// ---- 5. Clean up ----------------------------------------------
+// ---- 5. CORS ---------------------------------------------------
+// The check this script originally lacked, and it cost a debugging
+// session: everything above runs server-side, where CORS does not
+// apply, so a bucket with no CORS policy passes every other test while
+// the browser — which is what actually uploads — is blocked.
+console.log('\nCORS (browser uploads)');
+const APP_ORIGINS = (process.env.VERIFY_R2_ORIGINS ?? 'http://localhost:3000')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+try {
+  const { CORSRules = [] } = await client.send(
+    new GetBucketCorsCommand({ Bucket: bucket }),
+  );
+  if (CORSRules.length === 0) {
+    fail(
+      'no CORS rules on the bucket',
+      'Browser uploads will fail. Bucket → Settings → CORS Policy. See .env.local.example for the policy to paste.',
+    );
+  } else {
+    const allowed = CORSRules.flatMap((r) => r.AllowedOrigins ?? []);
+    const methods = CORSRules.flatMap((r) => r.AllowedMethods ?? []);
+    const headers = CORSRules.flatMap((r) => (r.AllowedHeaders ?? []).map((h) => h.toLowerCase()));
+
+    for (const origin of APP_ORIGINS) {
+      if (allowed.includes(origin) || allowed.includes('*')) ok(`origin allowed: ${origin}`);
+      else fail(`origin NOT allowed: ${origin}`, `Add it to AllowedOrigins (currently: ${allowed.join(', ') || 'none'}).`);
+    }
+    if (methods.includes('PUT')) ok('PUT allowed');
+    else fail('PUT not in AllowedMethods', 'Uploads use PUT.');
+
+    // The presigned URL is signed WITH a content type, so the browser
+    // sends that header and the preflight fails unless it is permitted.
+    if (headers.includes('content-type') || headers.includes('*')) ok('content-type header allowed');
+    else fail('content-type not in AllowedHeaders', 'The preflight will fail — presigned uploads always send it.');
+  }
+} catch (err) {
+  if (err.name === 'NoSuchCORSConfiguration') {
+    fail(
+      'no CORS configuration on the bucket',
+      'Browser uploads will fail. See .env.local.example for the policy to paste.',
+    );
+  } else if (err.name === 'AccessDenied') {
+    // Expected with a least-privilege token. "Object Read & Write" grants
+    // object operations, not bucket configuration — which is the right
+    // scope for the application, so this is not worth widening just to
+    // let a check run.
+    info('⚠ token cannot read bucket config (Object Read & Write only —');
+    info('  correct scope, so this check cannot run). Confirm by hand that');
+    info('  Bucket → Settings → CORS Policy lists your app origins,');
+    info('  allows PUT, and permits the content-type header.');
+  } else {
+    info(`⚠ could not read the CORS policy (${err.name}) — check it by hand`);
+  }
+}
+
+// ---- 6. Clean up ----------------------------------------------
 console.log('\nCleanup');
 try {
   await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
