@@ -99,7 +99,7 @@ const SECTIONS: LegalSection[] = [
     blocks: [
       {
         ul: [
-          'The application runs on {{HOSTING}}, with workspace data hosted in {{REGION}}.',
+          'The application runs on {{HOSTING}}, with workspace data hosted in Mumbai, India (ap-south-1).',
           'Secrets live in the deployment environment, never in the repository.',
           'Dependencies are pinned and updated, with version overrides applied where a transitive package needs patching ahead of its parent.',
           'Changes are reviewed and typechecked before release, and the schema is versioned as migrations rather than applied by hand.',
@@ -183,7 +183,7 @@ export default function Lp2SecurityPolicyPage() {
     <LegalPage
       title="Security Policy"
       hue="sky"
-      updated="4 August 2026"
+      updated="5 August 2026"
       intro="The controls we actually operate — encryption, database-level tenant isolation, least-privilege access and signed webhooks — plus an honest account of what we do not claim."
       sections={SECTIONS}
     />

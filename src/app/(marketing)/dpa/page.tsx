@@ -109,7 +109,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'International transfers',
     blocks: [
       {
-        p: 'Your workspace data is hosted in {{REGION}}. Some subprocessors operate globally, so personal data may be transferred outside your country — including outside the EEA, the UK or India.',
+        p: 'Your workspace data is hosted in Mumbai, India (ap-south-1). Some subprocessors operate globally, so personal data may be transferred outside your country — including outside the EEA and the UK.',
       },
       {
         ul: [
@@ -200,7 +200,7 @@ export default function Lp2DpaPage() {
     <LegalPage
       title="Data Processing Agreement"
       hue="grape"
-      updated="4 August 2026"
+      updated="5 August 2026"
       intro="Most of the personal data in wacrm is not ours — it is your customers', held on your instructions. This is the contract that governs how we handle it, and it applies automatically from the moment you accept our Terms."
       sections={SECTIONS}
     />

@@ -46,12 +46,15 @@ const PLACEHOLDERS: Record<string, string> = {
   GRIEVANCE: 'GRIEVANCE OFFICER NAME',
   // Infrastructure facts. The subprocessor list and security policy name
   // real vendors where the code proves them (Supabase, Meta, Razorpay,
-  // the AI providers) — these two are deployment choices the code can't
-  // know, so they stay placeholders rather than plausible guesses. A
+  // the AI providers) — the host is a deployment choice the code can't
+  // know, so it stays a placeholder rather than a plausible guess. A
   // subprocessor list that names the wrong host is worse than one that
   // visibly needs filling in.
+  //
+  // REGION used to live here too. It is now a known fact — Mumbai,
+  // India (ap-south-1), as of the August 2026 move off Tokyo — so it is
+  // written into the copy directly. See docs/migrating-databases.md.
   HOSTING: 'YOUR HOSTING PROVIDER',
-  REGION: 'YOUR DATA REGION',
   SECURITY_EMAIL: 'YOUR SECURITY CONTACT EMAIL',
 };
 

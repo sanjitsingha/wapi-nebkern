@@ -46,7 +46,7 @@ const SECTIONS: LegalSection[] = [
         ],
       },
       {
-        note: 'Workspace data is hosted in {{REGION}}. Meta processes message data across its own global infrastructure under its terms, which is outside our control and unavoidable on any WhatsApp Business Platform product.',
+        note: 'Workspace data is hosted in Mumbai, India (ap-south-1). Meta processes message data across its own global infrastructure under its terms, which is outside our control and unavoidable on any WhatsApp Business Platform product.',
       },
     ],
   },
@@ -126,7 +126,7 @@ export default function Lp2SubprocessorsPage() {
     <LegalPage
       title="Subprocessor List"
       hue="pop"
-      updated="4 August 2026"
+      updated="5 August 2026"
       intro="Every third party that touches your data to make wacrm work — what each one does, what it can see, and how to object if you would rather we did not use one."
       sections={SECTIONS}
     />
