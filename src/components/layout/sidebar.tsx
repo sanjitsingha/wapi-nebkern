@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { softBadge } from '@/lib/badge-colors';
 import { useTotalUnread } from '@/hooks/use-total-unread';
@@ -37,6 +37,7 @@ import {
   ListBullets,
   Lock,
   Megaphone,
+  PhoneCall,
   QrCode,
   Robot,
   SidebarSimple,
@@ -105,6 +106,13 @@ const quickLinks: NavLink[] = [
     href: '/inbox',
     unread: true,
     walkthrough: 'inbox',
+  },
+  // Next to Inbox, not buried in a group: a missed call is the same kind
+  // of "someone is waiting on you" as an unread message.
+  {
+    label: 'Calls',
+    icon: PhoneCall,
+    href: '/calls',
   },
   {
     label: 'Campaigns',
@@ -201,19 +209,34 @@ export function Sidebar({
   // still navigates: the target route's server-side gate renders the
   // upgrade screen.
   const { snapshot: entSnapshot } = useEntitlements();
-  const visibleGroups = useMemo(() => {
-    const ent = entSnapshot?.entitlements;
-    if (!ent) return groups;
-    const lockedFor = (href: string): boolean => {
+
+  // One gate table for both nav shapes — a href that needs a plan is a
+  // property of the destination, not of where it happens to be listed.
+  const lockedFor = useCallback(
+    (href: string): boolean => {
+      const ent = entSnapshot?.entitlements;
+      if (!ent) return false;
       if (href === '/automations') return !ent.allowAutomations;
       if (href === '/flows') return !ent.allowFlows;
+      if (href === '/calls') return !ent.allowCalling;
       return false;
-    };
-    return groups.map((g) => ({
-      ...g,
-      children: g.children.map((c) => ({ ...c, locked: lockedFor(c.href) })),
-    }));
-  }, [entSnapshot]);
+    },
+    [entSnapshot],
+  );
+
+  const visibleGroups = useMemo(
+    () =>
+      groups.map((g) => ({
+        ...g,
+        children: g.children.map((c) => ({ ...c, locked: lockedFor(c.href) })),
+      })),
+    [lockedFor],
+  );
+
+  const visibleQuickLinks = useMemo(
+    () => quickLinks.map((l) => ({ ...l, locked: lockedFor(l.href) })),
+    [lockedFor],
+  );
 
   // Straight through from the prop — no hover override. On mobile the
   // drawer is always full width, which the `lg:` prefixes below handle.
@@ -525,7 +548,7 @@ export function Sidebar({
             </p>
           )}
           <ul className="flex flex-col gap-1.5">
-            {quickLinks.map((link) => (
+            {visibleQuickLinks.map((link) => (
               <li key={link.href}>{renderLink(link)}</li>
             ))}
           </ul>

@@ -11,6 +11,7 @@ import { TrialBanner } from '@/components/billing/trial-banner';
 import { AppPopup } from '@/components/layout/app-popup';
 import { AnnouncementBar } from '@/components/layout/announcement-bar';
 import { WalkthroughProvider } from '@/components/walkthrough/walkthrough-provider';
+import { CallCenterProvider } from '@/components/calls/call-center';
 
 // Auth-gated dashboard shell. Extracted from the layout so the layout
 // itself can stay a server component and export metadata (noindex) —
@@ -100,7 +101,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             this user has seen the tour) and outside the shell, so the
             sidebar's Walkthrough button can reach it via context. */}
         <WalkthroughProvider>
-          <DashboardShellInner>{children}</DashboardShellInner>
+          {/* Wraps the whole shell so a call can be answered from any
+              page — a ringing panel that only exists on /calls is a
+              missed call everywhere else. It renders nothing until a
+              call is actually in flight. */}
+          <CallCenterProvider>
+            <DashboardShellInner>{children}</DashboardShellInner>
+          </CallCenterProvider>
         </WalkthroughProvider>
       </AvailabilityProvider>
     </AuthProvider>

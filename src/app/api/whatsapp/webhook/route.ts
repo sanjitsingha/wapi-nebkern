@@ -1062,9 +1062,37 @@ async function processCall(
     return
   }
 
-  // connect (or any other pre-terminate event): record/refresh as
-  // 'ringing'. No inbox message yet — that lands on terminate with the
-  // final outcome. Upsert so a redelivered connect is a no-op.
+  // Pre-terminate events carry the WebRTC handshake. Which half depends
+  // on who started the call, and the event NAME is not a reliable guide
+  // (Meta has used `connect` and `accept` for the same beat across
+  // versions) — so branch on the SDP's own declared type instead.
+  const sdp = typeof call.session?.sdp === 'string' ? call.session.sdp : null
+  const sdpType = (call.session?.sdp_type ?? '').toLowerCase()
+
+  // An answer means a call WE placed just got picked up: the row already
+  // exists (the connect action created it), and the browser is waiting
+  // on this SDP over Realtime to finish its peer connection.
+  if (sdp && sdpType === 'answer') {
+    const { error: answerErr } = await supabaseAdmin()
+      .from('call_logs')
+      .update({
+        sdp_answer: sdp,
+        status: 'in_progress',
+        raw: call as Record<string, unknown>,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('account_id', accountId)
+      .eq('wa_call_id', waCallId)
+    if (answerErr) {
+      console.error('[webhook] call_logs answer update failed:', answerErr)
+    }
+    return
+  }
+
+  // Otherwise this is an inbound call ringing. Record/refresh it as
+  // 'ringing' and park the offer for the softphone to answer. No inbox
+  // message yet — that lands on terminate with the final outcome. Upsert
+  // so a redelivered connect is a no-op.
   const { error: logErr } = await supabaseAdmin()
     .from('call_logs')
     .upsert(
@@ -1076,6 +1104,7 @@ async function processCall(
         direction,
         status: 'ringing',
         started_at: eventTs,
+        sdp_offer: sdpType === 'offer' ? sdp : null,
         raw: call as Record<string, unknown>,
         updated_at: new Date().toISOString(),
       },
