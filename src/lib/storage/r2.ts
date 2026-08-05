@@ -143,6 +143,35 @@ export async function presignUpload(
   );
 }
 
+/**
+ * Write an object from the server.
+ *
+ * The counterpart to `presignUpload`: that one exists so a BROWSER can
+ * upload without our credentials, this one is for bytes the server
+ * already holds — inbound WhatsApp media, which arrives from Meta and is
+ * cached here so it is only ever fetched from Meta once.
+ */
+export async function putR2Object(
+  path: string,
+  body: Buffer | Uint8Array,
+  contentType: string,
+): Promise<void> {
+  const config = readConfig();
+  if (!config) throw new Error('R2 is not configured');
+
+  await client(config).send(
+    new PutObjectCommand({
+      Bucket: config.bucket,
+      Key: path,
+      Body: body,
+      ContentType: contentType,
+      // Immutable: the key contains Meta's media id, which identifies
+      // exactly one file forever.
+      CacheControl: 'public, max-age=31536000, immutable',
+    }),
+  );
+}
+
 /** Remove an object. Used to GC media that was staged but never sent. */
 export async function deleteR2Object(path: string): Promise<void> {
   const config = readConfig();

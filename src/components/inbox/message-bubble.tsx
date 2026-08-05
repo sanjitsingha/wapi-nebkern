@@ -83,23 +83,21 @@ function MediaImage({ url, alt }: { url: string; alt: string }) {
   const loadImage = useCallback(async () => {
     if (!url) return;
 
-    // Proxy URLs need auth fetch to create blob URL
-    if (url.startsWith("/api/whatsapp/media/")) {
-      try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("Failed to load media");
-        const blob = await res.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        setSrc(blobUrl);
-      } catch {
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      setSrc(url);
-      setLoading(false);
-    }
+    // Every URL — proxied or direct — is now just an <img src>.
+    //
+    // The proxy path used to be fetched into a blob because it needs the
+    // session cookie. An <img> sends cookies on a same-origin request
+    // anyway, so that was never necessary; and since the proxy started
+    // redirecting to R2 (migration 082) the blob approach became
+    // actively worse: following a cross-origin redirect from fetch()
+    // requires CORS on the bucket, whereas <img> follows it natively
+    // with no such requirement.
+    //
+    // It also lets the browser cache the image properly, rather than
+    // re-downloading it into memory on every mount and holding a blob
+    // URL we then have to revoke.
+    setSrc(url);
+    setLoading(false);
   }, [url]);
 
   useEffect(() => {
@@ -129,6 +127,7 @@ function MediaImage({ url, alt }: { url: string; alt: string }) {
   }
 
   return (
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src ?? ""}
       alt={alt}

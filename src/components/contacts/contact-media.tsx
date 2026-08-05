@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { Message } from '@/types';
 import {
   FileText,
@@ -83,38 +83,18 @@ function Spinner() {
 
 /* ─── Media thumbnail ─────────────────────────────────────────────── */
 
-// Image/video thumbnail. Proxy URLs (/api/whatsapp/media/…) are fetched
-// as a blob for inline display (mirrors the inbox bubble); the link
-// itself always points at the original URL so opening in a new tab
-// re-fetches with the session cookie.
+// Image/video thumbnail. Proxy URLs (/api/whatsapp/media/…) used to be
+// fetched into a blob, mirroring the inbox bubble. They no longer are:
+// an <img> sends cookies on a same-origin request by itself, and since
+// the proxy started redirecting to R2 (migration 082) the blob route
+// would need CORS on the bucket, while <img> follows the redirect
+// natively. It also lets the browser cache the file instead of pulling
+// it into memory on every mount.
 function MediaThumb({ message }: { message: Message }) {
   const url = message.media_url as string;
   const isVideo = message.content_type === 'video';
-  const [src, setSrc] = useState<string | null>(
-    url.startsWith('/api/whatsapp/media/') ? null : url,
-  );
+  const [src] = useState<string | null>(url);
   const [error, setError] = useState(false);
-
-  useEffect(() => {
-    if (!url.startsWith('/api/whatsapp/media/')) return;
-    let objectUrl: string | null = null;
-    let cancelled = false;
-    fetch(url)
-      .then((r) => {
-        if (!r.ok) throw new Error('media');
-        return r.blob();
-      })
-      .then((blob) => {
-        if (cancelled) return;
-        objectUrl = URL.createObjectURL(blob);
-        setSrc(objectUrl);
-      })
-      .catch(() => !cancelled && setError(true));
-    return () => {
-      cancelled = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [url]);
 
   return (
     <a
