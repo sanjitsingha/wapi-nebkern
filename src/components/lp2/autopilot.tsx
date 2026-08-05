@@ -209,8 +209,7 @@ export function AutopilotAiBot() {
     <section id="ai-bot" className="scroll-mt-24 bg-(--lp2-grape-soft)/40 py-20 sm:py-28">
       <div className="mx-auto grid max-w-6xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16">
         <div>
-          <SectionKicker hue="grape" icon={Bot} label="01 · AI Bot" />
-          <h2 className="lp2-display mt-5 text-3xl leading-[1.1] font-extrabold text-balance sm:text-[2.5rem]">
+          <h2 className="lp2-display text-3xl leading-[1.1] font-extrabold text-balance sm:text-[2.5rem]">
             The one that actually{' '}
             <Highlight color="grape">understands</Highlight> the question.
           </h2>
@@ -288,7 +287,6 @@ export function AutopilotFlows() {
     <section id="flows" className="scroll-mt-24 bg-white py-20 sm:py-28">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHead
-          eyebrow="02 · Flows"
           hue="sky"
           title="A conversation that branches, exactly where you decide."
           highlight="branches"
@@ -424,8 +422,7 @@ export function AutopilotAutomations() {
         <RuleList />
 
         <div className="lg:order-first">
-          <SectionKicker hue="tangerine" icon={Zap} label="03 · Automations" />
-          <h2 className="lp2-display mt-5 text-3xl leading-[1.1] font-extrabold text-balance sm:text-[2.5rem]">
+          <h2 className="lp2-display text-3xl leading-[1.1] font-extrabold text-balance sm:text-[2.5rem]">
             One rule, no canvas.{' '}
             <Highlight color="tangerine">Instant.</Highlight>
           </h2>
@@ -526,7 +523,6 @@ export function AutopilotChooser() {
     <section className="bg-white py-20 sm:py-28">
       <div className="mx-auto max-w-5xl px-4 sm:px-6">
         <SectionHead
-          eyebrow="Not sure which one?"
           hue="lemon"
           title="You don't have to pick just one."
           highlight="just one"
@@ -558,26 +554,6 @@ export function AutopilotChooser() {
 }
 
 /* ═══════════════════════════ Shared bits ═════════════════════════ */
-
-function SectionKicker({
-  hue,
-  icon: Icon,
-  label,
-}: {
-  hue: string;
-  icon: typeof Bot;
-  label: string;
-}) {
-  return (
-    <span
-      className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-extrabold tracking-wide uppercase"
-      style={{ backgroundColor: `var(--lp2-${hue})` }}
-    >
-      <Icon className="size-3.5" strokeWidth={3} />
-      {label}
-    </span>
-  );
-}
 
 /** Small link back to this page, dropped into the homepage's existing
  *  AI/automation sections so they funnel here for the full picture.

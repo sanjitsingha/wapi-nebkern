@@ -113,15 +113,11 @@ export function Lp2Compare() {
             relative sizing and `whitespace-nowrap`, neither of which the
             shared component offers. */}
         <div className="text-center">
-          <span className="inline-flex items-center rounded-full bg-(--lp2-tangerine) px-3.5 py-1.5 text-xs font-extrabold tracking-wide uppercase">
-            Comparison
-          </span>
-
           {/* Below `sm` the title wraps — one line on a phone would mean
               a 16px headline. From `sm` up the clamp keeps it on one
               line at every width, topping out at the page's usual
               section-title size. */}
-          <h2 className="lp2-display mt-5 text-3xl leading-[1.12] font-extrabold text-balance sm:text-[clamp(1.35rem,3.75vw,2.75rem)] sm:whitespace-nowrap">
+          <h2 className="lp2-display text-3xl leading-[1.12] font-extrabold text-balance sm:text-[clamp(1.35rem,3.75vw,2.75rem)] sm:whitespace-nowrap">
             WhatsApp Business{' '}
             {/* The highlight block overshoots the word it frames, so it
                 needs a little extra air or it collides with the words

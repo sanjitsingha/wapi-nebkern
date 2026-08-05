@@ -1,4 +1,3 @@
-import type { CSSProperties } from 'react';
 import Link from 'next/link';
 
 import { cn } from '@/lib/utils';
@@ -55,8 +54,16 @@ export function Btn({
 }
 
 /**
- * Section heading: a tilted eyebrow sticker, a display-face title, and
- * one line of support.
+ * Section heading: a display-face title and one line of support.
+ *
+ * There used to be a coloured eyebrow chip above the title on every
+ * section — "The platform", "Pricing", "Questions". Eleven of them down
+ * one page turned into wallpaper: the reader learns to skip the chip to
+ * get to the heading, and each one pushed the actual title 50px further
+ * from the section above it. The titles say the same thing and say it
+ * better.
+ *
+ * `hue` stays because it still colours the highlight box.
  *
  * `highlight` marks a word inside `title` to box — passed as its own
  * prop rather than as JSX so a section can't accidentally ship two
@@ -64,14 +71,12 @@ export function Btn({
  * into noise.
  */
 export function SectionHead({
-  eyebrow,
   hue = 'lemon',
   title,
   highlight,
   subtitle,
   className,
 }: {
-  eyebrow: string;
   hue?: Lp2Hue;
   title: string;
   /** Substring of `title` to wrap in the highlight box. Must appear in
@@ -90,14 +95,7 @@ export function SectionHead({
 
   return (
     <div className={cn('mx-auto max-w-2xl text-center', className)}>
-      <span
-        className="inline-flex items-center rounded-full px-3.5 py-1.5 text-xs font-extrabold tracking-wide uppercase"
-        style={{ backgroundColor: `var(--lp2-${hue})` } as CSSProperties}
-      >
-        {eyebrow}
-      </span>
-
-      <h2 className="lp2-display mt-5 text-3xl leading-[1.08] font-extrabold text-balance sm:text-[2.75rem]">
+      <h2 className="lp2-display text-3xl leading-[1.08] font-extrabold text-balance sm:text-[2.75rem]">
         {before}
         {after !== null && (
           <>

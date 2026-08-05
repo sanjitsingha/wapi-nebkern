@@ -43,7 +43,6 @@ export function Lp2Automations() {
     <section id="automations" className="scroll-mt-28 bg-white py-20 sm:py-28">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHead
-          eyebrow="No-code automations"
           hue="grape"
           title="Automate the busywork by dragging boxes, not writing code."
           highlight="dragging boxes"

@@ -63,7 +63,6 @@ export function Lp2Faq() {
     <section className="bg-(--lp2-grape-soft) py-20 sm:py-28">
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <SectionHead
-          eyebrow="Questions"
           hue="pop"
           title="Everything people ask before signing up."
           highlight="before signing up"

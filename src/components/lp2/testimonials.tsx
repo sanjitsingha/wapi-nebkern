@@ -46,7 +46,6 @@ export function Lp2Testimonials() {
     <section className="bg-white py-20 sm:py-28">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHead
-          eyebrow="Happy humans"
           hue="tangerine"
           title="The kind of messages we like getting."
           highlight="we like getting"

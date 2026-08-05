@@ -18,7 +18,6 @@ export function Lp2Features() {
     <section id="features" className="scroll-mt-28 bg-white py-20 sm:py-28">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHead
-          eyebrow="The platform"
           hue="sky"
           title="Four apps' worth of tools, one happy inbox."
           highlight="one happy inbox"

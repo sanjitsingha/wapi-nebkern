@@ -84,7 +84,6 @@ export function PricingNoPerMessage() {
     <section className="bg-white py-20 sm:py-28">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHead
-          eyebrow="No message metering"
           hue="lemon"
           title="Your best month shouldn't be your biggest invoice."
           highlight="biggest invoice"
@@ -241,7 +240,6 @@ export function PricingMatrix() {
     >
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHead
-          eyebrow="Compare plans"
           hue="sky"
           title="Every plan, line by line."
           highlight="line by line"
@@ -441,7 +439,6 @@ export function PricingFaq() {
     <section className="bg-(--lp2-grape-soft) py-20 sm:py-28">
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <SectionHead
-          eyebrow="Billing questions"
           hue="pop"
           title="The awkward questions, answered first."
           highlight="answered first"

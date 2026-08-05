@@ -42,7 +42,6 @@ export function Lp2Steps() {
     <section className="bg-(--lp2-mint) py-20 sm:py-28">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHead
-          eyebrow="How it works"
           hue="coral"
           title="Live by Thursday. Genuinely."
           highlight="by Thursday"

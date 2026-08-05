@@ -42,12 +42,7 @@ export function Lp2AiAgents() {
         <KnowledgeDiagram />
 
         <div className="lg:order-first">
-          <span className="inline-flex items-center gap-2 rounded-full bg-(--lp2-grape) px-3.5 py-1.5 text-xs font-extrabold tracking-wide text-white uppercase">
-            <Bot className="size-3.5" strokeWidth={3} />
-            AI agents
-          </span>
-
-          <h2 className="lp2-display mt-5 text-3xl leading-[1.08] font-extrabold text-balance sm:text-[2.75rem]">
+          <h2 className="lp2-display text-3xl leading-[1.08] font-extrabold text-balance sm:text-[2.75rem]">
             It reads your catalogue once, then answers{' '}
             <Highlight color="grape">forever</Highlight>.
           </h2>
