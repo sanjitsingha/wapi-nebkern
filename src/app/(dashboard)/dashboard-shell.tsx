@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { QueryProvider } from '@/components/providers/query-provider';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import { AvailabilityProvider } from '@/hooks/use-availability';
 import { Sidebar } from '@/components/layout/sidebar';
@@ -95,21 +96,27 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
-    <AuthProvider>
-      <AvailabilityProvider>
-        {/* Inside AuthProvider (it reads the session to decide whether
-            this user has seen the tour) and outside the shell, so the
-            sidebar's Walkthrough button can reach it via context. */}
-        <WalkthroughProvider>
-          {/* Wraps the whole shell so a call can be answered from any
-              page — a ringing panel that only exists on /calls is a
-              missed call everywhere else. It renders nothing until a
-              call is actually in flight. */}
-          <CallCenterProvider>
-            <DashboardShellInner>{children}</DashboardShellInner>
-          </CallCenterProvider>
-        </WalkthroughProvider>
-      </AvailabilityProvider>
-    </AuthProvider>
+    // Outermost: the query cache should outlive every screen inside it,
+    // which is the entire point — navigating away and back must not
+    // throw the results away. It sits above AuthProvider so a signed-out
+    // tree tears the cache down with it.
+    <QueryProvider>
+      <AuthProvider>
+        <AvailabilityProvider>
+          {/* Inside AuthProvider (it reads the session to decide whether
+              this user has seen the tour) and outside the shell, so the
+              sidebar's Walkthrough button can reach it via context. */}
+          <WalkthroughProvider>
+            {/* Wraps the whole shell so a call can be answered from any
+                page — a ringing panel that only exists on /calls is a
+                missed call everywhere else. It renders nothing until a
+                call is actually in flight. */}
+            <CallCenterProvider>
+              <DashboardShellInner>{children}</DashboardShellInner>
+            </CallCenterProvider>
+          </WalkthroughProvider>
+        </AvailabilityProvider>
+      </AuthProvider>
+    </QueryProvider>
   );
 }

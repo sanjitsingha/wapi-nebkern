@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useTeamMembers } from "@/hooks/reference-data";
 import { CURRENCIES } from "@/lib/currency";
 import type {
   Contact,
@@ -11,7 +12,6 @@ import type {
   Deal,
   DealStatus,
   PipelineStage,
-  Profile,
 } from "@/types";
 import {
   Sheet,
@@ -65,7 +65,9 @@ export function DealForm({
   const [notes, setNotes] = useState("");
 
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
+  // Shared cache — the assignee list is the same one the inbox uses, so
+  // opening this sheet no longer refetches it.
+  const { data: profiles = [] } = useTeamMembers();
   const [linkedConversation, setLinkedConversation] =
     useState<Conversation | null>(null);
 
@@ -120,16 +122,15 @@ export function DealForm({
       // cut-off unselectable. Narrowing the columns is the change that
       // is safe today; making this a searchable combobox backed by a
       // limited query is the follow-up that would let it be capped.
-      const [c, p] = await Promise.all([
-        supabase.from("contacts").select("id, name, phone").order("name"),
-        supabase
-          .from("profiles")
-          .select("id, user_id, full_name, email, avatar_url")
-          .order("full_name"),
-      ]);
+      //
+      // Team members are no longer fetched here at all — they come from
+      // the shared cache, which the inbox and everything else also read.
+      const c = await supabase
+        .from("contacts")
+        .select("id, name, phone")
+        .order("name");
       if (cancelled) return;
       setContacts((c.data ?? []) as Contact[]);
-      setProfiles((p.data ?? []) as Profile[]);
     })();
     return () => {
       cancelled = true;

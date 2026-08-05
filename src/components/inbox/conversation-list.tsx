@@ -10,13 +10,13 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { useTags, useTeamMembers } from "@/hooks/reference-data";
 import { useConnectedChannels } from "@/hooks/use-connected-channels";
 import { cn } from "@/lib/utils";
 import type {
   Conversation,
   ConversationChannel,
   ConversationStatus,
-  Profile,
   Tag,
 } from "@/types";
 import {
@@ -204,10 +204,15 @@ export function ConversationList({
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [flows, setFlows] = useState<FlowOption[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Shared, cached, and fetched once per account rather than once per
+  // mount of this list — see src/hooks/reference-data.ts. Both were
+  // their own useEffect + useState here, re-running every time the
+  // inbox opened, for lists that change about once a week.
+  const { data: availableTags = [] } = useTags();
+  const { data: profiles = [] } = useTeamMembers();
 
   const onConversationsLoadedRef = useRef(onConversationsLoaded);
   useEffect(() => {
@@ -228,26 +233,6 @@ export function ConversationList({
         );
       })
       .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Team members — for the "User" assignee filter dropdown.
-  useEffect(() => {
-    let cancelled = false;
-    const supabase = createClient();
-    // Only what the assignee dropdown renders — `*` pulled every
-    // profile column (including beta_features and account metadata)
-    // for every team member, on every inbox mount.
-    supabase
-      .from("profiles")
-      .select("id, user_id, full_name, email, avatar_url")
-      .order("full_name")
-      .then(({ data }) => {
-        if (cancelled) return;
-        setProfiles((data as Profile[]) ?? []);
-      });
     return () => {
       cancelled = true;
     };
@@ -305,7 +290,10 @@ export function ConversationList({
     let cancelled = false;
 
     (async () => {
-      const [convsRes, tagsRes] = await Promise.all([
+      // Tags used to be fetched alongside this, on every mount. They now
+      // come from the shared cache (useTags above), so this is just the
+      // conversations read.
+      const convsRes = await (async () =>
         supabase
           .from("conversations")
           // Named contact columns, not `contacts(*)`. The row renders
@@ -322,9 +310,7 @@ export function ConversationList({
           .select(
             "*, contact:contacts(id, name, phone, avatar_url, instagram_id, messenger_id, contact_tags(tag_id))",
           )
-          .order("last_message_at", { ascending: false }),
-        supabase.from("tags").select("id, name, color").order("name"),
-      ]);
+          .order("last_message_at", { ascending: false }))();
 
       if (cancelled) return;
 
@@ -340,7 +326,6 @@ export function ConversationList({
       }
 
       onConversationsLoadedRef.current((convsRes.data ?? []) as Conversation[]);
-      setAvailableTags((tagsRes.data ?? []) as Tag[]);
       setLoading(false);
     })();
 
