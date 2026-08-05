@@ -10,14 +10,7 @@ import {
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import {
-  AvatarStack,
-  DotField,
-  Highlight,
-  Sparkle,
-  Squiggle,
-  Sticker,
-} from './decor';
+import { AvatarStack, DotField, Sparkle, Sticker } from './decor';
 import { press } from './ui';
 
 // ============================================================
@@ -73,56 +66,55 @@ export function Lp2Hero() {
 function Copy() {
   return (
     <div className="relative text-center lg:text-left">
-      {/* Announcement pill. Tilted a touch so the very first element
-          signals "this page has a personality" before a word is read. */}
+      {/* Announcement pill — straightened. It used to sit at -1.5° with
+          a 2px ink outline and an offset shadow, which is a lot of
+          personality before the reader has met a single word. A soft
+          fill and a hairline border say the same thing quietly. */}
       <Link
         href="#ai-agents"
         className={cn(
-          'inline-flex items-center gap-2 rounded-full border-2 border-(--lp2-ink) bg-(--lp2-lemon-soft) py-1 pr-3.5 pl-1 text-xs font-bold shadow-(--lp2-shadow-sm)',
+          'inline-flex items-center gap-2 rounded-full border border-(--lp2-ink)/12 bg-white/70 py-1.5 pr-3.5 pl-3 text-xs font-semibold transition-colors hover:bg-white',
           press,
         )}
-        style={{ transform: 'rotate(-1.5deg)' }}
       >
-        <span className="flex size-5 items-center justify-center rounded-full border-2 border-(--lp2-ink) bg-(--lp2-lemon)">
-          <Sparkles className="size-2.5" strokeWidth={3} />
-        </span>
-        New — AI agents that reply while you sleep
+        <Sparkles className="size-3.5 text-(--lp2-grass)" strokeWidth={2.5} />
+        AI agents that reply while you sleep
       </Link>
 
-      <h1 className="lp2-display mt-5 text-[2.15rem] leading-[1.25] font-extrabold text-balance sm:text-5xl sm:leading-[1.25] lg:text-[3.4rem]">
-        Make WhatsApp your{' '}
-        <Highlight color="lemon">happiest</Highlight>{' '}
-        sales channel.
+      <h1 className="lp2-display mt-5 text-[2.15rem] leading-[1.2] font-extrabold tracking-tight text-balance sm:text-5xl sm:leading-[1.15] lg:text-[3.4rem]">
+        WhatsApp marketing,{' '}
+        <span className="text-(--lp2-grass)">automated</span>.
       </h1>
 
       <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-pretty text-(--lp2-ink-soft) lg:mx-0">
         One shared inbox for the whole team. AI agents that answer in
-        seconds. Campaigns, pipelines and automations that quietly turn
-        every &ldquo;is this available?&rdquo; into a paid order.
+        seconds. Campaigns, pipelines and automations that turn every
+        &ldquo;is this available?&rdquo; into a paid order.
       </p>
 
       <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center lg:justify-start">
+        {/* One emphatic button, one quiet one. Both previously carried
+            the ink outline plus a hard offset shadow, so neither led —
+            two stickers competing. */}
         <Link
           href="/signup"
           className={cn(
-            'inline-flex h-12 items-center justify-center gap-2 rounded-2xl border-2 border-(--lp2-ink) bg-(--lp2-grass) px-6 text-[15px] font-bold text-white shadow-(--lp2-shadow)',
+            'inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-(--lp2-grass) px-6 text-[15px] font-bold text-white transition-colors hover:bg-(--lp2-ink)',
             press,
           )}
         >
           Start free — 14 days
-          <ArrowRight className="size-4" strokeWidth={2.75} />
+          <ArrowRight className="size-4" strokeWidth={2.5} />
         </Link>
 
         <Link
           href="#features"
           className={cn(
-            'inline-flex h-12 items-center justify-center gap-2 rounded-2xl border-2 border-(--lp2-ink) bg-white px-5 text-[15px] font-bold shadow-(--lp2-shadow)',
+            'inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-(--lp2-ink)/15 bg-white px-5 text-[15px] font-semibold transition-colors hover:bg-(--lp2-cream)',
             press,
           )}
         >
-          <span className="flex size-6 items-center justify-center rounded-full border-2 border-(--lp2-ink) bg-(--lp2-coral)">
-            <Play className="size-2.5 fill-white text-white" />
-          </span>
+          <Play className="size-3.5 fill-current" />
           See it in action
         </Link>
       </div>
@@ -155,25 +147,20 @@ function Copy() {
           the moment they start believing the pitch. Outlined white so it
           reads as a stamp, not another CTA. */}
       <div className="mt-5 flex justify-center lg:justify-start">
-        <span className="inline-flex items-center gap-2 rounded-full border-2 border-(--lp2-ink) bg-white px-3.5 py-1.5 text-xs font-extrabold shadow-(--lp2-shadow-sm)">
+        <span className="inline-flex items-center gap-2 rounded-full border border-(--lp2-ink)/12 bg-white/70 px-3.5 py-1.5 text-xs font-semibold">
           <BadgeCheck
             className="size-4 shrink-0 text-(--lp2-grass)"
-            strokeWidth={2.75}
+            strokeWidth={2.5}
           />
           Official Meta Tech Provider
         </span>
       </div>
 
-      {/* Confetti anchored to the copy column so it doesn't crowd the
-          card cluster, which has plenty of its own. */}
-      <Squiggle
-        color="sky"
-        className="absolute -top-4 -left-6 hidden w-16 -rotate-12 lg:block"
-      />
-      <Sparkle
-        color="coral"
-        className="absolute top-24 -left-10 hidden size-6 lg:block"
-      />
+      {/* The squiggle and sparkle that floated beside the headline are
+          gone. Confetti next to the first sentence someone reads is the
+          most expensive kind of decoration — it competes with the one
+          thing on the page that has to land. The chat cluster on the
+          right still carries the personality. */}
     </div>
   );
 }

@@ -11,10 +11,13 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "wacrm",
-    template: "%s — wacrm",
+    // What a browser tab and a Google result say. `default` is the
+    // homepage; `template` wraps every page that sets its own title.
+    default: "Instant — WhatsApp Marketing Automation",
+    template: "%s — Instant",
   },
-  description: "Self-hostable CRM template for WhatsApp.",
+  description:
+    "Instant by Nebkern Technology — WhatsApp marketing automation with a shared team inbox, AI agents, campaigns and pipelines, on the official WhatsApp Business API.",
   robots: {
     index: false,
     follow: false,

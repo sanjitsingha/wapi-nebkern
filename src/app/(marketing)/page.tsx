@@ -18,7 +18,10 @@ import { Lp2Footer } from '@/components/lp2/footer';
 // design as a secondary variant). Indexed since this is the front door.
 export const metadata: Metadata = {
   title: {
-    absolute: 'wacrm — Make WhatsApp your happiest sales channel',
+    // The exact string a search result and a shared link show. Leads
+    // with the product name, then what it does — the brand is new, so
+    // "Instant" alone tells a stranger nothing.
+    absolute: 'Instant — WhatsApp Marketing Automation',
   },
   description:
     'One shared inbox, AI agents that reply in seconds, and campaigns, pipelines and automations that turn every WhatsApp question into a paid order. From an official Meta Tech Provider.',

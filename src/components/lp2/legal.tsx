@@ -236,10 +236,11 @@ export function LegalPage({
         <section className="bg-white">
           <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[16rem_1fr] lg:gap-14">
             {/* The other documents, not this one's headings. Sticky on
-                desktop, and it parks at top-32 rather than top-24: the
-                floating nav pill's bottom edge lands around 92px, so
-                anything less than this pulls up flush against it. */}
-            <div className="lg:sticky lg:top-32 lg:self-start">
+                desktop, parked clear of the nav: the bar is flush at
+                top-0 and 64px tall, so top-24 leaves a comfortable gap.
+                (It was top-32 when the nav was a floating pill sitting
+                12px down — that version's bottom edge landed at ~92px.) */}
+            <div className="lg:sticky lg:top-24 lg:self-start">
               <LegalNav />
             </div>
 

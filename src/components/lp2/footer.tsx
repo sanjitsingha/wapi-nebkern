@@ -58,7 +58,9 @@ export function Lp2Footer() {
               <span className="flex size-9 items-center justify-center rounded-xl border-2 border-white bg-(--lp2-grass)">
                 <MessageCircle className="size-4.5" strokeWidth={2.75} />
               </span>
-              <span className="lp2-display text-xl font-extrabold">wacrm</span>
+              <span className="lp2-display text-xl font-extrabold tracking-tight">
+                Instant
+              </span>
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/65">
               The WhatsApp CRM for your whole team — shared inbox, AI agents,
@@ -121,7 +123,9 @@ export function Lp2Footer() {
           {/* Rendered per request rather than frozen at build time —
               same as the live footer, and the page is static enough
               that a hardcoded year would go stale silently. */}
-          <p>© {new Date().getFullYear()} wacrm · Self-hostable CRM for WhatsApp</p>
+          <p>
+            © {new Date().getFullYear()} Instant · Nebkern Technology
+          </p>
           <p>Official Meta Tech Provider · Built on the WhatsApp Business API</p>
         </div>
       </div>
