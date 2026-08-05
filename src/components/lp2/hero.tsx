@@ -1,37 +1,36 @@
+import Image from 'next/image';
 import Link from 'next/link';
-import {
-  ArrowRight,
-  BadgeCheck,
-  CheckCheck,
-  Play,
-  Sparkles,
-  Star,
-  Zap,
-} from 'lucide-react';
+import { ArrowRight, Star } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import { AvatarStack, DotField, Sparkle, Sticker } from './decor';
+import { AvatarStack, DotField } from './decor';
+import { RotatingHeadline } from './hero-headline';
 import { press } from './ui';
 
 // ============================================================
 // /lp-2 hero.
 //
-// Two columns: the pitch on the left, a chat card cluster on the right.
-// The cluster is the whole argument in one glance — a real conversation
-// being answered instantly — so it gets the stickers, the tilt and the
-// motion, while the copy column stays calm enough to actually read.
+// One centred column, type only: pitch, then proof. The chat-screen
+// mockup that used to sit under the copy is gone — with nothing to
+// compete against, the headline carries the fold on its own and is
+// sized right up to the column to earn that.
 //
-// Server component: nothing here is interactive beyond links and CSS
-// animation.
+// The headline is deliberately two lines with one highlighted phrase on
+// each — the boxes land staggered (line one ends on its highlight, line
+// two opens on one), which is what gives a centred block of type any
+// shape at all. Those phrases rotate; see `hero-headline.tsx`.
+//
+// Server component apart from that headline: nothing else here is
+// interactive beyond links.
 // ============================================================
 
 export function Lp2Hero() {
   return (
     // Two things going on with the spacing:
     //
-    // `overflow-hidden` is load-bearing — the blobs and the outermost
-    // stickers deliberately hang past the content column, and without
-    // the clip they'd add horizontal scroll on small screens.
+    // `overflow-hidden` keeps the highlight boxes' offset shadows from
+    // adding horizontal scroll at the narrowest widths, where the
+    // headline runs nearly edge to edge.
     //
     // The negative top margin pulls the section up under the sticky
     // header (76px tall: pt-3 + h-16, 80px from `sm`) and the matching
@@ -40,89 +39,123 @@ export function Lp2Hero() {
     // screen — otherwise there's a flat band above the pill that gives
     // away where the hero really starts.
     //
-    // Single flat colour rather than the earlier stack of blurred
-    // colour blobs: the wash read as a gradient, and the ask was for
-    // one colour. Swap `--lp2-sky-soft` here for any other palette
-    // token to recolour the whole hero.
-    <section className="relative -mt-19 overflow-hidden bg-(--lp2-sky-soft) pt-19 sm:-mt-20 sm:pt-20">
-      {/* Dots only — the single subtle texture that grounds the
-          floating stickers. No colour blobs; the flat fill above is the
-          background now. */}
-      <DotField />
+    // Plain white, not a palette tint. The section below (`features`)
+    // is also white, so the fold no longer ends on a colour change —
+    // the dot grid is the only thing marking where the hero stops, and
+    // it is deliberately the one texture this section has.
+    <section className="relative -mt-19 overflow-hidden bg-white pt-19 sm:-mt-20 sm:pt-20">
+      {/* Neutral grey rather than the default ink tint: at 13% ink the
+          dots pick up the palette's blue lean, which is invisible on
+          cream but reads as a faint blue cast on white. */}
+      <DotField color="rgba(0,0,0,0.12)" />
 
-      {/* `lg:min-h-208` (52rem) gives the hero real vertical presence —
-          the copy centres in the taller space while the chat stack
-          (self-end) drops to the bottom and bleeds off the fold. */}
-      <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pt-10 pb-24 sm:px-6 lg:min-h-208 lg:grid-cols-[1.08fr_0.92fr] lg:gap-10 lg:pt-14 lg:pb-32">
+      {/* Single centred column. The padding is tighter top and bottom
+          than it was with the mockup in place — a text-only fold with
+          128px of empty cream under it reads as a page that failed to
+          load something. */}
+      <div className="relative mx-auto max-w-6xl px-4 pt-14 pb-20 sm:px-6 lg:pt-20 lg:pb-24">
         <Copy />
-        <ChatCluster />
       </div>
     </section>
   );
 }
 
-/* ─── Left column: the pitch ──────────────────────────────────────── */
+/* ─── The pitch ───────────────────────────────────────────────────── */
 
 function Copy() {
   return (
-    <div className="relative text-center lg:text-left">
-      {/* Announcement pill — straightened. It used to sit at -1.5° with
-          a 2px ink outline and an offset shadow, which is a lot of
-          personality before the reader has met a single word. A soft
-          fill and a hairline border say the same thing quietly. */}
-      <Link
-        href="#ai-agents"
-        className={cn(
-          'inline-flex items-center gap-2 rounded-full border border-(--lp2-ink)/12 bg-white/70 py-1.5 pr-3.5 pl-3 text-xs font-semibold transition-colors hover:bg-white',
-          press,
-        )}
-      >
-        <Sparkles className="size-3.5 text-(--lp2-grass)" strokeWidth={2.5} />
-        AI agents that reply while you sleep
-      </Link>
+    <div className="relative text-center">
+      {/* The Meta credential, moved up into what used to be the
+          announcement slot.
 
-      <h1 className="lp2-display mt-5 text-[2.15rem] leading-[1.2] font-extrabold tracking-tight text-balance sm:text-5xl sm:leading-[1.15] lg:text-[3.4rem]">
-        WhatsApp marketing,{' '}
-        <span className="text-(--lp2-grass)">automated</span>.
+          That slot was previously argued to be for news a reader acts
+          on, which is why this sat down with the stars instead. With no
+          announcement left to make, the argument inverts: this is the
+          strongest thing the page can say before the pitch, and the
+          reader meets it on the way into the headline rather than after
+          it. The pill keeps the same quiet treatment — soft fill,
+          hairline border, no tilt.
+
+          A `span`, not a `Link`: it is a credential, not a CTA, and
+          nothing useful sits behind a click. */}
+      <span className="inline-flex items-center gap-2 rounded-full border border-(--lp2-ink)/12 bg-white/70 py-1.5 pr-3.5 pl-3 text-xs font-semibold">
+        {/* `alt=""` on purpose — the words next to it already say
+            "Meta", so naming the logo makes a screen reader read the
+            brand twice. Intrinsic size is 4096×825; the props below are
+            the display size so the optimiser serves ~80px rather than
+            resizing a 150KB PNG in the browser, and `w-auto` keeps the
+            true aspect ratio regardless. */}
+        <Image
+          src="https://media.instant.nebkern.com/assets/meta-logo.png"
+          alt=""
+          width={79}
+          height={16}
+          priority
+          className="h-4 w-auto"
+        />
+        Official Meta Tech Provider
+      </span>
+
+      {/* Two hard-broken lines rather than a `text-balance` blob: the
+          whole point of the shape is one highlight per line, and letting
+          the browser rewrap would put both boxes on one row at some
+          widths and none on another. The lines themselves live in
+          `hero-headline.tsx`, which rotates the highlighted phrases.
+
+          The ceiling on every size is the longest line any phrase can
+          produce: `Highlight` is `whitespace-nowrap`, so "Turn WhatsApp
+          chats" has to fit the column unbroken at every width. Measured
+          in DM Sans at weight 800 with this tracking, that run is
+          10.37em — which is what every number below is derived from,
+          each left ~8% under the width where it would wrap. It is also
+          the budget every rotating phrase is checked against.
+
+          Below `sm` the size is fluid rather than fixed, because that
+          constraint is proportional: the column is `100vw - 32px`, so a
+          `vw` size holds the same margin at every phone width instead
+          of being tuned for one. 8.4vw fills 360px comfortably and
+          still fits a 320px screen, which the old fixed 1.8rem did not.
+          The 2.25rem cap stops it running away on tablets before `sm`
+          takes over.
+
+          Leading stays looser than a normal display headline (1.2–1.3
+          vs the usual ~1.15) to make room for the highlight boxes —
+          they overshoot the text by 0.04em top and bottom plus a 4px
+          offset shadow, and at tight leading the shadow of line one
+          lands on the box of line two. It tightens as the size grows
+          because the ratio that reads as air at 30px reads as a gap at
+          80px. */}
+      <h1 className="lp2-display mx-auto mt-6 max-w-4xl text-[min(2.25rem,8.4vw)] leading-[1.3] font-extrabold tracking-tight sm:mt-7 sm:text-[3.25rem] sm:leading-[1.24] md:text-[4rem] lg:text-[5rem] lg:leading-[1.2]">
+        <RotatingHeadline />
       </h1>
 
-      <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-pretty text-(--lp2-ink-soft) lg:mx-0">
+      <p className="mx-auto mt-7 max-w-2xl text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:mt-8 sm:text-lg">
         One shared inbox for the whole team. AI agents that answer in
-        seconds. Campaigns, pipelines and automations that turn every
-        &ldquo;is this available?&rdquo; into a paid order.
+        seconds. Campaigns, pipelines and automations that keep every
+        conversation moving towards a sale.
       </p>
 
-      <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center lg:justify-start">
-        {/* One emphatic button, one quiet one. Both previously carried
-            the ink outline plus a hard offset shadow, so neither led —
-            two stickers competing. */}
+      {/* One button, so there is nothing to choose between — the fold
+          asks for exactly one thing. It still stretches full width on a
+          phone (thumb target) and sits at its own width, centred, from
+          `sm` up. */}
+      <div className="mt-8 flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-center">
         <Link
           href="/signup"
           className={cn(
-            'inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-(--lp2-grass) px-6 text-[15px] font-bold text-white transition-colors hover:bg-(--lp2-ink)',
+            'inline-flex h-13 items-center justify-center gap-2 rounded-xl bg-(--lp2-grass) px-7 text-base font-bold text-white transition-colors hover:bg-(--lp2-ink)',
             press,
           )}
         >
           Start free — 14 days
           <ArrowRight className="size-4" strokeWidth={2.5} />
         </Link>
-
-        <Link
-          href="#features"
-          className={cn(
-            'inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-(--lp2-ink)/15 bg-white px-5 text-[15px] font-semibold transition-colors hover:bg-(--lp2-cream)',
-            press,
-          )}
-        >
-          <Play className="size-3.5 fill-current" />
-          See it in action
-        </Link>
       </div>
 
       {/* Social proof. Small, grounded, and deliberately not another
           outlined card — the eye needs somewhere to rest after four
           consecutive bordered blocks. */}
-      <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
+      <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
         <AvatarStack className="scale-90" />
         <div className="text-center sm:text-left">
           <div className="flex justify-center gap-0.5 sm:justify-start">
@@ -141,220 +174,12 @@ function Copy() {
         </div>
       </div>
 
-      {/* Meta Tech Provider credential. Deliberately down here with the
-          stars rather than up in the announcement pill: that slot is for
-          news a reader acts on, and this is the thing they look for at
-          the moment they start believing the pitch. Outlined white so it
-          reads as a stamp, not another CTA. */}
-      <div className="mt-5 flex justify-center lg:justify-start">
-        <span className="inline-flex items-center gap-2 rounded-full border border-(--lp2-ink)/12 bg-white/70 px-3.5 py-1.5 text-xs font-semibold">
-          <BadgeCheck
-            className="size-4 shrink-0 text-(--lp2-grass)"
-            strokeWidth={2.5}
-          />
-          Official Meta Tech Provider
-        </span>
-      </div>
-
-      {/* The squiggle and sparkle that floated beside the headline are
-          gone. Confetti next to the first sentence someone reads is the
-          most expensive kind of decoration — it competes with the one
-          thing on the page that has to land. The chat cluster on the
-          right still carries the personality. */}
-    </div>
-  );
-}
-
-/* ─── Right column: the conversation ──────────────────────────────── */
-
-// One incoming question, two instant answers, and a reply still being
-// typed — the shortest possible story of "nobody is waiting".
-const THREAD = [
-  {
-    side: 'in',
-    text: 'Do you deliver to Pune? 🛵',
-    time: '22:47',
-  },
-  {
-    side: 'out',
-    text: 'Yes! Same-day delivery in Pune on orders before 6pm.',
-    time: '22:47',
-    ai: true,
-  },
-  {
-    side: 'in',
-    text: 'Can I pay on delivery?',
-    time: '22:48',
-  },
-  {
-    side: 'out',
-    text: 'Absolutely — cash or UPI at your door. Want me to place it now?',
-    time: '22:48',
-    ai: true,
-  },
-] as const;
-
-function ChatCluster() {
-  return (
-    // Capped at 26rem even on wide screens (and pushed to the right
-    // rail with `lg:mr-0`) rather than filling its grid column: at full
-    // column width the bubbles stretch to ~50 characters and stop
-    // looking like phone messages, which is the entire illusion.
-    //
-    // `self-end` + `lg:-mb-24` drop the stack to the bottom of the hero
-    // and let it bleed off the section's bottom edge (the hero clips
-    // with overflow-hidden), so the screens read as rising up from the
-    // fold rather than floating in the middle of it.
-    <div className="relative mx-auto w-full max-w-md self-end lg:mr-0 lg:-mb-24 lg:max-w-104">
-      {/* Back screen — a second chat window offset down-right so a clear
-          band of it shows behind the front one: two screens, not one.
-          Static, straight (no tilt), sharp corners, filled with
-          placeholder chrome so the visible strip still reads as a
-          screen. */}
-      <div
-        aria-hidden
-        className="absolute inset-0 overflow-hidden border-2 border-(--lp2-ink) bg-white shadow-(--lp2-shadow-lg)"
-        style={{ transform: 'translate(2.75rem, 2.25rem)' }}
-      >
-        <div className="border-b-2 border-(--lp2-ink) bg-(--lp2-lemon) px-4 py-3.5">
-          <span className="block h-3 w-24 rounded-full bg-(--lp2-ink)/25" />
-        </div>
-        <div className="space-y-3 bg-(--lp2-cream) p-4">
-          <span className="block h-9 w-2/3 rounded-2xl border-2 border-(--lp2-ink) bg-white" />
-          <span className="ml-auto block h-11 w-3/4 rounded-2xl border-2 border-(--lp2-ink) bg-(--lp2-mint)" />
-          <span className="block h-9 w-1/2 rounded-2xl border-2 border-(--lp2-ink) bg-white" />
-        </div>
-      </div>
-
-      {/* Front screen — the full conversation. Static, straight and
-          sharp-cornered to match the back. */}
-      <div className="relative overflow-hidden border-2 border-(--lp2-ink) bg-white shadow-(--lp2-shadow-lg)">
-        {/* Header */}
-        <div className="flex items-center gap-3 border-b-2 border-(--lp2-ink) bg-(--lp2-mint) px-4 py-3">
-          <span className="flex size-10 items-center justify-center rounded-full border-2 border-(--lp2-ink) bg-(--lp2-tangerine) text-xs font-extrabold">
-            NS
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-extrabold">Nova Store</p>
-            <p className="flex items-center gap-1.5 text-xs font-semibold text-(--lp2-ink-soft)">
-              <span className="size-2 rounded-full bg-(--lp2-grass)" />
-              AI agent · online
-            </p>
-          </div>
-          <span className="rounded-full border-2 border-(--lp2-ink) bg-white px-2.5 py-1 text-[10px] font-extrabold tracking-wide uppercase">
-            WhatsApp
-          </span>
-        </div>
-
-        {/* Thread */}
-        <div className="space-y-2.5 bg-(--lp2-cream) px-4 py-4">
-          {THREAD.map((m) => (
-            <Bubble key={m.text} {...m} />
-          ))}
-
-          {/* Typing indicator — the beat that makes the thread feel
-              live rather than screenshotted. */}
-          <div className="flex justify-end">
-            <div className="flex items-center gap-1.5 rounded-2xl rounded-br-md border-2 border-(--lp2-ink) bg-(--lp2-mint) px-3.5 py-2.5">
-              {[0, 1, 2].map((i) => (
-                <span
-                  key={i}
-                  className="lp2-typing-dot size-2 rounded-full bg-(--lp2-ink)"
-                  style={{ animationDelay: `${i * 0.18}s` }}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Composer — non-interactive set dressing, so it's a div, not
-            a real input someone can click into and find dead. */}
-        <div className="flex items-center gap-2 border-t-2 border-(--lp2-ink) bg-white px-3.5 py-2.5">
-          <div className="flex-1 rounded-full border-2 border-(--lp2-ink)/15 bg-(--lp2-cream) px-3.5 py-2 text-[13px] font-medium text-(--lp2-ink-soft)">
-            Type a message…
-          </div>
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full border-2 border-(--lp2-ink) bg-(--lp2-grass)">
-            <ArrowRight className="size-4 text-white" strokeWidth={3} />
-          </span>
-        </div>
-      </div>
-
-      {/* ── Stickers pinned to the card ──
-          Static now, to match the screens — nothing floats. Hidden
-          below `sm`: at phone widths they'd land on top of the
-          conversation, which is the one thing that must stay readable. */}
-      <Sticker
-        color="lemon"
-        tilt={-8}
-        className="absolute -top-5 -left-4 hidden text-xs sm:flex lg:-left-12"
-      >
-        <Zap className="size-4" strokeWidth={3} />
-        6s average reply
-      </Sticker>
-
-      {/* Parked at 42% rather than lower down: the typing indicator
-          lives near the card's bottom edge and it's the one detail
-          that sells "answering right now" — a sticker on top of it
-          costs more than it adds. */}
-      <Sticker
-        color="sky"
-        tilt={7}
-        className="absolute -right-4 bottom-[42%] hidden text-xs text-white sm:flex lg:-right-10"
-      >
-        <CheckCheck className="size-4" strokeWidth={3} />
-        +38% more replies
-      </Sticker>
-
-      {/* Left edge, at the height of an AI reply: those bubbles are
-          right-aligned, so the card's left side there is empty cream —
-          the one spot a sticker can straddle without covering text. */}
-      <Sticker
-        color="coral"
-        tilt={-5}
-        className="absolute bottom-32 -left-6 hidden text-xs text-white sm:flex lg:-left-20"
-      >
-        1,240 chats handled today
-      </Sticker>
-
-      <Sparkle color="lemon" className="absolute -top-8 right-10 size-7" />
-    </div>
-  );
-}
-
-function Bubble({
-  side,
-  text,
-  time,
-  ai,
-}: {
-  side: 'in' | 'out';
-  text: string;
-  time: string;
-  ai?: boolean;
-}) {
-  const out = side === 'out';
-  return (
-    <div className={cn('flex', out ? 'justify-end' : 'justify-start')}>
-      <div
-        className={cn(
-          // The squared-off corner on the speaker's side is what makes
-          // a rounded rectangle read as a speech bubble.
-          'max-w-[85%] rounded-2xl border-2 border-(--lp2-ink) px-3 py-2 text-[13px] font-medium shadow-[2px_2px_0_var(--lp2-ink)]',
-          out ? 'rounded-br-md bg-(--lp2-mint)' : 'rounded-bl-md bg-white',
-        )}
-      >
-        {ai && (
-          <span className="mb-1.5 inline-flex items-center gap-1 rounded-full border-2 border-(--lp2-ink) bg-(--lp2-lemon) px-2 py-0.5 text-[10px] font-extrabold tracking-wide uppercase">
-            <Sparkles className="size-2.5" strokeWidth={3} />
-            AI
-          </span>
-        )}
-        <p className="leading-snug">{text}</p>
-        <p className="mt-1 flex items-center justify-end gap-1 text-[10px] font-bold text-(--lp2-ink-soft)">
-          {time}
-          {out && <CheckCheck className="size-3 text-(--lp2-sky)" strokeWidth={3} />}
-        </p>
-      </div>
+      {/* No decoration in here at all — no squiggle, no sparkle, and
+          since the mockup came out, no stickers either. Confetti next
+          to the first sentence someone reads is the most expensive kind
+          of decoration: it competes with the one thing on the page that
+          has to land. The dot field and the highlight boxes carry what
+          personality this fold needs. */}
     </div>
   );
 }

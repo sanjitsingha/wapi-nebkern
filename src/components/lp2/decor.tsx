@@ -166,15 +166,25 @@ export function Blob({
  * Faint dot grid, masked so it fades out before it reaches the edges.
  * Grounds the floating stickers — pure cream gives them nothing to
  * float *over*.
+ *
+ * `color` exists because the default is ink at 13%, which is tuned for
+ * the cream and tinted panels this sits on. On a white section that
+ * tint reads faintly blue, so the hero passes a neutral grey instead.
+ * Any CSS colour works; it is painted straight into the gradient.
  */
-export function DotField({ className }: { className?: string }) {
+export function DotField({
+  className,
+  color = 'rgba(25,24,38,0.13)',
+}: {
+  className?: string;
+  color?: string;
+}) {
   return (
     <div
       aria-hidden
       className={cn('pointer-events-none absolute inset-0', className)}
       style={{
-        backgroundImage:
-          'radial-gradient(circle, rgba(25,24,38,0.13) 1.5px, transparent 1.5px)',
+        backgroundImage: `radial-gradient(circle, ${color} 1.5px, transparent 1.5px)`,
         backgroundSize: '26px 26px',
         maskImage:
           'radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 78%)',

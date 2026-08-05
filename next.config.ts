@@ -84,6 +84,27 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['@phosphor-icons/react'],
   },
   /**
+   * Hosts `next/image` is allowed to optimise from.
+   *
+   * Scoped to `/assets/**` rather than the whole media host on
+   * purpose: that prefix holds brand artwork we publish deliberately,
+   * while the rest of the bucket is user-uploaded and inbound customer
+   * media. Pointing the optimiser at arbitrary user content turns it
+   * into an open image-resizing proxy for anything that lands there.
+   *
+   * The Meta partner logo in the landing hero is the first consumer —
+   * a 4096px PNG that would otherwise ship whole to render at 16px.
+   */
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "media.instant.nebkern.com",
+        pathname: "/assets/**",
+      },
+    ],
+  },
+  /**
    * Origins (besides localhost) allowed to hit the dev server.
    *
    * Next 16 blocks cross-origin requests to dev-only assets/endpoints
