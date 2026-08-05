@@ -40,6 +40,7 @@ import {
   deleteAccountMedia,
   MEDIA_MAX_BYTES_BY_KIND,
 } from "@/lib/storage/upload-media";
+import { compressImage } from "@/lib/storage/compress-image";
 import { ReplyQuote } from "./reply-quote";
 
 /** Media content types an agent can send from the composer. */
@@ -396,13 +397,20 @@ export function MessageComposer({
   // Upload a captured file to chat-media and stage it as a draft.
   const stageUpload = useCallback(
     async (kind: ComposerMediaKind, file: File) => {
+      // Shrink first, THEN check the ceiling. A 6 MB phone photo is over
+      // Meta's 5 MB image cap but compresses to well under it, so
+      // checking the original size would refuse a file we can actually
+      // send. Non-images come back untouched, so their check is
+      // unchanged.
+      const staged = kind === "image" ? await compressImage(file) : file;
+
       // Per-kind ceiling mirrors Meta's caps (image 5 MB, etc.) so we
       // reject before upload rather than orphaning an object that Meta
       // would then refuse at send.
       const max = MEDIA_MAX_BYTES_BY_KIND[kind];
-      if (file.size > max) {
+      if (staged.size > max) {
         toast.error(
-          `File is ${(file.size / 1024 / 1024).toFixed(1)} MB — ${kind} limit is ${Math.round(
+          `File is ${(staged.size / 1024 / 1024).toFixed(1)} MB — ${kind} limit is ${Math.round(
             max / 1024 / 1024,
           )} MB.`,
         );
@@ -410,7 +418,10 @@ export function MessageComposer({
       }
       setBusy(true);
       try {
-        const { publicUrl, path } = await uploadAccountMedia(CHAT_MEDIA_BUCKET, file);
+        // Already compressed above; uploadAccountMedia will try again and
+        // find nothing left to save, which is cheap and keeps this the
+        // only place that decides what "too big" means.
+        const { publicUrl, path } = await uploadAccountMedia(CHAT_MEDIA_BUCKET, staged);
         // Replacing an existing draft? GC the previous object first.
         removeStaged(draftRef.current?.path);
         setDraft({ kind, mediaUrl: publicUrl, path, filename: file.name, caption: "" });

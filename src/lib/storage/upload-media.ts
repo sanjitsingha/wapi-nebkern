@@ -1,6 +1,18 @@
 import { createClient } from "@/lib/supabase/client";
 import { checkStorageCapacity } from "@/lib/billing/entitlements-client";
 import { buildMediaPath } from "./paths";
+import { compressImage } from "./compress-image";
+
+/**
+ * The one bucket whose images are uploaded untouched.
+ *
+ * Template media is submitted to Meta for approval and then lives inside
+ * an approved template, under Meta's own format and size rules. An
+ * approved template's header image is not something to quietly re-encode
+ * behind the operator's back: the version they reviewed and the version
+ * Meta holds should be the version they chose.
+ */
+const NO_COMPRESSION_BUCKETS = new Set(["template-media"]);
 
 /**
  * Shared media-upload helper. Every upload in the app goes through
@@ -127,8 +139,16 @@ async function uploadViaR2(
  */
 export async function uploadAccountMedia(
   bucket: string,
-  file: File,
+  rawFile: File,
 ): Promise<UploadAccountMediaResult> {
+  // Shrink images before anything else, so the quota check below and the
+  // bytes actually stored both reflect the real size. Non-images and
+  // template media pass through untouched; see compress-image.ts for why
+  // this is deliberately gentle.
+  const file = NO_COMPRESSION_BUCKETS.has(bucket)
+    ? rawFile
+    : await compressImage(rawFile);
+
   // Plan storage limit (migration 062). Checked before either backend —
   // soft-fail on a transient error so it never blocks an upload, but a
   // definitive over-limit answer does.
