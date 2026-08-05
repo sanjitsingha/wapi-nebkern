@@ -74,6 +74,7 @@ const SECTIONS: LegalSection[] = [
       {
         ul: [
           'Google — sign-in with Google, where you or your team choose it. Sees the email address and basic profile of the person signing in, and only at sign-in.',
+          'Umami — cookieless page-view analytics, where enabled on this deployment. Sees the page visited plus the coarse technical details any web request carries (browser, device type, approximate country from IP). It sets no cookies, does not follow visitors between sites, and does not receive any of your workspace data.',
           'OpenAI — AI reply generation and embeddings, when you configure an OpenAI key. Sees the prompts, knowledge-base content and message text needed to draft a reply.',
           'Anthropic — AI reply generation, when you configure an Anthropic key. Same scope as above.',
           'OpenRouter — AI model routing, when you configure an OpenRouter key. Same scope, forwarded to the model provider you select there.',
