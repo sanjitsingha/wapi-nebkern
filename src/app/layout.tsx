@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ThemedToaster } from "@/components/themed-toaster";
@@ -35,21 +34,10 @@ export const viewport: Viewport = {
   colorScheme: "light",
 };
 
-/**
- * Umami analytics — cookieless page-view counting.
- *
- * Configured, not hardcoded. This repository is MIT and self-hostable
- * (see package.json), so baking in one deployment's website id would
- * send every fork's traffic to that account — polluting their numbers
- * and quietly reporting other people's visitors to a third party.
- * Unset = no script, no requests, no subprocessor.
- *
- * `UMAMI_SRC` is overridable so a self-hoster can point at their own
- * Umami instance rather than the cloud service.
- */
-const UMAMI_WEBSITE_ID = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID;
-const UMAMI_SRC =
-  process.env.NEXT_PUBLIC_UMAMI_SRC || "https://cloud.umami.is/script.js";
+// Analytics deliberately does NOT live here. The root layout wraps the
+// signed-in app as well as the public site, and only the public site is
+// measured — see src/components/analytics.tsx for why, and the
+// (marketing) and docs layouts for where it is actually rendered.
 
 export default function RootLayout({
   children,
@@ -63,16 +51,6 @@ export default function RootLayout({
           {children}
           <ThemedToaster />
         </ThemeProvider>
-        {UMAMI_WEBSITE_ID && (
-          // afterInteractive, not beforeInteractive: analytics must never
-          // sit on the critical path of a page someone is waiting for.
-          <Script
-            defer
-            strategy="afterInteractive"
-            src={UMAMI_SRC}
-            data-website-id={UMAMI_WEBSITE_ID}
-          />
-        )}
       </body>
     </html>
   );

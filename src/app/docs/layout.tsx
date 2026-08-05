@@ -6,6 +6,7 @@ import { lp2Display } from '@/components/lp2/font';
 import { Lp2Nav } from '@/components/lp2/nav';
 import { Lp2Footer } from '@/components/lp2/footer';
 import { DocsShell } from '@/components/docs/docs-shell';
+import { Analytics } from '@/components/analytics';
 
 // Public docs — indexed, unlike the authenticated app.
 export const metadata: Metadata = {
@@ -29,6 +30,8 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
         <DocsShell>{children}</DocsShell>
       </main>
       <Lp2Footer />
+      {/* Docs are public, so they count towards the funnel. */}
+      <Analytics />
     </div>
   );
 }

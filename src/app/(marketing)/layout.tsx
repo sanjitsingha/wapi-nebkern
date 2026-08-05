@@ -1,6 +1,7 @@
 import './lp2.css';
 
 import { lp2Display } from '@/components/lp2/font';
+import { Analytics } from '@/components/analytics';
 
 // ============================================================
 // (marketing) — the joyful landing rebuild, promoted to `/`.
@@ -26,6 +27,10 @@ export default function MarketingLayout({
       className={`lp2 ${lp2Display.variable} min-h-screen bg-(--lp2-cream) text-(--lp2-ink) antialiased`}
     >
       {children}
+      {/* Public pages only — see components/analytics.tsx. The root
+          layout deliberately does not carry this, so nothing inside the
+          signed-in app is measured. */}
+      <Analytics />
     </div>
   );
 }
