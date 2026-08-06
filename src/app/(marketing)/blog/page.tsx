@@ -13,9 +13,10 @@ import {
 // slightly stale index.
 export const revalidate = 300;
 
-// This is now the live, indexed blog at /blog — the original (at
-// /lp-2/blog, same posts/table) is noindexed to avoid duplicate
-// content competing with this one.
+// The live, indexed blog at /blog. There was a second copy at
+// /lp-2/blog reading the same table, kept noindexed so it could not
+// compete for the same content; that route is deleted, so this is now
+// the only page these posts render on.
 export const metadata: Metadata = {
   title: { absolute: 'Blog — wacrm' },
   description:

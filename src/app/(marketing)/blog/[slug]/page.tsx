@@ -32,8 +32,8 @@ export async function generateMetadata({
   return {
     title: { absolute: `${post.title} — wacrm blog` },
     description: post.excerpt ?? undefined,
-    // This is now the live, indexed post page. The original at
-    // /lp-2/blog/[slug] (same table) is noindexed — see its own note.
+    // The live, indexed post page — and since /lp-2/blog/[slug] was
+    // deleted, the only one rendering these rows.
     robots: { index: true, follow: true },
     openGraph: {
       title: post.title,

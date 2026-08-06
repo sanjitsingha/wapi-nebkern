@@ -6,13 +6,12 @@ import { Analytics } from '@/components/analytics';
 // ============================================================
 // (marketing) — the joyful landing rebuild, promoted to `/`.
 //
-// This route group carries its own shell rather than reusing the old
-// marketing chrome from `site-chrome.tsx`: the whole point of the
-// rebuild is a different nav, a different palette and a different
-// type voice, so sharing the header would defeat it. The demoted
-// original at /lp-2 keeps using site-chrome.tsx unchanged; /docs
-// shares this same lp2 scope + font (see src/app/docs/layout.tsx) so
-// the site reads as one brand even where its tone gets more serious.
+// This route group carries its own shell — nav, palette and type voice
+// all its own. It once coexisted with an older marketing chrome serving
+// a second landing page at /lp-2; that page and its components are
+// deleted, so this is the only marketing shell now. /docs shares this
+// same lp2 scope + font (see src/app/docs/layout.tsx) so the site reads
+// as one brand even where its tone gets more serious.
 // ============================================================
 
 export default function MarketingLayout({

@@ -55,9 +55,6 @@ export default function robots(): MetadataRoute.Robots {
         '/reset-password',
         // JSON, not pages.
         '/api',
-        // The prototype landing page. Its blog is already noindexed as
-        // a duplicate of /blog; this keeps the crawler off the rest.
-        '/lp-2',
       ],
     },
     sitemap: `${SITE}/sitemap.xml`,
