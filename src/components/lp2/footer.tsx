@@ -1,8 +1,18 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { MessageCircle } from 'lucide-react';
 
 import type { Lp2Hue } from './decor';
 import { LEGAL_LINKS } from './legal-links';
+
+const META_LOGO = 'https://media.instant.nebkern.com/assets/meta-logo.png';
+
+const MSME_LOGO = 'https://media.instant.nebkern.com/assets/msme-logo.png';
+
+/** As issued. Displayed verbatim — it is a registration identifier, so
+ *  it should be checkable against the Udyam portal character for
+ *  character. */
+const UDYAM_NUMBER = 'UDYAM-WB-06-0069607';
 
 // ============================================================
 // Footer. Ink panel, so the page closes the way the social-proof strip
@@ -12,7 +22,11 @@ import { LEGAL_LINKS } from './legal-links';
 // The in-page anchors are absolute (`/#features`) rather than bare
 // hashes, because this footer also renders on the legal and blog pages —
 // a bare `#features` there scrolls to nothing.
-const COLUMNS: { title: string; hue: Lp2Hue; links: { label: string; href: string }[] }[] = [
+const COLUMNS: {
+  title: string;
+  hue: Lp2Hue;
+  links: { label: string; href: string }[];
+}[] = [
   {
     title: 'Product',
     hue: 'lemon',
@@ -119,14 +133,59 @@ export function Lp2Footer() {
           </ul>
         </div>
 
-        <div className="mt-10 flex flex-col items-center justify-between gap-2 border-t border-white/15 pt-6 text-xs font-medium text-white/55 sm:flex-row">
+        {/* Credentials. White chips rather than the plain white-on-ink
+            treatment the rest of this panel uses: both lockups are
+            near-black artwork and would disappear against the ink
+            background — they need their own light surface to sit on.
+
+            `items-stretch` so the two chips match heights: the MSME
+            lockup is a stacked three-line mark and sets the taller of
+            the two, and hard-coding a height on both would need
+            revisiting every time either logo or its label changed. */}
+        <div className="mt-10 flex flex-wrap items-stretch gap-3 border-t border-white/15 pt-8">
+          <span className="flex items-center gap-2.5 rounded-xl bg-white px-4 py-2.5 text-(--lp2-ink)">
+            {/* `alt=""` — the words beside it already say Meta, so a
+                name here makes a screen reader read the brand twice. */}
+            <Image
+              src={META_LOGO}
+              alt=""
+              width={79}
+              height={16}
+              className="h-4 w-auto shrink-0"
+            />
+            <span className="text-xs font-bold">
+              Official Meta Tech Provider
+            </span>
+          </span>
+
+          <span className="flex items-center gap-3 rounded-xl bg-white px-4 py-2.5 text-(--lp2-ink)">
+            {/* The mark already reads "MSME · Micro, Small & Medium
+                Enterprises", so the label beside it only has to carry
+                what the artwork does not: the registration. */}
+            <Image
+              src={MSME_LOGO}
+              alt=""
+              width={78}
+              height={36}
+              className="h-9 w-auto shrink-0"
+            />
+            <span className="leading-tight">
+              <span className="block text-xs font-bold">Udyam registered</span>
+              <span className="block font-mono text-[11px] text-(--lp2-ink-soft)">
+                {UDYAM_NUMBER}
+              </span>
+            </span>
+          </span>
+        </div>
+
+        <div className="mt-8 flex flex-col items-center justify-between gap-2 border-t border-white/15 pt-6 text-xs font-medium text-white/55 sm:flex-row">
           {/* Rendered per request rather than frozen at build time —
               same as the live footer, and the page is static enough
               that a hardcoded year would go stale silently. */}
-          <p>
-            © {new Date().getFullYear()} Instant · Nebkern Technology
-          </p>
-          <p>Official Meta Tech Provider · Built on the WhatsApp Business API</p>
+          <p>© {new Date().getFullYear()} Instant · Nebkern Technology</p>
+          {/* The Meta credential moved up into the chip above; repeating
+              it here would say the same thing twice in 60px. */}
+          <p>Built on the WhatsApp Business API</p>
         </div>
       </div>
     </footer>
