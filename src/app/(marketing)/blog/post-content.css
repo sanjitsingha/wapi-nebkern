@@ -187,3 +187,132 @@
   font-weight: 800;
   color: var(--lp2-ink);
 }
+
+/* ── Blocks the editor can now produce ──────────────────────────
+   h1 and h4–h6, checklists, callouts and CTA buttons. The editor
+   styles the same markup in src/styles/post-content.css; these are the
+   lp2 equivalents, so a post looks the way it did while being written.
+   ============================================================ */
+
+/* h1 inside a post body sits under the article's own <h1> title, so it
+   stays below the h2 in weight to avoid competing with it. */
+.lp2 .lp2-post h1 {
+  margin: 1.8em 0 0.5em;
+  font-family: var(--font-lp2-display), var(--font-sans), sans-serif;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--lp2-ink);
+}
+
+.lp2 .lp2-post h4 {
+  margin: 1.5em 0 0.4em;
+  font-family: var(--font-lp2-display), var(--font-sans), sans-serif;
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--lp2-ink);
+}
+
+.lp2 .lp2-post h5 {
+  margin: 1.4em 0 0.4em;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--lp2-ink);
+}
+
+/* Below body size, so the caps do the work of marking it as a heading. */
+.lp2 .lp2-post h6 {
+  margin: 1.4em 0 0.4em;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--lp2-ink-soft);
+}
+
+/* ── Checklist ── */
+.lp2 .lp2-post ul[data-type='taskList'] {
+  padding-left: 0;
+  list-style: none;
+}
+
+.lp2 .lp2-post ul[data-type='taskList'] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6em;
+}
+
+.lp2 .lp2-post ul[data-type='taskList'] li::marker {
+  content: '';
+}
+
+.lp2 .lp2-post ul[data-type='taskList'] li > label {
+  margin-top: 0.3em;
+  flex: 0 0 auto;
+}
+
+.lp2 .lp2-post ul[data-type='taskList'] li > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.lp2 .lp2-post ul[data-type='taskList'] li > div > p {
+  margin: 0;
+}
+
+.lp2 .lp2-post ul[data-type='taskList'] input[type='checkbox'] {
+  width: 1.05em;
+  height: 1.05em;
+  accent-color: var(--lp2-grass);
+}
+
+/* ── Callout ──
+   The mint block with the ink outline, same as the pull-quote — the
+   page already says "set apart" in that vocabulary. */
+.lp2 .lp2-post .post-callout {
+  margin: 1.6em 0;
+  padding: 1.1em 1.25em;
+  border: 2px solid var(--lp2-ink);
+  border-radius: 1rem;
+  background: var(--lp2-mint);
+  box-shadow: var(--lp2-shadow-sm);
+}
+
+.lp2 .lp2-post .post-callout > :first-child {
+  margin-top: 0;
+}
+
+.lp2 .lp2-post .post-callout > :last-child {
+  margin-bottom: 0;
+}
+
+/* ── CTA button ──
+   Overrides the underlined link styling above: a button that is also
+   underlined reads as neither. */
+.lp2 .lp2-post .post-cta {
+  display: inline-block;
+  margin: 1.6em 0;
+  padding: 0.8em 1.6em;
+  border: 2px solid var(--lp2-ink);
+  border-radius: 0.9rem;
+  background: var(--lp2-grass);
+  box-shadow: var(--lp2-shadow);
+  color: #fff;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.lp2 .lp2-post .post-cta:hover {
+  background: var(--lp2-ink);
+  color: #fff;
+}
+
+/* Highlight mark, from the editor's highlighter button. */
+.lp2 .lp2-post mark {
+  padding: 0.1em 0.25em;
+  border-radius: 0.3rem;
+  background: var(--lp2-lemon);
+  color: var(--lp2-ink);
+}

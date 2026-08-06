@@ -20,6 +20,14 @@
   margin: 1.1em 0;
 }
 
+.post-content h1 {
+  margin: 1.6em 0 0.6em;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
 .post-content h2 {
   margin: 1.8em 0 0.6em;
   font-size: 1.6rem;
@@ -33,6 +41,29 @@
   font-size: 1.25rem;
   font-weight: 600;
   line-height: 1.35;
+}
+
+.post-content h4 {
+  margin: 1.4em 0 0.4em;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.post-content h5 {
+  margin: 1.3em 0 0.4em;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Smaller than body text, so it needs the caps to still read as a
+   heading rather than as a stray short paragraph. */
+.post-content h6 {
+  margin: 1.3em 0 0.4em;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
 }
 
 .post-content blockquote {
@@ -74,15 +105,46 @@
   border-radius: 0.75rem;
 }
 
+/* The three-dot motif the published article uses, mirrored here rather
+   than the old hairline: a 1px, 6rem, near-transparent rule on white
+   was so faint that inserting one looked like the button had done
+   nothing. WYSIWYG is the whole premise of sharing this stylesheet, so
+   it matches src/app/(marketing)/blog/post-content.css. */
 .post-content hr {
-  margin: 2.2em auto;
-  width: 6rem;
+  margin: 2.4em auto;
+  width: 5rem;
+  height: 0.5rem;
   border: 0;
-  border-top: 1px solid var(--border);
+  background-image: radial-gradient(
+    circle,
+    currentColor 0.25rem,
+    transparent 0.25rem
+  );
+  background-size: 1.75rem 100%;
+  background-repeat: repeat-x;
+  background-position: center;
+  opacity: 0.35;
+}
+
+/* ProseMirror selects an <hr> as a whole node rather than putting a
+   caret in it, so without a visible selected state clicking one looks
+   like nothing happened and there is no clue how to delete it. */
+.post-content hr.ProseMirror-selectednode {
+  outline: 2px solid var(--primary);
+  outline-offset: 6px;
+  border-radius: 2px;
+  opacity: 0.6;
 }
 
 .post-content strong {
   font-weight: 700;
+}
+
+.post-content mark {
+  padding: 0.1em 0.2em;
+  border-radius: 0.25rem;
+  background: #fde68a;
+  color: inherit;
 }
 
 .post-content code {
@@ -93,16 +155,151 @@
   font-size: 0.9em;
 }
 
-/* Editor-only: ghost placeholder when the surface is empty. */
-.post-content[contenteditable='true']:empty::before {
-  content: attr(data-placeholder);
-  color: var(--muted-foreground);
-  opacity: 0.6;
+.post-content pre {
+  margin: 1.4em 0;
+  padding: 1em 1.15em;
+  overflow-x: auto;
+  border-radius: 0.6rem;
+  background: var(--muted);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+/* Inside a block the inline chip styling would double up the padding
+   and background. */
+.post-content pre code {
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  font-size: inherit;
+}
+
+/* ── Tables ── */
+.post-content table {
+  margin: 1.5em 0;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95em;
+  /* TipTap's resize handles need a fixed layout to measure against. */
+  table-layout: fixed;
+}
+
+.post-content th,
+.post-content td {
+  padding: 0.55em 0.7em;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.post-content th {
+  background: var(--muted);
+  font-weight: 600;
+}
+
+/* Editing affordances — no effect on the published article, which has
+   no selection or resize handles. */
+.post-content .selectedCell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: color-mix(in oklab, var(--primary) 14%, transparent);
   pointer-events: none;
 }
 
-.post-content[contenteditable='true'] {
+.post-content .column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: 0;
+  width: 4px;
+  background: var(--primary);
+  pointer-events: none;
+}
+
+/* ── Checklist ──
+   The marker is the checkbox, so the list loses its bullets and its
+   indent; each row lays the box out beside its text instead. */
+.post-content ul[data-type='taskList'] {
+  padding-left: 0;
+  list-style: none;
+}
+
+.post-content ul[data-type='taskList'] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6em;
+}
+
+.post-content ul[data-type='taskList'] li > label {
+  margin-top: 0.35em;
+  flex: 0 0 auto;
+  user-select: none;
+}
+
+.post-content ul[data-type='taskList'] li > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.post-content ul[data-type='taskList'] li > div > p {
+  margin: 0;
+}
+
+.post-content ul[data-type='taskList'] input[type='checkbox'] {
+  width: 1em;
+  height: 1em;
+  accent-color: var(--primary);
+}
+
+/* ── Callout ── */
+.post-content .post-callout {
+  margin: 1.5em 0;
+  padding: 1em 1.15em;
+  border-left: 3px solid var(--primary);
+  border-radius: 0.6rem;
+  background: color-mix(in oklab, var(--primary) 8%, transparent);
+}
+
+.post-content .post-callout > :first-child {
+  margin-top: 0;
+}
+
+.post-content .post-callout > :last-child {
+  margin-bottom: 0;
+}
+
+/* ── CTA button ──
+   `a` already gets underlined link styling above; this overrides it,
+   because a button that is also underlined reads as neither. */
+.post-content .post-cta {
+  display: inline-block;
+  margin: 1.5em 0;
+  padding: 0.7em 1.4em;
+  border-radius: 0.6rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* ── Editor-only ── */
+.post-content.tiptap {
   outline: none;
   min-height: 320px;
   caret-color: var(--primary);
+}
+
+/* TipTap's Placeholder extension marks the first empty node and hangs
+   the text off a data attribute; the old rule matched an empty
+   contenteditable, which never matches once ProseMirror has put a
+   paragraph inside it. */
+.post-content .is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--muted-foreground);
+  opacity: 0.6;
+  pointer-events: none;
 }
