@@ -99,7 +99,13 @@ export function SectionHead({
         {before}
         {after !== null && (
           <>
-            <Highlight color={hue}>{highlight}</Highlight>
+            {/* The box overshoots the word it frames by 0.12em a side,
+                which eats the space character next to it — mid-sentence
+                highlights end up welded to the following word. Same
+                fix compare.tsx makes inline for the same reason. */}
+            <Highlight color={hue} className="mx-[0.1em]">
+              {highlight}
+            </Highlight>
             {after}
           </>
         )}

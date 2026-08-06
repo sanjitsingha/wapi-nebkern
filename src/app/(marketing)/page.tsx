@@ -5,7 +5,7 @@ import { Lp2Hero } from '@/components/lp2/hero';
 import { Lp2Features } from '@/components/lp2/features';
 import { Lp2AiAgents } from '@/components/lp2/ai-agents';
 import { Lp2Automations } from '@/components/lp2/automations';
-import { Lp2Steps } from '@/components/lp2/steps';
+import { Lp2AiPerformance } from '@/components/lp2/ai-performance';
 import { Lp2Compare } from '@/components/lp2/compare';
 import { Lp2Testimonials } from '@/components/lp2/testimonials';
 import { Lp2Pricing } from '@/components/lp2/pricing';
@@ -40,7 +40,7 @@ export default function Lp2Page() {
         <Lp2Features />
         <Lp2AiAgents />
         <Lp2Automations />
-        <Lp2Steps />
+        <Lp2AiPerformance />
         <Lp2Compare />
         <Lp2Testimonials />
         <Lp2Pricing />
