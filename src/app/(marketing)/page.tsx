@@ -6,6 +6,7 @@ import { Lp2Features } from '@/components/lp2/features';
 import { Lp2AiAgents } from '@/components/lp2/ai-agents';
 import { Lp2Automations } from '@/components/lp2/automations';
 import { Lp2AiPerformance } from '@/components/lp2/ai-performance';
+import { Lp2Integrations } from '@/components/lp2/integrations';
 import { Lp2Compare } from '@/components/lp2/compare';
 import { Lp2Testimonials } from '@/components/lp2/testimonials';
 import { Lp2Pricing } from '@/components/lp2/pricing';
@@ -13,9 +14,10 @@ import { Lp2Faq } from '@/components/lp2/faq';
 import { Lp2Cta } from '@/components/lp2/cta';
 import { Lp2Footer } from '@/components/lp2/footer';
 
-// The public marketing landing page — the "joyful rebuild," promoted
-// to `/` from its former home at /lp-2 (which now hosts the original
-// design as a secondary variant). Indexed since this is the front door.
+// The public marketing landing page — the "joyful rebuild," promoted to
+// `/` from its former home at /lp-2. The older design it replaced has
+// since been deleted, so this is the only landing page. Indexed, being
+// the front door.
 export const metadata: Metadata = {
   title: {
     // The exact string a search result and a shared link show. Leads
@@ -41,6 +43,11 @@ export default function Lp2Page() {
         <Lp2AiAgents />
         <Lp2Automations />
         <Lp2AiPerformance />
+        {/* Placed here on purpose: the product story ends with the
+            payoff section above, and "does it fit the stack I already
+            run?" is the first practical objection after that — before
+            the plan comparison and pricing. */}
+        <Lp2Integrations />
         <Lp2Compare />
         <Lp2Testimonials />
         <Lp2Pricing />

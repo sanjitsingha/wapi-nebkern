@@ -8,10 +8,26 @@ import { SectionHead } from './ui';
 // Features — a bento of four cards, each a different hue, each showing
 // a scrap of the actual product rather than an icon.
 //
-// Flat treatment: plain white section, cards defined by a faint hairline
-// (no ink outline, no shadow), inner graphics carried by fill colour
-// alone, and gentle corners rather than the earlier heavy curves.
+// Shares its treatment with `ai-performance`: white section, each card
+// bordered in its own hue with a gradient wash rising from the bottom,
+// and no ink outline or offset shadow anywhere. The two sections sit
+// two apart on the page, so a card that is outlined in one and washed
+// in the other reads as two different products.
 // ============================================================
+
+/**
+ * The wash on the visual half, rising from the bottom edge — the same
+ * move `ai-performance` makes, so the two sections read as one system.
+ * The copy half stays plain white: a gradient behind body text is the
+ * one place it costs something, and the split is what gives the bento
+ * its shape.
+ *
+ * It stops at a light tint rather than running to white, because the
+ * mini product visuals are built from white tiles and would disappear
+ * against a white top.
+ */
+const panelWash = (hue: Lp2Hue) =>
+  `linear-gradient(to top, color-mix(in oklab, var(--lp2-${hue}) 42%, #fff), color-mix(in oklab, var(--lp2-${hue}) 16%, #fff))`;
 
 export function Lp2Features() {
   return (
@@ -28,27 +44,30 @@ export function Lp2Features() {
             the two rows mirror each other 4–2 / 2–4. Order matters —
             keep a wide card at each end or the rhythm collapses. */}
         <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-6">
+          {/* Saturated hues, not the `-soft` pastels: the wash is mixed
+              from the hue here, so a pastel would mix to almost nothing
+              and the border would be too faint to define the card. */}
           <Card
-            hue="mint"
+            hue="grass"
             wide
             title="Shared team inbox"
             body="Every WhatsApp, Instagram and Messenger chat in one place. Assign owners, leave internal notes, and never answer the same question twice."
             visual={<MiniInbox />}
           />
           <Card
-            hue="lemon-soft"
+            hue="lemon"
             title="Broadcast campaigns"
             body="Send approved templates to thousands and watch delivery, reads and replies climb live."
             visual={<MiniCampaign />}
           />
           <Card
-            hue="coral-soft"
+            hue="coral"
             title="Pipelines & CRM"
             body="Custom fields, tags and drag-and-drop stages — a real CRM wrapped around your chats."
             visual={<MiniKanban />}
           />
           <Card
-            hue="grape-soft"
+            hue="grape"
             wide
             title="Flows & automations"
             body="No-code triggers, conditions and actions that greet, route and follow up at 3am without waking anyone."
@@ -69,10 +88,9 @@ function Card({
   visual,
   wide = false,
 }: {
-  /** Any lp2 hue token name, including the `-soft` washes — these are
-   *  large fills sitting behind ink text, so the pastels are usually
-   *  the right call. */
-  hue: Lp2Hue | `${Lp2Hue}-soft`;
+  /** A saturated lp2 hue. Both the border and the wash derive from it,
+   *  so the card only ever carries one colour. */
+  hue: Lp2Hue;
   title: string;
   body: string;
   visual: React.ReactNode;
@@ -81,24 +99,24 @@ function Card({
   return (
     <div
       className={cn(
-        // The card (mother box) keeps its black ink outline; only the
-        // graphics *inside* the visual half go borderless. No padding so
-        // the tinted visual half runs to the card edge, with
-        // overflow-hidden respecting the (gentler) corner radius.
-        'group overflow-hidden rounded-xl border-2 border-(--lp2-ink) bg-white transition-transform duration-200 hover:-translate-y-1',
+        // Border in the card's own hue rather than ink, and no offset
+        // shadow. No padding either, so the washed visual half runs to
+        // the card edge — overflow-hidden keeps it inside the radius.
+        'group overflow-hidden rounded-xl border-2 bg-white transition-transform duration-200 hover:-translate-y-1',
         // Wide cards go full-bleed on the two-column tablet grid too —
         // a 4-col card squeezed into half a tablet row leaves its
         // side-by-side split too narrow to read.
         wide ? 'sm:col-span-2 lg:col-span-4' : 'lg:col-span-2',
       )}
+      style={{ borderColor: `var(--lp2-${hue})` }}
     >
       <div className={cn(wide && 'grid h-full sm:grid-cols-2')}>
         {wide && <Text title={title} body={body} />}
 
-        {/* Visual half — defined by its fill, no divider rule. */}
+        {/* Visual half — defined by its wash, no divider rule. */}
         <div
           className="grid items-center p-6"
-          style={{ backgroundColor: `var(--lp2-${hue})` }}
+          style={{ backgroundImage: panelWash(hue) }}
         >
           {visual}
         </div>

@@ -1,5 +1,12 @@
 import type { CSSProperties } from 'react';
-import { ArrowRight, Bot, Check, FileText, MessageCircle, Sparkles } from 'lucide-react';
+import {
+  ArrowRight,
+  Bot,
+  Check,
+  FileText,
+  MessageCircle,
+  Sparkles,
+} from 'lucide-react';
 
 import { Highlight, Sparkle, Squiggle } from './decor';
 import { Btn } from './ui';
@@ -13,9 +20,19 @@ import { AutopilotTeaserLink } from './autopilot';
 // the diagram of three documents feeding one agent makes that point
 // before the paragraph does.
 //
-// Flat treatment: white section, graphics carried by fill + faint
-// hairlines rather than ink outlines, and gentler corners.
+// The colour is a contained panel rather than a full-bleed band: a
+// solid stripe running the whole viewport width made the page a stack
+// of coloured strata, and at 1440px+ most of that yellow was empty
+// margin either side of the content. Held to the content column and
+// washed with a gradient, it reads as a card the section sits on —
+// matching `features` and `ai-performance`.
 // ============================================================
+
+/** Strongest along the top edge, fading out downward. No border — the
+ *  wash itself is the edge, and it dissolves into the white section at
+ *  the bottom rather than stopping on a line. */
+const PANEL_WASH =
+  'linear-gradient(to bottom, color-mix(in oklab, var(--lp2-lemon) 42%, #fff), #fff 88%)';
 
 const PROOF = [
   'Trained on your own docs, FAQs and policies — not the open internet',
@@ -34,44 +51,52 @@ const SOURCES = [
 
 export function Lp2AiAgents() {
   return (
-    <section
-      id="ai-agents"
-      className="scroll-mt-28 bg-(--lp2-lemon-soft) py-20 sm:py-28"
-    >
-      <div className="mx-auto grid max-w-6xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16">
-        <KnowledgeDiagram />
+    <section id="ai-agents" className="scroll-mt-28 bg-white py-20 sm:py-28">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div
+          className="grid items-center gap-14 rounded-3xl px-6 py-12 sm:px-10 sm:py-14 lg:grid-cols-2 lg:gap-16"
+          style={{ backgroundImage: PANEL_WASH }}
+        >
+          <KnowledgeDiagram />
 
-        <div className="lg:order-first">
-          <h2 className="lp2-display text-3xl leading-[1.08] font-extrabold text-balance sm:text-[2.75rem]">
-            It reads your catalogue once, then answers{' '}
-            <Highlight color="grape">forever</Highlight>.
-          </h2>
+          <div className="lg:order-first">
+            <h2 className="lp2-display text-3xl leading-[1.08] font-extrabold text-balance sm:text-[2.75rem]">
+              It reads your catalogue once, then answers{' '}
+              {/* White on grape, not ink. Only safe because this is a
+                  44px display word — at body size white on this hue
+                  would be under the contrast bar. */}
+              <Highlight color="grape" className="text-white">
+                forever
+              </Highlight>
+              .
+            </h2>
 
-          <p className="mt-5 text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-lg">
-            Upload what you already have. Your agent replies in seconds at
-            2am, writes lead details straight into the CRM, and knows
-            exactly when to fetch a human.
-          </p>
+            <p className="mt-5 text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-lg">
+              Upload what you already have. Your agent replies in seconds at
+              2am, writes lead details straight into the CRM, and knows exactly
+              when to fetch a human.
+            </p>
 
-          <ul className="mt-7 space-y-3">
-            {PROOF.map((p) => (
-              <li key={p} className="flex items-start gap-3">
-                <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-(--lp2-pop)">
-                  <Check className="size-3.5" strokeWidth={4} />
-                </span>
-                <span className="text-sm leading-relaxed font-medium sm:text-base">
-                  {p}
-                </span>
-              </li>
-            ))}
-          </ul>
+            <ul className="mt-7 space-y-3">
+              {PROOF.map((p) => (
+                <li key={p} className="flex items-start gap-3">
+                  <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-(--lp2-pop)">
+                    <Check className="size-3.5" strokeWidth={4} />
+                  </span>
+                  <span className="text-sm leading-relaxed font-medium sm:text-base">
+                    {p}
+                  </span>
+                </li>
+              ))}
+            </ul>
 
-          <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-2">
-            <Btn href="/signup">
-              Meet your agent
-              <ArrowRight className="size-5" strokeWidth={2.75} />
-            </Btn>
-            <AutopilotTeaserLink />
+            <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-2">
+              <Btn href="/signup">
+                Meet your agent
+                <ArrowRight className="size-5" strokeWidth={2.75} />
+              </Btn>
+              <AutopilotTeaserLink />
+            </div>
           </div>
         </div>
       </div>
@@ -137,7 +162,9 @@ function KnowledgeDiagram() {
             <Bot className="size-6 text-white" strokeWidth={2.75} />
           </span>
           <div>
-            <p className="lp2-display text-lg font-extrabold">Nova&apos;s agent</p>
+            <p className="lp2-display text-lg font-extrabold">
+              Nova&apos;s agent
+            </p>
             <p className="flex items-center gap-1.5 text-xs font-bold text-(--lp2-ink-soft)">
               <span className="size-2 rounded-full bg-(--lp2-grass)" />
               Trained · answering now
@@ -151,8 +178,8 @@ function KnowledgeDiagram() {
             AI
           </span>
           <p className="text-sm leading-snug font-medium">
-            The linen shirt comes in 4 colours, ships free above ₹999, and
-            you have 30 days to return it. Want the size chart?
+            The linen shirt comes in 4 colours, ships free above ₹999, and you
+            have 30 days to return it. Want the size chart?
           </p>
         </div>
 
@@ -162,7 +189,10 @@ function KnowledgeDiagram() {
       </div>
 
       <Sparkle color="coral" className="absolute -bottom-6 left-6 size-6" />
-      <Squiggle color="sky" className="absolute -top-4 -left-6 hidden w-14 -rotate-12 lg:block" />
+      <Squiggle
+        color="sky"
+        className="absolute -top-4 -left-6 hidden w-14 -rotate-12 lg:block"
+      />
     </div>
   );
 }

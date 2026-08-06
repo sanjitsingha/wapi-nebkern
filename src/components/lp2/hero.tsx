@@ -1,6 +1,7 @@
+import type { CSSProperties } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, Star } from 'lucide-react';
+import { ArrowRight, MessageCircle, Star } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { AvatarStack, DotField } from './decor';
@@ -49,6 +50,8 @@ export function Lp2Hero() {
           cream but reads as a faint blue cast on white. */}
       <DotField color="rgba(0,0,0,0.12)" />
 
+      <FloatingLeads />
+
       {/* Single centred column. The padding is tighter top and bottom
           than it was with the mockup in place — a text-only fold with
           128px of empty cream under it reads as a page that failed to
@@ -57,6 +60,133 @@ export function Lp2Hero() {
         <Copy />
       </div>
     </section>
+  );
+}
+
+/* ─── Floating leads ──────────────────────────────────────────────── */
+
+// Faces drifting in the margins: the people whose messages the product
+// answers, circling the pitch.
+//
+// Initials on a coloured disc rather than photographs. `public/
+// hero-avatars/` is still a README and nothing else, and a stock face
+// on a landing page is read as a stock face — a flat disc is at least
+// honestly an illustration. If real customer photos ever land there,
+// swap the span for an <Image> and keep everything else.
+//
+// They live strictly in the gutters. The hero's own note argues that
+// confetti beside the first sentence someone reads is the most
+// expensive decoration there is, and that still holds: the headline
+// column is `max-w-4xl` inside a `max-w-6xl` section, so everything
+// below is positioned out where the type never reaches.
+const LEADS = [
+  {
+    initials: 'AR',
+    hue: 'coral',
+    side: 'left',
+    top: '14%',
+    inset: '3%',
+    size: 'size-14',
+    tilt: -8,
+    delay: '0s',
+    ping: true,
+  },
+  {
+    initials: 'MK',
+    hue: 'sky',
+    side: 'left',
+    top: '44%',
+    inset: '9%',
+    size: 'size-12',
+    tilt: 6,
+    delay: '1.6s',
+  },
+  {
+    initials: 'SP',
+    hue: 'grape',
+    side: 'left',
+    top: '72%',
+    inset: '4%',
+    size: 'size-16',
+    tilt: -4,
+    delay: '3.1s',
+    ping: true,
+  },
+  {
+    initials: 'JD',
+    hue: 'lemon',
+    side: 'right',
+    top: '18%',
+    inset: '5%',
+    size: 'size-16',
+    tilt: 7,
+    delay: '0.8s',
+  },
+  {
+    initials: 'RT',
+    hue: 'tangerine',
+    side: 'right',
+    top: '48%',
+    inset: '3%',
+    size: 'size-12',
+    tilt: -6,
+    delay: '2.4s',
+    ping: true,
+  },
+  {
+    initials: 'NB',
+    hue: 'mint',
+    side: 'right',
+    top: '76%',
+    inset: '10%',
+    size: 'size-14',
+    tilt: 4,
+    delay: '4s',
+  },
+] as const;
+
+function FloatingLeads() {
+  return (
+    // Hidden below `lg`: the gutters that make this work only exist
+    // once the viewport is wider than the content column. On a phone
+    // these would sit on top of the headline.
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 hidden lg:block"
+    >
+      {LEADS.map((lead) => (
+        <span
+          key={lead.initials}
+          className={cn(
+            'lp2-float absolute flex items-center justify-center rounded-full border-2 border-(--lp2-ink) text-sm font-extrabold shadow-(--lp2-shadow-sm)',
+            lead.size
+          )}
+          style={
+            {
+              backgroundColor: `var(--lp2-${lead.hue})`,
+              top: lead.top,
+              [lead.side]: lead.inset,
+              // Desynchronised: six discs bobbing in lockstep reads as one
+              // object moving, not as a crowd.
+              animationDelay: lead.delay,
+              animationDuration: `${6 + (lead.tilt % 3)}s`,
+              '--lp2-tilt': `${lead.tilt}deg`,
+            } as CSSProperties
+          }
+        >
+          {lead.initials}
+
+          {/* An unread pip on some of them — the detail that makes a
+              face read as an incoming conversation rather than a
+              team-member avatar. */}
+          {'ping' in lead && lead.ping && (
+            <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full border-2 border-(--lp2-ink) bg-(--lp2-grass) text-[9px] text-white">
+              <MessageCircle className="size-2.5" strokeWidth={3} />
+            </span>
+          )}
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -130,9 +260,9 @@ function Copy() {
       </h1>
 
       <p className="mx-auto mt-7 max-w-2xl text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:mt-8 sm:text-lg">
-        One shared inbox for the whole team. AI agents that answer in
-        seconds. Campaigns, pipelines and automations that keep every
-        conversation moving towards a sale.
+        One shared inbox for the whole team. AI agents that answer in seconds.
+        Campaigns, pipelines and automations that keep every conversation moving
+        towards a sale.
       </p>
 
       {/* One button, so there is nothing to choose between — the fold
@@ -144,7 +274,7 @@ function Copy() {
           href="/signup"
           className={cn(
             'inline-flex h-13 items-center justify-center gap-2 rounded-xl bg-(--lp2-grass) px-7 text-base font-bold text-white transition-colors hover:bg-(--lp2-ink)',
-            press,
+            press
           )}
         >
           Start free — 14 days
