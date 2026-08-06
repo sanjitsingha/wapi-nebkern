@@ -45,7 +45,9 @@ const SECURITY_HEADERS = [
       // accounts.google.com serves the Google Identity Services client
       // (src/lib/auth/google-gis.ts). Without it the GIS button silently
       // never renders — no error, just a missing sign-in option.
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://accounts.google.com https://gstatic.com https://www.gstatic.com",
+      // googletagmanager.com is gtag.js, loaded only on the public
+      // marketing + docs pages (src/components/analytics.tsx).
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://accounts.google.com https://gstatic.com https://www.gstatic.com https://www.googletagmanager.com",
       // Tailwind + inline style attributes on lots of components.
       "style-src 'self' 'unsafe-inline'",
       // Supabase public-bucket avatars, contact avatars (arbitrary
@@ -58,7 +60,10 @@ const SECURITY_HEADERS = [
       "font-src 'self' data:",
       // Supabase REST + realtime (WSS). All Meta API calls happen
       // server-side, so graph.facebook.com does not belong here.
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://lumberjack.razorpay.com https://accounts.google.com",
+      // GA4 beacons go to google-analytics.com (and, for some regions
+      // and consent modes, back to googletagmanager.com) — without both
+      // the script loads and then silently reports nothing.
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://lumberjack.razorpay.com https://accounts.google.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com",
       // The checkout modal is an iframe off Razorpay's domain, and the
       // bank/UPI step redirects inside it — no frame-src means this
       // falls back to default-src 'self' and the modal renders blank.
