@@ -12,6 +12,8 @@ import {
   Megaphone,
   MonitorPlay,
   Newspaper,
+  Inbox,
+  Mails,
   LifeBuoy,
   Activity,
   LogOut,
@@ -27,11 +29,17 @@ const NAV = [
   { label: 'Accounts', href: '/admin/accounts', icon: Users },
   { label: 'Users', href: '/admin/users', icon: UserCog },
   { label: 'Plans', href: '/admin/plans', icon: CreditCard },
-  { label: 'Activation codes', href: '/admin/activation-codes', icon: KeyRound },
+  {
+    label: 'Activation codes',
+    href: '/admin/activation-codes',
+    icon: KeyRound,
+  },
   { label: 'Notifications', href: '/admin/notifications', icon: Bell },
   { label: 'Announcements', href: '/admin/announcements', icon: Megaphone },
   { label: 'Popups', href: '/admin/popups', icon: MonitorPlay },
   { label: 'Blog', href: '/admin/blog', icon: Newspaper },
+  { label: 'Enquiries', href: '/admin/contact', icon: Inbox },
+  { label: 'Newsletter', href: '/admin/newsletter', icon: Mails },
   { label: 'Tickets', href: '/admin/tickets', icon: LifeBuoy },
   { label: 'System', href: '/admin/system', icon: Activity },
 ] as const;
@@ -61,10 +69,10 @@ export function AdminShell({
   };
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-card p-3 sm:flex">
+    <div className="bg-background text-foreground flex min-h-screen">
+      <aside className="border-border bg-card hidden w-60 shrink-0 flex-col border-r p-3 sm:flex">
         <div className="flex items-center gap-2 px-2 py-3">
-          <ShieldCheck className="size-5 text-primary" />
+          <ShieldCheck className="text-primary size-5" />
           <span className="text-sm font-semibold">Admin panel</span>
         </div>
         <nav className="mt-2 flex flex-col gap-1">
@@ -76,7 +84,7 @@ export function AdminShell({
                 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                 isActive(item.href)
                   ? 'bg-primary-soft text-primary'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               )}
             >
               <item.icon className="size-4.5 shrink-0" />
@@ -87,7 +95,7 @@ export function AdminShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-4">
+        <header className="border-border bg-card flex h-14 shrink-0 items-center justify-between gap-3 border-b px-4">
           {/* Mobile nav — inline links since there's no drawer here. */}
           <nav className="flex items-center gap-1 sm:hidden">
             {NAV.map((item) => (
@@ -98,7 +106,7 @@ export function AdminShell({
                   'rounded-md px-2 py-1.5 text-xs font-medium',
                   isActive(item.href)
                     ? 'bg-primary-soft text-primary'
-                    : 'text-muted-foreground',
+                    : 'text-muted-foreground'
                 )}
               >
                 {item.label}
@@ -106,7 +114,7 @@ export function AdminShell({
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-3">
-            <span className="hidden text-xs text-muted-foreground sm:inline">
+            <span className="text-muted-foreground hidden text-xs sm:inline">
               {email}
             </span>
             <Button
@@ -122,7 +130,9 @@ export function AdminShell({
           </div>
         </header>
 
-        <main className="min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6">{children}</main>
+        <main className="min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6">
+          {children}
+        </main>
       </div>
     </div>
   );

@@ -103,7 +103,7 @@ export default function Lp2ContactPage() {
       title="Contact us"
       hue="pop"
       updated="25 July 2026"
-      intro="Real people, one inbox, sensible hours. Here's who to write to depending on what you need."
+      intro="Real people, one inbox, sensible hours. Here's who to write to depending on what you need — or use the form at /contact-us."
       sections={SECTIONS}
     />
   );

@@ -113,13 +113,16 @@ function Text({ children }: { children: string }) {
 function DraftNotice() {
   return (
     <div className="flex items-start gap-3 rounded-xl border border-(--lp2-coral) bg-(--lp2-coral-soft)/60 p-4">
-      <AlertTriangle className="mt-0.5 size-4 shrink-0 text-(--lp2-coral)" strokeWidth={2.5} />
+      <AlertTriangle
+        className="mt-0.5 size-4 shrink-0 text-(--lp2-coral)"
+        strokeWidth={2.5}
+      />
       <p className="text-sm leading-relaxed font-medium">
         <span className="font-extrabold">Template — not yet legal advice.</span>{' '}
         This document is a starting point drafted for a WhatsApp CRM on the
-        official Business API. Fill in every highlighted placeholder and have
-        a qualified lawyer review it against your jurisdiction before you
-        publish or take payments. Delete this banner when that&apos;s done.
+        official Business API. Fill in every highlighted placeholder and have a
+        qualified lawyer review it against your jurisdiction before you publish
+        or take payments. Delete this banner when that&apos;s done.
       </p>
     </div>
   );
@@ -156,7 +159,7 @@ function Blocks({ blocks }: { blocks: LegalBlock[] }) {
             key={i}
             className={cn(
               'mt-4 space-y-2 pl-1 text-(--lp2-ink-soft)',
-              ordered && 'list-inside list-decimal',
+              ordered && 'list-inside list-decimal'
             )}
           >
             {items.map((item, j) => (

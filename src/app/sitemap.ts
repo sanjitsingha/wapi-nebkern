@@ -8,8 +8,7 @@ import { getPublishedPosts } from '@/lib/blog';
 // Everything here is opt-IN. The app has ~60 routes and most of them
 // are behind auth (the whole `(dashboard)` group, `admin`, `onboarding`,
 // `welcome`, per-tenant `invoices/[id]` and `join/[token]`), plus the
-// `(auth)` screens and `/lp-2`, the unlinked prototype whose blog is
-// deliberately noindexed as a duplicate of `/blog`.
+// `(auth)` screens.
 //
 // A "list every route and subtract the private ones" sitemap goes wrong
 // the first time someone adds a route and forgets the deny list — and
@@ -39,7 +38,9 @@ const MARKETING: Array<[path: string, priority: number]> = [
   ['/pricing', 0.9],
   ['/autopilot', 0.8],
   ['/blog', 0.7],
-  ['/contact', 0.6],
+  ['/contact-us', 0.7],
+  ['/newsletter', 0.6],
+  ['/contact', 0.5],
 ];
 
 /** Product documentation — one entry per `src/app/docs/*`. */

@@ -40,6 +40,9 @@ const NAV: { label: string; href: string; hue: Lp2Hue }[] = [
   { label: 'Pricing', href: '/pricing', hue: 'sky' },
   { label: 'Docs', href: '/docs', hue: 'coral' },
   { label: 'Blog', href: '/blog', hue: 'tangerine' },
+  // The form, not /contact — that one is the compliance document
+  // (registered address, Grievance Officer) and links here anyway.
+  { label: 'Contact us', href: '/contact-us', hue: 'mint' },
 ];
 
 /**
@@ -57,14 +60,46 @@ const NAV: { label: string; href: string; hue: Lp2Hue }[] = [
  * its place.
  */
 const FEATURE_MENU: { label: string; desc: string; href: string }[] = [
-  { label: 'Shared Team Inbox', desc: 'One inbox, the whole team', href: '/docs/inbox' },
-  { label: 'Multi-channel', desc: 'WhatsApp, Instagram & Messenger', href: '/docs/whatsapp' },
-  { label: 'AI Bot & Automations', desc: 'Replies that run themselves', href: '/autopilot' },
-  { label: 'Visual Flow builder', desc: 'Branch every conversation', href: '/docs/flows' },
-  { label: 'Broadcast Campaigns', desc: 'Bulk template sends', href: '/docs/campaigns' },
-  { label: 'Segments & Lists', desc: 'Target the right people', href: '/docs/segments-and-lists' },
-  { label: 'Contacts & CRM', desc: 'Every lead you own', href: '/docs/contacts' },
-  { label: 'Sales Pipelines', desc: 'Drag deals to close', href: '/docs/pipelines' },
+  {
+    label: 'Shared Team Inbox',
+    desc: 'One inbox, the whole team',
+    href: '/docs/inbox',
+  },
+  {
+    label: 'Multi-channel',
+    desc: 'WhatsApp, Instagram & Messenger',
+    href: '/docs/whatsapp',
+  },
+  {
+    label: 'AI Bot & Automations',
+    desc: 'Replies that run themselves',
+    href: '/autopilot',
+  },
+  {
+    label: 'Visual Flow builder',
+    desc: 'Branch every conversation',
+    href: '/docs/flows',
+  },
+  {
+    label: 'Broadcast Campaigns',
+    desc: 'Bulk template sends',
+    href: '/docs/campaigns',
+  },
+  {
+    label: 'Segments & Lists',
+    desc: 'Target the right people',
+    href: '/docs/segments-and-lists',
+  },
+  {
+    label: 'Contacts & CRM',
+    desc: 'Every lead you own',
+    href: '/docs/contacts',
+  },
+  {
+    label: 'Sales Pipelines',
+    desc: 'Drag deals to close',
+    href: '/docs/pipelines',
+  },
 ];
 
 function Logo() {
@@ -112,18 +147,18 @@ function FeaturesMenu() {
         aria-haspopup="true"
         // No lift, no outline appearing on hover — just a soft wash, the
         // same as the plain nav links beside it.
-        className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors duration-150 outline-none group-hover/feat:bg-(--lp2-ink)/5 group-focus-within/feat:bg-(--lp2-ink)/5"
+        className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors duration-150 outline-none group-focus-within/feat:bg-(--lp2-ink)/5 group-hover/feat:bg-(--lp2-ink)/5"
       >
         Features
         <ChevronDown
-          className="size-4 transition-transform duration-200 group-hover/feat:rotate-180 group-focus-within/feat:rotate-180"
+          className="size-4 transition-transform duration-200 group-focus-within/feat:rotate-180 group-hover/feat:rotate-180"
           strokeWidth={2.25}
         />
       </button>
 
       {/* inset-x-0 + top-full → spans the full bar width, below it. The
           pt-2 is a transparent bridge across the visible gap. */}
-      <div className="invisible absolute inset-x-0 top-full z-40 translate-y-1 pt-2 opacity-0 transition-all duration-150 group-hover/feat:visible group-hover/feat:translate-y-0 group-hover/feat:opacity-100 group-focus-within/feat:visible group-focus-within/feat:translate-y-0 group-focus-within/feat:opacity-100">
+      <div className="invisible absolute inset-x-0 top-full z-40 translate-y-1 pt-2 opacity-0 transition-all duration-150 group-focus-within/feat:visible group-focus-within/feat:translate-y-0 group-focus-within/feat:opacity-100 group-hover/feat:visible group-hover/feat:translate-y-0 group-hover/feat:opacity-100">
         {/* A hairline border and a plain white card. The old panel had a
             2px ink outline, a 24px radius and a hard offset shadow —
             sticker treatment, which suited the floating pill but reads
@@ -154,13 +189,13 @@ export function Lp2Nav() {
 
   return (
     <>
-    {/* Above the bar and NOT sticky, so it scrolls away and leaves the
+      {/* Above the bar and NOT sticky, so it scrolls away and leaves the
         nav behind. Rendered here rather than in each layout so it can
         never end up below the header, or missing from a page that
         renders the nav directly (the legal and docs shells both do). */}
-    <Lp2Announce />
+      <Lp2Announce />
 
-    {/* Full-bleed bar: the surface runs edge to edge and sits flush at
+      {/* Full-bleed bar: the surface runs edge to edge and sits flush at
         top-0, while the CONTENT stays inside max-w-6xl so it lines up
         with every section below it.
 
@@ -174,115 +209,115 @@ export function Lp2Nav() {
         shadow: with the bar touching the edges there is nothing for a
         sticker shadow to sit against, and a rule is what says "this is
         the top of the page" without shouting. */}
-    <header className="sticky top-0 z-50 border-b border-(--lp2-ink)/12 bg-(--lp2-cream)/85 backdrop-blur-md">
-      {/* `relative` is the positioning anchor the full-width Features
+      <header className="sticky top-0 z-50 border-b border-(--lp2-ink)/12 bg-(--lp2-cream)/85 backdrop-blur-md">
+        {/* `relative` is the positioning anchor the full-width Features
           mega-menu resolves its `inset-x-0` against — see FeaturesMenu. */}
-      <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <div>
-          <Logo />
-        </div>
+        <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+          <div>
+            <Logo />
+          </div>
 
-        <nav className="hidden items-center gap-3 lg:flex">
-          {NAV.map((item) =>
-            item.label === 'Features' ? (
-              <FeaturesMenu key="features" />
-            ) : (
-              <Link
-                key={item.label}
-                href={item.href}
-                // Each link used to hover into its own colour, lift half
-                // a pixel and grow a 2px outline. Five different hover
-                // colours in one row is a lot of personality for a nav
-                // bar whose job is to get out of the way; one quiet wash
-                // does the same work. The hues live on in the mobile
-                // sheet's bullets, where they identify rather than shout.
-                className="rounded-lg px-3 py-2 text-sm font-semibold transition-colors duration-150 outline-none hover:bg-(--lp2-ink)/5 focus-visible:bg-(--lp2-ink)/5"
-              >
-                {item.label}
-              </Link>
-            ),
-          )}
-        </nav>
-
-        <div className="flex items-center gap-2">
-          <Link
-            href="/login"
-            className="hidden rounded-lg px-3 py-2 text-sm font-semibold transition-colors hover:bg-(--lp2-ink)/5 sm:inline-flex"
-          >
-            Log in
-          </Link>
-
-          {/* The one element still allowed to be emphatic. It keeps its
-              solid fill because it is the point of the page — but the
-              ink outline and offset shadow are gone, so it reads as a
-              button rather than a sticker. */}
-          <Link
-            href="/signup"
-            className={cn(
-              'inline-flex h-10 items-center gap-1.5 rounded-lg bg-(--lp2-grass) px-4 text-sm font-bold text-white transition-colors hover:bg-(--lp2-ink)',
-              press,
-            )}
-          >
-            Start free
-            <ArrowRight className="size-4" strokeWidth={2.5} />
-          </Link>
-
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            aria-expanded={open}
-            aria-label={open ? 'Close menu' : 'Open menu'}
-            className={cn(
-              'flex size-10 items-center justify-center rounded-lg border border-(--lp2-ink)/15 transition-colors hover:bg-(--lp2-ink)/5 lg:hidden',
-              press,
-            )}
-          >
-            {open ? (
-              <X className="size-5" strokeWidth={2.75} />
-            ) : (
-              <Menu className="size-5" strokeWidth={2.75} />
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile sheet. Inside the same sticky header so it travels on
-          scroll, but now it drops from the bar's underside rather than
-          floating below a pill — so it gets the bar's full width and a
-          top rule instead of its own outline. */}
-      {open && (
-        <div className="border-t border-(--lp2-ink)/12 bg-white lg:hidden">
-          <ul className="mx-auto max-w-6xl space-y-1 px-4 py-3 sm:px-6">
-            {NAV.map((item) => (
-              <li key={item.label}>
+          <nav className="hidden items-center gap-3 lg:flex">
+            {NAV.map((item) =>
+              item.label === 'Features' ? (
+                <FeaturesMenu key="features" />
+              ) : (
                 <Link
+                  key={item.label}
                   href={item.href}
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-2xl px-3 py-3 text-base font-bold transition-colors hover:bg-(--lp2-cream)"
+                  // Each link used to hover into its own colour, lift half
+                  // a pixel and grow a 2px outline. Five different hover
+                  // colours in one row is a lot of personality for a nav
+                  // bar whose job is to get out of the way; one quiet wash
+                  // does the same work. The hues live on in the mobile
+                  // sheet's bullets, where they identify rather than shout.
+                  className="rounded-lg px-3 py-2 text-sm font-semibold transition-colors duration-150 outline-none hover:bg-(--lp2-ink)/5 focus-visible:bg-(--lp2-ink)/5"
                 >
-                  <span
-                    aria-hidden
-                    className="size-3.5 rounded-full border-2 border-(--lp2-ink)"
-                    style={{ backgroundColor: `var(--lp2-${item.hue})` }}
-                  />
                   {item.label}
                 </Link>
-              </li>
-            ))}
-          </ul>
+              )
+            )}
+          </nav>
 
-          <div className="mx-auto max-w-6xl px-4 pb-4 sm:px-6">
+          <div className="flex items-center gap-2">
             <Link
               href="/login"
-              onClick={() => setOpen(false)}
-              className="flex h-12 items-center justify-center rounded-2xl border-2 border-(--lp2-ink) bg-(--lp2-mint) text-sm font-bold sm:hidden"
+              className="hidden rounded-lg px-3 py-2 text-sm font-semibold transition-colors hover:bg-(--lp2-ink)/5 sm:inline-flex"
             >
               Log in
             </Link>
+
+            {/* The one element still allowed to be emphatic. It keeps its
+              solid fill because it is the point of the page — but the
+              ink outline and offset shadow are gone, so it reads as a
+              button rather than a sticker. */}
+            <Link
+              href="/signup"
+              className={cn(
+                'inline-flex h-10 items-center gap-1.5 rounded-lg bg-(--lp2-grass) px-4 text-sm font-bold text-white transition-colors hover:bg-(--lp2-ink)',
+                press
+              )}
+            >
+              Start free
+              <ArrowRight className="size-4" strokeWidth={2.5} />
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => setOpen((v) => !v)}
+              aria-expanded={open}
+              aria-label={open ? 'Close menu' : 'Open menu'}
+              className={cn(
+                'flex size-10 items-center justify-center rounded-lg border border-(--lp2-ink)/15 transition-colors hover:bg-(--lp2-ink)/5 lg:hidden',
+                press
+              )}
+            >
+              {open ? (
+                <X className="size-5" strokeWidth={2.75} />
+              ) : (
+                <Menu className="size-5" strokeWidth={2.75} />
+              )}
+            </button>
           </div>
         </div>
-      )}
-    </header>
+
+        {/* Mobile sheet. Inside the same sticky header so it travels on
+          scroll, but now it drops from the bar's underside rather than
+          floating below a pill — so it gets the bar's full width and a
+          top rule instead of its own outline. */}
+        {open && (
+          <div className="border-t border-(--lp2-ink)/12 bg-white lg:hidden">
+            <ul className="mx-auto max-w-6xl space-y-1 px-4 py-3 sm:px-6">
+              {NAV.map((item) => (
+                <li key={item.label}>
+                  <Link
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-3 rounded-2xl px-3 py-3 text-base font-bold transition-colors hover:bg-(--lp2-cream)"
+                  >
+                    <span
+                      aria-hidden
+                      className="size-3.5 rounded-full border-2 border-(--lp2-ink)"
+                      style={{ backgroundColor: `var(--lp2-${item.hue})` }}
+                    />
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mx-auto max-w-6xl px-4 pb-4 sm:px-6">
+              <Link
+                href="/login"
+                onClick={() => setOpen(false)}
+                className="flex h-12 items-center justify-center rounded-2xl border-2 border-(--lp2-ink) bg-(--lp2-mint) text-sm font-bold sm:hidden"
+              >
+                Log in
+              </Link>
+            </div>
+          </div>
+        )}
+      </header>
     </>
   );
 }
