@@ -67,7 +67,7 @@ export function Lp2NewsletterForm() {
           You&rsquo;re in
         </p>
         <p className="mt-2 text-sm font-medium text-(--lp2-ink-soft)">
-          One email a month, and an unsubscribe link in every one of them.
+          One email a month, with a one-click unsubscribe link in every one.
         </p>
       </div>
     );

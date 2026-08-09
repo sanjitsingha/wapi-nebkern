@@ -1,7 +1,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Download, Search } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { Copy, Download, Loader2, Search } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
@@ -12,6 +14,9 @@ export interface SubscriberRow {
   status: 'subscribed' | 'unsubscribed';
   source_path: string | null;
   created_at: string;
+  /** Signed on the server — the page passes it down rather than the
+   *  browser building it, because signing needs the secret. */
+  unsubscribe_url: string | null;
 }
 
 function when(iso: string): string {
@@ -31,7 +36,37 @@ function when(iso: string): string {
  * an address list nobody can use.
  */
 export function NewsletterTable({ rows }: { rows: SubscriberRow[] }) {
+  const router = useRouter();
   const [q, setQ] = useState('');
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  async function setStatus(id: string, status: SubscriberRow['status']) {
+    setBusyId(id);
+    try {
+      const res = await fetch(`/admin/api/newsletter/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? 'Could not update');
+        return;
+      }
+      router.refresh();
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function copyLink(url: string) {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Unsubscribe link copied');
+    } catch {
+      toast.error('Could not copy — check clipboard permissions');
+    }
+  }
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -104,6 +139,7 @@ export function NewsletterTable({ rows }: { rows: SubscriberRow[] }) {
                 <th className="px-4 py-2.5">Name</th>
                 <th className="px-4 py-2.5">Status</th>
                 <th className="px-4 py-2.5">Signed up</th>
+                <th className="px-4 py-2.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-border divide-y">
@@ -134,6 +170,41 @@ export function NewsletterTable({ rows }: { rows: SubscriberRow[] }) {
                   </td>
                   <td className="text-muted-foreground px-4 py-2.5">
                     {when(r.created_at)}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="flex items-center justify-end gap-1.5">
+                      {busyId === r.id && (
+                        <Loader2 className="text-muted-foreground size-3.5 animate-spin" />
+                      )}
+                      {r.unsubscribe_url && (
+                        <button
+                          type="button"
+                          title="Copy this subscriber's unsubscribe link"
+                          onClick={() => copyLink(r.unsubscribe_url!)}
+                          className="text-muted-foreground hover:bg-muted hover:text-foreground inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors"
+                        >
+                          <Copy className="size-3.5" />
+                          Link
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        disabled={busyId === r.id}
+                        onClick={() =>
+                          setStatus(
+                            r.id,
+                            r.status === 'subscribed'
+                              ? 'unsubscribed'
+                              : 'subscribed'
+                          )
+                        }
+                        className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-md px-2 py-1 text-xs font-medium transition-colors disabled:opacity-40"
+                      >
+                        {r.status === 'subscribed'
+                          ? 'Unsubscribe'
+                          : 'Resubscribe'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

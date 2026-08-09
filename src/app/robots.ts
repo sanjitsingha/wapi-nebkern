@@ -55,6 +55,8 @@ export default function robots(): MetadataRoute.Robots {
         '/reset-password',
         // JSON, not pages.
         '/api',
+        // Every valid URL here carries somebody's email address.
+        '/unsubscribe',
       ],
     },
     sitemap: `${SITE}/sitemap.xml`,

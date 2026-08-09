@@ -3,6 +3,10 @@ import {
   NewsletterTable,
   type SubscriberRow,
 } from '../../_components/newsletter-table';
+import {
+  isUnsubscribeConfigured,
+  unsubscribeUrl,
+} from '@/lib/newsletter-unsubscribe';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +17,15 @@ export default async function AdminNewsletterPage() {
     .order('created_at', { ascending: false })
     .limit(2000);
 
-  const rows = (data ?? []) as SubscriberRow[];
+  // Signed here, not in the browser: the HMAC secret is server-only.
+  const signed = isUnsubscribeConfigured();
+  const rows = ((data ?? []) as Omit<SubscriberRow, 'unsubscribe_url'>[]).map(
+    (r) => ({
+      ...r,
+      unsubscribe_url: signed ? unsubscribeUrl(r.email) : null,
+    })
+  ) as SubscriberRow[];
+
   const active = rows.filter((r) => r.status === 'subscribed').length;
 
   return (
@@ -24,6 +36,13 @@ export default async function AdminNewsletterPage() {
           {active} active {active === 1 ? 'subscriber' : 'subscribers'}
           {rows.length !== active && ` · ${rows.length - active} unsubscribed`}
         </p>
+        {!signed && (
+          <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+            UNSUBSCRIBE_SECRET is not set, so unsubscribe links cannot be
+            signed. Set it before sending anything — the link has to be in every
+            email.
+          </p>
+        )}
       </div>
 
       <NewsletterTable rows={rows} />
