@@ -13,6 +13,7 @@ import { AppPopup } from '@/components/layout/app-popup';
 import { AnnouncementBar } from '@/components/layout/announcement-bar';
 import { WalkthroughProvider } from '@/components/walkthrough/walkthrough-provider';
 import { CallCenterProvider } from '@/components/calls/call-center';
+import { CookieConsentModal } from '@/components/consent/cookie-consent-modal';
 
 // Auth-gated dashboard shell. Extracted from the layout so the layout
 // itself can stay a server component and export metadata (noindex) —
@@ -71,6 +72,12 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
   return (
     <div className="bg-background flex h-screen flex-col overflow-hidden">
       <PresenceHeartbeat />
+      {/* Consent first: it renders above everything and, unlike the
+          admin popup below it, has no dismiss — so asking both at once
+          would stack two modals with only one of them escapable. It
+          returns null the moment a choice exists, which for everyone
+          past their first sign-in is always. */}
+      <CookieConsentModal />
       <AppPopup />
       {/* Header spans the full width at the top */}
       <Header onOpenSidebar={() => setSidebarOpen(true)} />
