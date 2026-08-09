@@ -9,9 +9,9 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // delivery" section lives here rather than in the Terms — it's the
 // SaaS equivalent of the shipping policy the gateway looks for.
 export const metadata: Metadata = {
-  title: { absolute: 'Cancellation & Refunds — wacrm' },
+  title: { absolute: 'Cancellation & Refunds — Instant' },
   description:
-    'How to cancel a wacrm subscription, when refunds are and are not available, how failed or duplicate payments are handled, and when the service is delivered.',
+    'How to cancel an Instant subscription, when refunds are and are not available, how failed or duplicate payments are handled, and when the service is delivered.',
   robots: { index: true, follow: true },
 };
 
@@ -21,7 +21,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'How billing works',
     blocks: [
       {
-        p: 'wacrm is a monthly subscription, charged in advance. When you subscribe, you are billed for the month ahead and the plan’s features unlock immediately. The subscription renews automatically each month until you cancel it.',
+        p: 'Instant is a monthly subscription, charged in advance. When you subscribe, you are billed for the month ahead and the plan’s features unlock immediately. The subscription renews automatically each month until you cancel it.',
       },
       {
         p: 'All prices are in Indian Rupees and exclude applicable taxes, which are added where we are required to collect them. Payments are handled by our payment processor; we never store your card or UPI details.',
@@ -33,7 +33,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'When the service is delivered',
     blocks: [
       {
-        p: 'wacrm is software delivered online. There is nothing to ship. Your plan is activated on your account as soon as payment is confirmed — normally within a few seconds, and in rare cases up to 24 hours if a payment needs manual verification.',
+        p: 'Instant is software delivered online. There is nothing to ship. Your plan is activated on your account as soon as payment is confirmed — normally within a few seconds, and in rare cases up to 24 hours if a payment needs manual verification.',
       },
       {
         p: 'Access is delivered to the account you signed up with, at the email address on that account. Connecting your WhatsApp Business number is a separate step you complete yourself through embedded signup, and how long Meta takes to approve it is outside our control.',
@@ -86,7 +86,7 @@ const SECTIONS: LegalSection[] = [
       { p: 'We do not normally refund:' },
       {
         ul: [
-          'Part-used billing periods where you simply changed your mind or stopped using the Service. The 14-day free trial exists so you can evaluate wacrm before paying anything.',
+          'Part-used billing periods where you simply changed your mind or stopped using the Service. The 14-day free trial exists so you can evaluate Instant before paying anything.',
           'Charges from Meta for WhatsApp conversations or template messages. Those are billed by Meta on its own terms and we cannot reverse them.',
           'Periods where the Service worked but your WhatsApp number was restricted, throttled or banned by Meta — including as a result of message quality or policy breaches.',
           'Accounts suspended or terminated for breaching our Terms or Acceptable Use Policy.',

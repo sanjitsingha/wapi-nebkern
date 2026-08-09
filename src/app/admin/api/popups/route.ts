@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   if (!title && !text && !imageUrl && !youtubeUrl) {
     return NextResponse.json(
       { error: 'Add a title, message, image, or video.' },
-      { status: 400 },
+      { status: 400 }
     );
   }
   if (imageUrl && !isAllowedUrl(imageUrl)) {
@@ -47,13 +47,13 @@ export async function POST(request: Request) {
   if (youtubeUrl && !youtubeId(youtubeUrl)) {
     return NextResponse.json(
       { error: "That doesn't look like a YouTube link" },
-      { status: 400 },
+      { status: 400 }
     );
   }
   if (linkUrl && !isAllowedUrl(linkUrl)) {
     return NextResponse.json(
       { error: 'Link must be a path starting with "/" or an http(s) URL' },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     if (typeof body.account_id !== 'string' || !UUID_RE.test(body.account_id)) {
       return NextResponse.json(
         { error: 'Pick an account to target' },
-        { status: 400 },
+        { status: 400 }
       );
     }
     accountId = body.account_id;

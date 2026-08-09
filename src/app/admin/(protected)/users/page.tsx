@@ -74,9 +74,10 @@ export default async function AdminUsersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Users</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {rows.length} user{rows.length === 1 ? '' : 's'} across all workspaces.
+        <h1 className="text-foreground text-2xl font-bold">Users</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          {rows.length} user{rows.length === 1 ? '' : 's'} across all
+          workspaces.
         </p>
       </div>
       <UsersTable rows={rows} />

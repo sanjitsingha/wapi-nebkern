@@ -38,11 +38,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Title is required' }, { status: 400 });
   }
 
-  const slug = typeof body.slug === 'string' ? body.slug.trim().toLowerCase() : '';
+  const slug =
+    typeof body.slug === 'string' ? body.slug.trim().toLowerCase() : '';
   if (!SLUG_RE.test(slug)) {
     return NextResponse.json(
       { error: 'Slug must be lowercase letters, numbers and hyphens' },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -52,7 +53,8 @@ export async function POST(request: Request) {
     slug,
     title,
     excerpt: str(body.excerpt, 400),
-    content_html: typeof body.content_html === 'string' ? body.content_html : '',
+    content_html:
+      typeof body.content_html === 'string' ? body.content_html : '',
     cover_image_url: str(body.cover_image_url, 2000),
     author_name: str(body.author_name, 80),
     tags: parseTags(body.tags),
@@ -71,7 +73,7 @@ export async function POST(request: Request) {
     if (error.code === '23505') {
       return NextResponse.json(
         { error: `A post with slug "${slug}" already exists` },
-        { status: 409 },
+        { status: 409 }
       );
     }
     return NextResponse.json({ error: error.message }, { status: 500 });

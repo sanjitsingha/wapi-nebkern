@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+
+import { ADMIN_TAGS, revalidateAdmin } from '../../../../_lib/admin-cache';
 import { getAdminUser } from '../../../../_lib/auth';
 import { adminDb } from '../../../../_lib/admin-db';
 
@@ -15,7 +17,7 @@ const UUID_RE =
  */
 export async function POST(
   request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const admin = await getAdminUser();
   if (!admin) {
@@ -50,28 +52,39 @@ export async function POST(
       }
       update.billing_plan_key = key;
     } else {
-      return NextResponse.json({ error: 'Invalid billing_plan_key' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid billing_plan_key' },
+        { status: 400 }
+      );
     }
   }
 
   if ('billing_amount' in body) {
     if (body.billing_amount === null) {
       update.billing_amount = null;
-    } else if (Number.isInteger(body.billing_amount) && body.billing_amount >= 0) {
+    } else if (
+      Number.isInteger(body.billing_amount) &&
+      body.billing_amount >= 0
+    ) {
       update.billing_amount = body.billing_amount;
     } else {
       return NextResponse.json(
-        { error: 'billing_amount must be a non-negative integer (minor units)' },
-        { status: 400 },
+        {
+          error: 'billing_amount must be a non-negative integer (minor units)',
+        },
+        { status: 400 }
       );
     }
   }
 
   if ('billing_currency' in body) {
-    if (typeof body.billing_currency !== 'string' || !/^[A-Za-z]{3}$/.test(body.billing_currency)) {
+    if (
+      typeof body.billing_currency !== 'string' ||
+      !/^[A-Za-z]{3}$/.test(body.billing_currency)
+    ) {
       return NextResponse.json(
         { error: 'billing_currency must be a 3-letter code' },
-        { status: 400 },
+        { status: 400 }
       );
     }
     update.billing_currency = body.billing_currency.toUpperCase();
@@ -84,7 +97,7 @@ export async function POST(
     } else {
       return NextResponse.json(
         { error: "billing_interval must be 'monthly', 'yearly', or null" },
-        { status: 400 },
+        { status: 400 }
       );
     }
   }
@@ -97,7 +110,10 @@ export async function POST(
       } else if (typeof v === 'string' && !Number.isNaN(Date.parse(v))) {
         update[field] = v;
       } else {
-        return NextResponse.json({ error: `Invalid ${field}` }, { status: 400 });
+        return NextResponse.json(
+          { error: `Invalid ${field}` },
+          { status: 400 }
+        );
       }
     }
   }
@@ -111,12 +127,16 @@ export async function POST(
     .update(update)
     .eq('id', id)
     .select(
-      'id, billing_plan_key, billing_amount, billing_currency, billing_interval, current_period_start, current_period_end',
+      'id, billing_plan_key, billing_amount, billing_currency, billing_interval, current_period_start, current_period_end'
     )
     .single();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  // Drop the cached account list and overview counters — without
+  // this the edit is invisible for up to a minute and reads as a
+  // save that silently failed.
+  revalidateAdmin(ADMIN_TAGS.accounts, ADMIN_TAGS.overview);
   return NextResponse.json({ account: data });
 }

@@ -23,7 +23,7 @@ export default async function AdminBlogEditorPage({
     const { data } = await adminDb()
       .from('blog_posts')
       .select(
-        'id, slug, title, excerpt, content_html, cover_image_url, author_name, tags, status',
+        'id, slug, title, excerpt, content_html, cover_image_url, author_name, tags, status'
       )
       .eq('id', id)
       .maybeSingle();

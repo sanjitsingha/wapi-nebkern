@@ -68,7 +68,7 @@ export function AccountsTable({
   const [filter, setFilter] = useState<Filter>(
     (FILTERS.some((f) => f.value === initialFilter)
       ? initialFilter
-      : 'all') as Filter,
+      : 'all') as Filter
   );
 
   const filtered = useMemo(() => {
@@ -91,7 +91,7 @@ export function AccountsTable({
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -99,8 +99,11 @@ export function AccountsTable({
             className="h-11 pl-9"
           />
         </div>
-        <Select value={filter} onValueChange={(v) => v && setFilter(v as Filter)}>
-          <SelectTrigger className="h-11 w-full border-border sm:w-56">
+        <Select
+          value={filter}
+          onValueChange={(v) => v && setFilter(v as Filter)}
+        >
+          <SelectTrigger className="border-border h-11 w-full sm:w-56">
             <SelectValue placeholder="Filter" />
           </SelectTrigger>
           <SelectContent>
@@ -113,7 +116,7 @@ export function AccountsTable({
         </Select>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-card">
+      <div className="border-border bg-card overflow-x-auto rounded-xl border">
         <Table>
           <TableHeader>
             <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
@@ -123,7 +126,7 @@ export function AccountsTable({
               </TableHead>
               <TableHead className="text-muted-foreground">Plan</TableHead>
               <TableHead className="text-muted-foreground">Status</TableHead>
-              <TableHead className="text-muted-foreground hidden sm:table-cell text-right">
+              <TableHead className="text-muted-foreground hidden text-right sm:table-cell">
                 Members
               </TableHead>
               <TableHead className="text-muted-foreground hidden lg:table-cell">
@@ -136,7 +139,7 @@ export function AccountsTable({
               <TableRow>
                 <TableCell
                   colSpan={6}
-                  className="h-24 text-center text-sm text-muted-foreground"
+                  className="text-muted-foreground h-24 text-center text-sm"
                 >
                   No accounts match.
                 </TableCell>
@@ -146,12 +149,12 @@ export function AccountsTable({
                 <TableRow
                   key={r.id}
                   onClick={() => router.push(`/admin/accounts/${r.id}`)}
-                  className="cursor-pointer border-border hover:bg-muted/50"
+                  className="border-border hover:bg-muted/50 cursor-pointer"
                 >
-                  <TableCell className="font-medium text-foreground">
+                  <TableCell className="text-foreground font-medium">
                     {r.name}
                   </TableCell>
-                  <TableCell className="hidden text-muted-foreground md:table-cell">
+                  <TableCell className="text-muted-foreground hidden md:table-cell">
                     {r.ownerEmail ?? '—'}
                   </TableCell>
                   <TableCell className="text-muted-foreground capitalize">
@@ -161,16 +164,16 @@ export function AccountsTable({
                     <div className="flex items-center gap-2">
                       <SubscriptionBadge status={r.status} />
                       {r.isTrial && (
-                        <span className="text-[11px] text-muted-foreground">
+                        <span className="text-muted-foreground text-[11px]">
                           {r.trialDaysLeft}d left
                         </span>
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="hidden text-right tabular-nums text-muted-foreground sm:table-cell">
+                  <TableCell className="text-muted-foreground hidden text-right tabular-nums sm:table-cell">
                     {r.memberCount}
                   </TableCell>
-                  <TableCell className="hidden text-muted-foreground lg:table-cell">
+                  <TableCell className="text-muted-foreground hidden lg:table-cell">
                     {fmtDate(r.createdAt)}
                   </TableCell>
                 </TableRow>

@@ -166,7 +166,7 @@ export function PlansManager({ plans }: { plans: BillingPlan[] }) {
       </div>
 
       {plans.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-muted/20 p-8 text-center text-sm text-muted-foreground">
+        <div className="border-border bg-muted/20 text-muted-foreground rounded-xl border border-dashed p-8 text-center text-sm">
           No plans yet. Create your first plan.
         </div>
       ) : (
@@ -231,9 +231,11 @@ function PlanFields({
           value={values.features}
           onChange={(e) => set({ features: e.target.value })}
           rows={4}
-          placeholder={'Shared team inbox\nUp to 1,000 contacts\nBroadcast campaigns'}
+          placeholder={
+            'Shared team inbox\nUp to 1,000 contacts\nBroadcast campaigns'
+          }
           disabled={disabled}
-          className="w-full resize-none rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none focus-visible:border-primary"
+          className="border-border bg-muted text-foreground focus-visible:border-primary w-full resize-none rounded-md border px-3 py-2 text-sm outline-none"
         />
       </div>
 
@@ -267,9 +269,11 @@ function PlanFields({
           <Label className="text-foreground">Interval</Label>
           <Select
             value={values.interval}
-            onValueChange={(v) => v && set({ interval: v as 'monthly' | 'yearly' })}
+            onValueChange={(v) =>
+              v && set({ interval: v as 'monthly' | 'yearly' })
+            }
           >
-            <SelectTrigger className="h-10 w-full border-border bg-muted">
+            <SelectTrigger className="border-border bg-muted h-10 w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -291,7 +295,7 @@ function PlanFields({
       </div>
 
       <div className="flex items-center gap-4 pt-1">
-        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <label className="text-muted-foreground flex items-center gap-1.5 text-xs">
           <input
             type="checkbox"
             checked={values.isActive}
@@ -300,7 +304,7 @@ function PlanFields({
           />
           Active
         </label>
-        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <label className="text-muted-foreground flex items-center gap-1.5 text-xs">
           <input
             type="checkbox"
             checked={values.isFeatured}
@@ -312,14 +316,14 @@ function PlanFields({
       </div>
 
       {/* ---- Limits & feature gates (enforced in the tenant app) ---- */}
-      <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
-        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+      <div className="border-border bg-muted/30 space-y-3 rounded-lg border p-3">
+        <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
           Limits &amp; features
         </p>
 
         <div className="grid grid-cols-3 gap-3">
           <div className="space-y-1.5">
-            <Label className="text-xs text-foreground">Users</Label>
+            <Label className="text-foreground text-xs">Users</Label>
             <Input
               type="number"
               min="0"
@@ -331,7 +335,7 @@ function PlanFields({
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs text-foreground">Contacts</Label>
+            <Label className="text-foreground text-xs">Contacts</Label>
             <Input
               type="number"
               min="0"
@@ -343,7 +347,7 @@ function PlanFields({
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs text-foreground">Storage (MB)</Label>
+            <Label className="text-foreground text-xs">Storage (MB)</Label>
             <Input
               type="number"
               min="0"
@@ -362,7 +366,7 @@ function PlanFields({
             that's off wins regardless of the number here. */}
         <div className="grid grid-cols-3 gap-3">
           <div className="space-y-1.5">
-            <Label className="text-xs text-foreground">Automations</Label>
+            <Label className="text-foreground text-xs">Automations</Label>
             <Input
               type="number"
               min="0"
@@ -374,7 +378,7 @@ function PlanFields({
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs text-foreground">Campaigns</Label>
+            <Label className="text-foreground text-xs">Campaigns</Label>
             <Input
               type="number"
               min="0"
@@ -386,7 +390,7 @@ function PlanFields({
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs text-foreground">Flows</Label>
+            <Label className="text-foreground text-xs">Flows</Label>
             <Input
               type="number"
               min="0"
@@ -398,7 +402,7 @@ function PlanFields({
             />
           </div>
         </div>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-muted-foreground text-[11px]">
           Leave a field blank for unlimited. 0 blocks creation entirely.
         </p>
 
@@ -414,14 +418,14 @@ function PlanFields({
           ).map(([field, label]) => (
             <label
               key={field}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground"
+              className="text-muted-foreground flex items-center gap-1.5 text-xs"
             >
               <input
                 type="checkbox"
                 checked={values[field]}
                 onChange={(e) => set({ [field]: e.target.checked })}
                 disabled={disabled}
-                className="size-3.5 accent-primary"
+                className="accent-primary size-3.5"
               />
               {label}
             </label>
@@ -466,10 +470,13 @@ function PlanCard({ plan }: { plan: BillingPlan }) {
   }
 
   async function del() {
-    if (!confirm(`Delete the "${plan.name}" plan? This can't be undone.`)) return;
+    if (!confirm(`Delete the "${plan.name}" plan? This can't be undone.`))
+      return;
     setDeleting(true);
     try {
-      const res = await fetch(`/admin/api/plans/${plan.id}`, { method: 'DELETE' });
+      const res = await fetch(`/admin/api/plans/${plan.id}`, {
+        method: 'DELETE',
+      });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         toast.error(data.error ?? 'Delete failed');
@@ -483,9 +490,9 @@ function PlanCard({ plan }: { plan: BillingPlan }) {
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4">
+    <div className="border-border bg-card flex flex-col gap-4 rounded-xl border p-4">
       <div className="flex items-center justify-between">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+        <span className="border-border bg-muted text-muted-foreground inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium">
           {plan.isFeatured && <Star className="size-3 text-amber-500" />}
           {plan.key}
         </span>
@@ -495,7 +502,7 @@ function PlanCard({ plan }: { plan: BillingPlan }) {
           variant="ghost"
           disabled={deleting}
           onClick={del}
-          className="size-8 text-destructive hover:bg-destructive/10"
+          className="text-destructive hover:bg-destructive/10 size-8"
           aria-label="Delete plan"
         >
           {deleting ? (
@@ -555,7 +562,10 @@ function CreatePlanDialog({
       const res = await fetch('/admin/api/plans', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: key.trim().toLowerCase(), ...buildPayload(values) }),
+        body: JSON.stringify({
+          key: key.trim().toLowerCase(),
+          ...buildPayload(values),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {

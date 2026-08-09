@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+
+import { ADMIN_TAGS, revalidateAdmin } from '../../../_lib/admin-cache';
 import { getAdminUser, isAdminEmail } from '../../../_lib/auth';
 import { adminDb } from '../../../_lib/admin-db';
 
@@ -38,7 +40,7 @@ const UUID_RE =
  */
 export async function DELETE(
   request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const admin = await getAdminUser();
   if (!admin) {
@@ -64,7 +66,7 @@ export async function DELETE(
   if (isAdminEmail(target.user.email)) {
     return NextResponse.json(
       { error: 'This is an admin account and cannot be deleted.' },
-      { status: 403 },
+      { status: 403 }
     );
   }
 
@@ -93,7 +95,7 @@ export async function DELETE(
     // workspaces they're only a member of one of them, and "minus one"
     // would undercount who actually loses access.
     const otherMembers = (memberRows ?? []).filter(
-      (m) => m.user_id !== id,
+      (m) => m.user_id !== id
     ).length;
 
     if (!deleteOwnedAccount) {
@@ -107,7 +109,7 @@ export async function DELETE(
           workspaces,
           otherMembers,
         },
-        { status: 409 },
+        { status: 409 }
       );
     }
 
@@ -126,5 +128,9 @@ export async function DELETE(
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  // Drop the cached account list and overview counters — without
+  // this the edit is invisible for up to a minute and reads as a
+  // save that silently failed.
+  revalidateAdmin(ADMIN_TAGS.accounts, ADMIN_TAGS.overview);
   return NextResponse.json({ success: true });
 }

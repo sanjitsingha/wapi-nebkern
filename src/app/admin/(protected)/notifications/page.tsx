@@ -1,8 +1,8 @@
 import { adminDb } from '../../_lib/admin-db';
+import { getAccountsIndex } from '../../_lib/admin-data';
 import {
   NotificationsManager,
   type AdminNotificationView,
-  type AccountOption,
 } from '../../_components/notifications-manager';
 
 export const dynamic = 'force-dynamic';
@@ -23,15 +23,16 @@ interface NotificationRow {
 export default async function AdminNotificationsPage() {
   const db = adminDb();
 
-  const [notifsRes, accountsRes] = await Promise.all([
+  // Shared cached account list — see `_lib/admin-data.ts`.
+  const [notifsRes, accounts] = await Promise.all([
     db
       .from('admin_notifications')
-      .select('id, title, body, href, image_url, audience, account_id, is_active, expires_at, created_at')
+      .select(
+        'id, title, body, href, image_url, audience, account_id, is_active, expires_at, created_at'
+      )
       .order('created_at', { ascending: false }),
-    db.from('accounts').select('id, name').order('name', { ascending: true }),
+    getAccountsIndex(),
   ]);
-
-  const accounts = (accountsRes.data ?? []) as AccountOption[];
   const accountName = new Map(accounts.map((a) => [a.id, a.name]));
 
   const notifications: AdminNotificationView[] = (
@@ -53,8 +54,8 @@ export default async function AdminNotificationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Notifications</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h1 className="text-foreground text-2xl font-bold">Notifications</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
           Send an announcement to every account, or target one. It appears in
           the tenant&apos;s notification bell.
         </p>

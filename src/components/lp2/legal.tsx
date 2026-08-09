@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { AlertTriangle, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import type { Lp2Hue } from './decor';
@@ -24,111 +24,48 @@ import { LegalNav } from './legal-nav';
 // with a Terms page that contradicts the Privacy page is to hand-build
 // each one.
 //
-// PLACEHOLDERS: policy text uses {{TOKEN}} markers for facts only the
-// business owner knows (legal entity name, address, contact email).
-// They render highlighted so they're impossible to miss — see
-// `PLACEHOLDERS` below for the full list and fill them in before this
-// goes anywhere near a customer.
+// LEGAL_FACTS: policy text uses {{TOKEN}} markers so the same business
+// facts render consistently across every legal document.
 // ============================================================
 
-/**
- * Every token that may appear in policy copy, with the prompt shown on
- * the page until it's replaced. Keep this in sync with the tokens
- * actually used — an unknown token renders as-is, which is loud enough
- * to catch in review but not something to rely on.
- */
-const PLACEHOLDERS: Record<string, string> = {
-  COMPANY: 'YOUR LEGAL ENTITY NAME',
-  ADDRESS: 'YOUR REGISTERED ADDRESS',
-  EMAIL: 'YOUR SUPPORT EMAIL',
-  PHONE: 'YOUR PHONE NUMBER',
-  CITY: 'YOUR CITY',
-  GRIEVANCE: 'GRIEVANCE OFFICER NAME',
-  // Infrastructure facts. The subprocessor list and security policy name
-  // real vendors where the code proves them (Supabase, Meta, Razorpay,
-  // the AI providers) — the host is a deployment choice the code can't
-  // know, so it stays a placeholder rather than a plausible guess. A
-  // subprocessor list that names the wrong host is worse than one that
-  // visibly needs filling in.
-  //
-  // REGION used to live here too. It is now a known fact — Mumbai,
-  // India (ap-south-1), as of the August 2026 move off Tokyo — so it is
-  // written into the copy directly. See docs/migrating-databases.md.
-  HOSTING: 'YOUR HOSTING PROVIDER',
-  SECURITY_EMAIL: 'YOUR SECURITY CONTACT EMAIL',
+/* ─── Blocks ──────────────────────────────────────────────────────── */
+
+const LEGAL_FACTS: Record<string, string> = {
+  COMPANY: 'Nebkern Technology',
+  ADDRESS: 'Kolkata, West Bengal, India',
+  EMAIL: 'itsmesanjitsingh@gmail.com',
+  PHONE: '+91 7708601814',
+  CITY: 'Kolkata',
+  GRIEVANCE: 'Sanjit Singh',
+  HOSTING:
+    'Hostinger for application hosting, with Cloudflare R2 for media delivery',
+  SECURITY_EMAIL: 'itsmesanjitsingh@gmail.com',
 };
 
 export type LegalBlock =
   | { p: string }
   | { ul: string[] }
   | { ol: string[] }
-  /** Callout for the one or two points per policy that actually get
-   *  disputed — worth pulling out of the wall of prose. */
   | { note: string };
 
 export interface LegalSection {
-  /** Anchor id, also the target of the sidebar contents links. */
   id: string;
   heading: string;
   blocks: LegalBlock[];
 }
 
-/* ─── Placeholder-aware text ──────────────────────────────────────── */
-
-/**
- * Splits copy on {{TOKEN}} and renders each one as a highlighted chip.
- *
- * Deliberately visual rather than a silent default: a privacy policy
- * that quietly says "we" where a company name belongs looks finished
- * and ships broken. This looks unfinished until it is finished.
- */
 function Text({ children }: { children: string }) {
   const parts = children.split(/(\{\{[A-Z_]+\}\})/g);
   return (
     <>
-      {parts.map((part, i) => {
+      {parts.map((part) => {
         const m = /^\{\{([A-Z_]+)\}\}$/.exec(part);
         if (!m) return part;
-        const label = PLACEHOLDERS[m[1]] ?? m[1];
-        return (
-          <span
-            key={i}
-            className="mx-0.5 rounded-md border-2 border-dashed border-(--lp2-ink)/40 bg-(--lp2-lemon) px-1.5 py-px text-[0.85em] font-extrabold tracking-wide whitespace-nowrap"
-          >
-            {label}
-          </span>
-        );
+        return LEGAL_FACTS[m[1]] ?? `[[${m[1]}]]`;
       })}
     </>
   );
 }
-
-/* ─── Draft notice ────────────────────────────────────────────────── */
-
-/**
- * The "this is a template" banner. Prominent on purpose, and the first
- * thing to delete once a lawyer has signed off — it renders on every
- * legal page, so removing it here removes it everywhere.
- */
-function DraftNotice() {
-  return (
-    <div className="flex items-start gap-3 rounded-xl border border-(--lp2-coral) bg-(--lp2-coral-soft)/60 p-4">
-      <AlertTriangle
-        className="mt-0.5 size-4 shrink-0 text-(--lp2-coral)"
-        strokeWidth={2.5}
-      />
-      <p className="text-sm leading-relaxed font-medium">
-        <span className="font-extrabold">Template — not yet legal advice.</span>{' '}
-        This document is a starting point drafted for a WhatsApp CRM on the
-        official Business API. Fill in every highlighted placeholder and have a
-        qualified lawyer review it against your jurisdiction before you publish
-        or take payments. Delete this banner when that&apos;s done.
-      </p>
-    </div>
-  );
-}
-
-/* ─── Blocks ──────────────────────────────────────────────────────── */
 
 function Blocks({ blocks }: { blocks: LegalBlock[] }) {
   return (
@@ -248,9 +185,7 @@ export function LegalPage({
             </div>
 
             <div className="min-w-0">
-              <DraftNotice />
-
-              <div className="mt-10 space-y-12">
+              <div className="space-y-12">
                 {sections.map((s, i) => (
                   // `scroll-mt` clears the sticky nav pill — without it
                   // an anchor jump parks the heading underneath it.

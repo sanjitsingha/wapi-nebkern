@@ -16,7 +16,7 @@ const UUID_RE =
  */
 export async function POST(
   request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const admin = await getAdminUser();
   if (!admin) {
@@ -36,7 +36,11 @@ export async function POST(
   const update: Record<string, unknown> = {};
 
   if ('name' in body) {
-    if (typeof body.name !== 'string' || !body.name.trim() || body.name.length > 80) {
+    if (
+      typeof body.name !== 'string' ||
+      !body.name.trim() ||
+      body.name.length > 80
+    ) {
       return NextResponse.json({ error: 'Invalid name' }, { status: 400 });
     }
     update.name = body.name.trim();
@@ -45,10 +49,16 @@ export async function POST(
   if ('description' in body) {
     if (body.description === null) {
       update.description = null;
-    } else if (typeof body.description === 'string' && body.description.length <= 500) {
+    } else if (
+      typeof body.description === 'string' &&
+      body.description.length <= 500
+    ) {
       update.description = body.description.trim() || null;
     } else {
-      return NextResponse.json({ error: 'Invalid description' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid description' },
+        { status: 400 }
+      );
     }
   }
 
@@ -56,17 +66,20 @@ export async function POST(
     if (!Number.isInteger(body.amount) || body.amount < 0) {
       return NextResponse.json(
         { error: 'amount must be a non-negative integer (minor units)' },
-        { status: 400 },
+        { status: 400 }
       );
     }
     update.amount = body.amount;
   }
 
   if ('currency' in body) {
-    if (typeof body.currency !== 'string' || !/^[A-Za-z]{3}$/.test(body.currency)) {
+    if (
+      typeof body.currency !== 'string' ||
+      !/^[A-Za-z]{3}$/.test(body.currency)
+    ) {
       return NextResponse.json(
         { error: 'currency must be a 3-letter code' },
-        { status: 400 },
+        { status: 400 }
       );
     }
     update.currency = body.currency.toUpperCase();
@@ -76,7 +89,7 @@ export async function POST(
     if (body.interval !== 'monthly' && body.interval !== 'yearly') {
       return NextResponse.json(
         { error: "interval must be 'monthly' or 'yearly'" },
-        { status: 400 },
+        { status: 400 }
       );
     }
     update.interval = body.interval;
@@ -91,7 +104,10 @@ export async function POST(
 
   if ('is_featured' in body) {
     if (typeof body.is_featured !== 'boolean') {
-      return NextResponse.json({ error: 'Invalid is_featured' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid is_featured' },
+        { status: 400 }
+      );
     }
     update.is_featured = body.is_featured;
   }
@@ -108,7 +124,10 @@ export async function POST(
 
   if ('sort_order' in body) {
     if (!Number.isInteger(body.sort_order)) {
-      return NextResponse.json({ error: 'Invalid sort_order' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid sort_order' },
+        { status: 400 }
+      );
     }
     update.sort_order = body.sort_order;
   }
@@ -117,7 +136,7 @@ export async function POST(
     if (!Array.isArray(body.features)) {
       return NextResponse.json(
         { error: 'features must be an array of strings' },
-        { status: 400 },
+        { status: 400 }
       );
     }
     const out: string[] = [];
@@ -125,7 +144,7 @@ export async function POST(
       if (typeof f !== 'string') {
         return NextResponse.json(
           { error: 'features must be an array of strings' },
-          { status: 400 },
+          { status: 400 }
         );
       }
       const t = f.trim();
@@ -137,7 +156,10 @@ export async function POST(
   if ('limits' in body) {
     const limits = sanitizeLimitsInput(body.limits);
     if (limits === null) {
-      return NextResponse.json({ error: 'Invalid limits payload' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid limits payload' },
+        { status: 400 }
+      );
     }
     update.limits = limits;
   }
@@ -163,7 +185,7 @@ export async function POST(
  *  deleted plan just disappears from the catalog. */
 export async function DELETE(
   _request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const admin = await getAdminUser();
   if (!admin) {

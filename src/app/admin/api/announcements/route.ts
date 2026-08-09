@@ -31,7 +31,10 @@ export async function POST(request: Request) {
 
   const message = str(body.message, 400);
   if (!message) {
-    return NextResponse.json({ error: 'A message is required.' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'A message is required.' },
+      { status: 400 }
+    );
   }
 
   const linkUrl = str(body.link_url, 2000);
@@ -39,7 +42,7 @@ export async function POST(request: Request) {
   if (linkUrl && !isAllowedUrl(linkUrl)) {
     return NextResponse.json(
       { error: 'Link must be a path starting with "/" or an http(s) URL' },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -52,7 +55,7 @@ export async function POST(request: Request) {
     if (typeof body.account_id !== 'string' || !UUID_RE.test(body.account_id)) {
       return NextResponse.json(
         { error: 'Pick an account to target' },
-        { status: 400 },
+        { status: 400 }
       );
     }
     accountId = body.account_id;

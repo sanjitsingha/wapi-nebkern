@@ -1,8 +1,8 @@
 import { adminDb } from '../../_lib/admin-db';
+import { getAccountsIndex } from '../../_lib/admin-data';
 import {
   AnnouncementsManager,
   type AnnouncementView,
-  type AccountOption,
 } from '../../_components/announcements-manager';
 import type { AnnouncementVariant } from '@/lib/app-announcement';
 
@@ -26,17 +26,17 @@ interface AnnouncementRow {
 export default async function AdminAnnouncementsPage() {
   const db = adminDb();
 
-  const [announcementsRes, accountsRes] = await Promise.all([
+  // The account list comes from the shared cached loader rather than a
+  // second query here — four other pages want the same rows.
+  const [announcementsRes, accounts] = await Promise.all([
     db
       .from('app_announcements')
       .select(
-        'id, message, link_url, link_label, variant, dismissible, audience, account_id, is_active, starts_at, expires_at, created_at',
+        'id, message, link_url, link_label, variant, dismissible, audience, account_id, is_active, starts_at, expires_at, created_at'
       )
       .order('created_at', { ascending: false }),
-    db.from('accounts').select('id, name').order('name', { ascending: true }),
+    getAccountsIndex(),
   ]);
-
-  const accounts = (accountsRes.data ?? []) as AccountOption[];
   const accountName = new Map(accounts.map((a) => [a.id, a.name]));
 
   const announcements: AnnouncementView[] = (
@@ -60,8 +60,8 @@ export default async function AdminAnnouncementsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Announcement bar</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h1 className="text-foreground text-2xl font-bold">Announcement bar</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
           A slim bar shown under the tenant&apos;s dashboard navbar — for plan
           reminders, maintenance notices, and product news. Severity sets the
           colour; add an optional link and expiry.

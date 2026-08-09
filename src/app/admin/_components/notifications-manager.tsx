@@ -110,8 +110,8 @@ function Composer({ accounts }: { accounts: AccountOption[] }) {
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <h2 className="text-sm font-medium text-foreground">New announcement</h2>
+    <div className="border-border bg-card rounded-xl border p-4">
+      <h2 className="text-foreground text-sm font-medium">New announcement</h2>
 
       <div className="mt-4 space-y-4">
         <div className="space-y-2">
@@ -135,7 +135,7 @@ function Composer({ accounts }: { accounts: AccountOption[] }) {
             rows={3}
             placeholder="We'll be doing maintenance on Sunday 2–3am IST…"
             disabled={sending}
-            className="w-full resize-none rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none focus-visible:border-primary"
+            className="border-border bg-muted text-foreground focus-visible:border-primary w-full resize-none rounded-md border px-3 py-2 text-sm outline-none"
           />
         </div>
 
@@ -145,7 +145,7 @@ function Composer({ accounts }: { accounts: AccountOption[] }) {
             value={audience}
             onValueChange={(v) => v && setAudience(v as 'all' | 'account')}
           >
-            <SelectTrigger className="h-10 w-full border-border bg-muted">
+            <SelectTrigger className="border-border bg-muted h-10 w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -158,8 +158,11 @@ function Composer({ accounts }: { accounts: AccountOption[] }) {
         {audience === 'account' && (
           <div className="space-y-2">
             <Label className="text-foreground">Account</Label>
-            <Select value={accountId} onValueChange={(v) => v && setAccountId(v)}>
-              <SelectTrigger className="h-10 w-full border-border bg-muted">
+            <Select
+              value={accountId}
+              onValueChange={(v) => v && setAccountId(v)}
+            >
+              <SelectTrigger className="border-border bg-muted h-10 w-full">
                 <SelectValue placeholder="Select an account" />
               </SelectTrigger>
               <SelectContent>
@@ -205,7 +208,7 @@ function Composer({ accounts }: { accounts: AccountOption[] }) {
               disabled={sending}
               className="border-border bg-muted"
             />
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-muted-foreground text-[11px]">
               In-app path (/…) or an external https link.
             </p>
           </div>
@@ -225,9 +228,13 @@ function Composer({ accounts }: { accounts: AccountOption[] }) {
           type="button"
           onClick={send}
           disabled={sending}
-          className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 w-full"
         >
-          {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+          {sending ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Send className="size-4" />
+          )}
           Send announcement
         </Button>
       </div>
@@ -283,7 +290,7 @@ function NotificationList({
 
   if (notifications.length === 0) {
     return (
-      <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+      <div className="border-border bg-card text-muted-foreground rounded-xl border p-6 text-sm">
         No announcements sent yet.
       </div>
     );
@@ -297,22 +304,23 @@ function NotificationList({
         return (
           <div
             key={n.id}
-            className="rounded-xl border border-border bg-card p-4"
+            className="border-border bg-card rounded-xl border p-4"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-semibold text-foreground">
+                  <p className="text-foreground text-sm font-semibold">
                     {n.title}
                   </p>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                  <span className="border-border bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px]">
                     {n.audience === 'all' ? (
                       <>
                         <Globe className="size-3" /> Global
                       </>
                     ) : (
                       <>
-                        <Building2 className="size-3" /> {n.accountName ?? 'Account'}
+                        <Building2 className="size-3" />{' '}
+                        {n.accountName ?? 'Account'}
                       </>
                     )}
                   </span>
@@ -327,7 +335,7 @@ function NotificationList({
                     {!n.isActive ? 'Inactive' : expired ? 'Expired' : 'Live'}
                   </span>
                 </div>
-                <p className="mt-1 text-sm text-muted-foreground">{n.body}</p>
+                <p className="text-muted-foreground mt-1 text-sm">{n.body}</p>
                 {n.imageUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -339,7 +347,7 @@ function NotificationList({
                     className="border-border mt-2 max-h-28 rounded-lg border object-cover"
                   />
                 )}
-                <p className="mt-1 text-[11px] text-muted-foreground">
+                <p className="text-muted-foreground mt-1 text-[11px]">
                   Sent {fmtDateTime(n.createdAt)}
                   {n.expiresAt ? ` · Expires ${fmtDateTime(n.expiresAt)}` : ''}
                   {n.href ? ` · ${n.href}` : ''}
@@ -368,7 +376,7 @@ function NotificationList({
                   variant="ghost"
                   disabled={busy}
                   onClick={() => del(n)}
-                  className="size-8 text-destructive hover:bg-destructive/10"
+                  className="text-destructive hover:bg-destructive/10 size-8"
                   aria-label="Delete announcement"
                 >
                   <Trash2 className="size-3.5" />

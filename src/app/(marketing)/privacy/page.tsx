@@ -8,9 +8,9 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // that they resolve publicly, and there's no other copy of this text
 // to duplicate.
 export const metadata: Metadata = {
-  title: { absolute: 'Privacy Policy — wacrm' },
+  title: { absolute: 'Privacy Policy — Instant' },
   description:
-    'How wacrm collects, uses, shares and protects personal data — including WhatsApp message data processed on behalf of our customers.',
+    'How Instant collects, uses, shares and protects personal data — including WhatsApp message data processed on behalf of our customers.',
   robots: { index: true, follow: true },
 };
 
@@ -20,10 +20,10 @@ const SECTIONS: LegalSection[] = [
     heading: 'Who we are and what this covers',
     blocks: [
       {
-        p: 'wacrm is a customer-relationship platform for businesses that talk to their customers over WhatsApp, Instagram and Messenger. It is operated by {{COMPANY}}, registered at {{ADDRESS}}. In this policy, "we", "us" and "our" mean {{COMPANY}}, and "the Service" means the wacrm web application, its APIs and any related tooling.',
+        p: 'Instant is a customer-relationship platform for businesses that talk to their customers over WhatsApp, Instagram and Messenger. It is operated by {{COMPANY}}, registered at {{ADDRESS}}. In this policy, "we", "us" and "our" mean {{COMPANY}}, and "the Service" means the Instant web application, its APIs and any related tooling.',
       },
       {
-        p: 'This policy explains what personal data we handle, why, who we share it with and what rights you have. It covers our website and the Service. It does not cover the practices of the businesses that use wacrm to message their own customers — for that, see the controller/processor split in section 4.',
+        p: 'This policy explains what personal data we handle, why, who we share it with and what rights you have. It covers our website and the Service. It does not cover the practices of the businesses that use Instant to message their own customers — for that, see the controller/processor split in section 4.',
       },
     ],
   },
@@ -69,7 +69,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'Who is responsible for what',
     blocks: [
       {
-        p: 'This distinction matters, because most of the personal data in wacrm is not ours.',
+        p: 'This distinction matters, because most of the personal data in Instant is not ours.',
       },
       {
         ul: [
@@ -160,7 +160,7 @@ const SECTIONS: LegalSection[] = [
         p: 'To exercise any of these, email {{EMAIL}}. We will respond within 30 days, and we may need to verify your identity first. You can also complain to your local data protection authority.',
       },
       {
-        note: 'If you are a customer of a business that uses wacrm and you want your data changed or removed, please contact that business directly — they control it. If you contact us, we will pass your request on to them.',
+        note: 'If you are a customer of a business that uses Instant and you want your data changed or removed, please contact that business directly — they control it. If you contact us, we will pass your request on to them.',
       },
     ],
   },

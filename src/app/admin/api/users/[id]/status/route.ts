@@ -19,7 +19,7 @@ const BAN_INDEFINITE = '876000h';
  */
 export async function POST(
   request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const admin = await getAdminUser();
   if (!admin) {
@@ -36,7 +36,7 @@ export async function POST(
   if (action !== 'suspend' && action !== 'reactivate') {
     return NextResponse.json(
       { error: "action must be 'suspend' or 'reactivate'" },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -48,7 +48,7 @@ export async function POST(
   if (isAdminEmail(target.user.email)) {
     return NextResponse.json(
       { error: 'This is an admin account and cannot be suspended.' },
-      { status: 403 },
+      { status: 403 }
     );
   }
 

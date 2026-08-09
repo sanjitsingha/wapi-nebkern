@@ -8,7 +8,7 @@ const UUID_RE =
 /** Update an announcement (admin-only) — toggle is_active or adjust the window. */
 export async function POST(
   request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const admin = await getAdminUser();
   if (!admin) {
@@ -38,8 +38,13 @@ export async function POST(
     if (field in body) {
       const v = body[field];
       if (v === null || v === '') update[field] = null;
-      else if (typeof v === 'string' && !Number.isNaN(Date.parse(v))) update[field] = v;
-      else return NextResponse.json({ error: `Invalid ${field}` }, { status: 400 });
+      else if (typeof v === 'string' && !Number.isNaN(Date.parse(v)))
+        update[field] = v;
+      else
+        return NextResponse.json(
+          { error: `Invalid ${field}` },
+          { status: 400 }
+        );
     }
   }
 
@@ -63,7 +68,7 @@ export async function POST(
 /** Delete an announcement (admin-only). */
 export async function DELETE(
   _request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const admin = await getAdminUser();
   if (!admin) {

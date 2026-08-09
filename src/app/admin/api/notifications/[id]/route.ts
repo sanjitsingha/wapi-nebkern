@@ -11,7 +11,7 @@ const UUID_RE =
  */
 export async function POST(
   request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const admin = await getAdminUser();
   if (!admin) {
@@ -40,8 +40,13 @@ export async function POST(
   if ('expires_at' in body) {
     const v = body.expires_at;
     if (v === null || v === '') update.expires_at = null;
-    else if (typeof v === 'string' && !Number.isNaN(Date.parse(v))) update.expires_at = v;
-    else return NextResponse.json({ error: 'Invalid expires_at' }, { status: 400 });
+    else if (typeof v === 'string' && !Number.isNaN(Date.parse(v)))
+      update.expires_at = v;
+    else
+      return NextResponse.json(
+        { error: 'Invalid expires_at' },
+        { status: 400 }
+      );
   }
 
   if (Object.keys(update).length === 0) {
@@ -64,7 +69,7 @@ export async function POST(
 /** Delete an announcement (admin-only). */
 export async function DELETE(
   _request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const admin = await getAdminUser();
   if (!admin) {

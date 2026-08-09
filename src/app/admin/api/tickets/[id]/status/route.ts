@@ -10,7 +10,7 @@ const STATUSES = new Set(['open', 'pending', 'resolved', 'closed']);
 /** Change a support ticket's status. Admin-only. */
 export async function POST(
   request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const admin = await getAdminUser();
   if (!admin) {

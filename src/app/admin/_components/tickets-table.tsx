@@ -60,7 +60,7 @@ export function TicketsTable({
   const [filter, setFilter] = useState<Filter>(
     (FILTERS.some((f) => f.value === initialFilter)
       ? initialFilter
-      : 'all') as Filter,
+      : 'all') as Filter
   );
 
   const filtered = useMemo(() => {
@@ -89,7 +89,7 @@ export function TicketsTable({
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -97,8 +97,11 @@ export function TicketsTable({
             className="h-11 pl-9"
           />
         </div>
-        <Select value={filter} onValueChange={(v) => v && setFilter(v as Filter)}>
-          <SelectTrigger className="h-11 w-full border-border sm:w-52">
+        <Select
+          value={filter}
+          onValueChange={(v) => v && setFilter(v as Filter)}
+        >
+          <SelectTrigger className="border-border h-11 w-full sm:w-52">
             <SelectValue placeholder="Filter" />
           </SelectTrigger>
           <SelectContent>
@@ -111,11 +114,13 @@ export function TicketsTable({
         </Select>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-card">
+      <div className="border-border bg-card overflow-x-auto rounded-xl border">
         <Table>
           <TableHeader>
             <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
-              <TableHead className="text-muted-foreground w-28">Ticket</TableHead>
+              <TableHead className="text-muted-foreground w-28">
+                Ticket
+              </TableHead>
               <TableHead className="text-muted-foreground">Subject</TableHead>
               <TableHead className="text-muted-foreground hidden md:table-cell">
                 Account
@@ -134,7 +139,7 @@ export function TicketsTable({
               <TableRow>
                 <TableCell
                   colSpan={6}
-                  className="h-24 text-center text-sm text-muted-foreground"
+                  className="text-muted-foreground h-24 text-center text-sm"
                 >
                   No tickets match.
                 </TableCell>
@@ -144,14 +149,14 @@ export function TicketsTable({
                 <TableRow
                   key={r.id}
                   onClick={() => router.push(`/admin/tickets/${r.id}`)}
-                  className="cursor-pointer border-border hover:bg-muted/50"
+                  className="border-border hover:bg-muted/50 cursor-pointer"
                 >
                   {/* Same short code the tenant app shows, so a user
                       quoting "#3F9A2C71" can be matched by eye. */}
-                  <TableCell className="font-mono text-xs text-muted-foreground">
+                  <TableCell className="text-muted-foreground font-mono text-xs">
                     {formatTicketRef(r.id)}
                   </TableCell>
-                  <TableCell className="max-w-xs font-medium text-foreground">
+                  <TableCell className="text-foreground max-w-xs font-medium">
                     <div className="flex items-center gap-2">
                       {r.needsReply && (
                         <span
@@ -162,12 +167,12 @@ export function TicketsTable({
                       <span className="truncate">{r.subject}</span>
                     </div>
                     {r.creatorEmail && (
-                      <span className="mt-0.5 block truncate text-xs font-normal text-muted-foreground">
+                      <span className="text-muted-foreground mt-0.5 block truncate text-xs font-normal">
                         {r.creatorEmail}
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className="hidden text-muted-foreground md:table-cell">
+                  <TableCell className="text-muted-foreground hidden md:table-cell">
                     {r.accountName}
                   </TableCell>
                   <TableCell className="hidden lg:table-cell">
@@ -176,7 +181,7 @@ export function TicketsTable({
                   <TableCell>
                     <TicketStatusBadge status={r.status} />
                   </TableCell>
-                  <TableCell className="hidden text-muted-foreground sm:table-cell">
+                  <TableCell className="text-muted-foreground hidden sm:table-cell">
                     {fmtDateTime(r.updatedAt)}
                   </TableCell>
                 </TableRow>

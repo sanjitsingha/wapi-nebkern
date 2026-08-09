@@ -2,15 +2,15 @@ import type { Metadata } from 'next';
 
 import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 
-// Short by design, and honest about what this app actually sets. wacrm
+// Short by design, and honest about what this app actually sets. Instant
 // is a logged-in tool, not an ad-funded site: the cookies that matter
 // are Supabase's auth cookies and a couple of UI preferences. Padding
 // this page with advertising-cookie boilerplate we don't use would be
 // its own kind of misleading — and reviewers do read it.
 export const metadata: Metadata = {
-  title: { absolute: 'Cookie Policy — wacrm' },
+  title: { absolute: 'Cookie Policy — Instant' },
   description:
-    'The cookies and local storage wacrm uses — what each one is for, how long it lasts, and how to control them.',
+    'The cookies and local storage Instant uses — what each one is for, how long it lasts, and how to control them.',
   robots: { index: true, follow: true },
 };
 
@@ -20,7 +20,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'What this covers',
     blocks: [
       {
-        p: 'A cookie is a small file a site stores in your browser so it can recognise you on the next request. Related technologies — local storage and session storage — do much the same job with different plumbing. This policy covers all of them, and applies to the wacrm website and web application operated by {{COMPANY}}.',
+        p: 'A cookie is a small file a site stores in your browser so it can recognise you on the next request. Related technologies — local storage and session storage — do much the same job with different plumbing. This policy covers all of them, and applies to the Instant website and web application operated by {{COMPANY}}.',
       },
       {
         p: 'It sits alongside our Privacy Policy, which explains the wider picture of what personal data we hold and why.',
@@ -32,7 +32,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'What we actually use',
     blocks: [
       {
-        p: 'wacrm is a tool you log into, not an ad-supported website. That shapes this list — it is short, and most of it exists so that being logged in survives a page refresh.',
+        p: 'Instant is a tool you log into, not an ad-supported website. That shapes this list — it is short, and most of it exists so that being logged in survives a page refresh.',
       },
       {
         ul: [
@@ -118,7 +118,7 @@ export default function Lp2CookiePolicyPage() {
       title="Cookie Policy"
       hue="lemon"
       updated="5 August 2026"
-      intro="A logged-in tool needs surprisingly few cookies. Here is every one wacrm sets, what it does, and how to switch off the ones that are optional."
+      intro="A logged-in tool needs surprisingly few cookies. Here is every one Instant sets, what it does, and how to switch off the ones that are optional."
       sections={SECTIONS}
     />
   );

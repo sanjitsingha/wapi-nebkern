@@ -9,9 +9,9 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // not hold or controls we have not built is a liability in a breach,
 // so the "what we do not claim" section stays until it is untrue.
 export const metadata: Metadata = {
-  title: { absolute: 'Security Policy — wacrm' },
+  title: { absolute: 'Security Policy — Instant' },
   description:
-    'How wacrm protects your data — encryption, tenant isolation, access control, credential handling, webhook verification, backups, incident response and vulnerability reporting.',
+    'How Instant protects your data — encryption, tenant isolation, access control, credential handling, webhook verification, backups, incident response and vulnerability reporting.',
   robots: { index: true, follow: true },
 };
 
@@ -21,7 +21,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'What we protect and how to read this',
     blocks: [
       {
-        p: 'wacrm holds conversations between businesses and their customers — phone numbers, message content, attachments and the access tokens that let us send on your behalf. A compromise would matter, so this page describes the controls we actually operate rather than the ones that sound reassuring.',
+        p: 'Instant holds conversations between businesses and their customers — phone numbers, message content, attachments and the access tokens that let us send on your behalf. A compromise would matter, so this page describes the controls we actually operate rather than the ones that sound reassuring.',
       },
       {
         p: 'It covers the Service operated by {{COMPANY}}. Security is shared: we secure the platform, and you secure your account, your team’s access and the credentials you connect. The sections below say which is which.',

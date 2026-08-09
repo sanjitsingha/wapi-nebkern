@@ -36,10 +36,18 @@ export function SubscriptionBadge({ status }: { status: SubscriptionStatus }) {
 }
 
 export function TicketStatusBadge({ status }: { status: SupportTicketStatus }) {
-  return <span className={cn(base, TICKET[status] ?? softBadge.neutral)}>{status}</span>;
+  return (
+    <span className={cn(base, TICKET[status] ?? softBadge.neutral)}>
+      {status}
+    </span>
+  );
 }
 
-export function PriorityBadge({ priority }: { priority: SupportTicketPriority }) {
+export function PriorityBadge({
+  priority,
+}: {
+  priority: SupportTicketPriority;
+}) {
   return (
     <span className={cn(base, PRIORITY[priority] ?? softBadge.neutral)}>
       {priority}

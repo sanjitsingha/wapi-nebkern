@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   if (!title || title.length > 140) {
     return NextResponse.json(
       { error: 'title is required (max 140 chars)' },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   if (!text || text.length > 1000) {
     return NextResponse.json(
       { error: 'body is required (max 1000 chars)' },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     if (typeof body.account_id !== 'string' || !UUID_RE.test(body.account_id)) {
       return NextResponse.json(
         { error: 'account_id is required for a targeted announcement' },
-        { status: 400 },
+        { status: 400 }
       );
     }
     accountId = body.account_id;
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     if (!ok) {
       return NextResponse.json(
         { error: 'Link must be a path starting with "/" or an http(s) URL' },
-        { status: 400 },
+        { status: 400 }
       );
     }
     row.href = href;
@@ -84,8 +84,10 @@ export async function POST(request: Request) {
       /^https?:\/\/.+/i.test(img);
     if (!ok) {
       return NextResponse.json(
-        { error: 'Image URL must be a path starting with "/" or an http(s) URL' },
-        { status: 400 },
+        {
+          error: 'Image URL must be a path starting with "/" or an http(s) URL',
+        },
+        { status: 400 }
       );
     }
     row.image_url = img;
@@ -98,7 +100,10 @@ export async function POST(request: Request) {
     } else if (typeof v === 'string' && !Number.isNaN(Date.parse(v))) {
       row.expires_at = v;
     } else {
-      return NextResponse.json({ error: 'Invalid expires_at' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid expires_at' },
+        { status: 400 }
+      );
     }
   }
 

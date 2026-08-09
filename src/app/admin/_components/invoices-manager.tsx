@@ -3,7 +3,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Loader2, Plus, ExternalLink, CheckCircle2, Ban, Trash2 } from 'lucide-react';
+import {
+  Loader2,
+  Plus,
+  ExternalLink,
+  CheckCircle2,
+  Ban,
+  Trash2,
+} from 'lucide-react';
 
 import { formatMoney } from '@/lib/billing/plans';
 import {
@@ -71,7 +78,11 @@ export function InvoicesManager({
   const [open, setOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  async function invoiceAction(inv: Invoice, body: Record<string, unknown>, msg: string) {
+  async function invoiceAction(
+    inv: Invoice,
+    body: Record<string, unknown>,
+    msg: string
+  ) {
     setBusyId(inv.id);
     try {
       const res = await fetch(`/admin/api/invoices/${inv.id}`, {
@@ -94,7 +105,9 @@ export function InvoicesManager({
   async function del(inv: Invoice) {
     setBusyId(inv.id);
     try {
-      const res = await fetch(`/admin/api/invoices/${inv.id}`, { method: 'DELETE' });
+      const res = await fetch(`/admin/api/invoices/${inv.id}`, {
+        method: 'DELETE',
+      });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         toast.error(data.error ?? 'Delete failed');
@@ -108,9 +121,9 @@ export function InvoicesManager({
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="border-border bg-card rounded-xl border p-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-medium text-foreground">
+        <h2 className="text-foreground text-sm font-medium">
           Invoices ({invoices.length})
         </h2>
         <Button
@@ -125,16 +138,19 @@ export function InvoicesManager({
       </div>
 
       {invoices.length === 0 ? (
-        <p className="mt-4 text-sm text-muted-foreground">No invoices yet.</p>
+        <p className="text-muted-foreground mt-4 text-sm">No invoices yet.</p>
       ) : (
-        <ul className="mt-3 divide-y divide-border">
+        <ul className="divide-border mt-3 divide-y">
           {invoices.map((inv) => {
             const busy = busyId === inv.id;
             return (
-              <li key={inv.id} className="flex items-center justify-between gap-3 py-2.5">
+              <li
+                key={inv.id}
+                className="flex items-center justify-between gap-3 py-2.5"
+              >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="truncate text-sm font-medium text-foreground">
+                    <span className="text-foreground truncate text-sm font-medium">
                       {inv.invoiceNumber ?? 'Invoice'}
                     </span>
                     <span
@@ -143,7 +159,7 @@ export function InvoicesManager({
                       {inv.status}
                     </span>
                   </div>
-                  <p className="truncate text-xs text-muted-foreground">
+                  <p className="text-muted-foreground truncate text-xs">
                     {fmtDate(inv.issuedAt)} · {inv.description}
                     {inv.status === 'paid' && inv.paymentMethod
                       ? ` · ${paymentMethodLabel(inv.paymentMethod)}`
@@ -151,14 +167,14 @@ export function InvoicesManager({
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
-                  <span className="text-sm font-medium tabular-nums text-foreground">
+                  <span className="text-foreground text-sm font-medium tabular-nums">
                     {formatMoney(inv.amount, inv.currency)}
                   </span>
                   <a
                     href={`/invoices/${inv.id}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+                    className="text-muted-foreground hover:bg-muted hover:text-foreground flex size-8 items-center justify-center rounded-lg"
                     aria-label="View invoice"
                   >
                     <ExternalLink className="size-3.5" />
@@ -169,7 +185,9 @@ export function InvoicesManager({
                       size="sm"
                       variant="outline"
                       disabled={busy}
-                      onClick={() => invoiceAction(inv, { status: 'paid' }, 'Marked paid')}
+                      onClick={() =>
+                        invoiceAction(inv, { status: 'paid' }, 'Marked paid')
+                      }
                       className="border-border"
                     >
                       {busy ? (
@@ -186,8 +204,10 @@ export function InvoicesManager({
                       size="icon"
                       variant="ghost"
                       disabled={busy}
-                      onClick={() => invoiceAction(inv, { status: 'void' }, 'Invoice voided')}
-                      className="size-8 text-muted-foreground"
+                      onClick={() =>
+                        invoiceAction(inv, { status: 'void' }, 'Invoice voided')
+                      }
+                      className="text-muted-foreground size-8"
                       aria-label="Void invoice"
                     >
                       <Ban className="size-3.5" />
@@ -199,7 +219,7 @@ export function InvoicesManager({
                     variant="ghost"
                     disabled={busy}
                     onClick={() => del(inv)}
-                    className="size-8 text-destructive hover:bg-destructive/10"
+                    className="text-destructive hover:bg-destructive/10 size-8"
                     aria-label="Delete invoice"
                   >
                     <Trash2 className="size-3.5" />
@@ -242,13 +262,15 @@ function NewInvoiceDialog({
 
   const [description, setDescription] = useState(defaultDescription);
   const [amount, setAmount] = useState(
-    defaults.amount != null ? (defaults.amount / 100).toFixed(2) : '',
+    defaults.amount != null ? (defaults.amount / 100).toFixed(2) : ''
   );
   const [currency, setCurrency] = useState(defaults.currency || 'INR');
   const [status, setStatus] = useState<InvoiceStatus>('paid');
   const [method, setMethod] = useState<string>('bank_transfer');
   const [reference, setReference] = useState('');
-  const [periodStart, setPeriodStart] = useState(toLocalInput(defaults.periodStart));
+  const [periodStart, setPeriodStart] = useState(
+    toLocalInput(defaults.periodStart)
+  );
   const [periodEnd, setPeriodEnd] = useState(toLocalInput(defaults.periodEnd));
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
@@ -256,7 +278,9 @@ function NewInvoiceDialog({
   // Re-seed from the account's billing each time the dialog opens.
   function reset() {
     setDescription(defaultDescription);
-    setAmount(defaults.amount != null ? (defaults.amount / 100).toFixed(2) : '');
+    setAmount(
+      defaults.amount != null ? (defaults.amount / 100).toFixed(2) : ''
+    );
     setCurrency(defaults.currency || 'INR');
     setStatus('paid');
     setMethod('bank_transfer');
@@ -289,7 +313,9 @@ function NewInvoiceDialog({
           plan_key: defaults.planKey ?? undefined,
           payment_method: status === 'paid' ? method : undefined,
           payment_reference: reference.trim() || undefined,
-          period_start: periodStart ? new Date(periodStart).toISOString() : undefined,
+          period_start: periodStart
+            ? new Date(periodStart).toISOString()
+            : undefined,
           period_end: periodEnd ? new Date(periodEnd).toISOString() : undefined,
           notes: notes.trim() || undefined,
         }),
@@ -360,8 +386,11 @@ function NewInvoiceDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label className="text-foreground">Status</Label>
-              <Select value={status} onValueChange={(v) => v && setStatus(v as InvoiceStatus)}>
-                <SelectTrigger className="h-10 w-full border-border bg-muted">
+              <Select
+                value={status}
+                onValueChange={(v) => v && setStatus(v as InvoiceStatus)}
+              >
+                <SelectTrigger className="border-border bg-muted h-10 w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -374,7 +403,7 @@ function NewInvoiceDialog({
               <div className="space-y-2">
                 <Label className="text-foreground">Method</Label>
                 <Select value={method} onValueChange={(v) => v && setMethod(v)}>
-                  <SelectTrigger className="h-10 w-full border-border bg-muted">
+                  <SelectTrigger className="border-border bg-muted h-10 w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

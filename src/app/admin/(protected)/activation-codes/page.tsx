@@ -16,7 +16,7 @@ export default async function AdminActivationCodesPage() {
         `id, code, plan_key, duration_days, max_uses, use_count, expires_at,
          is_active, note, created_at,
          plan:billing_plans(name),
-         redemptions:activation_code_redemptions(redeemed_at, account:accounts(name))`,
+         redemptions:activation_code_redemptions(redeemed_at, account:accounts(name))`
       )
       .order('created_at', { ascending: false })
       .limit(500),
@@ -29,8 +29,8 @@ export default async function AdminActivationCodesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Activation codes</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h1 className="text-foreground text-2xl font-bold">Activation codes</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
           Generate prepaid codes that activate a plan for a fixed number of
           days. Tenants redeem them in Settings → Billing; redeeming onto an
           unexpired period of the same plan extends it.

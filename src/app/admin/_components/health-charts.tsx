@@ -50,10 +50,9 @@ Chart.register(
   CategoryScale,
   LinearScale,
   Filler,
-  Tooltip,
+  Tooltip
 );
-Chart.defaults.font.family =
-  'system-ui, -apple-system, "Segoe UI", sans-serif';
+Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", sans-serif';
 Chart.defaults.font.size = 11;
 
 /* ── theme-token resolution (CSS oklch → canvas-safe rgb) ───── */
@@ -191,7 +190,7 @@ function ChartCanvas({
       chartRef.current?.destroy();
       chartRef.current = null;
     },
-    [],
+    []
   );
 
   return (
@@ -247,7 +246,10 @@ export function Sparkline({
     return {
       type: 'line',
       data: {
-        labels: labels && labels.length === n ? labels : data.map((_, i) => String(i + 1)),
+        labels:
+          labels && labels.length === n
+            ? labels
+            : data.map((_, i) => String(i + 1)),
         datasets: [
           {
             data,
@@ -298,7 +300,7 @@ export function Sparkline({
       className={className}
       overlay={
         n < 2 ? (
-          <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-[10px] text-muted-foreground">
+          <span className="text-muted-foreground pointer-events-none absolute inset-0 flex items-center justify-center text-[10px]">
             collecting…
           </span>
         ) : undefined
@@ -370,9 +372,13 @@ export function RadialMeter({
         height={size}
       />
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-semibold text-foreground">{valueText}</span>
+        <span className="text-foreground text-2xl font-semibold">
+          {valueText}
+        </span>
         {caption && (
-          <span className="mt-0.5 text-[11px] text-muted-foreground">{caption}</span>
+          <span className="text-muted-foreground mt-0.5 text-[11px]">
+            {caption}
+          </span>
         )}
       </div>
     </div>
@@ -467,7 +473,9 @@ export function HBarChart({
               label: (item) => {
                 const it = items[item.dataIndex];
                 return (
-                  it?.caption ?? it?.valueText ?? formatValue(item.parsed.x ?? 0)
+                  it?.caption ??
+                  it?.valueText ??
+                  formatValue(item.parsed.x ?? 0)
                 );
               },
             },

@@ -25,7 +25,7 @@ export default async function AdminTicketDetailPage({
   const { data: ticket } = await db
     .from('support_tickets')
     .select(
-      'id, account_id, user_id, subject, category, priority, status, created_at',
+      'id, account_id, user_id, subject, category, priority, status, created_at'
     )
     .eq('id', id)
     .maybeSingle();
@@ -38,9 +38,17 @@ export default async function AdminTicketDetailPage({
       .select('*')
       .eq('ticket_id', id)
       .order('created_at', { ascending: true }),
-    db.from('accounts').select('id, name').eq('id', ticket.account_id).maybeSingle(),
+    db
+      .from('accounts')
+      .select('id, name')
+      .eq('id', ticket.account_id)
+      .maybeSingle(),
     ticket.user_id
-      ? db.from('profiles').select('email').eq('user_id', ticket.user_id).maybeSingle()
+      ? db
+          .from('profiles')
+          .select('email')
+          .eq('user_id', ticket.user_id)
+          .maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
 
@@ -54,7 +62,7 @@ export default async function AdminTicketDetailPage({
       <div>
         <Link
           href="/admin/tickets"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm"
         >
           <ArrowLeft className="size-4" />
           Tickets
@@ -63,8 +71,10 @@ export default async function AdminTicketDetailPage({
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-xl font-bold text-foreground">{ticket.subject}</h1>
-          <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+          <h1 className="text-foreground text-xl font-bold">
+            {ticket.subject}
+          </h1>
+          <p className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
             <Link
               href={`/admin/accounts/${ticket.account_id}`}
               className="text-foreground underline-offset-2 hover:underline"

@@ -11,7 +11,7 @@ const UUID_RE =
  */
 export async function PATCH(
   request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const admin = await getAdminUser();
   if (!admin) {
@@ -54,7 +54,10 @@ export async function PATCH(
     } else if (typeof v === 'string' && !Number.isNaN(Date.parse(v))) {
       update.expires_at = v;
     } else {
-      return NextResponse.json({ error: 'Invalid expires_at' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid expires_at' },
+        { status: 400 }
+      );
     }
   }
 
@@ -81,7 +84,7 @@ export async function PATCH(
  */
 export async function DELETE(
   _request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const admin = await getAdminUser();
   if (!admin) {
@@ -106,7 +109,7 @@ export async function DELETE(
   if (!data || data.length === 0) {
     return NextResponse.json(
       { error: 'Code not found, or already redeemed — deactivate it instead' },
-      { status: 409 },
+      { status: 409 }
     );
   }
   return NextResponse.json({ deleted: true });

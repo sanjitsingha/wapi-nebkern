@@ -8,9 +8,9 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // — the app has no customer-facing account-deletion endpoint today, and
 // promising one on a legal page would be a promise we'd break.
 export const metadata: Metadata = {
-  title: { absolute: 'Data Retention & Deletion Policy — wacrm' },
+  title: { absolute: 'Data Retention & Deletion Policy — Instant' },
   description:
-    'How long wacrm keeps each category of data, what happens when you delete a record or close an account, backup expiry, and the narrow categories we are required to retain.',
+    'How long Instant keeps each category of data, what happens when you delete a record or close an account, backup expiry, and the narrow categories we are required to retain.',
   robots: { index: true, follow: true },
 };
 
@@ -118,7 +118,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'Data held by others',
     blocks: [
       {
-        p: 'Deleting your wacrm workspace does not delete copies held elsewhere, and we cannot make it:',
+        p: 'Deleting your Instant workspace does not delete copies held elsewhere, and we cannot make it:',
       },
       {
         ul: [

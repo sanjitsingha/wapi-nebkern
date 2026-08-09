@@ -3,7 +3,10 @@ import {
   type SubscriptionStatus,
 } from '@/lib/billing/subscription';
 import { adminDb } from '../../_lib/admin-db';
-import { AccountsTable, type AccountView } from '../../_components/accounts-table';
+import {
+  AccountsTable,
+  type AccountView,
+} from '../../_components/accounts-table';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +39,7 @@ export default async function AdminAccountsPage({
     db
       .from('accounts')
       .select(
-        'id, name, owner_user_id, plan, subscription_status, trial_started_at, trial_ends_at, created_at',
+        'id, name, owner_user_id, plan, subscription_status, trial_started_at, trial_ends_at, created_at'
       )
       .order('created_at', { ascending: false }),
     db.from('profiles').select('user_id, email, account_id'),
@@ -52,7 +55,7 @@ export default async function AdminAccountsPage({
     if (p.account_id) {
       memberCountByAccount.set(
         p.account_id,
-        (memberCountByAccount.get(p.account_id) ?? 0) + 1,
+        (memberCountByAccount.get(p.account_id) ?? 0) + 1
       );
     }
   }
@@ -76,9 +79,10 @@ export default async function AdminAccountsPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Accounts</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {accounts.length} tenant{accounts.length === 1 ? '' : 's'} using the app.
+        <h1 className="text-foreground text-2xl font-bold">Accounts</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          {accounts.length} tenant{accounts.length === 1 ? '' : 's'} using the
+          app.
         </p>
       </div>
       <AccountsTable rows={rows} initialFilter={filter ?? 'all'} />

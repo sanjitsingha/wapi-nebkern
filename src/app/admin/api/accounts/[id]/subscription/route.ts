@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+
+import { ADMIN_TAGS, revalidateAdmin } from '../../../../_lib/admin-cache';
 import { getAdminUser } from '../../../../_lib/auth';
 import { adminDb } from '../../../../_lib/admin-db';
 
@@ -21,7 +23,7 @@ const STATUSES = new Set([
  */
 export async function POST(
   request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const admin = await getAdminUser();
   if (!admin) {
@@ -51,7 +53,7 @@ export async function POST(
     if (!STATUSES.has(body.subscription_status)) {
       return NextResponse.json(
         { error: 'Invalid subscription_status' },
-        { status: 400 },
+        { status: 400 }
       );
     }
     update.subscription_status = body.subscription_status;
@@ -66,7 +68,7 @@ export async function POST(
     } else {
       return NextResponse.json(
         { error: 'Invalid trial_ends_at' },
-        { status: 400 },
+        { status: 400 }
       );
     }
   }
@@ -85,5 +87,9 @@ export async function POST(
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  // Drop the cached account list and overview counters — without
+  // this the edit is invisible for up to a minute and reads as a
+  // save that silently failed.
+  revalidateAdmin(ADMIN_TAGS.accounts, ADMIN_TAGS.overview);
   return NextResponse.json({ account: data });
 }

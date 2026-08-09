@@ -2,7 +2,10 @@ import Link from 'next/link';
 import { PenSquare } from 'lucide-react';
 
 import { adminDb } from '../../_lib/admin-db';
-import { BlogPostsTable, type BlogPostRow } from '../../_components/blog-posts-table';
+import {
+  BlogPostsTable,
+  type BlogPostRow,
+} from '../../_components/blog-posts-table';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,14 +21,14 @@ export default async function AdminBlogPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Blog</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h1 className="text-foreground text-2xl font-bold">Blog</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
             Write and publish posts for the marketing site&apos;s /blog.
           </p>
         </div>
         <Link
           href="/admin/blog/editor"
-          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-4 text-sm font-semibold transition-colors"
         >
           <PenSquare className="size-4" />
           New post

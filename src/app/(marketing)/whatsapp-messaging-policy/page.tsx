@@ -8,9 +8,9 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // itself behaves and what a customer is agreeing to operate within.
 // Meta's Tech Provider review looks for exactly this document.
 export const metadata: Metadata = {
-  title: { absolute: 'WhatsApp Messaging Policy — wacrm' },
+  title: { absolute: 'WhatsApp Messaging Policy — Instant' },
   description:
-    'How messaging works on the WhatsApp Business Platform through wacrm — the 24-hour service window, template categories and approval, quality ratings, messaging limits and enforcement.',
+    'How messaging works on the WhatsApp Business Platform through Instant — the 24-hour service window, template categories and approval, quality ratings, messaging limits and enforcement.',
   robots: { index: true, follow: true },
 };
 
@@ -20,7 +20,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'What this policy is',
     blocks: [
       {
-        p: 'wacrm sends and receives on the official WhatsApp Business Platform as a Meta Tech Provider. That platform has its own rules, and they are not ours to waive. This policy explains how messaging works through wacrm and what you are agreeing to operate within when you connect a number.',
+        p: 'Instant sends and receives on the official WhatsApp Business Platform as a Meta Tech Provider. That platform has its own rules, and they are not ours to waive. This policy explains how messaging works through Instant and what you are agreeing to operate within when you connect a number.',
       },
       {
         p: 'It applies to every account, forms part of our Terms, and works alongside our Acceptable Use Policy — that one covers consent and content, this one covers platform mechanics. Both sit underneath Meta’s own WhatsApp Business Messaging Policy, WhatsApp Business Solution Terms and Commerce Policy, which you must also follow. Where any of them is stricter than us, the stricter rule wins.',
@@ -38,12 +38,12 @@ const SECTIONS: LegalSection[] = [
         ul: [
           'The window resets each time the customer sends a new message.',
           'It is per contact, per number — not per conversation thread or per agent.',
-          'wacrm shows you the remaining window in the inbox and stops a free-form send that would fall outside it. That guard is a convenience, not a legal shield: you remain responsible for what you send.',
+          'Instant shows you the remaining window in the inbox and stops a free-form send that would fall outside it. That guard is a convenience, not a legal shield: you remain responsible for what you send.',
           'Automations and AI agents obey the same window. A scheduled follow-up that lands outside it must be a template or it will not deliver.',
         ],
       },
       {
-        note: 'A failed send outside the window is a Meta rejection, not a wacrm bug. We surface the error code so you can see which rule was hit.',
+        note: 'A failed send outside the window is a Meta rejection, not an Instant bug. We surface the error code so you can see which rule was hit.',
       },
     ],
   },
@@ -52,7 +52,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'Message templates and categories',
     blocks: [
       {
-        p: 'Any message that starts a conversation, or restarts one after the window closes, has to be a template approved by Meta in advance. Templates are submitted from wacrm and reviewed by Meta, usually within minutes to a day. We do not control the outcome and cannot expedite it.',
+        p: 'Any message that starts a conversation, or restarts one after the window closes, has to be a template approved by Meta in advance. Templates are submitted from Instant and reviewed by Meta, usually within minutes to a day. We do not control the outcome and cannot expedite it.',
       },
       { p: 'Meta sorts templates into categories, and the category sets both the rules and the price:' },
       {
@@ -125,7 +125,7 @@ const SECTIONS: LegalSection[] = [
         ],
       },
       {
-        p: 'Meta’s pricing for conversations is set by Meta and billed through your WhatsApp Business Account, separately from your wacrm subscription. Changes to that pricing are outside our control.',
+        p: 'Meta’s pricing for conversations is set by Meta and billed through your WhatsApp Business Account, separately from your Instant subscription. Changes to that pricing are outside our control.',
       },
     ],
   },
@@ -143,7 +143,7 @@ const SECTIONS: LegalSection[] = [
         p: 'Meta enforces independently. It can warn, restrict, or ban your number and your WhatsApp Business Account without telling us first, and its decision stands regardless of anything we say.',
       },
       {
-        p: 'To report misuse of a number sending through wacrm, email {{EMAIL}} with the number and a screenshot. You do not need to be a customer to report it.',
+        p: 'To report misuse of a number sending through Instant, email {{EMAIL}} with the number and a screenshot. You do not need to be a customer to report it.',
       },
     ],
   },

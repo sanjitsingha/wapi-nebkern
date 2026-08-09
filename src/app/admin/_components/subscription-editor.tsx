@@ -89,7 +89,7 @@ export function SubscriptionEditor({
         subscription_status: status,
         trial_ends_at: trial ? new Date(trial).toISOString() : null,
       },
-      'Subscription updated',
+      'Subscription updated'
     );
 
   const extendTrial = () => {
@@ -97,20 +97,20 @@ export function SubscriptionEditor({
     // expired trial jumps forward from today.
     const base = Math.max(
       Date.now(),
-      trialEndsAt ? Date.parse(trialEndsAt) || Date.now() : Date.now(),
+      trialEndsAt ? Date.parse(trialEndsAt) || Date.now() : Date.now()
     );
     const next = new Date(base + 14 * 24 * 60 * 60 * 1000).toISOString();
     post(
       { subscription_status: 'trialing', trial_ends_at: next },
-      'Trial extended 14 days',
+      'Trial extended 14 days'
     );
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <h2 className="text-sm font-medium text-foreground">Subscription</h2>
+    <div className="border-border bg-card rounded-xl border p-4">
+      <h2 className="text-foreground text-sm font-medium">Subscription</h2>
       {trialDaysLeft !== null && (
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="text-muted-foreground mt-1 text-xs">
           {trialDaysLeft} day{trialDaysLeft === 1 ? '' : 's'} left in trial.
         </p>
       )}
@@ -135,7 +135,7 @@ export function SubscriptionEditor({
               value={status}
               onValueChange={(v) => v && setStatus(v as SubscriptionStatus)}
             >
-              <SelectTrigger className="h-10 w-full border-border bg-muted">
+              <SelectTrigger className="border-border bg-muted h-10 w-full">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -163,7 +163,7 @@ export function SubscriptionEditor({
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
+        <div className="border-border flex flex-wrap items-center gap-2 border-t pt-4">
           <Button
             type="button"
             onClick={save}
@@ -186,7 +186,9 @@ export function SubscriptionEditor({
           <Button
             type="button"
             variant="outline"
-            onClick={() => post({ subscription_status: 'active' }, 'Marked active')}
+            onClick={() =>
+              post({ subscription_status: 'active' }, 'Marked active')
+            }
             disabled={saving}
             className="border-border text-foreground"
           >

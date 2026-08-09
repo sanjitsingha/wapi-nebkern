@@ -9,9 +9,9 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // Written to be signable — hence the "how to execute" section, which is
 // the part most template DPAs forget.
 export const metadata: Metadata = {
-  title: { absolute: 'Data Processing Agreement — wacrm' },
+  title: { absolute: 'Data Processing Agreement — Instant' },
   description:
-    'The wacrm Data Processing Agreement — processor obligations, subprocessors, international transfers, security, breach notification, audit rights and deletion on termination.',
+    'The Instant Data Processing Agreement — processor obligations, subprocessors, international transfers, security, breach notification, audit rights and deletion on termination.',
   robots: { index: true, follow: true },
 };
 
@@ -21,7 +21,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'Parties and how this applies',
     blocks: [
       {
-        p: 'This Data Processing Agreement ("DPA") is between you, the customer named on the wacrm account ("Controller"), and {{COMPANY}}, registered at {{ADDRESS}} ("Processor", "we"). It forms part of and is governed by our Terms of Service (the "Agreement"). Where this DPA and the Terms conflict on the processing of personal data, this DPA wins.',
+        p: 'This Data Processing Agreement ("DPA") is between you, the customer named on the Instant account ("Controller"), and {{COMPANY}}, registered at {{ADDRESS}} ("Processor", "we"). It forms part of and is governed by our Terms of Service (the "Agreement"). Where this DPA and the Terms conflict on the processing of personal data, this DPA wins.',
       },
       {
         p: 'It applies automatically from the moment you accept the Terms and process personal data through the Service — no signature is required for it to bind us. If your procurement process needs a countersigned copy, see the last section.',
@@ -56,7 +56,7 @@ const SECTIONS: LegalSection[] = [
       },
       {
         ul: [
-          'Subject matter — provision of the wacrm customer-relationship platform for messaging channels.',
+          'Subject matter — provision of the Instant customer-relationship platform for messaging channels.',
           'Duration — for as long as your account is active, plus the deletion windows in our Data Retention & Deletion Policy.',
           'Nature and purpose — receiving, sending, storing, organising, retrieving, displaying and deleting messages and contact records; running automations, campaigns and AI agents you configure; providing support you request.',
           'Categories of personal data — names, phone numbers, WhatsApp/Instagram/Messenger identifiers, profile photos, message content and attachments, voice notes and call metadata, notes, tags, custom fields, deal and pipeline data, and anything else you or your contacts put into a conversation.',
@@ -201,7 +201,7 @@ export default function Lp2DpaPage() {
       title="Data Processing Agreement"
       hue="grape"
       updated="5 August 2026"
-      intro="Most of the personal data in wacrm is not ours — it is your customers', held on your instructions. This is the contract that governs how we handle it, and it applies automatically from the moment you accept our Terms."
+      intro="Most of the personal data in Instant is not ours — it is your customers', held on your instructions. This is the contract that governs how we handle it, and it applies automatically from the moment you accept our Terms."
       sections={SECTIONS}
     />
   );

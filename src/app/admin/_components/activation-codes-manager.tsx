@@ -65,9 +65,14 @@ function fmtDate(iso: string | null): string {
   });
 }
 
-function StatusBadge({ code, now }: { code: AdminActivationCode; now: number }) {
-  const expired =
-    code.expires_at != null && Date.parse(code.expires_at) <= now;
+function StatusBadge({
+  code,
+  now,
+}: {
+  code: AdminActivationCode;
+  now: number;
+}) {
+  const expired = code.expires_at != null && Date.parse(code.expires_at) <= now;
   const exhausted = code.use_count >= code.max_uses;
   const label = !code.is_active
     ? 'Disabled'
@@ -84,7 +89,7 @@ function StatusBadge({ code, now }: { code: AdminActivationCode; now: number }) 
           ? 'bg-primary-soft text-primary'
           : label === 'Used up'
             ? 'bg-sky-500/10 text-sky-700'
-            : 'bg-muted text-muted-foreground',
+            : 'bg-muted text-muted-foreground'
       )}
     >
       {label}
@@ -106,7 +111,9 @@ export function ActivationCodesManager({
   const [now] = useState(() => Date.now());
 
   // Create form
-  const [planKey, setPlanKey] = useState(plans.find((p) => p.isActive)?.key ?? '');
+  const [planKey, setPlanKey] = useState(
+    plans.find((p) => p.isActive)?.key ?? ''
+  );
   const [duration, setDuration] = useState('30');
   const [quantity, setQuantity] = useState('1');
   const [maxUses, setMaxUses] = useState('1');
@@ -149,13 +156,13 @@ export function ActivationCodesManager({
         return;
       }
       const created: string[] = (body.codes ?? []).map(
-        (c: { code: string }) => c.code,
+        (c: { code: string }) => c.code
       );
       setMinted(created);
       toast.success(
         created.length === 1
           ? 'Code generated'
-          : `${created.length} codes generated`,
+          : `${created.length} codes generated`
       );
       router.refresh();
     } finally {
@@ -221,10 +228,10 @@ export function ActivationCodesManager({
         </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-card">
+      <div className="border-border bg-card overflow-x-auto rounded-xl border">
         <table className="w-full min-w-190 text-sm">
           <thead>
-            <tr className="border-b border-border text-left text-xs text-muted-foreground">
+            <tr className="border-border text-muted-foreground border-b text-left text-xs">
               <th className="px-4 py-3 font-medium">Code</th>
               <th className="px-4 py-3 font-medium">Plan</th>
               <th className="px-4 py-3 font-medium">Duration</th>
@@ -240,26 +247,29 @@ export function ActivationCodesManager({
               <tr>
                 <td
                   colSpan={8}
-                  className="px-4 py-10 text-center text-muted-foreground"
+                  className="text-muted-foreground px-4 py-10 text-center"
                 >
                   No codes yet — generate the first batch.
                 </td>
               </tr>
             )}
             {codes.map((c) => (
-              <tr key={c.id} className="border-b border-border/60 last:border-0">
+              <tr
+                key={c.id}
+                className="border-border/60 border-b last:border-0"
+              >
                 <td className="px-4 py-3">
                   <button
                     type="button"
                     onClick={() => copy(c.code)}
                     title="Copy code"
-                    className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-foreground hover:text-primary"
+                    className="text-foreground hover:text-primary inline-flex items-center gap-1.5 font-mono text-xs font-semibold"
                   >
                     {c.code}
                     <Copy className="size-3 opacity-50" />
                   </button>
                   {c.redemptions.length > 0 && (
-                    <p className="mt-1 max-w-56 truncate text-[11px] text-muted-foreground">
+                    <p className="text-muted-foreground mt-1 max-w-56 truncate text-[11px]">
                       Redeemed by{' '}
                       {c.redemptions
                         .map((r) => r.account?.name ?? 'unknown')
@@ -280,21 +290,25 @@ export function ActivationCodesManager({
                 <td className="px-4 py-3">
                   <StatusBadge code={c} now={now} />
                 </td>
-                <td className="max-w-40 truncate px-4 py-3 text-muted-foreground">
+                <td className="text-muted-foreground max-w-40 truncate px-4 py-3">
                   {c.note ?? '—'}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
                     {busyId === c.id ? (
-                      <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                      <Loader2 className="text-muted-foreground size-4 animate-spin" />
                     ) : (
                       <>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          title={c.is_active ? 'Disable code' : 'Re-enable code'}
-                          onClick={() => patch(c.id, { is_active: !c.is_active })}
+                          title={
+                            c.is_active ? 'Disable code' : 'Re-enable code'
+                          }
+                          onClick={() =>
+                            patch(c.id, { is_active: !c.is_active })
+                          }
                         >
                           {c.is_active ? (
                             <Ban className="size-4" />
@@ -310,7 +324,7 @@ export function ActivationCodesManager({
                             title="Delete unused code"
                             onClick={() => remove(c.id)}
                           >
-                            <Trash2 className="size-4 text-destructive" />
+                            <Trash2 className="text-destructive size-4" />
                           </Button>
                         )}
                       </>
@@ -331,16 +345,16 @@ export function ActivationCodesManager({
 
           {minted.length > 0 ? (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 Copy these now — they&apos;re also listed in the table.
               </p>
-              <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-lg border border-border bg-muted/40 p-3">
+              <div className="border-border bg-muted/40 max-h-56 space-y-1.5 overflow-y-auto rounded-lg border p-3">
                 {minted.map((code) => (
                   <button
                     key={code}
                     type="button"
                     onClick={() => copy(code)}
-                    className="flex w-full items-center justify-between rounded-md px-2 py-1 font-mono text-xs font-semibold hover:bg-muted"
+                    className="hover:bg-muted flex w-full items-center justify-between rounded-md px-2 py-1 font-mono text-xs font-semibold"
                   >
                     {code}
                     <Copy className="size-3 opacity-50" />
@@ -416,7 +430,7 @@ export function ActivationCodesManager({
                     value={maxUses}
                     onChange={(e) => setMaxUses(e.target.value)}
                   />
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-muted-foreground text-[11px]">
                     Different accounts only — one account can never redeem the
                     same code twice.
                   </p>

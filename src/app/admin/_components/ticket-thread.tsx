@@ -4,10 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Loader2, Send, Headset } from 'lucide-react';
 
-import type {
-  SupportTicketMessage,
-  SupportTicketStatus,
-} from '@/types';
+import type { SupportTicketMessage, SupportTicketStatus } from '@/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -92,11 +89,11 @@ export function TicketThread({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-border bg-card">
+    <div className="border-border bg-card flex min-h-0 flex-1 flex-col rounded-xl border">
       {/* Status bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
+      <div className="border-border flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Status</span>
+          <span className="text-muted-foreground text-xs">Status</span>
           <TicketStatusBadge status={status} />
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -108,7 +105,7 @@ export function TicketThread({
               size="sm"
               disabled={updatingStatus || s === status}
               onClick={() => changeStatus(s)}
-              className="h-7 border-border text-xs capitalize disabled:opacity-40"
+              className="border-border h-7 text-xs capitalize disabled:opacity-40"
             >
               {s}
             </Button>
@@ -119,7 +116,7 @@ export function TicketThread({
       {/* Thread */}
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
         {messages.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
+          <p className="text-muted-foreground py-8 text-center text-sm">
             No messages yet.
           </p>
         ) : (
@@ -130,20 +127,20 @@ export function TicketThread({
                 key={m.id}
                 className={cn(
                   'flex flex-col',
-                  isSupport ? 'items-end' : 'items-start',
+                  isSupport ? 'items-end' : 'items-start'
                 )}
               >
                 <div
                   className={cn(
                     'max-w-[85%] rounded-2xl px-3.5 py-2 text-sm',
                     isSupport
-                      ? 'rounded-tr-sm bg-primary-soft text-foreground'
-                      : 'rounded-tl-sm bg-muted text-foreground',
+                      ? 'bg-primary-soft text-foreground rounded-tr-sm'
+                      : 'bg-muted text-foreground rounded-tl-sm'
                   )}
                 >
-                  <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                  <p className="break-words whitespace-pre-wrap">{m.body}</p>
                 </div>
-                <span className="mt-1 flex items-center gap-1 px-1 text-[10px] text-muted-foreground">
+                <span className="text-muted-foreground mt-1 flex items-center gap-1 px-1 text-[10px]">
                   {isSupport && <Headset className="size-3" />}
                   {isSupport ? 'You (support)' : 'Customer'} ·{' '}
                   {fmtDateTime(m.created_at)}
@@ -156,7 +153,7 @@ export function TicketThread({
       </div>
 
       {/* Reply */}
-      <div className="border-t border-border p-3">
+      <div className="border-border border-t p-3">
         <div className="flex items-end gap-2">
           <Textarea
             value={reply}
@@ -170,13 +167,13 @@ export function TicketThread({
             placeholder="Reply to the customer…"
             rows={2}
             disabled={sending}
-            className="max-h-40 min-h-11 flex-1 resize-none border-border bg-muted text-foreground"
+            className="border-border bg-muted text-foreground max-h-40 min-h-11 flex-1 resize-none"
           />
           <Button
             type="button"
             onClick={send}
             disabled={sending || !reply.trim()}
-            className="h-11 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 disabled:opacity-50"
           >
             {sending ? (
               <Loader2 className="size-4 animate-spin" />

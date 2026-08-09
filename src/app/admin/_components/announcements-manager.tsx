@@ -153,8 +153,8 @@ function Composer({ accounts }: { accounts: AccountOption[] }) {
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <h2 className="text-sm font-medium text-foreground">New announcement</h2>
+    <div className="border-border bg-card rounded-xl border p-4">
+      <h2 className="text-foreground text-sm font-medium">New announcement</h2>
 
       <div className="mt-4 space-y-4">
         <div className="space-y-2">
@@ -166,7 +166,7 @@ function Composer({ accounts }: { accounts: AccountOption[] }) {
             rows={2}
             placeholder="e.g. Your plan expires in 3 days — renew to avoid interruption."
             disabled={sending}
-            className="w-full resize-none rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none focus-visible:border-primary"
+            className="border-border bg-muted text-foreground focus-visible:border-primary w-full resize-none rounded-md border px-3 py-2 text-sm outline-none"
           />
         </div>
 
@@ -177,7 +177,7 @@ function Composer({ accounts }: { accounts: AccountOption[] }) {
               value={variant}
               onValueChange={(v) => v && setVariant(v as AnnouncementVariant)}
             >
-              <SelectTrigger className="h-10 w-full border-border bg-muted">
+              <SelectTrigger className="border-border bg-muted h-10 w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -194,7 +194,7 @@ function Composer({ accounts }: { accounts: AccountOption[] }) {
               value={dismissible}
               onValueChange={(v) => v && setDismissible(v as 'yes' | 'no')}
             >
-              <SelectTrigger className="h-10 w-full border-border bg-muted">
+              <SelectTrigger className="border-border bg-muted h-10 w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -207,7 +207,7 @@ function Composer({ accounts }: { accounts: AccountOption[] }) {
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <Label className="flex items-center gap-1.5 text-foreground">
+            <Label className="text-foreground flex items-center gap-1.5">
               <Link2 className="size-3.5" /> Link (optional)
             </Label>
             <Input
@@ -237,7 +237,7 @@ function Composer({ accounts }: { accounts: AccountOption[] }) {
               value={audience}
               onValueChange={(v) => v && setAudience(v as 'all' | 'account')}
             >
-              <SelectTrigger className="h-10 w-full border-border bg-muted">
+              <SelectTrigger className="border-border bg-muted h-10 w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -261,8 +261,11 @@ function Composer({ accounts }: { accounts: AccountOption[] }) {
         {audience === 'account' && (
           <div className="space-y-2">
             <Label className="text-foreground">Account</Label>
-            <Select value={accountId} onValueChange={(v) => v && setAccountId(v)}>
-              <SelectTrigger className="h-10 w-full border-border bg-muted">
+            <Select
+              value={accountId}
+              onValueChange={(v) => v && setAccountId(v)}
+            >
+              <SelectTrigger className="border-border bg-muted h-10 w-full">
                 <SelectValue placeholder="Select an account" />
               </SelectTrigger>
               <SelectContent>
@@ -280,7 +283,7 @@ function Composer({ accounts }: { accounts: AccountOption[] }) {
           type="button"
           onClick={send}
           disabled={sending}
-          className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 w-full"
         >
           {sending ? (
             <Loader2 className="size-4 animate-spin" />
@@ -342,7 +345,7 @@ function AnnouncementList({
 
   if (announcements.length === 0) {
     return (
-      <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+      <div className="border-border bg-card text-muted-foreground rounded-xl border p-6 text-sm">
         No announcements yet.
       </div>
     );
@@ -356,7 +359,10 @@ function AnnouncementList({
         const meta = VARIANT_META[a.variant];
         const VariantIcon = meta.icon;
         return (
-          <div key={a.id} className="rounded-xl border border-border bg-card p-4">
+          <div
+            key={a.id}
+            className="border-border bg-card rounded-xl border p-4"
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
@@ -369,14 +375,15 @@ function AnnouncementList({
                     <VariantIcon className="size-3" />
                     {meta.label}
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                  <span className="border-border bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px]">
                     {a.audience === 'all' ? (
                       <>
                         <Globe className="size-3" /> Global
                       </>
                     ) : (
                       <>
-                        <Building2 className="size-3" /> {a.accountName ?? 'Account'}
+                        <Building2 className="size-3" />{' '}
+                        {a.accountName ?? 'Account'}
                       </>
                     )}
                   </span>
@@ -391,10 +398,10 @@ function AnnouncementList({
                     {!a.isActive ? 'Inactive' : expired ? 'Expired' : 'Live'}
                   </span>
                 </div>
-                <p className="mt-1.5 line-clamp-2 text-sm text-foreground">
+                <p className="text-foreground mt-1.5 line-clamp-2 text-sm">
                   {a.message}
                 </p>
-                <p className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                <p className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-[11px]">
                   {a.linkUrl && (
                     <span className="inline-flex items-center gap-1">
                       <Link2 className="size-3" /> {a.linkLabel || 'link'}
@@ -430,7 +437,7 @@ function AnnouncementList({
                   variant="ghost"
                   disabled={busy}
                   onClick={() => del(a)}
-                  className="size-8 text-destructive hover:bg-destructive/10"
+                  className="text-destructive hover:bg-destructive/10 size-8"
                   aria-label="Delete announcement"
                 >
                   <Trash2 className="size-3.5" />

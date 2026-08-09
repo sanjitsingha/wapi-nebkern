@@ -40,7 +40,7 @@ export async function POST(request: Request) {
   if (!KEY_RE.test(key)) {
     return NextResponse.json(
       { error: 'Key must be a slug: lowercase letters, numbers, hyphens' },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
   if (!Number.isInteger(body.amount) || body.amount < 0) {
     return NextResponse.json(
       { error: 'amount must be a non-negative integer (minor units)' },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
   if (features === null) {
     return NextResponse.json(
       { error: 'features must be an array of strings' },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
   if (limits === null) {
     return NextResponse.json(
       { error: 'Invalid limits payload' },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
     if (error.code === '23505') {
       return NextResponse.json(
         { error: `A plan with key "${key}" already exists` },
-        { status: 409 },
+        { status: 409 }
       );
     }
     return NextResponse.json({ error: error.message }, { status: 500 });

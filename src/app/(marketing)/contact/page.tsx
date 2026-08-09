@@ -8,9 +8,9 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // policies, and the DPDP Act requires a named grievance contact. It's a
 // compliance page that happens to also be useful.
 export const metadata: Metadata = {
-  title: { absolute: 'Contact us — wacrm' },
+  title: { absolute: 'Contact us — Instant' },
   description:
-    'How to reach wacrm — support, billing, privacy and grievance contacts, registered address and response times.',
+    'How to reach Instant — support, billing, privacy and grievance contacts, registered address and response times.',
   robots: { index: true, follow: true },
 };
 
@@ -54,7 +54,7 @@ const SECTIONS: LegalSection[] = [
         p: 'To access, correct, export or delete your personal data, email {{EMAIL}}. We respond within 30 days and may need to verify your identity first. Full detail is in our Privacy Policy.',
       },
       {
-        p: 'If you are a customer of a business that uses wacrm and you want your data removed, contact that business — they control it. Tell us as well and we will pass the request on.',
+        p: 'If you are a customer of a business that uses Instant and you want your data removed, contact that business — they control it. Tell us as well and we will pass the request on.',
       },
     ],
   },
@@ -79,7 +79,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'Reporting spam or abuse',
     blocks: [
       {
-        p: 'Received a message you did not ask for, sent through wacrm? Email {{EMAIL}} with the sending number and a screenshot if you have one. You do not need to be a customer, and we investigate every report.',
+        p: 'Received a message you did not ask for, sent through Instant? Email {{EMAIL}} with the sending number and a screenshot if you have one. You do not need to be a customer, and we investigate every report.',
       },
     ],
   },

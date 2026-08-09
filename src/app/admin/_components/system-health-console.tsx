@@ -21,10 +21,7 @@ import { toast } from 'sonner';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import type {
-  SystemHealth,
-  ServiceStatus,
-} from '../_lib/system-health';
+import type { SystemHealth, ServiceStatus } from '../_lib/system-health';
 import { Sparkline, RadialMeter, HBarChart } from './health-charts';
 
 /** One polled sample, kept in a rolling buffer to feed the live sparklines. */
@@ -52,7 +49,10 @@ function fmtBytes(n: number | null | undefined): string {
   if (n == null) return '—';
   if (n === 0) return '0 B';
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.min(units.length - 1, Math.floor(Math.log(n) / Math.log(1024)));
+  const i = Math.min(
+    units.length - 1,
+    Math.floor(Math.log(n) / Math.log(1024))
+  );
   const v = n / Math.pow(1024, i);
   return `${v >= 100 || i === 0 ? Math.round(v) : v.toFixed(1)} ${units[i]}`;
 }
@@ -85,7 +85,13 @@ function fmtUptime(seconds: number): string {
 
 const STATUS_META: Record<
   ServiceStatus,
-  { label: string; dot: string; text: string; bg: string; icon: typeof CheckCircle2 }
+  {
+    label: string;
+    dot: string;
+    text: string;
+    bg: string;
+    icon: typeof CheckCircle2;
+  }
 > = {
   operational: {
     label: 'Operational',
@@ -124,7 +130,7 @@ function StatusPill({ status }: { status: ServiceStatus }) {
       className={cn(
         'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium',
         m.bg,
-        m.text,
+        m.text
       )}
     >
       <span className={cn('size-1.5 rounded-full', m.dot)} />
@@ -147,9 +153,11 @@ function Panel({
   className?: string;
 }) {
   return (
-    <div className={cn('rounded-xl border border-border bg-card p-4', className)}>
+    <div
+      className={cn('border-border bg-card rounded-xl border p-4', className)}
+    >
       <div className="flex items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+        <h2 className="text-foreground flex items-center gap-2 text-sm font-semibold">
           <span className="text-muted-foreground">{icon}</span>
           {title}
         </h2>
@@ -171,12 +179,12 @@ function Metric({
   sub?: string;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-muted/30 p-3">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 text-lg font-semibold tabular-nums text-foreground">
+    <div className="border-border bg-muted/30 rounded-lg border p-3">
+      <p className="text-muted-foreground text-xs">{label}</p>
+      <p className="text-foreground mt-1 text-lg font-semibold tabular-nums">
         {value}
       </p>
-      {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
+      {sub && <p className="text-muted-foreground text-[11px]">{sub}</p>}
     </div>
   );
 }
@@ -196,18 +204,22 @@ function ServiceCard({
 }) {
   const m = STATUS_META[status];
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="border-border bg-card rounded-xl border p-4">
       <div className="flex items-center justify-between">
         <span
-          className={cn('flex size-9 items-center justify-center rounded-lg', m.bg, m.text)}
+          className={cn(
+            'flex size-9 items-center justify-center rounded-lg',
+            m.bg,
+            m.text
+          )}
         >
           {icon}
         </span>
         <span className={cn('size-2.5 rounded-full', m.dot)} title={m.label} />
       </div>
-      <p className="mt-3 text-sm font-semibold text-foreground">{label}</p>
+      <p className="text-foreground mt-3 text-sm font-semibold">{label}</p>
       <p className={cn('text-xs', m.text)}>{m.label}</p>
-      <p className="mt-1 text-[11px] text-muted-foreground">{detail}</p>
+      <p className="text-muted-foreground mt-1 text-[11px]">{detail}</p>
     </div>
   );
 }
@@ -267,8 +279,16 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
   }, [health]);
 
   const generatedAgoMs = Date.now() - Date.parse(health.generatedAt);
-  const { database: db, storage, auth, runtime, webhooks, crons, tables, config } =
-    health;
+  const {
+    database: db,
+    storage,
+    auth,
+    runtime,
+    webhooks,
+    crons,
+    tables,
+    config,
+  } = health;
 
   const connFrac =
     db.activeConnections != null && db.maxConnections
@@ -292,7 +312,7 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-    }),
+    })
   );
 
   const configGroups = Array.from(new Set(config.map((c) => c.group)));
@@ -306,21 +326,23 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-foreground">System health</h1>
+            <h1 className="text-foreground text-2xl font-bold">
+              System health
+            </h1>
             <StatusPill status={health.overall} />
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-1 text-sm">
             Live status of the database, storage, auth, webhooks, and cron jobs.
             Updated {fmtAgo(generatedAgoMs)}.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <label className="text-muted-foreground flex items-center gap-1.5 text-xs">
             <input
               type="checkbox"
               checked={auto}
               onChange={(e) => setAuto(e.target.checked)}
-              className="size-3.5 accent-primary"
+              className="accent-primary size-3.5"
             />
             Auto-refresh
           </label>
@@ -374,7 +396,7 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
                 : c.status === 'degraded' && w !== 'down'
                   ? 'degraded'
                   : w,
-            'operational',
+            'operational'
           )}
           detail={`${crons.length} scheduled`}
         />
@@ -388,7 +410,11 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Database */}
-        <Panel title="Database" icon={<Database className="size-4" />} status={db.status}>
+        <Panel
+          title="Database"
+          icon={<Database className="size-4" />}
+          status={db.status}
+        >
           {db.error ? (
             <p className="text-sm text-red-600 dark:text-red-400">{db.error}</p>
           ) : (
@@ -401,17 +427,23 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
                   caption="pool used"
                 />
                 <div className="grid flex-1 grid-cols-2 gap-3">
-                  <Metric label="Latency" value={db.latencyMs != null ? `${db.latencyMs} ms` : '—'} />
+                  <Metric
+                    label="Latency"
+                    value={db.latencyMs != null ? `${db.latencyMs} ms` : '—'}
+                  />
                   <Metric label="Size" value={fmtBytes(db.sizeBytes)} />
                   <Metric
                     label="Connections"
                     value={`${fmtInt(db.activeConnections)} / ${fmtInt(db.maxConnections)}`}
                   />
-                  <Metric label="Postgres" value={db.postgresVersion?.split(' ')[0] ?? '—'} />
+                  <Metric
+                    label="Postgres"
+                    value={db.postgresVersion?.split(' ')[0] ?? '—'}
+                  />
                 </div>
               </div>
               <div>
-                <div className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
+                <div className="text-muted-foreground mb-1 flex items-center justify-between text-[11px]">
                   <span>Query latency</span>
                   <span className="tabular-nums">
                     {db.latencyMs != null ? `${db.latencyMs} ms now` : '—'}
@@ -428,9 +460,15 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
         </Panel>
 
         {/* Auth */}
-        <Panel title="Authentication" icon={<KeyRound className="size-4" />} status={auth.status}>
+        <Panel
+          title="Authentication"
+          icon={<KeyRound className="size-4" />}
+          status={auth.status}
+        >
           {auth.error ? (
-            <p className="text-sm text-red-600 dark:text-red-400">{auth.error}</p>
+            <p className="text-sm text-red-600 dark:text-red-400">
+              {auth.error}
+            </p>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <Metric label="Total users" value={fmtInt(auth.total)} />
@@ -444,22 +482,30 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
         </Panel>
 
         {/* Storage */}
-        <Panel title="Storage" icon={<HardDrive className="size-4" />} status={storage.status}>
+        <Panel
+          title="Storage"
+          icon={<HardDrive className="size-4" />}
+          status={storage.status}
+        >
           {storage.error ? (
-            <p className="text-sm text-red-600 dark:text-red-400">{storage.error}</p>
+            <p className="text-sm text-red-600 dark:text-red-400">
+              {storage.error}
+            </p>
           ) : (
             <div className="space-y-3">
               <div className="flex items-baseline justify-between">
-                <span className="text-2xl font-bold tabular-nums text-foreground">
+                <span className="text-foreground text-2xl font-bold tabular-nums">
                   {fmtBytes(storage.totalBytes)}
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-muted-foreground text-xs">
                   {fmtInt(storage.totalObjects)} objects ·{' '}
                   {storage.buckets.length} buckets
                 </span>
               </div>
               {storage.buckets.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No stored objects.</p>
+                <p className="text-muted-foreground text-sm">
+                  No stored objects.
+                </p>
               ) : (
                 <HBarChart
                   items={storage.buckets.map((b) => ({
@@ -476,9 +522,15 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
         </Panel>
 
         {/* Webhooks */}
-        <Panel title="Webhooks" icon={<Webhook className="size-4" />} status={webhooks.status}>
+        <Panel
+          title="Webhooks"
+          icon={<Webhook className="size-4" />}
+          status={webhooks.status}
+        >
           {webhooks.error ? (
-            <p className="text-sm text-red-600 dark:text-red-400">{webhooks.error}</p>
+            <p className="text-sm text-red-600 dark:text-red-400">
+              {webhooks.error}
+            </p>
           ) : (
             <div className="space-y-4">
               <div className="flex items-center gap-4">
@@ -493,7 +545,10 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
                   caption="24h success"
                 />
                 <div className="grid flex-1 grid-cols-2 gap-3">
-                  <Metric label="Active endpoints" value={fmtInt(webhooks.activeEndpoints)} />
+                  <Metric
+                    label="Active endpoints"
+                    value={fmtInt(webhooks.activeEndpoints)}
+                  />
                   <Metric
                     label="Pending"
                     value={fmtInt(webhooks.pending)}
@@ -503,14 +558,22 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
                         : undefined
                     }
                   />
-                  <Metric label="Delivered · 24h" value={fmtInt(webhooks.delivered24h)} />
-                  <Metric label="Failed · 24h" value={fmtInt(webhooks.failed24h)} />
+                  <Metric
+                    label="Delivered · 24h"
+                    value={fmtInt(webhooks.delivered24h)}
+                  />
+                  <Metric
+                    label="Failed · 24h"
+                    value={fmtInt(webhooks.failed24h)}
+                  />
                 </div>
               </div>
               <div>
-                <div className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
+                <div className="text-muted-foreground mb-1 flex items-center justify-between text-[11px]">
                   <span>Queue depth</span>
-                  <span className="tabular-nums">{fmtInt(webhooks.pending)} pending</span>
+                  <span className="tabular-nums">
+                    {fmtInt(webhooks.pending)} pending
+                  </span>
                 </div>
                 <Sparkline
                   data={pendingSeries}
@@ -528,7 +591,7 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
         <div className="overflow-x-auto">
           <table className="w-full min-w-160 text-sm">
             <thead>
-              <tr className="text-left text-xs text-muted-foreground">
+              <tr className="text-muted-foreground text-left text-xs">
                 <th className="pb-2 font-medium">Job</th>
                 <th className="pb-2 font-medium">Status</th>
                 <th className="pb-2 font-medium">Last run</th>
@@ -538,35 +601,45 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
                 <th className="pb-2 font-medium">Last result</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-border divide-y">
               {crons.map((c) => (
                 <tr key={c.key}>
                   <td className="py-2.5 pr-3">
-                    <p className="font-medium text-foreground">{c.label}</p>
-                    <p className="text-[11px] text-muted-foreground">{c.description}</p>
+                    <p className="text-foreground font-medium">{c.label}</p>
+                    <p className="text-muted-foreground text-[11px]">
+                      {c.description}
+                    </p>
                   </td>
                   <td className="py-2.5 pr-3">
                     <StatusPill status={c.status} />
                   </td>
-                  <td className="py-2.5 pr-3 whitespace-nowrap text-muted-foreground">
+                  <td className="text-muted-foreground py-2.5 pr-3 whitespace-nowrap">
                     {c.status === 'unknown' ? 'never' : fmtAgo(c.ageMs)}
                   </td>
-                  <td className="py-2.5 pr-3 tabular-nums text-muted-foreground">
+                  <td className="text-muted-foreground py-2.5 pr-3 tabular-nums">
                     {c.lastDurationMs != null ? `${c.lastDurationMs} ms` : '—'}
                   </td>
-                  <td className="py-2.5 pr-3 tabular-nums text-foreground">
+                  <td className="text-foreground py-2.5 pr-3 tabular-nums">
                     {fmtInt(c.runCount)}
                   </td>
                   <td className="py-2.5 pr-3 tabular-nums">
-                    <span className={c.errorCount > 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}>
+                    <span
+                      className={
+                        c.errorCount > 0
+                          ? 'text-red-600 dark:text-red-400'
+                          : 'text-muted-foreground'
+                      }
+                    >
                       {fmtInt(c.errorCount)}
                     </span>
                   </td>
-                  <td className="py-2.5 text-[11px] text-muted-foreground">
+                  <td className="text-muted-foreground py-2.5 text-[11px]">
                     {c.lastError ? (
-                      <span className="text-red-600 dark:text-red-400">{c.lastError}</span>
+                      <span className="text-red-600 dark:text-red-400">
+                        {c.lastError}
+                      </span>
                     ) : (
-                      <code className="rounded bg-muted px-1.5 py-0.5">
+                      <code className="bg-muted rounded px-1.5 py-0.5">
                         {Object.keys(c.detail).length
                           ? Object.entries(c.detail)
                               .map(([k, v]) => `${k}: ${v}`)
@@ -581,7 +654,7 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
           </table>
         </div>
         {crons.some((c) => c.status === 'unknown') && (
-          <p className="mt-3 text-[11px] text-muted-foreground">
+          <p className="text-muted-foreground mt-3 text-[11px]">
             “No data” means the job hasn&apos;t reported a run yet — confirm the
             external scheduler is hitting its endpoint.
           </p>
@@ -592,7 +665,9 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
         {/* Largest tables */}
         <Panel title="Largest tables" icon={<Table2 className="size-4" />}>
           {tables.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No table stats available.</p>
+            <p className="text-muted-foreground text-sm">
+              No table stats available.
+            </p>
           ) : (
             <>
               <HBarChart
@@ -604,7 +679,7 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
                 }))}
                 formatValue={fmtBytes}
               />
-              <p className="pt-2 text-right text-[10px] text-muted-foreground">
+              <p className="text-muted-foreground pt-2 text-right text-[10px]">
                 bar = total size · hover for row estimate
               </p>
             </>
@@ -612,11 +687,14 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
         </Panel>
 
         {/* Configuration + runtime */}
-        <Panel title="Configuration" icon={<SlidersHorizontal className="size-4" />}>
+        <Panel
+          title="Configuration"
+          icon={<SlidersHorizontal className="size-4" />}
+        >
           <div className="space-y-3">
             {configGroups.map((group) => (
               <div key={group}>
-                <p className="mb-1.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                <p className="text-muted-foreground mb-1.5 text-[11px] font-medium tracking-wide uppercase">
                   {group}
                 </p>
                 <div className="grid grid-cols-2 gap-1.5">
@@ -627,13 +705,15 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
                         key={c.key}
                         className={cn(
                           'inline-flex items-center gap-1.5 text-xs',
-                          c.present ? 'text-foreground' : 'text-muted-foreground',
+                          c.present
+                            ? 'text-foreground'
+                            : 'text-muted-foreground'
                         )}
                       >
                         {c.present ? (
                           <CheckCircle2 className="size-3.5 text-emerald-500" />
                         ) : (
-                          <XCircle className="size-3.5 text-muted-foreground/50" />
+                          <XCircle className="text-muted-foreground/50 size-3.5" />
                         )}
                         {c.label}
                       </span>
@@ -642,11 +722,11 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
               </div>
             ))}
 
-            <div className="border-t border-border pt-3">
-              <p className="mb-1.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+            <div className="border-border border-t pt-3">
+              <p className="text-muted-foreground mb-1.5 text-[11px] font-medium tracking-wide uppercase">
                 Runtime
               </p>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              <div className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-xs">
                 <span>Node {runtime.nodeVersion}</span>
                 <span>env: {runtime.environment}</span>
                 <span>up {fmtUptime(runtime.uptimeSeconds)}</span>
@@ -655,11 +735,11 @@ export function SystemHealthConsole({ initial }: { initial: SystemHealth }) {
                 type="button"
                 onClick={() => {
                   navigator.clipboard?.writeText(
-                    `${window.location.origin}${runtime.healthEndpoint}`,
+                    `${window.location.origin}${runtime.healthEndpoint}`
                   );
                   toast.success('Health endpoint URL copied');
                 }}
-                className="mt-2 inline-flex items-center gap-1.5 text-xs text-primary hover:text-primary/80"
+                className="text-primary hover:text-primary/80 mt-2 inline-flex items-center gap-1.5 text-xs"
               >
                 <Copy className="size-3" />
                 Copy public health-check URL ({runtime.healthEndpoint})

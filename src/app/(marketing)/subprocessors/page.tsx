@@ -9,9 +9,9 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // placeholder — a subprocessor list naming the wrong host is worse
 // than one that visibly needs filling in.
 export const metadata: Metadata = {
-  title: { absolute: 'Subprocessor List — wacrm' },
+  title: { absolute: 'Subprocessor List — Instant' },
   description:
-    'The third-party providers wacrm uses to process personal data on behalf of customers — what each one does, what data it sees, and how we notify you of changes.',
+    'The third-party providers Instant uses to process personal data on behalf of customers — what each one does, what data it sees, and how we notify you of changes.',
   robots: { index: true, follow: true },
 };
 
@@ -21,7 +21,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'What a subprocessor is',
     blocks: [
       {
-        p: 'To run wacrm we rely on other companies — a database provider, the messaging platforms themselves, a payment processor. Where one of them processes personal data on our behalf in the course of providing the Service to you, it is a subprocessor, and you are entitled to know who it is.',
+        p: 'To run Instant we rely on other companies — a database provider, the messaging platforms themselves, a payment processor. Where one of them processes personal data on our behalf in the course of providing the Service to you, it is a subprocessor, and you are entitled to know who it is.',
       },
       {
         p: 'This page is that list. It forms part of our Data Processing Agreement, and the authorisation you give us there is an authorisation to use the providers named below.',
@@ -42,7 +42,7 @@ const SECTIONS: LegalSection[] = [
         ul: [
           'Supabase — managed PostgreSQL database, authentication and file storage. Sees essentially all workspace data: account and user records, contacts, message history, attachments and avatars. This is where your workspace lives.',
           'Meta Platforms — the WhatsApp Business Platform, Instagram and Messenger. Sees the messages, phone numbers and profile identifiers of every conversation on those channels, necessarily, because it is the network carrying them. Meta acts as an independent controller under its own terms, not merely as our subprocessor.',
-          '{{HOSTING}} — application hosting and content delivery for the wacrm web application and its APIs. Processes request data including IP addresses, and handles data in transit.',
+          '{{HOSTING}} — application hosting and content delivery for the Instant web application and its APIs. Processes request data including IP addresses, and handles data in transit.',
         ],
       },
       {
@@ -60,7 +60,7 @@ const SECTIONS: LegalSection[] = [
         ],
       },
       {
-        p: 'Meta bills conversation charges to your own WhatsApp Business Account separately from your wacrm subscription. That relationship is between you and Meta.',
+        p: 'Meta bills conversation charges to your own WhatsApp Business Account separately from your Instant subscription. That relationship is between you and Meta.',
       },
     ],
   },
@@ -128,7 +128,7 @@ export default function Lp2SubprocessorsPage() {
       title="Subprocessor List"
       hue="pop"
       updated="5 August 2026"
-      intro="Every third party that touches your data to make wacrm work — what each one does, what it can see, and how to object if you would rather we did not use one."
+      intro="Every third party that touches your data to make Instant work — what each one does, what it can see, and how to object if you would rather we did not use one."
       sections={SECTIONS}
     />
   );

@@ -65,7 +65,7 @@ export function BillingEditor({
   const [amount, setAmount] = useState(toMajor(billingAmount));
   const [currency, setCurrency] = useState(billingCurrency || 'INR');
   const [interval, setInterval] = useState<'monthly' | 'yearly'>(
-    billingInterval ?? 'monthly',
+    billingInterval ?? 'monthly'
   );
   const [start, setStart] = useState(toLocalInput(periodStart));
   const [end, setEnd] = useState(toLocalInput(periodEnd));
@@ -127,9 +127,9 @@ export function BillingEditor({
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <h2 className="text-sm font-medium text-foreground">Billing (manual)</h2>
-      <p className="mt-1 text-xs text-muted-foreground">
+    <div className="border-border bg-card rounded-xl border p-4">
+      <h2 className="text-foreground text-sm font-medium">Billing (manual)</h2>
+      <p className="text-muted-foreground mt-1 text-xs">
         Assign a paid plan, price, and current period. Payments are recorded
         outside the app for now.
       </p>
@@ -138,7 +138,7 @@ export function BillingEditor({
         <div className="space-y-2">
           <Label className="text-foreground">Plan</Label>
           <Select value={planKey} onValueChange={(v) => v && onPlanChange(v)}>
-            <SelectTrigger className="h-10 w-full border-border bg-muted">
+            <SelectTrigger className="border-border bg-muted h-10 w-full">
               <SelectValue placeholder="Select a plan" />
             </SelectTrigger>
             <SelectContent>
@@ -183,7 +183,7 @@ export function BillingEditor({
               onValueChange={(v) => v && setInterval(v as 'monthly' | 'yearly')}
             >
               <SelectTrigger
-                className="h-10 w-full border-border bg-muted"
+                className="border-border bg-muted h-10 w-full"
                 disabled={saving || planKey === NONE}
               >
                 <SelectValue />
@@ -225,7 +225,7 @@ export function BillingEditor({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
+        <div className="border-border flex flex-wrap items-center gap-2 border-t pt-4">
           <Button
             type="button"
             onClick={save}

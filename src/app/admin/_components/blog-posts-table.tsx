@@ -44,12 +44,12 @@ export function BlogPostsTable({ posts }: { posts: BlogPostRow[] }) {
 
   if (posts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
-        <span className="flex size-11 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+      <div className="border-border bg-muted/20 flex flex-col items-center justify-center rounded-xl border border-dashed px-6 py-16 text-center">
+        <span className="bg-muted text-muted-foreground flex size-11 items-center justify-center rounded-xl">
           <FileText className="size-5" />
         </span>
-        <p className="mt-4 text-sm font-medium text-foreground">No posts yet</p>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="text-foreground mt-4 text-sm font-medium">No posts yet</p>
+        <p className="text-muted-foreground mt-1 text-xs">
           Click “New post” to write your first article.
         </p>
       </div>
@@ -63,13 +63,13 @@ export function BlogPostsTable({ posts }: { posts: BlogPostRow[] }) {
         return (
           <div
             key={p.id}
-            className="flex items-start justify-between gap-3 rounded-xl border border-border bg-card p-4"
+            className="border-border bg-card flex items-start justify-between gap-3 rounded-xl border p-4"
           >
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <Link
                   href={`/admin/blog/editor?id=${p.id}`}
-                  className="truncate text-sm font-semibold text-foreground hover:text-primary"
+                  className="text-foreground hover:text-primary truncate text-sm font-semibold"
                 >
                   {p.title}
                 </Link>
@@ -78,7 +78,7 @@ export function BlogPostsTable({ posts }: { posts: BlogPostRow[] }) {
                     'rounded-full px-2 py-0.5 text-[11px] font-medium',
                     p.status === 'published'
                       ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                      : 'bg-muted text-muted-foreground',
+                      : 'bg-muted text-muted-foreground'
                   )}
                 >
                   {p.status === 'published' ? 'Published' : 'Draft'}
@@ -86,18 +86,18 @@ export function BlogPostsTable({ posts }: { posts: BlogPostRow[] }) {
                 {p.tags.map((t) => (
                   <span
                     key={t}
-                    className="rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
+                    className="border-border bg-muted text-muted-foreground rounded-full border px-2 py-0.5 text-[11px]"
                   >
                     {t}
                   </span>
                 ))}
               </div>
               {p.excerpt && (
-                <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">
+                <p className="text-muted-foreground mt-1 line-clamp-1 text-sm">
                   {p.excerpt}
                 </p>
               )}
-              <p className="mt-1 text-[11px] text-muted-foreground">
+              <p className="text-muted-foreground mt-1 text-[11px]">
                 /blog/{p.slug}
                 {p.published_at
                   ? ` · Published ${fmtDateTime(p.published_at)}`
@@ -111,7 +111,7 @@ export function BlogPostsTable({ posts }: { posts: BlogPostRow[] }) {
                 <Link
                   href={`/blog/${p.slug}`}
                   target="_blank"
-                  className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className="text-muted-foreground hover:bg-muted hover:text-foreground flex size-8 items-center justify-center rounded-md transition-colors"
                   aria-label="View post"
                 >
                   <ExternalLink className="size-3.5" />
@@ -132,7 +132,7 @@ export function BlogPostsTable({ posts }: { posts: BlogPostRow[] }) {
                 variant="ghost"
                 disabled={busy}
                 onClick={() => del(p)}
-                className="size-8 text-destructive hover:bg-destructive/10"
+                className="text-destructive hover:bg-destructive/10 size-8"
                 aria-label="Delete post"
               >
                 {busy ? (

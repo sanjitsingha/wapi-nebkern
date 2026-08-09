@@ -13,7 +13,7 @@ const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
  */
 export async function POST(
   request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const admin = await getAdminUser();
   if (!admin) {
@@ -40,11 +40,12 @@ export async function POST(
   }
 
   if ('slug' in body) {
-    const slug = typeof body.slug === 'string' ? body.slug.trim().toLowerCase() : '';
+    const slug =
+      typeof body.slug === 'string' ? body.slug.trim().toLowerCase() : '';
     if (!SLUG_RE.test(slug)) {
       return NextResponse.json(
         { error: 'Slug must be lowercase letters, numbers and hyphens' },
-        { status: 400 },
+        { status: 400 }
       );
     }
     update.slug = slug;
@@ -58,8 +59,10 @@ export async function POST(
     if (key in body) {
       const v = body[key];
       if (v === null || v === '') update[key] = null;
-      else if (typeof v === 'string') update[key] = v.trim().slice(0, max) || null;
-      else return NextResponse.json({ error: `Invalid ${key}` }, { status: 400 });
+      else if (typeof v === 'string')
+        update[key] = v.trim().slice(0, max) || null;
+      else
+        return NextResponse.json({ error: `Invalid ${key}` }, { status: 400 });
     }
   }
 
@@ -115,7 +118,7 @@ export async function POST(
     if (error.code === '23505') {
       return NextResponse.json(
         { error: 'That slug is already taken' },
-        { status: 409 },
+        { status: 409 }
       );
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -126,7 +129,7 @@ export async function POST(
 /** Delete a post (admin-only). */
 export async function DELETE(
   _request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const admin = await getAdminUser();
   if (!admin) {

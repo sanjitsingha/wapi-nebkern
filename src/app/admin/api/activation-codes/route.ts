@@ -39,14 +39,17 @@ export async function POST(request: Request) {
   const planKey =
     typeof body.plan_key === 'string' ? body.plan_key.trim().toLowerCase() : '';
   if (!planKey) {
-    return NextResponse.json({ error: 'plan_key is required' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'plan_key is required' },
+      { status: 400 }
+    );
   }
 
   const duration = body.duration_days;
   if (!Number.isInteger(duration) || duration < 1 || duration > 3650) {
     return NextResponse.json(
       { error: 'duration_days must be an integer between 1 and 3650' },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -54,7 +57,7 @@ export async function POST(request: Request) {
   if (quantity < 1 || quantity > 100) {
     return NextResponse.json(
       { error: 'quantity must be between 1 and 100' },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -62,7 +65,7 @@ export async function POST(request: Request) {
   if (maxUses < 1 || maxUses > 10000) {
     return NextResponse.json(
       { error: 'max_uses must be between 1 and 10000' },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -72,7 +75,10 @@ export async function POST(request: Request) {
       typeof body.expires_at !== 'string' ||
       Number.isNaN(Date.parse(body.expires_at))
     ) {
-      return NextResponse.json({ error: 'Invalid expires_at' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid expires_at' },
+        { status: 400 }
+      );
     }
     expiresAt = body.expires_at;
   }
@@ -91,7 +97,7 @@ export async function POST(request: Request) {
   if (!plan) {
     return NextResponse.json(
       { error: `No billing plan with key "${planKey}"` },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -116,7 +122,7 @@ export async function POST(request: Request) {
     if (error.code === '23505') {
       return NextResponse.json(
         { error: 'Code collision — please try again' },
-        { status: 409 },
+        { status: 409 }
       );
     }
     return NextResponse.json({ error: error.message }, { status: 500 });

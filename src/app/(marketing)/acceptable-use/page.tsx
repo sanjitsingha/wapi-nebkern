@@ -2,15 +2,15 @@ import type { Metadata } from 'next';
 
 import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 
-// Not boilerplate for this product. wacrm sends on the WhatsApp
+// Not boilerplate for this product. Instant sends on the WhatsApp
 // Business Platform, where one customer's spam lowers quality ratings,
 // triggers Meta enforcement and can get numbers banned. This policy is
 // the document we point at when suspending an account, so it has to be
 // specific about opt-in and opt-out rather than gesturing at "misuse".
 export const metadata: Metadata = {
-  title: { absolute: 'Acceptable Use Policy — wacrm' },
+  title: { absolute: 'Acceptable Use Policy — Instant' },
   description:
-    'The messaging rules for wacrm — opt-in requirements, honouring opt-outs, prohibited content and conduct, and how we enforce them.',
+    'The messaging rules for Instant — opt-in requirements, honouring opt-outs, prohibited content and conduct, and how we enforce them.',
   robots: { index: true, follow: true },
 };
 
@@ -23,7 +23,7 @@ const SECTIONS: LegalSection[] = [
         p: 'WhatsApp is not email. Recipients can report a business with one tap, and Meta responds by lowering that number’s quality rating, cutting its messaging limits, and eventually banning it. Spam sent from one account also makes the whole platform more hostile to every legitimate business on it.',
       },
       {
-        p: 'So this policy is stricter than you might expect, and we enforce it. It applies to everyone using wacrm and forms part of our Terms. It sits alongside — never instead of — Meta’s WhatsApp Business Messaging Policy and Commerce Policy, which you must also follow.',
+        p: 'So this policy is stricter than you might expect, and we enforce it. It applies to everyone using Instant and forms part of our Terms. It sits alongside — never instead of — Meta’s WhatsApp Business Messaging Policy and Commerce Policy, which you must also follow.',
       },
     ],
   },
@@ -79,7 +79,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'Content you may not send',
     blocks: [
       {
-        p: 'You may not use wacrm to send, store or promote:',
+        p: 'You may not use Instant to send, store or promote:',
       },
       {
         ul: [
@@ -148,7 +148,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'Reporting abuse',
     blocks: [
       {
-        p: 'If you received a message you believe was sent through wacrm without your consent, or you want to report any misuse, email {{EMAIL}}. Include the sending number and a screenshot if you have one. We investigate every report, and you do not need to be a customer to make one.',
+        p: 'If you received a message you believe was sent through Instant without your consent, or you want to report any misuse, email {{EMAIL}}. Include the sending number and a screenshot if you have one. We investigate every report, and you do not need to be a customer to make one.',
       },
       {
         p: 'To stop messages from a specific business, replying "stop" is usually fastest — but tell us as well if they keep coming.',

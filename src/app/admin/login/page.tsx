@@ -54,21 +54,21 @@ function AdminLoginInner() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="bg-background flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
-          <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10">
-            <ShieldCheck className="size-6 text-primary" />
+          <div className="bg-primary/10 flex size-11 items-center justify-center rounded-xl">
+            <ShieldCheck className="text-primary size-6" />
           </div>
-          <h1 className="text-lg font-semibold text-foreground">Admin panel</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-foreground text-lg font-semibold">Admin panel</h1>
+          <p className="text-muted-foreground text-sm">
             Sign in with an authorized admin account.
           </p>
         </div>
 
         <form
           onSubmit={onSubmit}
-          className="space-y-4 rounded-2xl border border-border bg-card p-6"
+          className="border-border bg-card space-y-4 rounded-2xl border p-6"
         >
           <div className="space-y-2">
             <Label htmlFor="email" className="text-foreground">
@@ -100,7 +100,7 @@ function AdminLoginInner() {
           </div>
 
           {error && (
-            <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            <p className="border-destructive/30 bg-destructive/10 text-destructive rounded-lg border px-3 py-2 text-xs">
               {error}
             </p>
           )}
@@ -108,7 +108,7 @@ function AdminLoginInner() {
           <Button
             type="submit"
             disabled={loading || !email || !password}
-            className="h-11 w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 w-full disabled:opacity-50"
           >
             {loading ? (
               <>

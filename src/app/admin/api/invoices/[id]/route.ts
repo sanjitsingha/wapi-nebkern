@@ -17,7 +17,7 @@ const STATUSES = new Set(['due', 'paid', 'void']);
  */
 export async function POST(
   request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const admin = await getAdminUser();
   if (!admin) {
@@ -52,29 +52,48 @@ export async function POST(
   if ('paid_at' in body) {
     const v = body.paid_at;
     if (v === null) update.paid_at = null;
-    else if (typeof v === 'string' && !Number.isNaN(Date.parse(v))) update.paid_at = v;
-    else return NextResponse.json({ error: 'Invalid paid_at' }, { status: 400 });
+    else if (typeof v === 'string' && !Number.isNaN(Date.parse(v)))
+      update.paid_at = v;
+    else
+      return NextResponse.json({ error: 'Invalid paid_at' }, { status: 400 });
   }
 
   if ('due_date' in body) {
     const v = body.due_date;
     if (v === null) update.due_date = null;
-    else if (typeof v === 'string' && !Number.isNaN(Date.parse(v))) update.due_date = v;
-    else return NextResponse.json({ error: 'Invalid due_date' }, { status: 400 });
+    else if (typeof v === 'string' && !Number.isNaN(Date.parse(v)))
+      update.due_date = v;
+    else
+      return NextResponse.json({ error: 'Invalid due_date' }, { status: 400 });
   }
 
-  for (const field of ['payment_method', 'payment_reference', 'notes'] as const) {
+  for (const field of [
+    'payment_method',
+    'payment_reference',
+    'notes',
+  ] as const) {
     if (field in body) {
       const v = body[field];
       if (v === null) update[field] = null;
       else if (typeof v === 'string') update[field] = v.trim() || null;
-      else return NextResponse.json({ error: `Invalid ${field}` }, { status: 400 });
+      else
+        return NextResponse.json(
+          { error: `Invalid ${field}` },
+          { status: 400 }
+        );
     }
   }
 
   if ('description' in body) {
-    if (typeof body.description !== 'string' || !body.description.trim() || body.description.length > 300) {
-      return NextResponse.json({ error: 'Invalid description' }, { status: 400 });
+    if (
+      typeof body.description !== 'string' ||
+      !body.description.trim() ||
+      body.description.length > 300
+    ) {
+      return NextResponse.json(
+        { error: 'Invalid description' },
+        { status: 400 }
+      );
     }
     update.description = body.description.trim();
   }
@@ -100,7 +119,7 @@ export async function POST(
  *  marking 'void' to keep the ledger intact. */
 export async function DELETE(
   _request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const admin = await getAdminUser();
   if (!admin) {

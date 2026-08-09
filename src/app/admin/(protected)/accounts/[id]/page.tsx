@@ -38,12 +38,14 @@ function UsageStat({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <div className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+    <div className="border-border bg-card rounded-xl border p-4">
+      <div className="bg-muted text-muted-foreground flex size-8 items-center justify-center rounded-lg">
         {icon}
       </div>
-      <p className="mt-2 text-xl font-bold text-foreground">{value.toLocaleString()}</p>
-      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-foreground mt-2 text-xl font-bold">
+        {value.toLocaleString()}
+      </p>
+      <p className="text-muted-foreground text-xs">{label}</p>
     </div>
   );
 }
@@ -60,7 +62,7 @@ export default async function AdminAccountDetailPage({
   const { data: account } = await db
     .from('accounts')
     .select(
-      'id, name, owner_user_id, plan, subscription_status, trial_started_at, trial_ends_at, created_at, billing_plan_key, billing_amount, billing_currency, billing_interval, current_period_start, current_period_end',
+      'id, name, owner_user_id, plan, subscription_status, trial_started_at, trial_ends_at, created_at, billing_plan_key, billing_amount, billing_currency, billing_interval, current_period_start, current_period_end'
     )
     .eq('id', id)
     .maybeSingle();
@@ -76,28 +78,43 @@ export default async function AdminAccountDetailPage({
     plansRes,
     invoicesRes,
   ] = await Promise.all([
-      db
-        .from('profiles')
-        .select('user_id, email, full_name, account_role')
-        .eq('account_id', id),
-      db.from('whatsapp_config').select('phone_number_id').eq('account_id', id).maybeSingle(),
-      db.from('contacts').select('*', { count: 'exact', head: true }).eq('account_id', id),
-      db.from('broadcasts').select('*', { count: 'exact', head: true }).eq('account_id', id),
-      db.from('support_tickets').select('*', { count: 'exact', head: true }).eq('account_id', id),
-      db
-        .from('billing_plans')
-        .select(BILLING_PLAN_COLUMNS)
-        .order('sort_order', { ascending: true }),
-      db
-        .from('invoices')
-        .select(
-          'id, invoice_number, plan_key, description, amount, currency, status, period_start, period_end, issued_at, due_date, paid_at, payment_method, payment_reference, notes',
-        )
-        .eq('account_id', id)
-        .order('issued_at', { ascending: false }),
-    ]);
+    db
+      .from('profiles')
+      .select('user_id, email, full_name, account_role')
+      .eq('account_id', id),
+    db
+      .from('whatsapp_config')
+      .select('phone_number_id')
+      .eq('account_id', id)
+      .maybeSingle(),
+    db
+      .from('contacts')
+      .select('*', { count: 'exact', head: true })
+      .eq('account_id', id),
+    db
+      .from('broadcasts')
+      .select('*', { count: 'exact', head: true })
+      .eq('account_id', id),
+    db
+      .from('support_tickets')
+      .select('*', { count: 'exact', head: true })
+      .eq('account_id', id),
+    db
+      .from('billing_plans')
+      .select(BILLING_PLAN_COLUMNS)
+      .order('sort_order', { ascending: true }),
+    db
+      .from('invoices')
+      .select(
+        'id, invoice_number, plan_key, description, amount, currency, status, period_start, period_end, issued_at, due_date, paid_at, payment_method, payment_reference, notes'
+      )
+      .eq('account_id', id)
+      .order('issued_at', { ascending: false }),
+  ]);
 
-  const invoices = ((invoicesRes.data ?? []) as InvoiceRow[]).map(mapInvoiceRow);
+  const invoices = ((invoicesRes.data ?? []) as InvoiceRow[]).map(
+    mapInvoiceRow
+  );
 
   const plans: BillingPlan[] = (
     (plansRes.data ?? []) as Parameters<typeof mapBillingPlanRow>[0][]
@@ -120,7 +137,7 @@ export default async function AdminAccountDetailPage({
       <div>
         <Link
           href="/admin/accounts"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm"
         >
           <ArrowLeft className="size-4" />
           Accounts
@@ -130,10 +147,12 @@ export default async function AdminAccountDetailPage({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-foreground">{account.name}</h1>
+            <h1 className="text-foreground text-2xl font-bold">
+              {account.name}
+            </h1>
             <SubscriptionBadge status={sub.status} />
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-1 text-sm">
             Owner {ownerEmail ?? '—'} · Created {fmtDate(account.created_at)} ·{' '}
             {waConnected ? 'WhatsApp connected' : 'WhatsApp not connected'}
             {billingLabel ? ` · ${billingLabel}` : ''}
@@ -173,13 +192,15 @@ export default async function AdminAccountDetailPage({
           trialDaysLeft={sub.isTrial ? sub.trialDaysLeft : null}
         />
 
-        <div className="rounded-xl border border-border bg-card p-4">
-          <h2 className="text-sm font-medium text-foreground">
+        <div className="border-border bg-card rounded-xl border p-4">
+          <h2 className="text-foreground text-sm font-medium">
             Members ({members.length})
           </h2>
-          <ul className="mt-3 divide-y divide-border">
+          <ul className="divide-border mt-3 divide-y">
             {members.length === 0 ? (
-              <li className="py-3 text-sm text-muted-foreground">No members.</li>
+              <li className="text-muted-foreground py-3 text-sm">
+                No members.
+              </li>
             ) : (
               members.map((m) => (
                 <li
@@ -187,16 +208,16 @@ export default async function AdminAccountDetailPage({
                   className="flex items-center justify-between gap-3 py-2.5"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm text-foreground">
+                    <p className="text-foreground truncate text-sm">
                       {m.full_name || m.email || 'Unknown'}
                     </p>
                     {m.full_name && m.email && (
-                      <p className="truncate text-xs text-muted-foreground">
+                      <p className="text-muted-foreground truncate text-xs">
                         {m.email}
                       </p>
                     )}
                   </div>
-                  <span className="shrink-0 rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] capitalize text-muted-foreground">
+                  <span className="border-border bg-muted text-muted-foreground shrink-0 rounded-full border px-2 py-0.5 text-[11px] capitalize">
                     {m.account_role ?? 'member'}
                     {m.user_id === account.owner_user_id ? ' · owner' : ''}
                   </span>
@@ -233,7 +254,7 @@ export default async function AdminAccountDetailPage({
         }}
       />
 
-      <p className="text-xs text-muted-foreground">
+      <p className="text-muted-foreground text-xs">
         Trial started {fmtDateTime(account.trial_started_at)} · Trial ends{' '}
         {fmtDateTime(account.trial_ends_at)}
       </p>

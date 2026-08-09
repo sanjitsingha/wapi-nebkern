@@ -344,7 +344,7 @@ async function collectCrons(): Promise<CronHealth[]> {
     const { data } = await db
       .from('system_cron_heartbeats')
       .select(
-        'job_key, last_run_at, last_status, last_duration_ms, last_detail, last_error, run_count, error_count',
+        'job_key, last_run_at, last_status, last_duration_ms, last_detail, last_error, run_count, error_count'
       );
     rows = (data ?? []) as HeartbeatRow[];
   } catch {
@@ -403,17 +403,74 @@ async function collectCrons(): Promise<CronHealth[]> {
 function collectConfig(): ConfigItem[] {
   const present = (name: string) => Boolean(process.env[name]?.trim());
   const items: ConfigItem[] = [
-    { key: 'SUPABASE_SERVICE_ROLE_KEY', label: 'Service role key', group: 'Core', present: present('SUPABASE_SERVICE_ROLE_KEY') },
-    { key: 'NEXT_PUBLIC_SUPABASE_URL', label: 'Supabase URL', group: 'Core', present: present('NEXT_PUBLIC_SUPABASE_URL') },
-    { key: 'NEXT_PUBLIC_SUPABASE_ANON_KEY', label: 'Supabase anon key', group: 'Core', present: present('NEXT_PUBLIC_SUPABASE_ANON_KEY') },
-    { key: 'ENCRYPTION_KEY', label: 'Encryption key', group: 'Core', present: present('ENCRYPTION_KEY') },
-    { key: 'ADMIN_EMAILS', label: 'Admin allowlist', group: 'Core', present: present('ADMIN_EMAILS') },
-    { key: 'AUTOMATION_CRON_SECRET', label: 'Cron secret', group: 'Automation', present: present('AUTOMATION_CRON_SECRET') },
-    { key: 'META_APP_ID', label: 'Meta app ID', group: 'WhatsApp / Meta', present: present('META_APP_ID') || present('NEXT_PUBLIC_META_APP_ID') },
-    { key: 'META_APP_SECRET', label: 'Meta app secret', group: 'WhatsApp / Meta', present: present('META_APP_SECRET') },
-    { key: 'INSTAGRAM_APP_ID', label: 'Instagram app ID', group: 'Instagram', present: present('INSTAGRAM_APP_ID') || present('NEXT_PUBLIC_INSTAGRAM_APP_ID') },
-    { key: 'INSTAGRAM_APP_SECRET', label: 'Instagram app secret', group: 'Instagram', present: present('INSTAGRAM_APP_SECRET') },
-    { key: 'SITE_URL', label: 'Public site URL', group: 'Core', present: present('NEXT_PUBLIC_SITE_URL') || present('NEXT_PUBLIC_APP_URL') },
+    {
+      key: 'SUPABASE_SERVICE_ROLE_KEY',
+      label: 'Service role key',
+      group: 'Core',
+      present: present('SUPABASE_SERVICE_ROLE_KEY'),
+    },
+    {
+      key: 'NEXT_PUBLIC_SUPABASE_URL',
+      label: 'Supabase URL',
+      group: 'Core',
+      present: present('NEXT_PUBLIC_SUPABASE_URL'),
+    },
+    {
+      key: 'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+      label: 'Supabase anon key',
+      group: 'Core',
+      present: present('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
+    },
+    {
+      key: 'ENCRYPTION_KEY',
+      label: 'Encryption key',
+      group: 'Core',
+      present: present('ENCRYPTION_KEY'),
+    },
+    {
+      key: 'ADMIN_EMAILS',
+      label: 'Admin allowlist',
+      group: 'Core',
+      present: present('ADMIN_EMAILS'),
+    },
+    {
+      key: 'AUTOMATION_CRON_SECRET',
+      label: 'Cron secret',
+      group: 'Automation',
+      present: present('AUTOMATION_CRON_SECRET'),
+    },
+    {
+      key: 'META_APP_ID',
+      label: 'Meta app ID',
+      group: 'WhatsApp / Meta',
+      present: present('META_APP_ID') || present('NEXT_PUBLIC_META_APP_ID'),
+    },
+    {
+      key: 'META_APP_SECRET',
+      label: 'Meta app secret',
+      group: 'WhatsApp / Meta',
+      present: present('META_APP_SECRET'),
+    },
+    {
+      key: 'INSTAGRAM_APP_ID',
+      label: 'Instagram app ID',
+      group: 'Instagram',
+      present:
+        present('INSTAGRAM_APP_ID') || present('NEXT_PUBLIC_INSTAGRAM_APP_ID'),
+    },
+    {
+      key: 'INSTAGRAM_APP_SECRET',
+      label: 'Instagram app secret',
+      group: 'Instagram',
+      present: present('INSTAGRAM_APP_SECRET'),
+    },
+    {
+      key: 'SITE_URL',
+      label: 'Public site URL',
+      group: 'Core',
+      present:
+        present('NEXT_PUBLIC_SITE_URL') || present('NEXT_PUBLIC_APP_URL'),
+    },
   ];
   return items;
 }
@@ -447,7 +504,7 @@ export async function collectSystemHealth(): Promise<SystemHealth> {
     auth.status,
     runtime.status,
     webhooks.status,
-    ...crons.map((c) => c.status),
+    ...crons.map((c) => c.status)
   );
 
   return {

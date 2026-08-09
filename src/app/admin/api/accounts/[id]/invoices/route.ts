@@ -23,7 +23,7 @@ function isoOrNull(v: unknown): string | null | undefined {
  */
 export async function POST(
   request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const admin = await getAdminUser();
   if (!admin) {
@@ -43,13 +43,16 @@ export async function POST(
   const description =
     typeof body.description === 'string' ? body.description.trim() : '';
   if (!description || description.length > 300) {
-    return NextResponse.json({ error: 'description is required' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'description is required' },
+      { status: 400 }
+    );
   }
 
   if (!Number.isInteger(body.amount) || body.amount < 0) {
     return NextResponse.json(
       { error: 'amount must be a non-negative integer (minor units)' },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -75,18 +78,29 @@ export async function POST(
   if (typeof body.payment_method === 'string' && body.payment_method.trim()) {
     row.payment_method = body.payment_method.trim();
   }
-  if (typeof body.payment_reference === 'string' && body.payment_reference.trim()) {
+  if (
+    typeof body.payment_reference === 'string' &&
+    body.payment_reference.trim()
+  ) {
     row.payment_reference = body.payment_reference.trim();
   }
   if (typeof body.notes === 'string' && body.notes.trim()) {
     row.notes = body.notes.trim();
   }
 
-  for (const field of ['period_start', 'period_end', 'due_date', 'paid_at'] as const) {
+  for (const field of [
+    'period_start',
+    'period_end',
+    'due_date',
+    'paid_at',
+  ] as const) {
     if (field in body) {
       const v = isoOrNull(body[field]);
       if (v === undefined) {
-        return NextResponse.json({ error: `Invalid ${field}` }, { status: 400 });
+        return NextResponse.json(
+          { error: `Invalid ${field}` },
+          { status: 400 }
+        );
       }
       row[field] = v;
     }

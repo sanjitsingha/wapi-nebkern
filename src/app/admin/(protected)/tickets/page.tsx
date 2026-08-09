@@ -1,9 +1,7 @@
 import { adminDb } from '../../_lib/admin-db';
+import { getAccountsMap } from '../../_lib/admin-data';
 import { TicketsTable, type TicketView } from '../../_components/tickets-table';
-import type {
-  SupportTicketStatus,
-  SupportTicketPriority,
-} from '@/types';
+import type { SupportTicketStatus, SupportTicketPriority } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,22 +33,21 @@ export default async function AdminTicketsPage({
   const { filter } = await searchParams;
   const db = adminDb();
 
-  const [ticketsRes, accountsRes, profilesRes] = await Promise.all([
+  // The tickets themselves are read fresh every time — support is the
+  // one place a minute-old view sends you away from a queue that isn't
+  // actually clear. The two label lookups beside them are cached.
+  const [ticketsRes, nameByAccount, profilesRes] = await Promise.all([
     db
       .from('support_tickets')
       .select(
-        'id, account_id, user_id, subject, category, priority, status, last_message_at, last_support_reply_at, updated_at',
+        'id, account_id, user_id, subject, category, priority, status, last_message_at, last_support_reply_at, updated_at'
       )
       .order('updated_at', { ascending: false }),
-    db.from('accounts').select('id, name'),
+    getAccountsMap(),
     db.from('profiles').select('user_id, email'),
   ]);
 
   const tickets = (ticketsRes.data ?? []) as TicketRow[];
-  const nameByAccount = new Map<string, string>();
-  for (const a of (accountsRes.data ?? []) as { id: string; name: string }[]) {
-    nameByAccount.set(a.id, a.name);
-  }
   const emailByUser = new Map<string, string | null>();
   for (const p of (profilesRes.data ?? []) as {
     user_id: string;
@@ -63,7 +60,7 @@ export default async function AdminTicketsPage({
     id: t.id,
     subject: t.subject,
     accountName: nameByAccount.get(t.account_id) ?? '—',
-    creatorEmail: t.user_id ? emailByUser.get(t.user_id) ?? null : null,
+    creatorEmail: t.user_id ? (emailByUser.get(t.user_id) ?? null) : null,
     category: t.category,
     priority: t.priority as SupportTicketPriority,
     status: t.status as SupportTicketStatus,
@@ -72,14 +69,14 @@ export default async function AdminTicketsPage({
   }));
 
   const openCount = rows.filter(
-    (r) => r.status === 'open' || r.status === 'pending',
+    (r) => r.status === 'open' || r.status === 'pending'
   ).length;
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Support tickets</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h1 className="text-foreground text-2xl font-bold">Support tickets</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
           {rows.length} total · {openCount} open
         </p>
       </div>

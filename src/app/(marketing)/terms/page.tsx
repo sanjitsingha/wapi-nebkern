@@ -3,9 +3,9 @@ import type { Metadata } from 'next';
 import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 
 export const metadata: Metadata = {
-  title: { absolute: 'Terms & Conditions — wacrm' },
+  title: { absolute: 'Terms & Conditions — Instant' },
   description:
-    'The agreement between you and wacrm — accounts, billing, acceptable use, WhatsApp Business Platform obligations, liability and termination.',
+    'The agreement between you and Instant — accounts, billing, acceptable use, WhatsApp Business Platform obligations, liability and termination.',
   robots: { index: true, follow: true },
 };
 
@@ -15,7 +15,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'The agreement',
     blocks: [
       {
-        p: 'These Terms are a contract between you and {{COMPANY}}, registered at {{ADDRESS}} ("we", "us"). They govern your use of the wacrm application, its APIs and everything we provide with them (the "Service"). By creating an account, or by using the Service, you accept them.',
+        p: 'These Terms are a contract between you and {{COMPANY}}, registered at {{ADDRESS}} ("we", "us"). They govern your use of the Instant application, its APIs and everything we provide with them (the "Service"). By creating an account, or by using the Service, you accept them.',
       },
       {
         p: 'If you are accepting on behalf of a company, you confirm you are authorised to bind it, and "you" means that company. The Service is for business use — you must be at least 18 and legally able to enter a contract.',

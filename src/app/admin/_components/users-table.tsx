@@ -125,7 +125,9 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
         toast.error(data.error ?? 'Update failed');
         return;
       }
-      toast.success(action === 'suspend' ? 'User suspended' : 'User reactivated');
+      toast.success(
+        action === 'suspend' ? 'User suspended' : 'User reactivated'
+      );
       router.refresh();
     } finally {
       setBusyId(null);
@@ -176,7 +178,7 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -184,8 +186,11 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
             className="h-11 pl-9"
           />
         </div>
-        <Select value={filter} onValueChange={(v) => v && setFilter(v as Filter)}>
-          <SelectTrigger className="h-11 w-full border-border sm:w-48">
+        <Select
+          value={filter}
+          onValueChange={(v) => v && setFilter(v as Filter)}
+        >
+          <SelectTrigger className="border-border h-11 w-full sm:w-48">
             <SelectValue placeholder="Filter" />
           </SelectTrigger>
           <SelectContent>
@@ -198,7 +203,7 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
         </Select>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-card">
+      <div className="border-border bg-card overflow-x-auto rounded-xl border">
         <Table>
           <TableHeader>
             <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
@@ -223,7 +228,7 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
               <TableRow>
                 <TableCell
                   colSpan={6}
-                  className="h-24 text-center text-sm text-muted-foreground"
+                  className="text-muted-foreground h-24 text-center text-sm"
                 >
                   No users match.
                 </TableCell>
@@ -232,27 +237,31 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
               filtered.map((u) => {
                 const busy = busyId === u.id;
                 return (
-                  <TableRow key={u.id} className="border-border hover:bg-muted/50">
+                  <TableRow
+                    key={u.id}
+                    className="border-border hover:bg-muted/50"
+                  >
                     <TableCell>
                       <div className="min-w-0">
-                        <p className="truncate font-medium text-foreground">
+                        <p className="text-foreground truncate font-medium">
                           {u.fullName || u.email || 'Unknown'}
                         </p>
                         {u.fullName && u.email && (
-                          <p className="truncate text-xs text-muted-foreground">
+                          <p className="text-muted-foreground truncate text-xs">
                             {u.email}
                           </p>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="hidden text-muted-foreground md:table-cell">
+                    <TableCell className="text-muted-foreground hidden md:table-cell">
                       {u.accountName ?? '—'}
                     </TableCell>
-                    <TableCell className="hidden text-muted-foreground capitalize sm:table-cell">
+                    <TableCell className="text-muted-foreground hidden capitalize sm:table-cell">
                       {u.role ?? 'member'}
                       {u.isOwner && (
-                        <span className="text-[11px] text-muted-foreground">
-                          {' '}· owner
+                        <span className="text-muted-foreground text-[11px]">
+                          {' '}
+                          · owner
                         </span>
                       )}
                     </TableCell>
@@ -263,12 +272,12 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
                         emailConfirmed={u.emailConfirmed}
                       />
                     </TableCell>
-                    <TableCell className="hidden text-muted-foreground lg:table-cell">
+                    <TableCell className="text-muted-foreground hidden lg:table-cell">
                       {u.createdAt ? fmtDate(u.createdAt) : '—'}
                     </TableCell>
                     <TableCell className="text-right">
                       {u.isAdmin ? (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-muted-foreground text-xs">
                           Protected
                         </span>
                       ) : (
@@ -344,11 +353,13 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
             <DialogDescription>
               {ownedAccount ? (
                 <>
-                  <span className="font-medium text-foreground">
-                    {deleteTarget?.email ?? deleteTarget?.fullName ?? 'This user'}
+                  <span className="text-foreground font-medium">
+                    {deleteTarget?.email ??
+                      deleteTarget?.fullName ??
+                      'This user'}
                   </span>{' '}
                   owns{' '}
-                  <span className="font-medium text-foreground">
+                  <span className="text-foreground font-medium">
                     {listNames(ownedAccount.workspaces)}
                   </span>
                   , so they can&apos;t be removed on their own. Deleting them
@@ -356,17 +367,17 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
                   {ownedAccount.workspaces.length > 1
                     ? 'those workspaces'
                     : 'that workspace'}{' '}
-                  and everything in {ownedAccount.workspaces.length > 1
-                    ? 'them'
-                    : 'it'}{' '}
-                  — contacts, conversations, deals, invoices, templates and
-                  media.
+                  and everything in{' '}
+                  {ownedAccount.workspaces.length > 1 ? 'them' : 'it'} —
+                  contacts, conversations, deals, invoices, templates and media.
                 </>
               ) : (
                 <>
                   This permanently deletes{' '}
-                  <span className="font-medium text-foreground">
-                    {deleteTarget?.email ?? deleteTarget?.fullName ?? 'this user'}
+                  <span className="text-foreground font-medium">
+                    {deleteTarget?.email ??
+                      deleteTarget?.fullName ??
+                      'this user'}
                   </span>{' '}
                   and their profile. This cannot be undone.
                 </>
@@ -377,7 +388,7 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
           {/* The case that actually hurts: other people's data goes with
               it. Only worth shouting about when there are others. */}
           {ownedAccount && ownedAccount.otherMembers > 0 && (
-            <div className="flex gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            <div className="border-destructive/30 bg-destructive/10 text-destructive flex gap-2.5 rounded-lg border p-3 text-sm">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" />
               <p>
                 {ownedAccount.otherMembers} other member
@@ -402,7 +413,7 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
               type="button"
               onClick={() => confirmDelete(ownedAccount != null)}
               disabled={busyId === deleteTarget?.id}
-              className="bg-destructive text-white hover:bg-destructive/90"
+              className="bg-destructive hover:bg-destructive/90 text-white"
             >
               {busyId === deleteTarget?.id ? (
                 <Loader2 className="size-4 animate-spin" />
@@ -433,7 +444,7 @@ function StatusBadge({
 }) {
   if (admin) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary-soft px-2 py-0.5 text-[11px] font-medium text-primary">
+      <span className="border-primary/30 bg-primary-soft text-primary inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium">
         <ShieldCheck className="size-3" />
         Admin
       </span>
@@ -456,7 +467,7 @@ function StatusBadge({
         'inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium',
         suspended
           ? 'border-destructive/30 bg-destructive/10 text-destructive'
-          : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+          : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
       )}
     >
       {suspended ? 'Suspended' : 'Active'}
