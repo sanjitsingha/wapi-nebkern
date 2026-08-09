@@ -45,7 +45,7 @@ export function Btn({
         'inline-flex h-14 items-center justify-center gap-2 rounded-2xl border-2 border-(--lp2-ink) px-7 text-base font-bold shadow-(--lp2-shadow)',
         variant === 'primary' ? 'bg-(--lp2-grass) text-white' : 'bg-white',
         press,
-        className,
+        className
       )}
     >
       {children}
@@ -74,10 +74,20 @@ export function SectionHead({
   hue = 'lemon',
   title,
   highlight,
+  highlightText = 'ink',
   subtitle,
   className,
 }: {
   hue?: Lp2Hue;
+  /**
+   * Ink on the highlight box by default. `white` is opt-in per call
+   * rather than derived from the hue, because it is only legible on the
+   * deeper ones (sky, grape, coral, grass) and only at display size —
+   * these headings run 44px, where the 3:1 large-text bar applies. On
+   * `lemon` or `mint` it would be unreadable, so nothing picks it
+   * automatically.
+   */
+  highlightText?: 'ink' | 'white';
   title: string;
   /** Substring of `title` to wrap in the highlight box. Must appear in
    *  `title` verbatim or it's ignored. */
@@ -103,7 +113,13 @@ export function SectionHead({
                 which eats the space character next to it — mid-sentence
                 highlights end up welded to the following word. Same
                 fix compare.tsx makes inline for the same reason. */}
-            <Highlight color={hue} className="mx-[0.1em]">
+            <Highlight
+              color={hue}
+              className={cn(
+                'mx-[0.1em]',
+                highlightText === 'white' && 'text-white'
+              )}
+            >
               {highlight}
             </Highlight>
             {after}

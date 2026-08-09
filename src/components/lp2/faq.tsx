@@ -60,12 +60,27 @@ const FAQS = [
 
 export function Lp2Faq() {
   return (
-    <section className="bg-(--lp2-grape-soft) py-20 sm:py-28">
+    // Full-bleed band, washed rather than filled flat: the grape is
+    // strongest at the top and gone by the bottom, so the section
+    // dissolves into the white CTA below instead of ending on a line.
+    <section
+      className="py-20 sm:py-28"
+      style={{
+        backgroundImage:
+          'linear-gradient(to bottom, color-mix(in oklab, var(--lp2-grape) 22%, #fff), #fff 85%)',
+      }}
+    >
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
+        {/* `grass`, not `pop`. The highlight carries white text now, and
+            lp2.css is explicit that pop is decoration only — never put
+            text on it. White on that neon green is around 1.9:1, which
+            no text size rescues; grass is the palette's one hue built
+            to hold white, and it keeps the green. */}
         <SectionHead
-          hue="pop"
+          hue="grass"
           title="Everything people ask before signing up."
           highlight="before signing up"
+          highlightText="white"
         />
 
         <div className="mt-12 space-y-3">
@@ -78,7 +93,11 @@ export function Lp2Faq() {
                 <span
                   aria-hidden
                   className="size-3.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: `var(--lp2-${f.hue})` } as CSSProperties}
+                  style={
+                    {
+                      backgroundColor: `var(--lp2-${f.hue})`,
+                    } as CSSProperties
+                  }
                 />
                 <span className="flex-1 text-pretty">{f.q}</span>
                 {/* A plus that becomes a minus. `group-open:rotate-45`

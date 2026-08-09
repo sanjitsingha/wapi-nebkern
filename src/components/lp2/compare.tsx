@@ -95,18 +95,32 @@ const ROWS: { feature: string; hint: string; api: Cell; app: Cell }[] = [
 // lining up under their heading.
 const COLS = 'sm:grid-cols-[1.15fr_1fr_1fr]';
 
-// Inner corner radius: the card is rounded-2xl (16px) with a 2px border,
-// so cells that sit in a corner need 14px to follow the curve. The card
+// Inner corner radius: the card is rounded-2xl (16px) with a 1px border,
+// so cells that sit in a corner need 15px to follow the curve. The card
 // itself can't use `overflow-hidden` to do this for them — the hint
 // tooltips have to escape it.
-const CORNER = '14px';
+const CORNER = '15px';
+
+/**
+ * The recommended column's wash, drawn as one continuous gradient
+ * behind the grid rather than tinting each cell.
+ *
+ * Tinting cells individually restarts the gradient in every row, which
+ * reads as ten stripes instead of one column. So a single absolutely
+ * positioned panel sits behind them, and these numbers are derived
+ * from COLS above: the track is 1.15 + 1 + 1 = 3.15fr, so the API
+ * column starts at 1.15/3.15 and is 1/3.15 wide. Change COLS and these
+ * two have to change with it.
+ */
+const API_COL_LEFT = `${(1.15 / 3.15) * 100}%`;
+const API_COL_WIDTH = `${(1 / 3.15) * 100}%`;
 
 export function Lp2Compare() {
   return (
-    <section
-      id="compare"
-      className="scroll-mt-28 bg-(--lp2-tangerine-soft) py-20 sm:py-28"
-    >
+    // White section with the colour carried by the card, the same way
+    // `features` works — the table *is* the panel here, so a second
+    // washed band behind it would be two panels deep.
+    <section id="compare" className="scroll-mt-28 bg-white py-20 sm:py-28">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         {/* Heading is inlined rather than using <SectionHead> because
             this one title has to hold a single line: it needs viewport-
@@ -134,34 +148,55 @@ export function Lp2Compare() {
           </p>
         </div>
 
-        <div className="relative mt-14 rounded-2xl border-2 border-(--lp2-ink) bg-white shadow-(--lp2-shadow-lg)">
+        {/* Hairline border in a softened tangerine instead of the 2px
+            ink outline and hard offset shadow: the washes define this
+            now, and a heavy frame around a gradient fights it. */}
+        <div
+          className="relative mt-14 rounded-2xl border bg-white"
+          style={{
+            borderColor: 'color-mix(in oklab, var(--lp2-tangerine) 45%, #fff)',
+          }}
+        >
+          {/* The recommended column's wash — one panel behind the whole
+              grid, strongest at the top so the eye starts at the header
+              and follows the column down. Hidden below `sm`, where the
+              cells stack and there is no column to wash. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 hidden sm:block"
+            style={{
+              left: API_COL_LEFT,
+              width: API_COL_WIDTH,
+              backgroundImage:
+                'linear-gradient(to bottom, color-mix(in oklab, var(--lp2-grass) 24%, #fff), color-mix(in oklab, var(--lp2-grass) 5%, #fff))',
+              borderTopRightRadius: 0,
+            }}
+          />
+
           {/* Column headings. Hidden on mobile, where the stacked cells
               label themselves instead. */}
-          <div className={cn('hidden sm:grid', COLS)}>
-            <div
-              className="bg-(--lp2-cream)"
-              style={{ borderTopLeftRadius: CORNER }}
-            />
-            <div className="relative border-l-2 border-(--lp2-ink) bg-(--lp2-mint) px-5 py-6 text-center">
-              <span className="absolute top-0 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-b-lg bg-(--lp2-grass) px-2.5 py-1 text-[10px] font-extrabold tracking-wide text-white uppercase">
+          <div className={cn('relative hidden sm:grid', COLS)}>
+            <div style={{ borderTopLeftRadius: CORNER }} />
+            <div className="relative px-5 py-6 text-center">
+              <span className="absolute top-0 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-b-lg bg-(--lp2-grass) px-2.5 py-1 text-[10px] font-bold tracking-wide text-white uppercase">
                 <Sparkle color="lemon" className="size-2.5" />
                 Recommended
               </span>
               <p className="lp2-display mt-3 text-lg font-extrabold">
                 WhatsApp Business API
               </p>
-              <p className="mt-1 text-xs font-bold text-(--lp2-ink-soft)">
+              <p className="mt-1 text-xs font-semibold text-(--lp2-ink-soft)">
                 With wacrm — growing businesses &amp; enterprises
               </p>
             </div>
             <div
-              className="border-l-2 border-(--lp2-ink) bg-(--lp2-cream) px-5 py-6 text-center"
+              className="border-l border-(--lp2-ink)/8 px-5 py-6 text-center"
               style={{ borderTopRightRadius: CORNER }}
             >
               <p className="lp2-display mt-3 text-lg font-extrabold">
                 WhatsApp Business app
               </p>
-              <p className="mt-1 text-xs font-bold text-(--lp2-ink-soft)">
+              <p className="mt-1 text-xs font-semibold text-(--lp2-ink-soft)">
                 The free app — small businesses
               </p>
             </div>
@@ -171,12 +206,12 @@ export function Lp2Compare() {
             <div
               key={row.feature}
               className={cn(
-                'grid border-t-2 border-(--lp2-ink)',
+                'relative grid border-t border-(--lp2-ink)/8',
                 COLS,
                 // On mobile the headings are gone, so the first row sits
                 // directly against the card's top edge — its own top
                 // border would double up with the card outline.
-                i === 0 && 'max-sm:border-t-0',
+                i === 0 && 'max-sm:border-t-0'
               )}
             >
               <Feature
@@ -184,16 +219,18 @@ export function Lp2Compare() {
                 hint={row.hint}
                 roundTopOnMobile={i === 0}
               />
-              <Value {...row.api} label="With the API" tint />
-              <Value {...row.app} label="With the app" />
+              <Value {...row.api} label="With the API" />
+              <Value {...row.app} label="With the app" divider />
             </div>
           ))}
 
           {/* Footer bar — the table's own call to action, so nobody has
               to scroll back up to act on what they just read. */}
           <div
-            className="flex flex-col items-center gap-4 border-t-2 border-(--lp2-ink) bg-(--lp2-cream) px-5 py-6 text-center sm:flex-row sm:justify-between sm:text-left"
+            className="relative flex flex-col items-center gap-4 border-t border-(--lp2-ink)/8 px-5 py-6 text-center sm:flex-row sm:justify-between sm:text-left"
             style={{
+              backgroundImage:
+                'linear-gradient(to top, color-mix(in oklab, var(--lp2-tangerine) 16%, #fff), #fff)',
               borderBottomLeftRadius: CORNER,
               borderBottomRightRadius: CORNER,
             }}
@@ -230,14 +267,16 @@ function Feature({
   return (
     <div
       className={cn(
-        'relative flex items-center gap-1.5 bg-(--lp2-cream) px-5 py-3 sm:py-4',
+        // No cream fill any more — the row is white and the recommended
+        // column's wash is what separates the three.
+        'relative flex items-center gap-1.5 px-5 py-3 sm:py-4',
         // Mobile-only: with the headings hidden, this cell is the card's
         // top-left corner. On desktop it sits under the heading row,
         // where a radius would notch it.
-        roundTopOnMobile && 'max-sm:rounded-tl-[14px]',
+        roundTopOnMobile && 'max-sm:rounded-tl-[15px]'
       )}
     >
-      <p className="text-sm font-extrabold">{name}</p>
+      <p className="text-sm font-semibold">{name}</p>
 
       {/* `peer` + a sibling tooltip rather than a group wrapper: the
           tooltip is anchored to the *cell*, not to the icon, so it can
@@ -269,41 +308,54 @@ function Value({
   text,
   tone,
   label,
-  tint = false,
+  divider = false,
 }: Cell & {
   /** Which column this is. Shown on mobile, where the stacked cells
    *  have no heading above them; screen-reader-only from `sm` up. */
   label: string;
-  /** Wash the cell in mint — the API column, marked all the way down so
-   *  the eye can follow one side of the comparison. */
-  tint?: boolean;
+  /** Rule on the left edge. Only the last column needs one — the
+   *  recommended column is separated by its wash instead, and a border
+   *  on top of that reads as a box drawn around the gradient. */
+  divider?: boolean;
 }) {
   const yes = tone === 'yes';
 
   return (
     <div
       className={cn(
-        'flex items-start gap-2.5 border-t-2 border-(--lp2-ink)/10 px-5 py-3 sm:border-t-0 sm:border-l-2 sm:border-(--lp2-ink) sm:py-4',
-        tint && 'bg-(--lp2-mint)/40',
+        'relative flex items-start gap-2.5 border-t border-(--lp2-ink)/8 px-5 py-3 sm:border-t-0 sm:py-4',
+        divider && 'sm:border-l'
       )}
     >
       <span
         className={cn(
           'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full',
-          yes ? 'bg-(--lp2-grass) text-white' : 'bg-(--lp2-coral)',
+          // "Yes" keeps the full green — it is the answer the table is
+          // arguing for. "No" is mixed toward white: ten saturated
+          // coral discs down one column read as an error state rather
+          // than a limitation.
+          yes && 'bg-(--lp2-grass) text-white'
         )}
+        style={
+          yes
+            ? undefined
+            : {
+                backgroundColor:
+                  'color-mix(in oklab, var(--lp2-coral) 30%, #fff)',
+              }
+        }
       >
         {yes ? (
-          <Check className="size-3" strokeWidth={4} />
+          <Check className="size-3" strokeWidth={3.5} />
         ) : (
-          <X className="size-3" strokeWidth={4} />
+          <X className="size-3 text-(--lp2-ink)/60" strokeWidth={3.5} />
         )}
       </span>
       <span>
-        <span className="block text-[10px] font-extrabold tracking-wide text-(--lp2-ink-soft) uppercase sm:sr-only">
+        <span className="block text-[10px] font-bold tracking-wide text-(--lp2-ink-soft) uppercase sm:sr-only">
           {label}
         </span>
-        <span className="block text-sm leading-snug font-semibold">{text}</span>
+        <span className="block text-sm leading-snug font-medium">{text}</span>
       </span>
     </div>
   );

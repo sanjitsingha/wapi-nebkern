@@ -5,13 +5,25 @@ import { AvatarStack, Highlight, Sparkle, Squiggle } from './decor';
 import { Btn } from './ui';
 
 // ============================================================
-// Closing CTA — one loud panel, then the footer.
+// Closing CTA — one panel, then the footer.
 //
-// The panel is mint rather than white so the page ends on colour, and
-// it's the only place both buttons appear side by side at full size.
-// Everything decorative here is `aria-hidden` and clipped by the
-// panel's own `overflow-hidden`.
+// The panel carries colour rather than white so the page ends on
+// something, and it's the only place both buttons appear side by side
+// at full size. Everything decorative here is `aria-hidden` and clipped
+// by the panel's own `overflow-hidden`.
+//
+// `max-w-6xl` to match every other contained panel on the page — at
+// 4xl it sat visibly narrower than the sections above it.
 // ============================================================
+
+/**
+ * Both ends stay tinted rather than fading to white like the section
+ * washes elsewhere: this one is a panel sitting *on* a white section,
+ * so a gradient that reaches white would dissolve its own top edge and
+ * take the panel's shape with it.
+ */
+const PANEL_WASH =
+  'linear-gradient(to top, color-mix(in oklab, var(--lp2-grass) 30%, #fff), color-mix(in oklab, var(--lp2-grass) 11%, #fff))';
 
 // Fixed positions, not random — a random scatter re-rolls on every
 // render in dev and makes it impossible to tell whether a tweak
@@ -28,7 +40,10 @@ const CONFETTI = [
 export function Lp2Cta() {
   return (
     <section className="bg-white px-4 py-20 sm:px-6 sm:py-28">
-      <div className="relative mx-auto max-w-4xl overflow-hidden rounded-2xl bg-(--lp2-mint) px-6 py-16 text-center sm:px-12">
+      <div
+        className="relative mx-auto max-w-6xl overflow-hidden rounded-3xl px-6 py-16 text-center sm:px-12"
+        style={{ backgroundImage: PANEL_WASH }}
+      >
         {CONFETTI.map((c, i) => (
           <Sparkle
             key={i}
@@ -53,7 +68,14 @@ export function Lp2Cta() {
         <div className="relative">
           <h2 className="lp2-display text-3xl leading-[1.06] font-extrabold text-balance sm:text-5xl">
             Your customers are already typing.{' '}
-            <Highlight color="lemon">Go say hi.</Highlight>
+            {/* `grass` with white text, not the old lemon box. White on
+                lemon is about 1.4:1 — invisible. Grass is the one hue
+                built to hold white, it is what the primary button below
+                already uses, and it sits deeper than the panel's own
+                green wash so the box still reads as a box. */}
+            <Highlight color="grass" className="text-white">
+              Go say hi.
+            </Highlight>
           </h2>
 
           <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-lg">
