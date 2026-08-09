@@ -421,7 +421,7 @@ export function BlogEditor({ post }: { post: BlogPostRecord | null }) {
                 <Input
                   value={author}
                   onChange={(e) => setAuthor(e.target.value)}
-                  placeholder="Jane from wacrm"
+                  placeholder="Jane from Instant"
                   className="border-border bg-muted text-xs"
                 />
               </Section>

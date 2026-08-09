@@ -40,7 +40,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 /**
- * Current wacrm plan + activation-code redemption. Sits at the top of
+ * Current Instant plan + activation-code redemption. Sits at the top of
  * Settings → Billing, above the Meta usage panel. Owners/admins redeem a
  * code here; the plan activates immediately (no payment provider).
  */

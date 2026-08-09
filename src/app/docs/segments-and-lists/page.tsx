@@ -41,7 +41,7 @@ export default function SegmentsAndListsDocsPage() {
         <p>
           A <strong>Segment</strong> stores no contacts at all — only a set
           of filter rules. Every time you view it (or target a campaign with
-          it), wacrm evaluates those rules against your current contacts on
+          it), Instant evaluates those rules against your current contacts on
           the spot, so membership is always up to date automatically. A
           cached estimated count is shown for convenience, but it&apos;s a
           display hint, never the source of truth.

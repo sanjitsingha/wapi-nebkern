@@ -111,7 +111,7 @@ function LoginPageInner() {
               <MessageSquare className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="text-lg font-semibold tracking-tight text-foreground">
-              wacrm
+              Instant
             </span>
           </div>
 

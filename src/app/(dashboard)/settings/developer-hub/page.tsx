@@ -37,7 +37,7 @@ export default function DeveloperHubPage() {
             API keys &amp; webhooks
           </span>
           <span className="block text-xs text-muted-foreground">
-            REST credentials for connecting your own software to wacrm.
+            REST credentials for connecting your own software to Instant.
           </span>
         </span>
         <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground" />

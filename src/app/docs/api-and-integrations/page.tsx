@@ -18,7 +18,7 @@ export default function ApiAndIntegrationsDocsPage() {
       <DocsHero
         eyebrow="Developers"
         title="API & integrations"
-        description="Create contacts and send messages from your own systems, and get notified the moment something happens in wacrm."
+        description="Create contacts and send messages from your own systems, and get notified the moment something happens in Instant."
       />
 
       <DocsArticle>
@@ -84,7 +84,7 @@ export default function ApiAndIntegrationsDocsPage() {
         <p>
           Each delivery is a signed <code>POST</code> with the event payload
           as JSON. A signing secret is shown once, at creation time — use it
-          to verify the request really came from wacrm rather than trusting
+          to verify the request really came from Instant rather than trusting
           the payload blindly. If your endpoint doesn&rsquo;t respond
           successfully, delivery is retried several times with a growing
           delay before it&rsquo;s given up on.
@@ -96,7 +96,7 @@ export default function ApiAndIntegrationsDocsPage() {
           connect them the same way any custom system would:{' '}
           <strong>outbound webhooks</strong> as the trigger into your
           automation tool, and the <strong>REST API</strong> (with an API
-          key) as the action it calls back into wacrm.
+          key) as the action it calls back into Instant.
         </p>
       </DocsArticle>
 

@@ -27,10 +27,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const post = await getPostBySlug(slug);
-  if (!post) return { title: 'Post not found — wacrm' };
+  if (!post) return { title: 'Post not found — Instant' };
 
   return {
-    title: { absolute: `${post.title} — wacrm blog` },
+    title: { absolute: `${post.title} — Instant blog` },
     description: post.excerpt ?? undefined,
     // The live, indexed post page — and since /lp-2/blog/[slug] was
     // deleted, the only one rendering these rows.

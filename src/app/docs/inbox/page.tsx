@@ -82,7 +82,7 @@ export default function InboxDocsPage() {
           WhatsApp only allows free-form replies within{' '}
           <strong>24 hours of the customer&apos;s last message</strong> —
           outside that window, only pre-approved message templates can be
-          sent. wacrm shows a countdown badge next to the customer&apos;s name in the
+          sent. Instant shows a countdown badge next to the customer&apos;s name in the
           conversation list so you always know how much time is left: it
           turns amber under 6 hours, red under 2 hours, and disappears once
           the window has closed. When the window is closed, the message
@@ -90,7 +90,7 @@ export default function InboxDocsPage() {
           instead.
         </p>
         <DocsCallout type="info">
-          This 24-hour rule is a WhatsApp platform policy, not a wacrm limit
+          This 24-hour rule is a WhatsApp platform policy, not an Instant limit
           — it exists on every WhatsApp Business API tool. See{' '}
           <Link href="/docs/templates">Message templates</Link> for how to
           reach a customer outside the window.

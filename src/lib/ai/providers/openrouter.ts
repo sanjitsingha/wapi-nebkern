@@ -37,8 +37,8 @@ export async function generateOpenRouter(args: ProviderArgs): Promise<string> {
         'Content-Type': 'application/json',
         // Optional attribution headers used for OpenRouter's leaderboards;
         // harmless when omitted, nice to identify the app.
-        'HTTP-Referer': 'https://wacrm.app',
-        'X-Title': 'wacrm',
+        'HTTP-Referer': 'https://instant.nebkern.com',
+        'X-Title': 'Instant',
       },
       body: JSON.stringify({
         model,

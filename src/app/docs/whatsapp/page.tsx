@@ -26,7 +26,7 @@ export default function WhatsAppDocsPage() {
         <p>
           The recommended way to connect is <strong>Embedded Signup</strong>{' '}
           under <strong>Settings → WhatsApp</strong> — a guided Facebook login
-          that hands the whole setup to wacrm rather than asking you to copy
+          that hands the whole setup to Instant rather than asking you to copy
           API credentials around. Behind the scenes it runs through several
           steps automatically:
         </p>
@@ -35,22 +35,22 @@ export default function WhatsAppDocsPage() {
             {
               title: 'Log in and pick your WhatsApp Business Account',
               description:
-                'You authorize wacrm through a Facebook consent screen and select which WhatsApp Business Account (WABA) and phone number to connect.',
+                'You authorize Instant through a Facebook consent screen and select which WhatsApp Business Account (WABA) and phone number to connect.',
             },
             {
-              title: 'wacrm verifies access',
+              title: 'Instant verifies access',
               description:
                 'It confirms the granted token can actually read the WABA you selected, and resolves the exact phone number to use — falling back to the WABA’s first number if needed.',
             },
             {
               title: 'Ownership check',
               description:
-                'If that phone number is already connected to a different wacrm account, the connection is rejected rather than silently taking it over.',
+                'If that phone number is already connected to a different Instant account, the connection is rejected rather than silently taking it over.',
             },
             {
               title: 'Subscribe and register',
               description:
-                'wacrm subscribes the WABA to receive messages, registers the phone number for Cloud API messaging (setting a 2-step verification PIN — reused if you had one, freshly generated otherwise), and confirms the number reports as live.',
+                'Instant subscribes the WABA to receive messages, registers the phone number for Cloud API messaging (setting a 2-step verification PIN — reused if you had one, freshly generated otherwise), and confirms the number reports as live.',
             },
             {
               title: 'Credentials saved, encrypted',
@@ -70,7 +70,7 @@ export default function WhatsAppDocsPage() {
         <p>
           Once connected, a <strong>Registration status</strong> panel on the
           same page separately confirms that Meta will actually deliver
-          message events to wacrm — distinct from &ldquo;the credentials
+          message events to Instant — distinct from &ldquo;the credentials
           are valid&rdquo; — with a one-click &ldquo;Verify with Meta&rdquo;
           check if something seems off.
         </p>
@@ -149,9 +149,9 @@ export default function WhatsAppDocsPage() {
         </p>
         <DocsCallout type="warning" title="What this does — and doesn't — do yet">
           This setting controls <strong>whether the call button appears</strong>{' '}
-          for customers and whether Meta reports call events into wacrm. It
+          for customers and whether Meta reports call events into Instant. It
           does <strong>not</strong> yet let your team answer or place calls
-          from inside wacrm — an incoming call currently shows up as a call
+          from inside Instant — an incoming call currently shows up as a call
           entry in the conversation, not a live in-app call you can pick up.
           Full in-app calling is on the roadmap.
         </DocsCallout>

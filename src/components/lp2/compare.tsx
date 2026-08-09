@@ -55,7 +55,7 @@ const ROWS: { feature: string; hint: string; api: Cell; app: Cell }[] = [
   {
     feature: 'Coding required',
     hint: 'Whether you need a developer before you can send your first message.',
-    api: { text: 'None — wacrm is the no-code layer', tone: 'yes' },
+    api: { text: 'None — Instant is the no-code layer', tone: 'yes' },
     app: { text: 'None — it is just an app', tone: 'yes' },
   },
   {
@@ -186,7 +186,7 @@ export function Lp2Compare() {
                 WhatsApp Business API
               </p>
               <p className="mt-1 text-xs font-semibold text-(--lp2-ink-soft)">
-                With wacrm — growing businesses &amp; enterprises
+                With Instant — growing businesses &amp; enterprises
               </p>
             </div>
             <div

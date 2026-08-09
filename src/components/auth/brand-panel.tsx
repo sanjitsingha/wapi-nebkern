@@ -3,7 +3,7 @@ import { MessageSquare, Quote, Send, CheckCheck } from "lucide-react";
 // Marketing panel shown on the right half of the auth pages (login /
 // signup / forgot-password) on lg+ screens. Purely decorative — a
 // customer quote plus a lightweight, non-interactive mock of the
-// wacrm inbox. Hidden below lg where the form takes the full width.
+// Instant inbox. Hidden below lg where the form takes the full width.
 export function AuthBrandPanel() {
   return (
     <aside className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-linear-to-br from-emerald-950 via-emerald-900 to-emerald-800 p-12 text-white lg:flex">
@@ -31,7 +31,7 @@ export function AuthBrandPanel() {
       <blockquote className="relative max-w-lg">
         <p className="text-2xl font-semibold leading-snug tracking-tight">
           &ldquo;We run every customer conversation, broadcast, and follow-up
-          through wacrm now. Our whole team finally works from the same
+          through Instant now. Our whole team finally works from the same
           inbox.&rdquo;
         </p>
         <footer className="mt-6 flex items-center gap-3.5">
@@ -55,7 +55,7 @@ export function AuthBrandPanel() {
             <MessageSquare className="h-3.5 w-3.5 text-primary-foreground" />
           </div>
           <span className="text-sm font-semibold text-white">
-            wacrm · Inbox
+            Instant · Inbox
           </span>
         </div>
 

@@ -21,7 +21,7 @@
  *
  * ─── Multi-tenant note ────────────────────────────────────────────
  * `meta_template_id` is globally unique per WABA — the lookup doesn't
- * filter by user_id. If two wacrm tenants somehow ended up with the
+ * filter by user_id. If two Instant tenants somehow ended up with the
  * same id (impossible in practice, but a theoretical race during
  * cross-tenant moves), the handler updates both rows and logs a
  * warning so operators can investigate.

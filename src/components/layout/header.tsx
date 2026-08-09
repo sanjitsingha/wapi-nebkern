@@ -65,7 +65,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
             <ChatCircleDots className="h-4 w-4" weight="fill" />
           </div>
           <span className="text-foreground hidden text-sm font-semibold tracking-tight sm:block">
-            wacrm
+            Instant
           </span>
         </Link>
 

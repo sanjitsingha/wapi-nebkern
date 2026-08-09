@@ -59,7 +59,7 @@ export default function ContactsDocsPage() {
 
         <h2>Duplicate handling</h2>
         <p>
-          wacrm matches phone numbers by their normalized, digits-only form
+          Instant matches phone numbers by their normalized, digits-only form
           (tolerant of a missing or extra leading trunk digit, e.g. a leading
           0), so the same person can&apos;t quietly end up as two separate
           contacts just because a number was typed with or without a

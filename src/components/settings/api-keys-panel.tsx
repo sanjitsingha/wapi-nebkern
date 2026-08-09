@@ -173,7 +173,7 @@ export function ApiKeysPanel() {
     <div className="space-y-6">
       <SettingsPanelHead
         title="API Access"
-        description="Generate API keys to connect external software (like your CIMS/HIMS) to wacrm. Keys are scoped by permission and can be revoked at any time."
+        description="Generate API keys to connect external software (like your CIMS/HIMS) to Instant. Keys are scoped by permission and can be revoked at any time."
       />
 
       {/* Create Key Dialog */}

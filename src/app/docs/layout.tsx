@@ -10,9 +10,9 @@ import { Analytics } from '@/components/analytics';
 
 // Public docs — indexed, unlike the authenticated app.
 export const metadata: Metadata = {
-  title: { template: '%s — wacrm docs', default: 'Documentation — wacrm' },
+  title: { template: '%s — Instant docs', default: 'Documentation — Instant' },
   description:
-    'Everything wacrm can do — channels, the shared inbox, CRM, campaigns, automations, AI agents, billing, and the API — documented in detail.',
+    'Everything Instant can do — channels, the shared inbox, CRM, campaigns, automations, AI agents, billing, and the API — documented in detail.',
   robots: { index: true, follow: true },
 };
 

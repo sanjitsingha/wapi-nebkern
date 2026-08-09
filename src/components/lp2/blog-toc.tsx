@@ -84,7 +84,7 @@ export function PromoBanner({ className }: { className?: string }) {
       <span className="flex size-10 items-center justify-center rounded-xl border-2 border-(--lp2-ink) bg-(--lp2-grass)">
         <Sparkles className="size-5 text-white" strokeWidth={2.75} />
       </span>
-      <p className="lp2-display mt-3 text-lg font-extrabold">Try wacrm free</p>
+      <p className="lp2-display mt-3 text-lg font-extrabold">Try Instant free</p>
       <p className="mt-1.5 text-sm leading-relaxed text-(--lp2-ink-soft)">
         One shared inbox and AI agents on your own WhatsApp number. 14 days,
         no card.

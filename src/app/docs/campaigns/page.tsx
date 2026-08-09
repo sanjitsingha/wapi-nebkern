@@ -63,7 +63,7 @@ export default function CampaignsDocsPage() {
         <p>
           Send immediately and the campaign goes out right away in small
           batches with a short pause between each, so it doesn&apos;t hit
-          WhatsApp&apos;s rate limits all at once. Schedule it instead and wacrm
+          WhatsApp&apos;s rate limits all at once. Schedule it instead and Instant
           locks in your audience at scheduling time, then dispatches it
           automatically when the scheduled time arrives.
         </p>

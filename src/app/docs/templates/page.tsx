@@ -25,7 +25,7 @@ export default function TemplatesDocsPage() {
           WhatsApp requires any message you send outside the 24-hour customer
           reply window — and every bulk{' '}
           <Link href="/docs/campaigns">campaign</Link> message — to use a
-          template that Meta has reviewed and approved in advance. wacrm&apos;s
+          template that Meta has reviewed and approved in advance. Instant&apos;s
           template builder puts that structure together for you and submits
           it for review.
         </p>

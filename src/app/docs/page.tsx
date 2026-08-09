@@ -9,7 +9,7 @@ export default function DocsIndexPage() {
     <div className="max-w-4xl">
       <p className="text-sm font-bold text-(--lp2-grass-deep)">Documentation</p>
       <h1 className="lp2-display mt-2 text-3xl font-extrabold text-balance sm:text-4xl">
-        Everything wacrm can do
+        Everything Instant can do
       </h1>
       <p className="mt-4 max-w-2xl text-base leading-relaxed text-(--lp2-ink-soft) text-pretty">
         Channel setup, the shared inbox, CRM, campaigns, automations, AI

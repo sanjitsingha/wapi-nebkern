@@ -302,7 +302,7 @@ export function FormsManager() {
             </DialogTitle>
             <DialogDescription>
               {formToDelete?.status === 'DRAFT'
-                ? `"${formToDelete?.name}" will be removed from Meta and from wacrm. This can't be undone.`
+                ? `"${formToDelete?.name}" will be removed from Meta and from Instant. This can't be undone.`
                 : `"${formToDelete?.name}" can no longer be sent, but past responses stay intact. This can't be undone.`}
             </DialogDescription>
           </DialogHeader>

@@ -19,17 +19,17 @@ const FAQS = [
   {
     hue: 'lemon',
     q: 'Do I need the official WhatsApp Business API?',
-    a: 'Yes — wacrm is an official Meta Tech Provider and runs on Meta’s own Cloud API, which is what keeps your number safe from bans and your messages compliant. Connecting takes a few clicks through embedded signup, and we walk you through it.',
+    a: 'Yes — Instant is an official Meta Tech Provider and runs on Meta’s own Cloud API, which is what keeps your number safe from bans and your messages compliant. Connecting takes a few clicks through embedded signup, and we walk you through it.',
   },
   {
     hue: 'grass',
     q: 'What does “official Meta Tech Provider” actually mean?',
-    a: 'Meta reviews and approves the companies allowed to build on the WhatsApp Business Platform, and wacrm is one of them. In practice it means you connect to Meta directly — embedded signup on your own WhatsApp Business Account, direct Cloud API access, and message charges billed to you by Meta at Meta’s published rates, with no reseller sitting in the middle taking a cut.',
+    a: 'Meta reviews and approves the companies allowed to build on the WhatsApp Business Platform, and Instant is one of them. In practice it means you connect to Meta directly — embedded signup on your own WhatsApp Business Account, direct Cloud API access, and message charges billed to you by Meta at Meta’s published rates, with no reseller sitting in the middle taking a cut.',
   },
   {
     hue: 'coral',
     q: 'Can my whole team use one WhatsApp number?',
-    a: 'That is exactly what wacrm is for. Everyone works from a shared inbox on the same number, with assignments, internal notes and the full conversation history — no more forwarding screenshots.',
+    a: 'That is exactly what Instant is for. Everyone works from a shared inbox on the same number, with assignments, internal notes and the full conversation history — no more forwarding screenshots.',
   },
   {
     hue: 'sky',

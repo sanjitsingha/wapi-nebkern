@@ -4,9 +4,9 @@ import type { FormField, FormFieldType } from '@/types';
 /**
  * Live mockup of the actual WhatsApp Flow screen a customer sees after
  * tapping the form's button — deliberately styled after WhatsApp's own
- * UI (its teal, its near-black text) rather than wacrm's theme, since
+ * UI (its teal, its near-black text) rather than Instant's theme, since
  * the point is "what will this look like in WhatsApp," not "what does
- * this look like in wacrm." Purely a preview: no input is editable here.
+ * this look like in Instant." Purely a preview: no input is editable here.
  */
 
 const WA_TEAL = '#008069';
