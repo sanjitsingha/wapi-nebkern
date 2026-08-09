@@ -73,7 +73,7 @@ const SECTIONS: LegalSection[] = [
       },
       {
         ul: [
-          'Google — sign-in with Google, where you or your team choose it. Sees the email address and basic profile of the person signing in, and only at sign-in.',
+          'Google — two separate things, both optional. Sign-in with Google, where you or your team choose it, sees the email address and basic profile of the person signing in, and only at sign-in. Google Analytics 4 runs on the public marketing pages only, and only for visitors who accept cookies: it sees the pages visited and the coarse technical details any web request carries. Neither touches the signed-in app or any of your workspace data.',
           'Umami — cookieless page-view analytics, where enabled on this deployment. Sees the page visited plus the coarse technical details any web request carries (browser, device type, approximate country from IP). It sets no cookies, does not follow visitors between sites, and does not receive any of your workspace data.',
           'OpenAI — AI reply generation and embeddings, when you configure an OpenAI key. Sees the prompts, knowledge-base content and message text needed to draft a reply.',
           'Anthropic — AI reply generation, when you configure an Anthropic key. Same scope as above.',

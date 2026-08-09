@@ -68,9 +68,17 @@ export function subscribeCookieConsent(onChange: () => void): () => void {
   };
 }
 
-/** Server snapshot: always "not asked". Nothing renders on the server,
- *  so the client's first read is what decides — and hydration matches
- *  because both sides start from null. */
-export function getCookieConsentServer(): CookieConsent | null {
-  return null;
+/**
+ * Server snapshot: a third value, distinct from both "asked" and "not
+ * asked".
+ *
+ * It cannot be `null`, because null means "not asked yet" and callers
+ * act on that by showing the prompt — so the server would render the
+ * prompt into the HTML of every page, and everyone who already answered
+ * would see it flash until hydration replaced it. There is no way to
+ * know the answer on the server; `'unknown'` says exactly that, and
+ * every caller treats it as "render nothing yet".
+ */
+export function getCookieConsentServer(): 'unknown' {
+  return 'unknown';
 }

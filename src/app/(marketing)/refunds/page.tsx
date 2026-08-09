@@ -139,7 +139,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'Contact',
     blocks: [
       {
-        p: 'Billing questions, cancellations and refunds: {{EMAIL}}, or {{PHONE}} during business hours. Postal address: {{COMPANY}}, {{ADDRESS}}.',
+        p: 'Billing questions, cancellations and refunds: {{EMAIL}}. We reply within one working day. Postal address: {{COMPANY}}, {{ADDRESS}}.',
       },
     ],
   },

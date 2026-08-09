@@ -20,7 +20,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'Who we are and what this covers',
     blocks: [
       {
-        p: 'Instant is a customer-relationship platform for businesses that talk to their customers over WhatsApp, Instagram and Messenger. It is operated by {{COMPANY}}, registered at {{ADDRESS}}. In this policy, "we", "us" and "our" mean {{COMPANY}}, and "the Service" means the Instant web application, its APIs and any related tooling.',
+        p: 'Instant is a customer-relationship platform for businesses that talk to their customers over WhatsApp, Instagram and Messenger. It is operated by {{COMPANY}}, {{ENTITY}} based at {{ADDRESS}}. In this policy, "we", "us" and "our" mean {{COMPANY}}, and "the Service" means the Instant web application, its APIs and any related tooling.',
       },
       {
         p: 'This policy explains what personal data we handle, why, who we share it with and what rights you have. It covers our website and the Service. It does not cover the practices of the businesses that use Instant to message their own customers — for that, see the controller/processor split in section 4.',

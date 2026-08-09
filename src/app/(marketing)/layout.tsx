@@ -2,6 +2,7 @@ import './lp2.css';
 
 import { lp2Display } from '@/components/lp2/font';
 import { Analytics } from '@/components/analytics';
+import { CookieConsentModal } from '@/components/consent/cookie-consent-modal';
 
 // ============================================================
 // (marketing) — the joyful landing rebuild, promoted to `/`.
@@ -30,6 +31,11 @@ export default function MarketingLayout({
           layout deliberately does not carry this, so nothing inside the
           signed-in app is measured. */}
       <Analytics />
+      {/* The consent prompt belongs here, not only in the app: GA4 is
+          what needs consent and GA4 runs on these pages, for visitors
+          who are logged out. Analytics reads the same stored choice, so
+          gtag does not load until this is answered with Accept. */}
+      <CookieConsentModal />
     </div>
   );
 }

@@ -15,7 +15,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'The agreement',
     blocks: [
       {
-        p: 'These Terms are a contract between you and {{COMPANY}}, registered at {{ADDRESS}} ("we", "us"). They govern your use of the Instant application, its APIs and everything we provide with them (the "Service"). By creating an account, or by using the Service, you accept them.',
+        p: 'These Terms are a contract between you and {{COMPANY}}, {{ENTITY}} based at {{ADDRESS}} ("we", "us"). They govern your use of the Instant application, its APIs and everything we provide with them (the "Service"). By creating an account, or by using the Service, you accept them.',
       },
       {
         p: 'If you are accepting on behalf of a company, you confirm you are authorised to bind it, and "you" means that company. The Service is for business use — you must be at least 18 and legally able to enter a contract.',

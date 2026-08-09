@@ -1,4 +1,13 @@
+'use client';
+
 import Script from 'next/script';
+import { useSyncExternalStore } from 'react';
+
+import {
+  getCookieConsent,
+  getCookieConsentServer,
+  subscribeCookieConsent,
+} from '@/lib/cookie-consent';
 
 /**
  * Page-view analytics: Umami and Google Analytics 4.
@@ -30,12 +39,27 @@ import Script from 'next/script';
  *
  * To also measure the login/signup pages, render this from
  * `src/app/(auth)/layout.tsx` as well.
+ *
+ * CONSENT
+ *
+ * GA4 sets `_ga`, which is a non-essential cookie, so it does not load
+ * until the visitor has actually accepted. Before a choice exists,
+ * nothing is rendered — the prompt is what appears first. Umami is
+ * unconditional because it is cookieless and stores nothing on the
+ * device; that is the whole reason it was chosen, and gating it would
+ * lose the traffic numbers for no gain in privacy.
  */
 export function Analytics() {
+  const consent = useSyncExternalStore(
+    subscribeCookieConsent,
+    getCookieConsent,
+    getCookieConsentServer
+  );
+
   return (
     <>
       <Umami />
-      <GoogleAnalytics />
+      {consent === 'accepted' && <GoogleAnalytics />}
     </>
   );
 }
@@ -50,7 +74,12 @@ function Umami() {
   return (
     // afterInteractive: analytics must never sit on the critical path of
     // a page someone is waiting to read.
-    <Script defer strategy="afterInteractive" src={src} data-website-id={websiteId} />
+    <Script
+      defer
+      strategy="afterInteractive"
+      src={src}
+      data-website-id={websiteId}
+    />
   );
 }
 

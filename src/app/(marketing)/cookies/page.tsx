@@ -43,7 +43,7 @@ const SECTIONS: LegalSection[] = [
         ],
       },
       {
-        note: 'We do not use advertising cookies, cross-site tracking pixels, or third-party marketing trackers in the application. If that ever changes, this page changes first and you will be asked before any non-essential cookie is set.',
+        note: 'We do not use advertising cookies, cross-site tracking pixels, or remarketing trackers anywhere on this site or in the application. We do use Google Analytics on the public marketing pages, which does set cookies — it is described in full below, and it does not load until you accept.',
       },
     ],
   },
@@ -58,8 +58,8 @@ const SECTIONS: LegalSection[] = [
         ul: [
           'Strictly necessary — authentication, security and load balancing. These are set because you asked for a service that requires them, so they do not need consent. Blocking them breaks the login.',
           'Functional — interface preferences that make the app pleasant rather than possible. Blocking them means the app forgets your layout choices.',
-          'Analytics — aggregate, de-identified page-view counts, where enabled on this deployment. We use Umami, which is cookieless by design: it records that a page was viewed, not who viewed it, and sets nothing on your device. Used to see which pages get used, never to build a profile of you.',
-          'Advertising — not used.',
+          'Analytics — two of them, and they behave differently. Umami is cookieless by design: it records that a page was viewed, not who viewed it, and sets nothing on your device, so it runs everywhere without asking. Google Analytics 4 does set cookies, so it needs your consent and does not load until you give it.',
+          'Advertising — not used. Google Analytics is configured for measurement only; we do not run Google Ads, remarketing audiences or Google Signals against it.',
         ],
       },
     ],
@@ -74,6 +74,7 @@ const SECTIONS: LegalSection[] = [
       {
         ul: [
           'Our database and authentication provider, for the session cookies described above.',
+          'Google, for Google Analytics 4 on the public marketing pages — only after you accept. It sets `_ga` and `_ga_<id>`, which distinguish one browser from another so a returning visit is not counted as a new one. They last up to two years, are never set inside the signed-in app, and declining means they are never set at all.',
           'Meta, when you connect a WhatsApp, Instagram or Facebook Page account. Its login window runs on Meta’s own domain, under Meta’s cookie policy, and we never see those cookies.',
           'Google, if you sign in with Google. The consent screen is Google’s and so are its cookies.',
           'Our payment processor, during checkout, for fraud prevention and to complete the transaction.',

@@ -32,15 +32,26 @@ import { LegalNav } from './legal-nav';
 
 const LEGAL_FACTS: Record<string, string> = {
   COMPANY: 'Nebkern Technology',
-  ADDRESS: 'Kolkata, West Bengal, India',
-  EMAIL: 'itsmesanjitsingh@gmail.com',
-  PHONE: '+91 7708601814',
-  CITY: 'Kolkata',
+  /** How the business is constituted. Named in the Terms and the DPA so
+   *  a customer knows exactly which legal person they are contracting
+   *  with — "Nebkern Technology" alone does not say. */
+  ENTITY: 'a sole proprietorship',
+  ADDRESS: 'Siliguri, West Bengal, India',
+  // A role address, not a personal one. Policy pages outlive the person
+  // reading the inbox, and a gmail address on a Terms page undercuts
+  // every claim of process the page goes on to make.
+  EMAIL: 'contact@instant.nebkern.com',
+  CITY: 'Siliguri',
   GRIEVANCE: 'Sanjit Singh',
   HOSTING:
     'Hostinger for application hosting, with Cloudflare R2 for media delivery',
-  SECURITY_EMAIL: 'itsmesanjitsingh@gmail.com',
+  SECURITY_EMAIL: 'contact@instant.nebkern.com',
 };
+// No PHONE. It was a personal mobile, and a number published on a
+// policy page is a number that must stay answered — email is the
+// contact route these pages promise, and the one that is actually
+// monitored. Worth revisiting if a payment gateway asks for a phone
+// number during review.
 
 export type LegalBlock =
   | { p: string }

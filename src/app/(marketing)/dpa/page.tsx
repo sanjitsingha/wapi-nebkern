@@ -21,7 +21,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'Parties and how this applies',
     blocks: [
       {
-        p: 'This Data Processing Agreement ("DPA") is between you, the customer named on the Instant account ("Controller"), and {{COMPANY}}, registered at {{ADDRESS}} ("Processor", "we"). It forms part of and is governed by our Terms of Service (the "Agreement"). Where this DPA and the Terms conflict on the processing of personal data, this DPA wins.',
+        p: 'This Data Processing Agreement ("DPA") is between you, the customer named on the Instant account ("Controller"), and {{COMPANY}}, {{ENTITY}} based at {{ADDRESS}} ("Processor", "we"). It forms part of and is governed by our Terms of Service (the "Agreement"). Where this DPA and the Terms conflict on the processing of personal data, this DPA wins.',
       },
       {
         p: 'It applies automatically from the moment you accept the Terms and process personal data through the Service — no signature is required for it to bind us. If your procurement process needs a countersigned copy, see the last section.',

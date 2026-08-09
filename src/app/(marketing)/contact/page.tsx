@@ -88,7 +88,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'Registered office',
     blocks: [
       {
-        p: '{{COMPANY}}, {{ADDRESS}}. Telephone: {{PHONE}}.',
+        p: '{{COMPANY}}, {{ENTITY}} based at {{ADDRESS}}. Email is the fastest way to reach us and the address every request below goes to: {{EMAIL}}.',
       },
       {
         p: 'Post reaches us, but email is considerably faster. We do not take walk-in visits without an appointment.',
