@@ -131,6 +131,12 @@ export async function DELETE(
   // Drop the cached account list and overview counters — without
   // this the edit is invisible for up to a minute and reads as a
   // save that silently failed.
-  revalidateAdmin(ADMIN_TAGS.accounts, ADMIN_TAGS.overview);
+  // Deleting a user removes their profile row and can orphan an
+  // account, so all three tenant reads have to drop.
+  revalidateAdmin(
+    ADMIN_TAGS.accounts,
+    ADMIN_TAGS.profiles,
+    ADMIN_TAGS.authUsers
+  );
   return NextResponse.json({ success: true });
 }

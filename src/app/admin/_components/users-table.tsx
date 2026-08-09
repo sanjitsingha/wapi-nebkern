@@ -40,6 +40,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ExportCsvButton } from './export-csv';
 import { fmtDate } from '../_lib/format';
 
 export interface UserView {
@@ -183,14 +184,14 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by email, name, or workspace"
-            className="h-11 pl-9"
+            className="h-9 pl-9"
           />
         </div>
         <Select
           value={filter}
           onValueChange={(v) => v && setFilter(v as Filter)}
         >
-          <SelectTrigger className="border-border h-11 w-full sm:w-48">
+          <SelectTrigger className="h-9 w-full border-(--admin-line) sm:w-48">
             <SelectValue placeholder="Filter" />
           </SelectTrigger>
           <SelectContent>
@@ -201,9 +202,27 @@ export function UsersTable({ rows }: { rows: UserView[] }) {
             ))}
           </SelectContent>
         </Select>
+        <ExportCsvButton
+          rows={filtered}
+          filename="users"
+          columns={[
+            { header: 'Email', value: (r) => r.email },
+            { header: 'Name', value: (r) => r.fullName },
+            { header: 'Workspace', value: (r) => r.accountName },
+            { header: 'Role', value: (r) => r.role },
+            { header: 'Owner', value: (r) => (r.isOwner ? 'yes' : '') },
+            { header: 'Suspended', value: (r) => (r.suspended ? 'yes' : '') },
+            {
+              header: 'Email confirmed',
+              value: (r) => (r.emailConfirmed ? 'yes' : 'no'),
+            },
+            { header: 'Created', value: (r) => r.createdAt },
+            { header: 'Last sign-in', value: (r) => r.lastSignInAt },
+          ]}
+        />
       </div>
 
-      <div className="border-border bg-card overflow-x-auto rounded-xl border">
+      <div className="bg-card overflow-x-auto rounded-sm border border-(--admin-line)">
         <Table>
           <TableHeader>
             <TableRow className="border-border bg-muted/50 hover:bg-muted/50">

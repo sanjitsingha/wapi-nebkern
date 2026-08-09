@@ -1,9 +1,11 @@
 import { adminDb } from '../../_lib/admin-db';
+import { ADMIN_TAGS, cachedRead } from '../../_lib/admin-cache';
 import { getAccountsIndex } from '../../_lib/admin-data';
 import {
   PopupsManager,
   type PopupView,
 } from '../../_components/popups-manager';
+import { CacheNote, PageHeader } from '../../_components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,22 +25,24 @@ interface PopupRow {
   created_at: string;
 }
 
-export default async function AdminPopupsPage() {
-  const db = adminDb();
-
-  // Shared cached account list — see `_lib/admin-data.ts`.
-  const [popupsRes, accounts] = await Promise.all([
-    db
+const getPopups = () =>
+  cachedRead(ADMIN_TAGS.popups, ['all'], async () => {
+    const { data } = await adminDb()
       .from('app_popups')
       .select(
         'id, title, body, image_url, youtube_url, link_url, link_label, audience, account_id, is_active, starts_at, expires_at, created_at'
       )
-      .order('created_at', { ascending: false }),
-    getAccountsIndex(),
-  ]);
+      .order('created_at', { ascending: false });
+
+    return (data ?? []) as PopupRow[];
+  });
+
+export default async function AdminPopupsPage() {
+  // Shared cached account list — see `_lib/admin-data.ts`.
+  const [rows, accounts] = await Promise.all([getPopups(), getAccountsIndex()]);
   const accountName = new Map(accounts.map((a) => [a.id, a.name]));
 
-  const popups: PopupView[] = ((popupsRes.data ?? []) as PopupRow[]).map(
+  const popups: PopupView[] = rows.map(
     (p) => ({
       id: p.id,
       title: p.title,
@@ -59,16 +63,24 @@ export default async function AdminPopupsPage() {
     })
   );
 
+  const live = popups.filter((p) => p.isActive).length;
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-foreground text-2xl font-bold">App popups</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          A splash modal shown when a tenant opens the app. Supports text,
-          image, a YouTube video, and a link — any combination.
-        </p>
-      </div>
+    <>
+      <PageHeader
+        title="App popups"
+        description="A splash modal shown when a tenant opens the app. Supports text, image, a YouTube video, and a link — any combination."
+        meta={
+          <>
+            <CacheNote />
+            <span>·</span>
+            <span>
+              {live} live / {popups.length}
+            </span>
+          </>
+        }
+      />
       <PopupsManager popups={popups} accounts={accounts} />
-    </div>
+    </>
   );
 }

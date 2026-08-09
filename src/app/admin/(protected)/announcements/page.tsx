@@ -1,9 +1,11 @@
 import { adminDb } from '../../_lib/admin-db';
+import { ADMIN_TAGS, cachedRead } from '../../_lib/admin-cache';
 import { getAccountsIndex } from '../../_lib/admin-data';
 import {
   AnnouncementsManager,
   type AnnouncementView,
 } from '../../_components/announcements-manager';
+import { CacheNote, PageHeader } from '../../_components/ui';
 import type { AnnouncementVariant } from '@/lib/app-announcement';
 
 export const dynamic = 'force-dynamic';
@@ -23,25 +25,28 @@ interface AnnouncementRow {
   created_at: string;
 }
 
-export default async function AdminAnnouncementsPage() {
-  const db = adminDb();
-
-  // The account list comes from the shared cached loader rather than a
-  // second query here — four other pages want the same rows.
-  const [announcementsRes, accounts] = await Promise.all([
-    db
+const getAnnouncements = () =>
+  cachedRead(ADMIN_TAGS.announcements, ['all'], async () => {
+    const { data } = await adminDb()
       .from('app_announcements')
       .select(
         'id, message, link_url, link_label, variant, dismissible, audience, account_id, is_active, starts_at, expires_at, created_at'
       )
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: false });
+
+    return (data ?? []) as AnnouncementRow[];
+  });
+
+export default async function AdminAnnouncementsPage() {
+  // The account list comes from the shared cached loader rather than a
+  // second query here — four other pages want the same rows.
+  const [rows, accounts] = await Promise.all([
+    getAnnouncements(),
     getAccountsIndex(),
   ]);
   const accountName = new Map(accounts.map((a) => [a.id, a.name]));
 
-  const announcements: AnnouncementView[] = (
-    (announcementsRes.data ?? []) as AnnouncementRow[]
-  ).map((a) => ({
+  const announcements: AnnouncementView[] = rows.map((a) => ({
     id: a.id,
     message: a.message,
     linkUrl: a.link_url,
@@ -57,17 +62,24 @@ export default async function AdminAnnouncementsPage() {
     createdAt: a.created_at,
   }));
 
+  const live = announcements.filter((a) => a.isActive).length;
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-foreground text-2xl font-bold">Announcement bar</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          A slim bar shown under the tenant&apos;s dashboard navbar — for plan
-          reminders, maintenance notices, and product news. Severity sets the
-          colour; add an optional link and expiry.
-        </p>
-      </div>
+    <>
+      <PageHeader
+        title="Announcement bar"
+        description="A slim bar shown under the tenant's dashboard navbar — for plan reminders, maintenance notices, and product news. Severity sets the colour; add an optional link and expiry."
+        meta={
+          <>
+            <CacheNote />
+            <span>·</span>
+            <span>
+              {live} live / {announcements.length}
+            </span>
+          </>
+        }
+      />
       <AnnouncementsManager announcements={announcements} accounts={accounts} />
-    </div>
+    </>
   );
 }

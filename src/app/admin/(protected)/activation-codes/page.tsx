@@ -1,16 +1,17 @@
 import { adminDb } from '../../_lib/admin-db';
+import { ADMIN_TAGS, cachedRead } from '../../_lib/admin-cache';
+import { getPlans } from '../../_lib/admin-data';
 import {
   ActivationCodesManager,
   type AdminActivationCode,
 } from '../../_components/activation-codes-manager';
+import { CacheNote, PageHeader } from '../../_components/ui';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminActivationCodesPage() {
-  const db = adminDb();
-
-  const [{ data: codes }, { data: plans }] = await Promise.all([
-    db
+const getCodes = () =>
+  cachedRead(ADMIN_TAGS.codes, ['all'], async () => {
+    const { data } = await adminDb()
       .from('activation_codes')
       .select(
         `id, code, plan_key, duration_days, max_uses, use_count, expires_at,
@@ -19,31 +20,44 @@ export default async function AdminActivationCodesPage() {
          redemptions:activation_code_redemptions(redeemed_at, account:accounts(name))`
       )
       .order('created_at', { ascending: false })
-      .limit(500),
-    db
-      .from('billing_plans')
-      .select('key, name, is_active')
-      .order('sort_order', { ascending: true }),
-  ]);
+      .limit(500);
+
+    return (data ?? []) as unknown as AdminActivationCode[];
+  });
+
+export default async function AdminActivationCodesPage() {
+  // The plan list is the shared cached one — this page was fetching
+  // `billing_plans` for itself alongside the Plans page doing the same.
+  const [codes, plans] = await Promise.all([getCodes(), getPlans()]);
+
+  const live = codes.filter((c) => c.is_active).length;
+  const redeemed = codes.reduce((n, c) => n + (c.use_count ?? 0), 0);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-foreground text-2xl font-bold">Activation codes</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Generate prepaid codes that activate a plan for a fixed number of
-          days. Tenants redeem them in Settings → Billing; redeeming onto an
-          unexpired period of the same plan extends it.
-        </p>
-      </div>
+    <>
+      <PageHeader
+        title="Activation codes"
+        description="Prepaid codes that activate a plan for a fixed number of days. Tenants redeem them in Settings → Billing; redeeming onto an unexpired period of the same plan extends it."
+        meta={
+          <>
+            <CacheNote />
+            <span>·</span>
+            <span>
+              {live} active / {codes.length}
+            </span>
+            <span>·</span>
+            <span>{redeemed} redemptions</span>
+          </>
+        }
+      />
       <ActivationCodesManager
-        codes={(codes ?? []) as unknown as AdminActivationCode[]}
-        plans={(plans ?? []).map((p) => ({
-          key: p.key as string,
-          name: p.name as string,
-          isActive: p.is_active as boolean,
+        codes={codes}
+        plans={plans.map((p) => ({
+          key: p.key,
+          name: p.name,
+          isActive: p.isActive,
         }))}
       />
-    </div>
+    </>
   );
 }

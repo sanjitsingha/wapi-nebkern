@@ -1,0 +1,72 @@
+/* ============================================================
+   Admin panel — instrument-panel skin.
+
+   The back office had been wearing the product's clothes: 0.55rem
+   radii, soft cards, generous padding. That is right for a landing
+   page trying to feel friendly and wrong for a console you stare at
+   to find the one number that is off.
+
+   THE ONE LINE THAT DOES MOST OF THE WORK
+
+   `--radius` is the root every radius token in globals.css derives
+   from (`--radius-sm` … `--radius-4xl` are all `calc()`s over it).
+   Overriding it on the admin root re-scales the whole system in one
+   place — including every shadcn Button, Input, Select and Dialog
+   rendered inside, none of which have to be touched. 2px reads as
+   "cut", not "rounded", and still avoids the harsh look of a true
+   square corner at small sizes.
+
+   Everything else here is scoped under `.admin-ui` so nothing leaks
+   into the tenant app, which shares these components.
+   ============================================================ */
+
+.admin-ui {
+  --radius: 0.125rem;
+
+  /* Hairlines. A console is mostly rules, and the product's border
+     token is tuned for cards sitting apart on a page rather than a
+     grid of cells sharing edges — at this density it reads as heavy. */
+  --admin-line: color-mix(in oklab, var(--border) 72%, transparent);
+  --admin-line-strong: var(--border);
+}
+
+/* The graph-paper ground. Two 1px gradients on a 32px pitch, at an
+   opacity where you register the alignment without ever reading it as
+   a texture. Fixed attachment so it stays put while content scrolls —
+   a grid that slides with the page turns into visual noise. */
+.admin-grid-bg {
+  background-image:
+    linear-gradient(to right, var(--admin-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--admin-line) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: -1px -1px;
+  background-attachment: fixed;
+}
+
+/* Numeric readouts: monospace, tabular, slightly tightened. Used for
+   anything you compare down a column — counts, money, durations. */
+.admin-num {
+  font-family: var(--font-mono-family), ui-monospace, SFMono-Regular, Menlo,
+    monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Section and column labels. Small caps done properly: uppercase,
+   widely tracked, and never below 10px, where tracking stops helping
+   and legibility falls off. */
+.admin-label {
+  font-family: var(--font-mono-family), ui-monospace, SFMono-Regular, Menlo,
+    monospace;
+  font-size: 10px;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Focus ring, squared off to match. The default is a rounded halo
+   that looks wrong against 2px corners. */
+.admin-ui :focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}

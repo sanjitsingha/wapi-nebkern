@@ -3,14 +3,11 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, Users, Radio, LifeBuoy, MessageCircle } from 'lucide-react';
 
 import { computeSubscription } from '@/lib/billing/subscription';
-import {
-  BILLING_PLAN_COLUMNS,
-  mapBillingPlanRow,
-  type BillingPlan,
-} from '@/lib/billing/plans';
 import { adminDb } from '../../../_lib/admin-db';
+import { getPlans, getProfiles } from '../../../_lib/admin-data';
 import { fmtDate, fmtDateTime, fmtMoney } from '../../../_lib/format';
 import { SubscriptionBadge } from '../../../_components/badges';
+import { StatCard, StatRow } from '../../../_components/ui';
 import { SubscriptionEditor } from '../../../_components/subscription-editor';
 import { BillingEditor } from '../../../_components/billing-editor';
 import { InvoicesManager } from '../../../_components/invoices-manager';
@@ -21,34 +18,10 @@ export const dynamic = 'force-dynamic';
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-interface MemberRow {
-  user_id: string;
-  email: string | null;
-  full_name: string | null;
-  account_role: string | null;
-}
-
-function UsageStat({
-  label,
-  value,
-  icon,
-}: {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="border-border bg-card rounded-xl border p-4">
-      <div className="bg-muted text-muted-foreground flex size-8 items-center justify-center rounded-lg">
-        {icon}
-      </div>
-      <p className="text-foreground mt-2 text-xl font-bold">
-        {value.toLocaleString()}
-      </p>
-      <p className="text-muted-foreground text-xs">{label}</p>
-    </div>
-  );
-}
+// Members and the plan catalog are no longer queried here. Both come
+// from the shared cached reads, filtered in memory — this page was
+// re-fetching `billing_plans` in full and re-querying `profiles` for
+// one account's rows on every visit.
 
 export default async function AdminAccountDetailPage({
   params,
@@ -70,18 +43,15 @@ export default async function AdminAccountDetailPage({
   if (!account) notFound();
 
   const [
-    membersRes,
+    allProfiles,
     waRes,
     contactsRes,
     broadcastsRes,
     ticketsRes,
-    plansRes,
+    plans,
     invoicesRes,
   ] = await Promise.all([
-    db
-      .from('profiles')
-      .select('user_id, email, full_name, account_role')
-      .eq('account_id', id),
+    getProfiles(),
     db
       .from('whatsapp_config')
       .select('phone_number_id')
@@ -99,10 +69,7 @@ export default async function AdminAccountDetailPage({
       .from('support_tickets')
       .select('*', { count: 'exact', head: true })
       .eq('account_id', id),
-    db
-      .from('billing_plans')
-      .select(BILLING_PLAN_COLUMNS)
-      .order('sort_order', { ascending: true }),
+    getPlans(),
     db
       .from('invoices')
       .select(
@@ -116,11 +83,7 @@ export default async function AdminAccountDetailPage({
     mapInvoiceRow
   );
 
-  const plans: BillingPlan[] = (
-    (plansRes.data ?? []) as Parameters<typeof mapBillingPlanRow>[0][]
-  ).map(mapBillingPlanRow);
-
-  const members = (membersRes.data ?? []) as MemberRow[];
+  const members = allProfiles.filter((p) => p.account_id === id);
   const sub = computeSubscription(account);
   const waConnected = !!waRes.data?.phone_number_id;
   const ownerEmail =
@@ -160,28 +123,28 @@ export default async function AdminAccountDetailPage({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <UsageStat
+      <StatRow cols={4}>
+        <StatCard
           label="Members"
           value={members.length}
-          icon={<Users className="size-4" />}
+          icon={<Users className="size-3.5" />}
         />
-        <UsageStat
+        <StatCard
           label="Contacts"
-          value={contactsRes.count ?? 0}
-          icon={<MessageCircle className="size-4" />}
+          value={(contactsRes.count ?? 0).toLocaleString()}
+          icon={<MessageCircle className="size-3.5" />}
         />
-        <UsageStat
+        <StatCard
           label="Campaigns"
-          value={broadcastsRes.count ?? 0}
-          icon={<Radio className="size-4" />}
+          value={(broadcastsRes.count ?? 0).toLocaleString()}
+          icon={<Radio className="size-3.5" />}
         />
-        <UsageStat
+        <StatCard
           label="Tickets"
           value={ticketsRes.count ?? 0}
-          icon={<LifeBuoy className="size-4" />}
+          icon={<LifeBuoy className="size-3.5" />}
         />
-      </div>
+      </StatRow>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <SubscriptionEditor

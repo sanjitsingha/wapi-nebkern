@@ -41,6 +41,7 @@ import { unstable_cache, revalidateTag } from 'next/cache';
 export const ADMIN_TAGS = {
   accounts: 'admin:accounts',
   profiles: 'admin:profiles',
+  authUsers: 'admin:auth-users',
   plans: 'admin:plans',
   invoices: 'admin:invoices',
   announcements: 'admin:announcements',
@@ -50,8 +51,13 @@ export const ADMIN_TAGS = {
   blog: 'admin:blog',
   contact: 'admin:contact',
   newsletter: 'admin:newsletter',
-  overview: 'admin:overview',
 } as const;
+
+// There is no `overview` tag any more. The dashboard used to be its own
+// cached query; it is now derived from the accounts / profiles / plans
+// reads, so invalidating those invalidates it by construction. A tag of
+// its own would have to be remembered at every write site, and would be
+// silently wrong the first time someone forgot.
 
 export type AdminTag = (typeof ADMIN_TAGS)[keyof typeof ADMIN_TAGS];
 

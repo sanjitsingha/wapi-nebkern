@@ -137,6 +137,6 @@ export async function POST(
   // Drop the cached account list and overview counters — without
   // this the edit is invisible for up to a minute and reads as a
   // save that silently failed.
-  revalidateAdmin(ADMIN_TAGS.accounts, ADMIN_TAGS.overview);
+  revalidateAdmin(ADMIN_TAGS.accounts);
   return NextResponse.json({ account: data });
 }

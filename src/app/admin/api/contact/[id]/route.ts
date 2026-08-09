@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { getAdminUser } from '../../../_lib/auth';
 import { adminDb } from '../../../_lib/admin-db';
+import { ADMIN_TAGS, revalidateAdmin } from '../../../_lib/admin-cache';
 
 /** The only field the back office may change — the triage state. The
  *  enquiry itself is what somebody sent us and is not ours to edit. */
@@ -37,5 +38,6 @@ export async function POST(
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  revalidateAdmin(ADMIN_TAGS.contact);
   return NextResponse.json({ ok: true });
 }

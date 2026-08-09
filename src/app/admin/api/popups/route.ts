@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminUser } from '../../_lib/auth';
 import { adminDb } from '../../_lib/admin-db';
 import { isAllowedUrl, youtubeId } from '@/lib/app-popup';
+import { ADMIN_TAGS, revalidateAdmin } from '../../_lib/admin-cache';
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -101,5 +102,6 @@ export async function POST(request: Request) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  revalidateAdmin(ADMIN_TAGS.popups);
   return NextResponse.json({ popup: data });
 }

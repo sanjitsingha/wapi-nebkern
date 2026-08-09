@@ -1,6 +1,7 @@
 import { adminDb } from '../../_lib/admin-db';
-import { getAccountsMap } from '../../_lib/admin-data';
+import { getAccountsMap, getEmailsByUserId } from '../../_lib/admin-data';
 import { TicketsTable, type TicketView } from '../../_components/tickets-table';
+import { CacheNote, PageHeader } from '../../_components/ui';
 import type { SupportTicketStatus, SupportTicketPriority } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -35,8 +36,9 @@ export default async function AdminTicketsPage({
 
   // The tickets themselves are read fresh every time — support is the
   // one place a minute-old view sends you away from a queue that isn't
-  // actually clear. The two label lookups beside them are cached.
-  const [ticketsRes, nameByAccount, profilesRes] = await Promise.all([
+  // actually clear. Both label lookups beside them are cached, and both
+  // are derivations of reads other pages have already paid for.
+  const [ticketsRes, nameByAccount, emailByUser] = await Promise.all([
     db
       .from('support_tickets')
       .select(
@@ -44,17 +46,10 @@ export default async function AdminTicketsPage({
       )
       .order('updated_at', { ascending: false }),
     getAccountsMap(),
-    db.from('profiles').select('user_id, email'),
+    getEmailsByUserId(),
   ]);
 
   const tickets = (ticketsRes.data ?? []) as TicketRow[];
-  const emailByUser = new Map<string, string | null>();
-  for (const p of (profilesRes.data ?? []) as {
-    user_id: string;
-    email: string | null;
-  }[]) {
-    emailByUser.set(p.user_id, p.email);
-  }
 
   const rows: TicketView[] = tickets.map((t) => ({
     id: t.id,
@@ -71,16 +66,30 @@ export default async function AdminTicketsPage({
   const openCount = rows.filter(
     (r) => r.status === 'open' || r.status === 'pending'
   ).length;
+  const waiting = rows.filter((r) => r.needsReply).length;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-foreground text-2xl font-bold">Support tickets</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          {rows.length} total · {openCount} open
-        </p>
-      </div>
+    <>
+      <PageHeader
+        title="Support tickets"
+        description="Every ticket raised from inside a tenant's workspace."
+        meta={
+          <>
+            <CacheNote cached={false} />
+            <span>·</span>
+            <span>{rows.length} total</span>
+            <span>·</span>
+            <span>{openCount} open</span>
+            {waiting > 0 && (
+              <>
+                <span>·</span>
+                <span className="text-foreground">{waiting} awaiting reply</span>
+              </>
+            )}
+          </>
+        }
+      />
       <TicketsTable rows={rows} initialFilter={filter ?? 'all'} />
-    </div>
+    </>
   );
 }

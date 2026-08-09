@@ -1,22 +1,17 @@
-import { adminDb } from '../../_lib/admin-db';
+import { getAccounts, getAuthUsers, getProfiles } from '../../_lib/admin-data';
 import { isAdminEmail } from '../../_lib/auth';
 import { UsersTable, type UserView } from '../../_components/users-table';
+import { CacheNote, PageHeader } from '../../_components/ui';
 
 export const dynamic = 'force-dynamic';
 
-interface ProfileRow {
-  user_id: string;
-  email: string | null;
-  full_name: string | null;
-  account_id: string | null;
-  account_role: string | null;
-}
-
-interface AccountRow {
-  id: string;
-  name: string;
-  owner_user_id: string;
-}
+// Three reads, all shared and all cached. This page used to issue its
+// own `profiles` and `accounts` queries alongside the auth list — the
+// same two tables Overview and Accounts had already read.
+//
+// Auth users are the source of truth for existence and ban status;
+// profiles carry the app-side name and account link; accounts say who
+// owns what.
 
 /** A `banned_until` in the future means the account is currently suspended. */
 function isSuspended(bannedUntil: string | null | undefined): boolean {
@@ -26,21 +21,11 @@ function isSuspended(bannedUntil: string | null | undefined): boolean {
 }
 
 export default async function AdminUsersPage() {
-  const db = adminDb();
-
-  // Auth users are the source of truth for existence + ban status; profiles
-  // carry the app-side name / account linkage; accounts tell us who owns what.
-  const [profilesRes, accountsRes, authRes] = await Promise.all([
-    db
-      .from('profiles')
-      .select('user_id, email, full_name, account_id, account_role'),
-    db.from('accounts').select('id, name, owner_user_id'),
-    db.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+  const [profiles, accounts, authUsers] = await Promise.all([
+    getProfiles(),
+    getAccounts(),
+    getAuthUsers(),
   ]);
-
-  const profiles = (profilesRes.data ?? []) as ProfileRow[];
-  const accounts = (accountsRes.data ?? []) as AccountRow[];
-  const authUsers = authRes.data?.users ?? [];
 
   const profileByUser = new Map(profiles.map((p) => [p.user_id, p]));
   const accountNameById = new Map(accounts.map((a) => [a.id, a.name]));
@@ -60,27 +45,46 @@ export default async function AdminUsersPage() {
         role: p?.account_role ?? null,
         isOwner: ownerUserIds.has(u.id),
         isAdmin: isAdminEmail(email),
-        suspended: isSuspended(u.banned_until),
+        suspended: isSuspended(u.bannedUntil),
         // Someone who signed up but never entered the emailed code. They
         // exist in auth.users and hold the address, so they block a
         // re-signup — which is exactly why they need to be visible here.
-        emailConfirmed: u.email_confirmed_at != null,
-        createdAt: u.created_at ?? null,
-        lastSignInAt: u.last_sign_in_at ?? null,
+        emailConfirmed: u.emailConfirmedAt != null,
+        createdAt: u.createdAt ?? null,
+        lastSignInAt: u.lastSignInAt ?? null,
       };
     })
     .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
 
+  const suspended = rows.filter((r) => r.suspended).length;
+  const unconfirmed = rows.filter((r) => !r.emailConfirmed).length;
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-foreground text-2xl font-bold">Users</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          {rows.length} user{rows.length === 1 ? '' : 's'} across all
-          workspaces.
-        </p>
-      </div>
+    <>
+      <PageHeader
+        title="Users"
+        description="Everyone with a login, across all workspaces."
+        meta={
+          <>
+            <CacheNote />
+            <span>·</span>
+            <span>{rows.length} total</span>
+            {suspended > 0 && (
+              <>
+                <span>·</span>
+                <span>{suspended} suspended</span>
+              </>
+            )}
+            {unconfirmed > 0 && (
+              <>
+                <span>·</span>
+                <span>{unconfirmed} unconfirmed</span>
+              </>
+            )}
+          </>
+        }
+      />
       <UsersTable rows={rows} />
-    </div>
+    </>
   );
 }

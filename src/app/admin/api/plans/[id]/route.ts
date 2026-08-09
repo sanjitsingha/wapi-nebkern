@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminUser } from '../../../_lib/auth';
 import { adminDb } from '../../../_lib/admin-db';
 import { sanitizeLimitsInput } from '@/lib/billing/entitlements';
+import { ADMIN_TAGS, revalidateAdmin } from '../../../_lib/admin-cache';
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -178,6 +179,7 @@ export async function POST(
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  revalidateAdmin(ADMIN_TAGS.plans);
   return NextResponse.json({ plan: data });
 }
 
@@ -201,5 +203,6 @@ export async function DELETE(
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  revalidateAdmin(ADMIN_TAGS.plans);
   return NextResponse.json({ success: true });
 }

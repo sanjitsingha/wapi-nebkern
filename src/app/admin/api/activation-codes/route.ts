@@ -2,6 +2,7 @@ import { randomInt } from 'crypto';
 import { NextResponse } from 'next/server';
 import { getAdminUser } from '../../_lib/auth';
 import { adminDb } from '../../_lib/admin-db';
+import { ADMIN_TAGS, revalidateAdmin } from '../../_lib/admin-cache';
 
 // Unambiguous alphabet — no I/L/O/0/1, so codes survive being read
 // aloud or retyped from a screenshot.
@@ -128,5 +129,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  revalidateAdmin(ADMIN_TAGS.codes);
   return NextResponse.json({ codes: data });
 }

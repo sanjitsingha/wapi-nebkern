@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
 
-import type { SubscriptionStatus } from '@/lib/billing/subscription';
+import type { AccountView } from '../_lib/admin-data';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -22,20 +22,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { SubscriptionBadge } from './badges';
+import { ExportCsvButton } from './export-csv';
 import { fmtDate } from '../_lib/format';
 
-export interface AccountView {
-  id: string;
-  name: string;
-  ownerEmail: string | null;
-  plan: string;
-  status: SubscriptionStatus;
-  trialDaysLeft: number;
-  isTrial: boolean;
-  memberCount: number;
-  trialEndsAt: string | null;
-  createdAt: string;
-}
+// Shape lives with the loader that builds it. A second copy here was a
+// standing invitation for the two to drift; the import is a type-only
+// one, erased at compile time, so no server code follows it into the
+// bundle. Re-exported because pages already import it from here.
+export type { AccountView };
 
 type Filter =
   | 'all'
@@ -96,14 +90,14 @@ export function AccountsTable({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by account name or owner email"
-            className="h-11 pl-9"
+            className="h-9 pl-9"
           />
         </div>
         <Select
           value={filter}
           onValueChange={(v) => v && setFilter(v as Filter)}
         >
-          <SelectTrigger className="border-border h-11 w-full sm:w-56">
+          <SelectTrigger className="h-9 w-full border-(--admin-line) sm:w-56">
             <SelectValue placeholder="Filter" />
           </SelectTrigger>
           <SelectContent>
@@ -114,9 +108,23 @@ export function AccountsTable({
             ))}
           </SelectContent>
         </Select>
+        <ExportCsvButton
+          rows={filtered}
+          filename="accounts"
+          columns={[
+            { header: 'Account', value: (r) => r.name },
+            { header: 'Owner email', value: (r) => r.ownerEmail },
+            { header: 'Plan', value: (r) => r.plan },
+            { header: 'Status', value: (r) => r.status },
+            { header: 'Members', value: (r) => r.memberCount },
+            { header: 'Trial ends', value: (r) => r.trialEndsAt },
+            { header: 'Created', value: (r) => r.createdAt },
+            { header: 'Account id', value: (r) => r.id },
+          ]}
+        />
       </div>
 
-      <div className="border-border bg-card overflow-x-auto rounded-xl border">
+      <div className="bg-card overflow-x-auto rounded-sm border border-(--admin-line)">
         <Table>
           <TableHeader>
             <TableRow className="border-border bg-muted/50 hover:bg-muted/50">

@@ -3,9 +3,10 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Copy, Download, Loader2, Search } from 'lucide-react';
+import { Copy, Loader2, Search } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { ExportCsvButton } from './export-csv';
 
 export interface SubscriberRow {
   id: string;
@@ -78,27 +79,14 @@ export function NewsletterTable({ rows }: { rows: SubscriberRow[] }) {
     );
   }, [rows, q]);
 
-  function exportCsv() {
-    // Only active subscribers: exporting unsubscribes into a sending
-    // tool is how people get emailed after asking not to be.
-    const active = rows.filter((r) => r.status === 'subscribed');
-    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
-    const csv = [
-      'email,name,signed_up',
-      ...active.map((r) =>
-        [esc(r.email), esc(r.name ?? ''), esc(r.created_at)].join(',')
-      ),
-    ].join('\n');
-
-    const url = URL.createObjectURL(
-      new Blob([csv], { type: 'text/csv;charset=utf-8' })
-    );
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `newsletter-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
+  // Only active subscribers: exporting unsubscribes into a sending
+  // tool is how people get emailed after asking not to be. The
+  // serialising itself moved to the shared button, which quotes
+  // properly and writes a BOM so Excel reads the file as UTF-8.
+  const active = useMemo(
+    () => rows.filter((r) => r.status === 'subscribed'),
+    [rows]
+  );
 
   return (
     <div className="space-y-4">
@@ -112,14 +100,17 @@ export function NewsletterTable({ rows }: { rows: SubscriberRow[] }) {
             className="border-border bg-card text-foreground focus-visible:border-primary h-9 w-full rounded-lg border pr-3 pl-9 text-sm outline-none"
           />
         </div>
-        <button
-          type="button"
-          onClick={exportCsv}
-          className="border-border text-foreground hover:bg-muted inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition-colors"
-        >
-          <Download className="size-4" />
-          Export active as CSV
-        </button>
+        <ExportCsvButton
+          rows={active}
+          filename="newsletter"
+          label="Export active"
+          columns={[
+            { header: 'email', value: (r) => r.email },
+            { header: 'name', value: (r) => r.name },
+            { header: 'signed_up', value: (r) => r.created_at },
+            { header: 'source', value: (r) => r.source_path },
+          ]}
+        />
       </div>
 
       {filtered.length === 0 ? (

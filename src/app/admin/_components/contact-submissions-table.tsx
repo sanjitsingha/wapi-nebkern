@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { ChevronDown, Loader2, Mail, Phone } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { ExportCsvButton } from './export-csv';
 
 export interface ContactRow {
   id: string;
@@ -69,7 +70,7 @@ export function ContactSubmissionsTable({ rows }: { rows: ContactRow[] }) {
 
   if (!rows.length) {
     return (
-      <div className="border-border bg-card rounded-xl border p-10 text-center">
+      <div className="bg-card rounded-sm border border-(--admin-line) p-10 text-center">
         <p className="text-muted-foreground text-sm">
           No enquiries yet. Submissions from the /contact form land here.
         </p>
@@ -78,7 +79,25 @@ export function ContactSubmissionsTable({ rows }: { rows: ContactRow[] }) {
   }
 
   return (
-    <div className="divide-border border-border bg-card divide-y overflow-hidden rounded-xl border">
+    <>
+      <div className="flex justify-end">
+        <ExportCsvButton
+          rows={rows}
+          filename="enquiries"
+          columns={[
+            { header: 'Name', value: (r) => r.name },
+            { header: 'Email', value: (r) => r.email },
+            { header: 'Phone', value: (r) => r.phone },
+            { header: 'Company', value: (r) => r.company },
+            { header: 'Status', value: (r) => r.status },
+            { header: 'Message', value: (r) => r.message },
+            { header: 'Source', value: (r) => r.source_path },
+            { header: 'Received', value: (r) => r.created_at },
+          ]}
+        />
+      </div>
+
+      <div className="bg-card divide-y divide-(--admin-line) overflow-hidden rounded-sm border border-(--admin-line)">
       {rows.map((r) => {
         const open = openId === r.id;
         return (
@@ -188,9 +207,10 @@ export function ContactSubmissionsTable({ rows }: { rows: ContactRow[] }) {
                 </div>
               </div>
             )}
-          </div>
-        );
-      })}
-    </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 }

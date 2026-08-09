@@ -3,8 +3,12 @@ import { cn } from '@/lib/utils';
 import type { SupportTicketStatus, SupportTicketPriority } from '@/types';
 import type { SubscriptionStatus } from '@/lib/billing/subscription';
 
+// Squared off, not a pill. A rounded-full badge is the one shape that
+// cannot be reconciled with the panel's 2px corners — at this size the
+// eye reads the two radii side by side and the pill looks pasted on
+// from another design. `rounded-sm` inherits the admin `--radius`.
 const base =
-  'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium capitalize';
+  'inline-flex items-center rounded-sm border px-1.5 py-0.5 font-mono text-[11px] font-medium tracking-tight lowercase';
 
 const SUBSCRIPTION: Record<SubscriptionStatus, string> = {
   trialing: softBadge.blue,

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminUser } from '../../_lib/auth';
 import { adminDb } from '../../_lib/admin-db';
 import { sanitizeLimitsInput } from '@/lib/billing/entitlements';
+import { ADMIN_TAGS, revalidateAdmin } from '../../_lib/admin-cache';
 
 const KEY_RE = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;
 
@@ -117,5 +118,6 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  revalidateAdmin(ADMIN_TAGS.plans);
   return NextResponse.json({ plan: data });
 }

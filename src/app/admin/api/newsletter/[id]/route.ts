@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { getAdminUser } from '../../../_lib/auth';
 import { adminDb } from '../../../_lib/admin-db';
+import { ADMIN_TAGS, revalidateAdmin } from '../../../_lib/admin-cache';
 
 /**
  * POST /admin/api/newsletter/[id] — { status }
@@ -47,5 +48,6 @@ export async function POST(
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  revalidateAdmin(ADMIN_TAGS.newsletter);
   return NextResponse.json({ ok: true });
 }

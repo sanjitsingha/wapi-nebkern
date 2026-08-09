@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/hooks/use-theme';
 import { ThemedToaster } from '@/components/themed-toaster';
@@ -7,6 +7,20 @@ import { ThemedToaster } from '@/components/themed-toaster';
 const inter = Inter({
   variable: '--font-sans',
   subsets: ['latin'],
+});
+
+/**
+ * The monospace half of the type system, which until now did not
+ * exist: `--font-mono` in globals.css pointed at `--font-geist-mono`,
+ * a variable nothing ever defined. An undefined custom property makes
+ * the whole `font-family` declaration invalid, so every `font-mono` in
+ * the app — ids, API keys, code samples, the admin panel's numbers —
+ * quietly rendered in Inter.
+ */
+const mono = JetBrains_Mono({
+  variable: '--font-mono-family',
+  subsets: ['latin'],
+  display: 'swap',
 });
 
 const SITE_URL = (
@@ -71,7 +85,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      className={`${inter.variable} ${mono.variable} h-full antialiased`}
+    >
       <body className="bg-background text-foreground min-h-full font-sans">
         <ThemeProvider>
           {children}
