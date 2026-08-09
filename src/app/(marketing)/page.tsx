@@ -33,9 +33,39 @@ export const metadata: Metadata = {
 // Fully static — nothing here reads the database or the request, so it
 // prerenders once at build time.
 
+const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://instant.nebkern.com'
+).replace(/\/$/, '');
+
+/**
+ * Site-name structured data.
+ *
+ * Google reads the name it prints above a result from the HOMEPAGE
+ * only, and this outranks `og:site_name` in its list of signals — so
+ * both are declared: this here, the OG tag in the root layout.
+ *
+ * `name` is short on purpose. The site name sits directly above the
+ * blue title, and the title is already "Instant — WhatsApp Marketing
+ * Automation"; putting the same sentence in both slots prints it twice
+ * and reads as a bug. `alternateName` is the correct home for the
+ * longer form, and Google may use it where the short one is ambiguous.
+ */
+const WEBSITE_JSONLD = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Instant',
+  alternateName: 'Instant — WhatsApp Marketing Automation',
+  url: `${SITE_URL}/`,
+};
+
 export default function Lp2Page() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        // Static object we control — no user input reaches it.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_JSONLD) }}
+      />
       <Lp2Nav />
       <main>
         <Lp2Hero />
