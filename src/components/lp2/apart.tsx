@@ -6,8 +6,14 @@ import { SectionHead } from './ui';
 //
 // Sits between the testimonials and the FAQ, in the slot the pricing
 // block used to hold: proof, then a one-glance summary, then the
-// objections. Washed green at the top and gone by the bottom, so it
-// hands off into the FAQ's grape without a seam.
+// objections.
+//
+// Plain white, no wash. The card is already the loudest object in the
+// section — ink outline, hard shadow, four display numerals — and a
+// tinted band behind it gave the eye two edges to read before it got
+// to any of them. White also keeps the run of sections honest: the
+// testimonials above are white and the FAQ below opens on its own
+// grape wash, so this one stays out of the way of both.
 //
 // WHY THESE NUMBERS AND NOT OUTCOME METRICS
 //
@@ -66,15 +72,11 @@ const STATS: {
 
 export function Lp2Apart() {
   return (
-    <section
-      id="apart"
-      className="scroll-mt-28 py-20 sm:py-28"
-      style={{
-        backgroundImage:
-          'linear-gradient(to bottom, color-mix(in oklab, var(--lp2-pop) 20%, #fff), #fff 88%)',
-      }}
-    >
-      <div className="mx-auto max-w-5xl px-4 sm:px-6">
+    <section id="apart" className="scroll-mt-28 bg-white py-20 sm:py-28">
+      {/* `max-w-6xl` to match `compare` and `integrations`. The card is
+          the thing people stop on, so it gets the page's full content
+          width rather than the narrower measure a text section wants. */}
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHead
           hue="grass"
           title="What sets Instant apart?"
@@ -85,14 +87,17 @@ export function Lp2Apart() {
 
         {/* The card carries the page's handwriting — 2px ink outline and
             a hard offset shadow — so it reads as one object rather than
-            four numbers floating on the wash. */}
-        <div className="mt-12 rounded-3xl border-2 border-(--lp2-ink) bg-white shadow-(--lp2-shadow)">
+            four numbers floating loose. The deeper `shadow-lg` variant
+            because the box is large now: a 4px offset that reads as
+            solid under a small card looks like a printing slip under
+            one this size. */}
+        <div className="mt-14 rounded-3xl border-2 border-(--lp2-ink) bg-white shadow-(--lp2-shadow-lg)">
           <div className="grid grid-cols-2 sm:grid-cols-4">
             {STATS.map((s, i) => (
               <div
                 key={s.label}
                 className={cn(
-                  'flex flex-col items-center px-4 py-8 text-center sm:px-5',
+                  'flex flex-col items-center px-4 py-12 text-center sm:px-6 sm:py-16',
                   // Dashed rules rather than solid: at 20% ink a solid
                   // line still reads as structure dividing four cards,
                   // and the dash says "same object, four readings".
@@ -113,16 +118,16 @@ export function Lp2Apart() {
                     is what stops the row reading as monochrome. */}
                 <span
                   aria-hidden
-                  className="mb-3 h-1.5 w-8 rounded-full"
+                  className="mb-4 h-2 w-10 rounded-full"
                   style={{ backgroundColor: `var(--lp2-${s.hue})` }}
                 />
-                <p className="lp2-display text-4xl leading-none font-extrabold sm:text-5xl">
+                <p className="lp2-display text-5xl leading-none font-extrabold sm:text-6xl lg:text-7xl">
                   {s.value}
                 </p>
-                <p className="mt-3 text-sm leading-tight font-bold text-balance sm:text-base">
+                <p className="mt-4 text-sm leading-tight font-bold text-balance sm:mt-5 sm:text-lg">
                   {s.label}
                 </p>
-                <p className="mt-1.5 text-xs leading-snug text-balance text-(--lp2-ink-soft)">
+                <p className="mt-2 text-xs leading-snug text-balance text-(--lp2-ink-soft) sm:text-sm">
                   {s.note}
                 </p>
               </div>

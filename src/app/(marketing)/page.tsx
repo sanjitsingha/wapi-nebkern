@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 
 import { Lp2Nav } from '@/components/lp2/nav';
 import { Lp2Hero } from '@/components/lp2/hero';
+import { Lp2Industries } from '@/components/lp2/industries';
 import { Lp2Features } from '@/components/lp2/features';
 import { Lp2AiAgents } from '@/components/lp2/ai-agents';
 import { Lp2Automations } from '@/components/lp2/automations';
@@ -69,6 +70,10 @@ export default function Lp2Page() {
       <Lp2Nav />
       <main>
         <Lp2Hero />
+        {/* Straight after the hero, where a logo cloud normally goes:
+            "is this for a business like mine?" is the question that
+            comes before any feature. */}
+        <Lp2Industries />
         <Lp2Features />
         <Lp2AiAgents />
         <Lp2Automations />

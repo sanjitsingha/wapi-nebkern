@@ -126,10 +126,46 @@
   animation: lp2-typing 1.4s ease-in-out infinite;
 }
 
+/* The industries ticker.
+ *
+ * The track holds its list TWICE, so it is exactly 200% of one copy.
+ * Starting at -50% puts the second copy under the viewport and ending
+ * at 0 puts the first copy there — identical pixels, so the loop has
+ * no seam and no jump. Travel is left-to-right because the animation
+ * runs toward zero.
+ *
+ * `linear`, not eased: a marquee that accelerates and decelerates
+ * reads as broken rather than deliberate. */
+@keyframes lp2-marquee {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.lp2 .lp2-marquee-track {
+  animation: lp2-marquee var(--lp2-marquee-duration, 48s) linear infinite;
+}
+
+/* Pausing on hover is the difference between decoration and something
+   you can actually read a name off. */
+.lp2 .lp2-marquee:hover .lp2-marquee-track {
+  animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lp2 .lp2-float,
   .lp2 .lp2-drift,
-  .lp2 .lp2-typing-dot {
+  .lp2 .lp2-typing-dot,
+  .lp2 .lp2-marquee-track {
     animation: none;
+  }
+
+  /* Stopped at -50% the row would sit half off-screen. Park it at 0 so
+     the first copy fills the band and it reads as a static list. */
+  .lp2 .lp2-marquee-track {
+    transform: translateX(0);
   }
 }
