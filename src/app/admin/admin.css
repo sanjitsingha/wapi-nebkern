@@ -30,18 +30,11 @@
   --admin-line-strong: var(--border);
 }
 
-/* The graph-paper ground. Two 1px gradients on a 32px pitch, at an
-   opacity where you register the alignment without ever reading it as
-   a texture. Fixed attachment so it stays put while content scrolls —
-   a grid that slides with the page turns into visual noise. */
-.admin-grid-bg {
-  background-image:
-    linear-gradient(to right, var(--admin-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--admin-line) 1px, transparent 1px);
-  background-size: 32px 32px;
-  background-position: -1px -1px;
-  background-attachment: fixed;
-}
+/* There was a graph-paper ground here — two 1px gradients on a 32px
+   pitch behind the whole work area. It was texture for its own sake:
+   the panels already carry every rule that means something, and a
+   second set of lines behind them competed with the ones that do.
+   Plain background now. */
 
 /* Numeric readouts: monospace, tabular, slightly tightened. Used for
    anything you compare down a column — counts, money, durations. */

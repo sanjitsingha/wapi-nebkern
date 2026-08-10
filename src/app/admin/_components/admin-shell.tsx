@@ -283,7 +283,7 @@ export function AdminShell({
           </div>
         </header>
 
-        <main className="admin-grid-bg min-w-0 flex-1 space-y-4 overflow-x-hidden p-4 sm:p-6">
+        <main className="min-w-0 flex-1 space-y-4 overflow-x-hidden p-4 sm:p-6">
           {children}
         </main>
       </div>
