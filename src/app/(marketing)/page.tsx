@@ -9,6 +9,7 @@ import { Lp2AiPerformance } from '@/components/lp2/ai-performance';
 import { Lp2Integrations } from '@/components/lp2/integrations';
 import { Lp2Compare } from '@/components/lp2/compare';
 import { Lp2Testimonials } from '@/components/lp2/testimonials';
+import { Lp2Apart } from '@/components/lp2/apart';
 import { Lp2Faq } from '@/components/lp2/faq';
 import { Lp2Cta } from '@/components/lp2/cta';
 import { Lp2Footer } from '@/components/lp2/footer';
@@ -80,7 +81,10 @@ export default function Lp2Page() {
         <Lp2Compare />
         <Lp2Testimonials />
         {/* No pricing block here on purpose — plans live on /pricing,
-            linked from the nav and the footer. */}
+            linked from the nav and the footer. The numbers band takes
+            that slot instead: proof, then a one-glance summary, then
+            the objections. */}
+        <Lp2Apart />
         <Lp2Faq />
         <Lp2Cta />
       </main>
