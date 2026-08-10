@@ -9,7 +9,6 @@ import { Lp2AiPerformance } from '@/components/lp2/ai-performance';
 import { Lp2Integrations } from '@/components/lp2/integrations';
 import { Lp2Compare } from '@/components/lp2/compare';
 import { Lp2Testimonials } from '@/components/lp2/testimonials';
-import { Lp2Pricing } from '@/components/lp2/pricing';
 import { Lp2Faq } from '@/components/lp2/faq';
 import { Lp2Cta } from '@/components/lp2/cta';
 import { Lp2Footer } from '@/components/lp2/footer';
@@ -76,11 +75,12 @@ export default function Lp2Page() {
         {/* Placed here on purpose: the product story ends with the
             payoff section above, and "does it fit the stack I already
             run?" is the first practical objection after that — before
-            the plan comparison and pricing. */}
+            the plan comparison. */}
         <Lp2Integrations />
         <Lp2Compare />
         <Lp2Testimonials />
-        <Lp2Pricing />
+        {/* No pricing block here on purpose — plans live on /pricing,
+            linked from the nav and the footer. */}
         <Lp2Faq />
         <Lp2Cta />
       </main>

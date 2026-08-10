@@ -8,11 +8,11 @@ import { SectionHead, press } from './ui';
 // ============================================================
 // Pricing.
 //
-// Numbers, seat counts and capability splits are copied from the live
-// landing page (`src/app/page.tsx`), which took them from the real
+// Numbers, seat counts and capability splits come from the real
 // `billing_plans` rows — so this table is accurate, not illustrative.
-// It is static copy on both pages: nothing syncs it to the admin panel,
-// so if a plan changes, both tables need the edit.
+// It is static copy: nothing syncs it to the admin panel, so a plan
+// change needs the edit here AND in the matrix in `pricing-page.tsx`,
+// which sits directly below these cards on /pricing.
 //
 // Flat treatment: white section, faint hairline cards (the featured one
 // emphasised by a lift + a slightly stronger line, not a shadow),
@@ -73,9 +73,10 @@ const PLANS = [
 export function Lp2Pricing({
   compareLink = true,
 }: {
-  /** Show the "compare every plan" link under the table. On by default;
-   *  off on /pricing, where the matrix it points at is on the same
-   *  page a screen further down. */
+  /** Show the "compare every plan" link under the table. Its only
+   *  caller today is /pricing, which passes false — the matrix it
+   *  would point at is on the same page a screen further down. Kept
+   *  for when a page other than /pricing embeds these cards. */
   compareLink?: boolean;
 } = {}) {
   return (

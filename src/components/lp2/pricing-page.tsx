@@ -9,10 +9,11 @@ import { Btn, SectionHead } from './ui';
 // ============================================================
 // /pricing — the dedicated pricing page.
 //
-// The landing page carries a three-card pricing block (`pricing.tsx`,
-// reused here verbatim so the two can't drift). This file adds what
-// doesn't fit next to the cards: the flat-fee argument, and a full
-// feature-by-feature matrix.
+// The three-card plan block lives in `pricing.tsx` and is rendered at
+// the top of this page. The landing page no longer carries it — plans
+// are only shown here, reached from the nav and the footer. This file
+// adds what doesn't fit next to the cards: the flat-fee argument, and
+// a full feature-by-feature matrix.
 //
 // The matrix numbers are transcribed from the live `billing_plans`
 // rows — seats, contacts and storage come from each plan's `limits`
