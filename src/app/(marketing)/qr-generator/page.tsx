@@ -56,8 +56,8 @@ const POINTS = [
   {
     icon: Lock,
     hue: 'grass',
-    title: 'Nothing leaves your browser',
-    body: 'The code is generated on your device. Your number and message are never sent to us, stored, or logged.',
+    title: 'Free, and no sign-up',
+    body: 'The code is generated on your device — nothing to install, no account, no card. We keep a record of the number and message so we can improve the tool; it is never sold or shared, and our privacy policy says exactly what we hold.',
   },
 ] as const;
 

@@ -31,13 +31,14 @@ const SECTIONS: LegalSection[] = [
     id: 'what-we-collect',
     heading: 'Data we collect',
     blocks: [
-      { p: 'We collect four broad categories of data.' },
+      { p: 'We collect five broad categories of data.' },
       {
         ul: [
           'Account data you give us: name, work email, password hash, business name, phone number, team members you invite, and your role and permissions.',
           'Conversation data: messages, attachments, contact names and phone numbers, notes, tags, custom fields, deal stages and call records that flow through your connected WhatsApp, Instagram or Messenger channels. This is the data you and your customers create — we hold it on your behalf.',
           'Billing data: your plan, invoices, billing address and tax identifiers. Card and UPI details are entered directly with our payment processor and are never stored on our servers.',
           'Technical and usage data: IP address, browser and device information, pages and features used, timestamps, session and device records used for security, and error diagnostics.',
+          'Free tool data: when you generate a code with our public QR generator, we record the WhatsApp number and the pre-filled message you entered, with a timestamp. No account is needed to use it, so this is the only thing we hold about that visit. We use it to understand how the tool is used and, where the number is a business we could help, to reach out. Ask us at {{EMAIL}} and we will delete it.',
         ],
       },
       {

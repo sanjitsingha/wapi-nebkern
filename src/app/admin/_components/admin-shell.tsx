@@ -18,6 +18,7 @@ import {
   LifeBuoy,
   Activity,
   LogOut,
+  QrCode,
   Terminal,
   Menu,
   Search,
@@ -76,6 +77,9 @@ const NAV: {
       { label: 'Tickets', href: '/admin/tickets', icon: LifeBuoy },
       { label: 'Enquiries', href: '/admin/contact', icon: Inbox },
       { label: 'Newsletter', href: '/admin/newsletter', icon: Mails },
+      // Grouped with the other inbound signals rather than under
+      // Publishing: like an enquiry, it is a person who reached in.
+      { label: 'QR generator', href: '/admin/qr-codes', icon: QrCode },
     ],
   },
   {

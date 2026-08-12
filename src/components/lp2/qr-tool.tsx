@@ -38,10 +38,16 @@ import { press } from './ui';
 // input, validated by the same `isValidWaNumber` the rest of the app
 // uses.
 //
-// EVERYTHING RUNS IN THE BROWSER. No number, no message and no
-// generated code is sent anywhere: `qrcode` encodes locally and the
-// downloads are Blobs. That is worth knowing before typing your own
-// phone number into a stranger's website, so the page says it too.
+// THE ENCODING RUNS IN THE BROWSER — `qrcode` builds the SVG locally
+// and the downloads are Blobs, so a working code never depends on the
+// network. But the number and message ARE posted to /api/qr/log after
+// a successful generate, because someone typing their own business
+// number into a free WhatsApp tool is a lead worth keeping.
+//
+// This page used to claim the opposite ("never sent to us, stored, or
+// logged"), which was true until that endpoint existed. The claim is
+// gone and the privacy policy lists the table. If the logging is ever
+// removed, put the stronger promise back — but not before.
 // ============================================================
 
 /**
@@ -101,6 +107,17 @@ export function Lp2QrTool() {
         color: QR_COLORS,
       });
       setGenerated({ link: pendingLink, svg });
+
+      // Not awaited, and its failure is swallowed. The code is already
+      // encoded and on screen by now; whether the operator's copy of
+      // this lead was recorded is not something the person using a free
+      // tool should ever wait for or hear about.
+      void fetch('/api/qr/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: number, message }),
+        keepalive: true,
+      }).catch(() => {});
     } catch {
       setGenerated(null);
     } finally {

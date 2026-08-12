@@ -150,6 +150,12 @@ export const RATE_LIMITS = {
    *  the shared BYO provider key so one workspace can't spike its own
    *  bill (or hit the provider's rate limit) via many agents at once. */
   aiDraftAccount: { limit: 60, windowMs: 60_000 },
+  /** Public QR generator log (per IP). The tool itself is unlimited —
+   *  it runs entirely in the browser and this budget never blocks a
+   *  code from being generated, only the row that records it. 20/min
+   *  is far above anyone iterating on a message, and it stops the
+   *  open endpoint from being turned into a free write API. */
+  qrLog: { limit: 20, windowMs: 60_000 },
 } as const;
 
 /** Test-only helper. Clears the in-memory state so unit tests don't
