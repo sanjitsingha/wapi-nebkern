@@ -40,7 +40,6 @@ export default function robots(): MetadataRoute.Robots {
         '/forms',
         '/calls',
         '/media',
-        '/qr-code',
         '/settings',
         '/admin',
         // Account lifecycle: nothing to index, and every one of these

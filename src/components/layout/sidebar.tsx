@@ -38,7 +38,6 @@ import {
   Lock,
   Megaphone,
   PhoneCall,
-  QrCode,
   Robot,
   SidebarSimple,
   UsersThree,
@@ -143,7 +142,9 @@ const groups: NavGroup[] = [
       { label: 'Templates', icon: FileText, href: '/templates' },
       { label: 'Forms', icon: ClipboardText, href: '/forms', badge: 'New' },
       { label: 'Media', icon: ImageIcon, href: '/media' },
-      { label: 'QR Generator', icon: QrCode, href: '/qr-code', badge: 'New' },
+      // The QR generator moved out to the public site at /qr-generator.
+      // It needs no account to be useful, so it works better as a free
+      // tool anyone can land on than as a page behind the login.
     ],
   },
   {

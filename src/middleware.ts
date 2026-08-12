@@ -102,7 +102,6 @@ export async function middleware(request: NextRequest) {
     '/forms',
     '/lists',
     '/media',
-    '/qr-code',
     '/segments',
     '/templates',
     '/onboarding',

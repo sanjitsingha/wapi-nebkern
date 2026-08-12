@@ -38,6 +38,9 @@ const MARKETING: Array<[path: string, priority: number]> = [
   ['/pricing', 0.9],
   ['/autopilot', 0.8],
   ['/blog', 0.7],
+  // A free tool people search for by name, so it earns a high priority
+  // despite not being part of the product story.
+  ['/qr-generator', 0.8],
   ['/contact-us', 0.7],
   ['/newsletter', 0.6],
   ['/contact', 0.5],

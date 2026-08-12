@@ -30,16 +30,39 @@ import { press } from './ui';
 // Anchors are absolute (`/#features`) because this nav also renders on
 // the legal and blog pages, where a bare `#features` goes nowhere.
 //
-// `Features` is special-cased: on desktop it opens the mega-menu below
-// (FeaturesMenu) instead of navigating. It stays in this array so the
-// mobile sheet still lists it as a plain link — the sheet has no room
-// for a nested panel, and its links jump to the same page anyway.
-const NAV: { label: string; href: string; hue: Lp2Hue }[] = [
+// Two entries are special-cased on desktop, where they open a panel
+// instead of navigating: `Features` (the mega-menu) and `Resources`
+// (the small dropdown). Both stay in this array because the mobile
+// sheet still renders them — Features as a plain link to the section,
+// Resources with its children listed underneath, since a phone has no
+// room for a hover panel but does have room for three more rows.
+const NAV: {
+  label: string;
+  href: string;
+  hue: Lp2Hue;
+  /** Rendered as a dropdown on desktop, indented rows on mobile. */
+  children?: { label: string; desc: string; href: string }[];
+}[] = [
   { label: 'Features', href: '/#features', hue: 'lemon' },
   { label: 'Autopilot', href: '/autopilot', hue: 'grape' },
   { label: 'Pricing', href: '/pricing', hue: 'sky' },
-  { label: 'Docs', href: '/docs', hue: 'coral' },
-  { label: 'Blog', href: '/blog', hue: 'tangerine' },
+  {
+    label: 'Resources',
+    // The parent is a real destination too, not a dead label — on
+    // mobile it is tappable, and a dropdown whose trigger goes nowhere
+    // is a trap for anyone navigating by keyboard or touch.
+    href: '/blog',
+    hue: 'coral',
+    children: [
+      { label: 'Blog', desc: 'Playbooks and product news', href: '/blog' },
+      { label: 'Docs', desc: 'Every feature, documented', href: '/docs' },
+      {
+        label: 'QR Generator',
+        desc: 'Free WhatsApp QR codes',
+        href: '/qr-generator',
+      },
+    ],
+  },
   // The form, not /contact — that one is the compliance document
   // (registered address, Grievance Officer) and links here anyway.
   { label: 'Contact us', href: '/contact-us', hue: 'mint' },
@@ -184,6 +207,56 @@ function FeaturesMenu() {
   );
 }
 
+/**
+ * The Resources dropdown.
+ *
+ * Same CSS-only mechanism as FeaturesMenu — `group-hover` plus
+ * `group-focus-within`, with a transparent `pt-2` bridge so the pointer
+ * can cross the visible gap without the panel closing under it.
+ *
+ * Unlike Features this one is `relative` and narrow: three links do not
+ * want the full width of the bar, and a full-bleed panel hanging off a
+ * short word looks like a mistake.
+ */
+function ResourcesMenu({
+  items,
+}: {
+  items: { label: string; desc: string; href: string }[];
+}) {
+  return (
+    <div className="group/res relative">
+      <button
+        type="button"
+        aria-haspopup="true"
+        className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors duration-150 outline-none group-focus-within/res:bg-(--lp2-ink)/5 group-hover/res:bg-(--lp2-ink)/5"
+      >
+        Resources
+        <ChevronDown
+          className="size-4 transition-transform duration-200 group-focus-within/res:rotate-180 group-hover/res:rotate-180"
+          strokeWidth={2.25}
+        />
+      </button>
+
+      <div className="invisible absolute top-full left-1/2 z-40 w-64 -translate-x-1/2 translate-y-1 pt-2 opacity-0 transition-all duration-150 group-focus-within/res:visible group-focus-within/res:translate-y-0 group-focus-within/res:opacity-100 group-hover/res:visible group-hover/res:translate-y-0 group-hover/res:opacity-100">
+        <div className="rounded-2xl border border-(--lp2-ink)/12 bg-white p-2">
+          {items.map((it) => (
+            <Link
+              key={it.label}
+              href={it.href}
+              className="block rounded-xl px-3 py-2.5 transition-colors hover:bg-(--lp2-cream)"
+            >
+              <span className="block text-sm font-bold">{it.label}</span>
+              <span className="mt-0.5 block text-xs leading-snug text-(--lp2-ink-soft)">
+                {it.desc}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Lp2Nav() {
   const [open, setOpen] = useState(false);
 
@@ -221,6 +294,8 @@ export function Lp2Nav() {
             {NAV.map((item) =>
               item.label === 'Features' ? (
                 <FeaturesMenu key="features" />
+              ) : item.children ? (
+                <ResourcesMenu key={item.label} items={item.children} />
               ) : (
                 <Link
                   key={item.label}
@@ -302,6 +377,26 @@ export function Lp2Nav() {
                     />
                     {item.label}
                   </Link>
+
+                  {/* Children listed flat rather than behind a toggle.
+                      Three rows is less tapping than an accordion, and
+                      the sheet is already a scrolling list. Indented to
+                      the parent's label, past the bullet. */}
+                  {item.children && (
+                    <ul className="mb-1 ml-8 space-y-0.5 border-l-2 border-(--lp2-ink)/10 pl-3">
+                      {item.children.map((child) => (
+                        <li key={child.href}>
+                          <Link
+                            href={child.href}
+                            onClick={() => setOpen(false)}
+                            className="block rounded-xl px-3 py-2 text-sm font-semibold text-(--lp2-ink-soft) transition-colors hover:bg-(--lp2-cream) hover:text-(--lp2-ink)"
+                          >
+                            {child.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               ))}
             </ul>
