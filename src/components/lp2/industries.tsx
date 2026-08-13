@@ -5,17 +5,31 @@
 // does: "is this for a business like mine?" answered before anyone has
 // to read a feature.
 //
-// DELIBERATELY THE QUIETEST SECTION ON THE PAGE
+// ONE FLAT COLOUR, AND NOTHING ELSE
 //
 // The first version gave every industry a coloured icon chip, a 2px
 // ink outline and a hard offset shadow — the page's full handwriting,
-// applied sixteen times and then set in motion. It read as a toy. This
-// band is a supporting fact, not a feature: the hero is directly above
-// it and the bento is directly below, and both of those are supposed
-// to win. So this is names, a hairline rule top and bottom, and
-// nothing else — no chips, no borders, no shadows, no colour.
+// applied sixteen times and then set in motion. It read as a toy.
 //
-// One row rather than two, for the same reason.
+// The colour now lives in the band instead of in the items: a flat
+// field of lemon carrying the same ink names as before. That buys the
+// separation the old hairline rules were for — a yellow stripe between
+// the cream hero and the bento needs no border to announce where it
+// starts — and it costs nothing per item, so sixteen names in motion
+// still read as one object rather than sixteen competing ones. The
+// restraint that matters is unchanged: no chips, no outlines, no
+// shadows, one row.
+//
+// --lp2-lemon is the saturated sticker hue, not the --lp2-lemon-soft
+// wash the palette normally reserves for surfaces. It is used flat and
+// full-bleed here on purpose: this band is one horizontal stripe with
+// no cards on it, so the thing the wash exists to protect — ink text
+// sitting on a large field of colour — is satisfied by lemon itself at
+// ~12.6:1.
+//
+// The text stays ink for that reason. White on lemon is ~1.4:1, so any
+// future move to white names has to take the background to
+// --lp2-grass with it; those two travel together or not at all.
 //
 // HOW THE LOOP WORKS
 //
@@ -49,10 +63,24 @@ const INDUSTRIES = [
 ];
 
 export function Lp2Industries() {
+  // The sticker shadow, adapted for a full-bleed band.
+  //
+  // --lp2-shadow is `4px 4px 0` and every other caller pairs it with a
+  // 2px ink outline on a card. Neither half transfers verbatim here:
+  // this section spans the viewport, so its right-hand offset would be
+  // painted past the screen edge and never seen, and a box that runs
+  // edge to edge has no outline to cast from. What is left is the part
+  // that reads — a hard, un-blurred ink edge along the bottom — so that
+  // is what this asks for, at the same 4px and the same ink.
+  //
+  // z-10 is load-bearing. The shadow is painted outside the border box,
+  // over whatever follows, and what follows is <Lp2Features> on solid
+  // white — a later sibling, so it wins the paint order by default and
+  // would cover the shadow completely. Raising this band puts it back.
   return (
     <section
       id="industries"
-      className="scroll-mt-28 border-y border-(--lp2-ink)/10 bg-white py-12 sm:py-16"
+      className="relative z-10 scroll-mt-28 bg-(--lp2-lemon) py-12 shadow-[0_4px_0_var(--lp2-ink)] sm:py-16"
     >
       {/* One muted line instead of a section heading. A display-size
           title with a highlight box would give this band more weight
@@ -76,8 +104,10 @@ function MarqueeRow() {
     <div
       className="lp2-marquee relative overflow-hidden"
       style={{
-        // Fades both ends into the white section instead of letting
-        // names get guillotined at the viewport edge.
+        // Fades both ends into the lemon band instead of letting names
+        // get guillotined at the viewport edge. The mask acts on the
+        // track, not on a backdrop, so it reveals whatever the section
+        // is painted — no need to keep a colour in step here.
         maskImage:
           'linear-gradient(to right, transparent, #000 8%, #000 92%, transparent)',
         WebkitMaskImage:
