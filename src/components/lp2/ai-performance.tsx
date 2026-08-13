@@ -231,7 +231,14 @@ function LeadCard() {
 
       <p className="mt-2.5 flex items-center gap-1.5 border-t border-(--lp2-ink)/10 pt-2 text-[11px] font-semibold text-(--lp2-ink-soft)">
         <CheckCheck className="size-3.5 shrink-0 text-(--lp2-grass)" strokeWidth={3} />
-        Written to the CRM · no one woken up
+        {/* Not "no one woken up" — the agents section directly above
+            ends its diagram on "no human woken up", and the two land
+            close enough now to read as a verbal tic rather than two
+            claims. That line is sharper up there, where it pairs with a
+            reply time; this card's point was never the hour, it is that
+            a scored, tagged, routed record exists without anyone doing
+            data entry. */}
+        Written to the CRM · nobody typed it in
       </p>
     </div>
   );
