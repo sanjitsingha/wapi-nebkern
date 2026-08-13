@@ -11,6 +11,7 @@ import { Lp2Integrations } from '@/components/lp2/integrations';
 import { Lp2Compare } from '@/components/lp2/compare';
 import { Lp2Testimonials } from '@/components/lp2/testimonials';
 import { Lp2Apart } from '@/components/lp2/apart';
+import { Lp2PricingNote } from '@/components/lp2/pricing-note';
 import { Lp2Faq } from '@/components/lp2/faq';
 import { Lp2Cta } from '@/components/lp2/cta';
 import { Lp2Footer } from '@/components/lp2/footer';
@@ -74,22 +75,40 @@ export default function Lp2Page() {
             "is this for a business like mine?" is the question that
             comes before any feature. */}
         <Lp2Industries />
+        {/* The problem, before any of the solution.
+            This used to sit down at position nine, read as an objection
+            handler among the other objection handlers. It is not one.
+            Everyone arriving here already sells on WhatsApp, on the
+            free Business app, and the question under every feature
+            below is "why isn't the thing I have — which costs nothing —
+            enough?" Answer it after six sections of features and those
+            six sections read as a paid version of what they already
+            own. Answer it here and they read as the fix for a ceiling
+            the visitor has just been shown they are standing under. */}
+        <Lp2Compare />
         <Lp2Features />
         <Lp2AiAgents />
-        <Lp2Automations />
+        {/* Directly after the agents section, not one further down.
+            These two are a pair — the mechanism, then what it gets you
+            — and Automations used to sit between them, which meant the
+            "10X" payoff landed a full screen after the thing that is
+            supposed to produce it. */}
         <Lp2AiPerformance />
-        {/* Placed here on purpose: the product story ends with the
-            payoff section above, and "does it fit the stack I already
-            run?" is the first practical objection after that — before
-            the plan comparison. */}
+        <Lp2Automations />
+        {/* Placed here on purpose: the product story ends above, and
+            "does it fit the stack I already run?" is the first
+            practical objection once someone believes the story. */}
         <Lp2Integrations />
-        <Lp2Compare />
         <Lp2Testimonials />
-        {/* No pricing block here on purpose — plans live on /pricing,
-            linked from the nav and the footer. The numbers band takes
-            that slot instead: proof, then a one-glance summary, then
-            the objections. */}
         <Lp2Apart />
+        {/* Still no pricing block — plans live on /pricing, linked from
+            the nav and the footer. This is one line, not that section
+            returning: the flat-fee promise is the reason someone picks
+            us over a reseller, and until now it appeared on this page
+            only as a single stat tile inside the band above. A claim
+            that load-bearing should not be something you have to read a
+            four-up of numbers to find. */}
+        <Lp2PricingNote />
         <Lp2Faq />
         <Lp2Cta />
       </main>
