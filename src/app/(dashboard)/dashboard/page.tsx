@@ -1,6 +1,5 @@
 "use client"
 
-import { InfoHint } from '@/components/ui/info-hint';
 import { useCallback, useEffect, useState } from 'react'
 import { subDays, startOfDay } from 'date-fns'
 import { createClient } from '@/lib/supabase/client'
@@ -32,7 +31,6 @@ import type {
 
 import { MetricCard } from '@/components/dashboard/metric-card'
 import { SkeletonCard } from '@/components/dashboard/skeleton'
-import { QuickActions } from '@/components/dashboard/quick-actions'
 import { ConversationsChart } from '@/components/dashboard/conversations-chart'
 import { PipelineDonut } from '@/components/dashboard/pipeline-donut'
 import { ResponseTimeChart } from '@/components/dashboard/response-time-chart'
@@ -134,13 +132,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-            <InfoHint label="Dashboard" docs="/docs/getting-started">
-              Your account at a glance — conversations, contacts, deals and
-              campaign results, all counted live from your own data.
-            </InfoHint>
-          </div>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Live analytics across conversations, contacts, deals, broadcasts, and automations.
           </p>
@@ -175,6 +167,7 @@ export default function DashboardPage() {
               title="New Contacts"
               value={metrics.newContacts.current.toLocaleString()}
               icon={UserPlus}
+              tone="blue"
               delta={{
                 sign:
                   metrics.newContacts.current - metrics.newContacts.previous,
@@ -188,12 +181,14 @@ export default function DashboardPage() {
               title="Open Deals Value"
               value={formatCurrency(metrics.openDealsValue, defaultCurrency)}
               icon={DollarSign}
+              tone="amber"
               subtitle={`${metrics.openDealsCount} open deal${metrics.openDealsCount === 1 ? '' : 's'}`}
             />
             <MetricCard
               title="Messages Sent"
               value={metrics.messagesSent.current.toLocaleString()}
               icon={Send}
+              tone="violet"
               delta={{
                 sign:
                   metrics.messagesSent.current - metrics.messagesSent.previous,
@@ -206,9 +201,6 @@ export default function DashboardPage() {
           </>
         )}
       </div>
-
-      {/* Quick actions */}
-      <QuickActions />
 
       {/* Charts row */}
       {/* items-stretch (the grid default) stretches the two columns to
