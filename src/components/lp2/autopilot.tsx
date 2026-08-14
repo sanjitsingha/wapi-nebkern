@@ -157,7 +157,7 @@ function MiniNode({
 export function AutopilotOverview() {
   return (
     <section className="bg-white py-16 sm:py-20">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="grid gap-5 sm:grid-cols-3">
           {OVERVIEW.map((o) => (
             <a
@@ -207,7 +207,7 @@ const AI_PROOF = [
 export function AutopilotAiBot() {
   return (
     <section id="ai-bot" className="scroll-mt-24 bg-(--lp2-grape-soft)/40 py-20 sm:py-28">
-      <div className="mx-auto grid max-w-6xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16">
+      <div className="mx-auto grid max-w-7xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16">
         <div>
           <h2 className="lp2-display text-3xl leading-[1.1] font-extrabold text-balance sm:text-[2.5rem]">
             The one that actually{' '}
@@ -285,7 +285,7 @@ function AiBotCard() {
 export function AutopilotFlows() {
   return (
     <section id="flows" className="scroll-mt-24 bg-white py-20 sm:py-28">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHead
           hue="sky"
           title="A conversation that branches, exactly where you decide."
@@ -418,7 +418,7 @@ const AUTOMATION_RULES = [
 export function AutopilotAutomations() {
   return (
     <section id="automations" className="scroll-mt-24 bg-(--lp2-tangerine-soft)/40 py-20 sm:py-28">
-      <div className="mx-auto grid max-w-6xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16">
+      <div className="mx-auto grid max-w-7xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16">
         <RuleList />
 
         <div className="lg:order-first">

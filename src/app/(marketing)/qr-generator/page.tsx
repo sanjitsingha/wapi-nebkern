@@ -67,7 +67,7 @@ export default function QrGeneratorPage() {
       <Lp2Nav />
       <main>
         <section className="bg-white py-16 sm:py-20">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6">
             <div className="mx-auto max-w-3xl text-center">
               <h1 className="lp2-display text-3xl leading-[1.08] font-extrabold text-balance sm:text-[2.75rem]">
                 Free WhatsApp{' '}
@@ -90,7 +90,7 @@ export default function QrGeneratorPage() {
         </section>
 
         <section className="border-t border-(--lp2-ink)/10 bg-(--lp2-cream) py-16 sm:py-20">
-          <div className="mx-auto grid max-w-6xl gap-6 px-4 sm:px-6 md:grid-cols-3">
+          <div className="mx-auto grid max-w-7xl gap-6 px-4 sm:px-6 md:grid-cols-3">
             {POINTS.map((p) => (
               <div
                 key={p.title}

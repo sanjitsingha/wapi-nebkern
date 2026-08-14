@@ -12,7 +12,7 @@ import { Btn } from './ui';
 // at full size. Everything decorative here is `aria-hidden` and clipped
 // by the panel's own `overflow-hidden`.
 //
-// `max-w-6xl` to match every other contained panel on the page — at
+// `max-w-7xl` to match every other contained panel on the page — at
 // 4xl it sat visibly narrower than the sections above it.
 // ============================================================
 
@@ -41,7 +41,7 @@ export function Lp2Cta() {
   return (
     <section className="bg-white px-4 py-20 sm:px-6 sm:py-28">
       <div
-        className="relative mx-auto max-w-6xl overflow-hidden rounded-3xl px-6 py-16 text-center sm:px-12"
+        className="relative mx-auto max-w-7xl overflow-hidden rounded-3xl px-6 py-16 text-center sm:px-12"
         style={{ backgroundImage: PANEL_WASH }}
       >
         {CONFETTI.map((c, i) => (

@@ -46,7 +46,7 @@ import { Btn } from './ui';
 export function Lp2PricingNote() {
   return (
     <section className="bg-(--lp2-cream) py-14 sm:py-16">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="flex flex-col items-center gap-6 rounded-3xl border-2 border-(--lp2-ink) bg-white px-6 py-8 text-center shadow-(--lp2-shadow-lg) sm:px-10 lg:flex-row lg:justify-between lg:text-left">
           <div>
             {/* Same sentence as the /pricing hero, deliberately. The

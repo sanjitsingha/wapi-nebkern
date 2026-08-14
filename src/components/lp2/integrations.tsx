@@ -61,7 +61,7 @@ const TRIGGERS = [
 export function Lp2Integrations() {
   return (
     <section id="integrations" className="scroll-mt-28 bg-white py-20 sm:py-28">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div
           className="grid items-center gap-14 rounded-3xl px-6 py-12 sm:px-10 sm:py-14 lg:grid-cols-2 lg:gap-16"
           style={{ backgroundImage: PANEL_WASH }}

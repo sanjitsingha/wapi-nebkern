@@ -56,7 +56,7 @@ export function Lp2Hero() {
           than it was with the mockup in place — a text-only fold with
           128px of empty cream under it reads as a page that failed to
           load something. */}
-      <div className="relative mx-auto max-w-6xl px-4 pt-14 pb-20 sm:px-6 lg:pt-20 lg:pb-24">
+      <div className="relative mx-auto max-w-7xl px-4 pt-14 pb-20 sm:px-6 lg:pt-20 lg:pb-24">
         <Copy />
       </div>
     </section>
@@ -77,7 +77,7 @@ export function Lp2Hero() {
 // They live strictly in the gutters. The hero's own note argues that
 // confetti beside the first sentence someone reads is the most
 // expensive decoration there is, and that still holds: the headline
-// column is `max-w-4xl` inside a `max-w-6xl` section, so everything
+// column is `max-w-4xl` inside a `max-w-7xl` section, so everything
 // below is positioned out where the type never reaches.
 const LEADS = [
   {

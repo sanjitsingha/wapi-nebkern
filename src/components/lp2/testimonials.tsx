@@ -44,7 +44,7 @@ const QUOTES = [
 export function Lp2Testimonials() {
   return (
     <section className="bg-white py-20 sm:py-28">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHead
           hue="tangerine"
           title="The kind of messages we like getting."

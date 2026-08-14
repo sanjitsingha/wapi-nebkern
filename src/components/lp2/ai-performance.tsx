@@ -88,7 +88,7 @@ const AGENTS = [
 export function Lp2AiPerformance() {
   return (
     <section className="bg-white py-20 sm:py-28">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHead
           hue="coral"
           title="10X your performance with Instant AI"

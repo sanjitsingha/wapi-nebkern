@@ -185,7 +185,7 @@ export function LegalPage({
 
         {/* ── Body ── */}
         <section className="bg-white">
-          <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[16rem_1fr] lg:gap-14">
+          <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[16rem_1fr] lg:gap-14">
             {/* The other documents, not this one's headings. Sticky on
                 desktop, parked clear of the nav: the bar is flush at
                 top-0 and 64px tall, so top-24 leaves a comfortable gap.

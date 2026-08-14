@@ -36,7 +36,7 @@ const panelWash = (hue: Lp2Hue) =>
 export function Lp2Features() {
   return (
     <section id="features" className="scroll-mt-28 bg-white py-20 sm:py-28">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHead
           hue="sky"
           title="Four apps' worth of tools, one happy inbox."

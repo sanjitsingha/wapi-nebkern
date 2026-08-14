@@ -75,7 +75,7 @@ export default async function Lp2BlogPostPage({
             Full width (left to right, spanning the whole article
             container), and no border/outline/shadow — just the image. */}
         <section className="relative -mt-19 px-4 pt-19 sm:-mt-20 sm:px-6 sm:pt-20">
-          <div className="mx-auto max-w-6xl pt-10">
+          <div className="mx-auto max-w-7xl pt-10">
             {post.coverImageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -109,7 +109,7 @@ export default async function Lp2BlogPostPage({
             the right in reading order — tags, title, excerpt, info box,
             then the body. */}
         <section className="px-4 pb-4 sm:px-6">
-          <div className="mx-auto mt-10 grid max-w-6xl gap-10 lg:grid-cols-[15rem_1fr] lg:gap-12">
+          <div className="mx-auto mt-10 grid max-w-7xl gap-10 lg:grid-cols-[15rem_1fr] lg:gap-12">
             {/* Sidebar. Desktop only — on a phone a ToC above the article
                 is more clutter than help, and the bottom CTA still
                 carries the promo. Sticky so it rides along as you read. */}
@@ -189,7 +189,7 @@ export default async function Lp2BlogPostPage({
             max width, rather than a thick edge-to-edge rule. */}
         {more.length > 0 && (
           <section className="bg-white pb-16">
-            <div className="mx-auto max-w-6xl border-t border-(--lp2-ink)/10 px-4 pt-16 sm:px-6">
+            <div className="mx-auto max-w-7xl border-t border-(--lp2-ink)/10 px-4 pt-16 sm:px-6">
               <h2 className="lp2-display text-2xl font-extrabold">
                 Keep reading
               </h2>

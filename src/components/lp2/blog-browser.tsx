@@ -137,7 +137,7 @@ export function Lp2BlogBrowser({ posts }: { posts: BlogListItem[] }) {
 
       {/* ── 2. Cards (white, generous margins) ── */}
       <section className="relative z-10 border-t-2 border-(--lp2-ink) bg-white px-4 py-20 sm:px-6 sm:py-28">
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto max-w-7xl">
           {posts.length === 0 ? (
             <EmptyState />
           ) : (

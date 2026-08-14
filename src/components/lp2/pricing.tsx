@@ -81,7 +81,7 @@ export function Lp2Pricing({
 } = {}) {
   return (
     <section id="pricing" className="scroll-mt-28 bg-(--lp2-coral-soft) py-20 sm:py-28">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHead
           hue="grape"
           title="Plans that stay friendly as you grow."

@@ -41,7 +41,7 @@ const PALETTE: { label: string; icon: LucideIcon; solid: string }[] = [
 export function Lp2Automations() {
   return (
     <section id="automations" className="scroll-mt-28 bg-white py-20 sm:py-28">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHead
           hue="grape"
           title="Automate the busywork by dragging boxes, not writing code."

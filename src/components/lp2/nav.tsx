@@ -269,7 +269,7 @@ export function Lp2Nav() {
       <Lp2Announce />
 
       {/* Full-bleed bar: the surface runs edge to edge and sits flush at
-        top-0, while the CONTENT stays inside max-w-6xl so it lines up
+        top-0, while the CONTENT stays inside max-w-7xl so it lines up
         with every section below it.
 
         This replaced a floating rounded pill (`top-3`, its own border
@@ -285,7 +285,7 @@ export function Lp2Nav() {
       <header className="sticky top-0 z-50 border-b border-(--lp2-ink)/12 bg-(--lp2-cream)/85 backdrop-blur-md">
         {/* `relative` is the positioning anchor the full-width Features
           mega-menu resolves its `inset-x-0` against — see FeaturesMenu. */}
-        <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+        <div className="relative mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
           <div>
             <Logo />
           </div>
@@ -362,7 +362,7 @@ export function Lp2Nav() {
           top rule instead of its own outline. */}
         {open && (
           <div className="border-t border-(--lp2-ink)/12 bg-white lg:hidden">
-            <ul className="mx-auto max-w-6xl space-y-1 px-4 py-3 sm:px-6">
+            <ul className="mx-auto max-w-7xl space-y-1 px-4 py-3 sm:px-6">
               {NAV.map((item) => (
                 <li key={item.label}>
                   <Link
@@ -401,7 +401,7 @@ export function Lp2Nav() {
               ))}
             </ul>
 
-            <div className="mx-auto max-w-6xl px-4 pb-4 sm:px-6">
+            <div className="mx-auto max-w-7xl px-4 pb-4 sm:px-6">
               <Link
                 href="/login"
                 onClick={() => setOpen(false)}

@@ -87,7 +87,7 @@ export function Lp2Announce() {
     // announcement is worth one look, and permanently spending 40px of
     // a laptop screen on it is not the trade it deserves.
     <div className="relative z-50 bg-(--lp2-ink) text-white">
-      <div className="mx-auto flex max-w-6xl items-center justify-center gap-3 px-4 py-2.5 sm:px-6">
+      <div className="mx-auto flex max-w-7xl items-center justify-center gap-3 px-4 py-2.5 sm:px-6">
         <p className="flex min-w-0 items-center gap-2.5 text-center text-[13px] font-medium">
           <span className="hidden shrink-0 rounded-full bg-(--lp2-lemon) px-2 py-0.5 text-[11px] font-extrabold tracking-wide text-(--lp2-ink) uppercase sm:inline-flex">
             {ANNOUNCEMENT.badge}

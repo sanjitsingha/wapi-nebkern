@@ -63,7 +63,7 @@ const COLUMNS: {
 export function Lp2Footer() {
   return (
     <footer className="border-t-2 border-(--lp2-ink) bg-(--lp2-ink) text-white">
-      <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
         {/* Five columns: the blurb takes two, then three link columns.
             Legal moved out to its own band below — see LEGAL_LINKS. */}
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">

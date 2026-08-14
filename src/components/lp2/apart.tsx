@@ -73,10 +73,10 @@ const STATS: {
 export function Lp2Apart() {
   return (
     <section id="apart" className="scroll-mt-28 bg-white py-20 sm:py-28">
-      {/* `max-w-6xl` to match `compare` and `integrations`. The card is
+      {/* `max-w-7xl` to match `compare` and `integrations`. The card is
           the thing people stop on, so it gets the page's full content
           width rather than the narrower measure a text section wants. */}
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHead
           hue="grass"
           title="What sets Instant apart?"

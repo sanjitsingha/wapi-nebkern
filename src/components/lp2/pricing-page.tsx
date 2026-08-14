@@ -83,7 +83,7 @@ const HERE = [
 export function PricingNoPerMessage() {
   return (
     <section className="bg-white py-20 sm:py-28">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHead
           hue="lemon"
           title="Your best month shouldn't be your biggest invoice."
@@ -239,7 +239,7 @@ export function PricingMatrix() {
       id="compare-plans"
       className="scroll-mt-28 bg-(--lp2-sky-soft) py-20 sm:py-28"
     >
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHead
           hue="sky"
           title="Every plan, line by line."
