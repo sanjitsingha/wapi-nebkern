@@ -24,12 +24,23 @@
   --lp2-ink-soft: #5c5a70; /* secondary copy */
 
   /* ── Brand green ──
-     Deliberately deeper than the decorative hues: this one carries
-     white button text, so it has to clear a real contrast bar
-     (~4.4:1) rather than just look bright. `pop` is the neon version,
-     decoration only — never put text on it. */
-  --lp2-grass: #0b8b47;
-  --lp2-grass-deep: #076b36;
+     Matched to the logo lockup, so the mark in the nav and the button
+     under it are one green rather than two a shade apart.
+
+     Note the trade this made. The previous #0b8b47 was a deeper,
+     blue-leaning forest green that cleared 4.4:1 against the white
+     text it carries. This one is brighter and yellow-leaning, and
+     against white it measures 2.9:1 — under the 4.5:1 WCAG AA bar for
+     body-sized text, and under the softer 3:1 bar that large bold
+     button labels get judged by. If that wants fixing without giving
+     up the logo match, the move is ink text on grass buttons
+     (5.98:1), not a fourth green.
+
+     `deep` is the same hue darkened — hover states, and link text on
+     cream (6.5:1, matching what the old deep gave). `pop` is the neon
+     version, decoration only — never put text on it. */
+  --lp2-grass: #18af0f;
+  --lp2-grass-deep: #0d6b08;
   --lp2-pop: #2fd37e;
   --lp2-mint: #d6f7e4;
 
