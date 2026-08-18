@@ -165,7 +165,7 @@ export function LegalPage({
           <div className="mx-auto max-w-4xl px-4 pt-4 pb-14 sm:px-6">
             <Link
               href="/"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink)"
+              className="inline-flex items-center gap-1.5 text-lg font-semibold text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink)"
             >
               <ArrowLeft className="size-4" strokeWidth={2.5} />
               Back home
@@ -174,10 +174,10 @@ export function LegalPage({
             <h1 className="lp2-display mt-6 text-4xl font-extrabold text-balance sm:text-5xl">
               {title}
             </h1>
-            <p className="mt-4 max-w-2xl text-base leading-relaxed text-pretty text-(--lp2-ink-soft)">
+            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-pretty text-(--lp2-ink-soft)">
               {intro}
             </p>
-            <p className="mt-5 inline-flex rounded-full border border-(--lp2-ink)/15 bg-(--lp2-paper) px-3 py-1 text-xs font-semibold text-(--lp2-ink-soft)">
+            <p className="mt-5 inline-flex rounded-full border border-(--lp2-ink)/15 bg-(--lp2-paper) px-3 py-1 text-base font-semibold text-(--lp2-ink-soft)">
               Last updated: {updated}
             </p>
           </div>

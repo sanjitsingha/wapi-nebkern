@@ -154,7 +154,7 @@ function AgentCard({ agent }: { agent: (typeof AGENTS)[number] }) {
         <h3 className="lp2-display mt-7 text-2xl font-extrabold">
           {agent.title}
         </h3>
-        <p className="mt-2 text-sm leading-relaxed text-(--lp2-ink-soft)">
+        <p className="mt-2 text-lg leading-relaxed text-(--lp2-ink-soft)">
           {agent.body}
         </p>
 

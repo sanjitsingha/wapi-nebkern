@@ -51,7 +51,7 @@ export default async function UnsubscribePage({
                   <p className="text-base leading-relaxed font-medium">
                     This unsubscribe link isn&rsquo;t valid.
                   </p>
-                  <p className="mt-2 text-sm leading-relaxed text-(--lp2-ink-soft)">
+                  <p className="mt-2 text-lg leading-relaxed text-(--lp2-ink-soft)">
                     Links expire nothing and never change, so this usually means
                     the address was edited in the URL, or the link was broken
                     across two lines by an email client. Try clicking it again

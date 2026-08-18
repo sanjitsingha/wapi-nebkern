@@ -44,7 +44,7 @@ export function BlogToc({ items }: { items: TocItem[] }) {
 
   return (
     <nav aria-label="On this page">
-      <p className="text-xs font-extrabold tracking-wide uppercase text-(--lp2-ink-soft)">
+      <p className="text-base font-extrabold tracking-wide uppercase text-(--lp2-ink-soft)">
         On this page
       </p>
       <ul className="mt-3 space-y-0.5">
@@ -85,7 +85,7 @@ export function PromoBanner({ className }: { className?: string }) {
         <Sparkles className="size-5 text-white" strokeWidth={2.75} />
       </span>
       <p className="lp2-display mt-3 text-lg font-extrabold">Try Instant free</p>
-      <p className="mt-1.5 text-sm leading-relaxed text-(--lp2-ink-soft)">
+      <p className="mt-1.5 text-lg leading-relaxed text-(--lp2-ink-soft)">
         One shared inbox and AI agents on your own WhatsApp number. 14 days,
         no card.
       </p>

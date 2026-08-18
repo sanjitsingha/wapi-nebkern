@@ -39,7 +39,7 @@ export function ShareButtons({
 
   return (
     <div className={cn('flex items-center gap-2', className)}>
-      <span className="text-xs font-bold text-(--lp2-ink-soft)">Share</span>
+      <span className="text-base font-bold text-(--lp2-ink-soft)">Share</span>
       <a
         href={waHref}
         target="_blank"

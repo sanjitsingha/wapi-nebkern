@@ -127,7 +127,7 @@ export function Lp2Apart() {
                 <p className="mt-4 text-sm leading-tight font-bold text-balance sm:mt-5 sm:text-lg">
                   {s.label}
                 </p>
-                <p className="mt-2 text-xs leading-snug text-balance text-(--lp2-ink-soft) sm:text-sm">
+                <p className="mt-2 text-base leading-snug text-balance text-(--lp2-ink-soft) sm:text-lg">
                   {s.note}
                 </p>
               </div>
@@ -135,7 +135,7 @@ export function Lp2Apart() {
           </div>
         </div>
 
-        <p className="mx-auto mt-8 max-w-2xl text-center text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-lg">
+        <p className="mx-auto mt-8 max-w-2xl text-center text-xl leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-2xl">
           An official Meta Tech Provider, so you connect to Meta directly and
           pay Meta directly — no middleman on your messages.
         </p>

@@ -170,7 +170,7 @@ function FeaturesMenu() {
         aria-haspopup="true"
         // No lift, no outline appearing on hover — just a soft wash, the
         // same as the plain nav links beside it.
-        className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors duration-150 outline-none group-focus-within/feat:bg-(--lp2-ink)/5 group-hover/feat:bg-(--lp2-ink)/5"
+        className="flex items-center gap-1 rounded-lg px-3 py-2 text-base font-semibold transition-colors duration-150 outline-none group-focus-within/feat:bg-(--lp2-ink)/5 group-hover/feat:bg-(--lp2-ink)/5"
       >
         Features
         <ChevronDown
@@ -194,8 +194,8 @@ function FeaturesMenu() {
                 href={it.href}
                 className="rounded-xl px-3 py-2.5 transition-colors hover:bg-(--lp2-cream)"
               >
-                <span className="block text-sm font-bold">{it.label}</span>
-                <span className="mt-0.5 block text-xs leading-snug text-(--lp2-ink-soft)">
+                <span className="block text-base font-bold">{it.label}</span>
+                <span className="mt-0.5 block text-base leading-snug text-(--lp2-ink-soft)">
                   {it.desc}
                 </span>
               </Link>
@@ -228,7 +228,7 @@ function ResourcesMenu({
       <button
         type="button"
         aria-haspopup="true"
-        className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors duration-150 outline-none group-focus-within/res:bg-(--lp2-ink)/5 group-hover/res:bg-(--lp2-ink)/5"
+        className="flex items-center gap-1 rounded-lg px-3 py-2 text-base font-semibold transition-colors duration-150 outline-none group-focus-within/res:bg-(--lp2-ink)/5 group-hover/res:bg-(--lp2-ink)/5"
       >
         Resources
         <ChevronDown
@@ -245,8 +245,8 @@ function ResourcesMenu({
               href={it.href}
               className="block rounded-xl px-3 py-2.5 transition-colors hover:bg-(--lp2-cream)"
             >
-              <span className="block text-sm font-bold">{it.label}</span>
-              <span className="mt-0.5 block text-xs leading-snug text-(--lp2-ink-soft)">
+              <span className="block text-base font-bold">{it.label}</span>
+              <span className="mt-0.5 block text-base leading-snug text-(--lp2-ink-soft)">
                 {it.desc}
               </span>
             </Link>
@@ -262,27 +262,8 @@ export function Lp2Nav() {
 
   return (
     <>
-      {/* Above the bar and NOT sticky, so it scrolls away and leaves the
-        nav behind. Rendered here rather than in each layout so it can
-        never end up below the header, or missing from a page that
-        renders the nav directly (the legal and docs shells both do). */}
-      <Lp2Announce />
-
-      {/* Full-bleed bar: the surface runs edge to edge and sits flush at
-        top-0, while the CONTENT stays inside max-w-7xl so it lines up
-        with every section below it.
-
-        This replaced a floating rounded pill (`top-3`, its own border
-        and offset shadow, inset from the edges). The pill read as a
-        widget sitting on the page; a full-width bar reads as the page's
-        own chrome — and on a wide monitor it no longer leaves the
-        corners looking unfinished.
-
-        The seam is a hairline bottom border rather than the old hard
-        shadow: with the bar touching the edges there is nothing for a
-        sticker shadow to sit against, and a rule is what says "this is
-        the top of the page" without shouting. */}
       <header className="sticky top-0 z-50 border-b border-(--lp2-ink)/12 bg-(--lp2-cream)/85 backdrop-blur-md">
+      <Lp2Announce />
         {/* `relative` is the positioning anchor the full-width Features
           mega-menu resolves its `inset-x-0` against — see FeaturesMenu. */}
         <div className="relative mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
@@ -306,7 +287,7 @@ export function Lp2Nav() {
                   // bar whose job is to get out of the way; one quiet wash
                   // does the same work. The hues live on in the mobile
                   // sheet's bullets, where they identify rather than shout.
-                  className="rounded-lg px-3 py-2 text-sm font-semibold transition-colors duration-150 outline-none hover:bg-(--lp2-ink)/5 focus-visible:bg-(--lp2-ink)/5"
+                  className="rounded-lg px-3 py-2 text-base font-semibold transition-colors duration-150 outline-none hover:bg-(--lp2-ink)/5 focus-visible:bg-(--lp2-ink)/5"
                 >
                   {item.label}
                 </Link>
@@ -317,7 +298,7 @@ export function Lp2Nav() {
           <div className="flex items-center gap-2">
             <Link
               href="/login"
-              className="hidden rounded-lg px-3 py-2 text-sm font-semibold transition-colors hover:bg-(--lp2-ink)/5 sm:inline-flex"
+              className="hidden rounded-lg px-3 py-2 text-base font-semibold transition-colors hover:bg-(--lp2-ink)/5 sm:inline-flex"
             >
               Log in
             </Link>
@@ -329,7 +310,7 @@ export function Lp2Nav() {
             <Link
               href="/signup"
               className={cn(
-                'inline-flex h-10 items-center gap-1.5 rounded-lg bg-(--lp2-grass) px-4 text-sm font-bold text-white transition-colors hover:bg-(--lp2-ink)',
+                'inline-flex h-10 items-center gap-1.5 rounded-lg bg-(--lp2-grass) px-4 text-base font-bold text-white transition-colors hover:bg-(--lp2-ink)',
                 press
               )}
             >
@@ -389,7 +370,7 @@ export function Lp2Nav() {
                           <Link
                             href={child.href}
                             onClick={() => setOpen(false)}
-                            className="block rounded-xl px-3 py-2 text-sm font-semibold text-(--lp2-ink-soft) transition-colors hover:bg-(--lp2-cream) hover:text-(--lp2-ink)"
+                            className="block rounded-xl px-3 py-2 text-lg font-semibold text-(--lp2-ink-soft) transition-colors hover:bg-(--lp2-cream) hover:text-(--lp2-ink)"
                           >
                             {child.label}
                           </Link>
@@ -405,7 +386,7 @@ export function Lp2Nav() {
               <Link
                 href="/login"
                 onClick={() => setOpen(false)}
-                className="flex h-12 items-center justify-center rounded-2xl border-2 border-(--lp2-ink) bg-(--lp2-mint) text-sm font-bold sm:hidden"
+                className="flex h-12 items-center justify-center rounded-2xl border-2 border-(--lp2-ink) bg-(--lp2-mint) text-base font-bold sm:hidden"
               >
                 Log in
               </Link>

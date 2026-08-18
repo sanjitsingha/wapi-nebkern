@@ -71,7 +71,7 @@ export function Lp2ContactForm() {
           strokeWidth={2.5}
         />
         <p className="lp2-display mt-3 text-2xl font-extrabold">Message sent</p>
-        <p className="mt-2 text-sm font-medium text-(--lp2-ink-soft)">
+        <p className="mt-2 text-lg font-medium text-(--lp2-ink-soft)">
           We reply to everything within one business day — usually sooner.
         </p>
       </div>
@@ -173,7 +173,7 @@ export function Lp2ContactForm() {
         {sending ? 'Sending…' : 'Send message'}
       </button>
 
-      <p className="mt-3 text-xs font-medium text-(--lp2-ink-soft)">
+      <p className="mt-3 text-base font-medium text-(--lp2-ink-soft)">
         We use what you send here only to reply. See the{' '}
         <a href="/privacy" className="underline underline-offset-2">
           Privacy Policy

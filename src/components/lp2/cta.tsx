@@ -78,7 +78,7 @@ export function Lp2Cta() {
             </Highlight>
           </h2>
 
-          <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-lg">
+          <p className="mx-auto mt-5 max-w-lg text-xl leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-2xl">
             Set up in an afternoon, free for 14 days, no card required. Worst
             case you learn what your customers have been asking all along.
           </p>
@@ -95,7 +95,7 @@ export function Lp2Cta() {
 
           <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <AvatarStack />
-            <p className="text-sm font-bold text-(--lp2-ink-soft)">
+            <p className="text-lg font-bold text-(--lp2-ink-soft)">
               Join 2,000+ teams already on WhatsApp
             </p>
           </div>

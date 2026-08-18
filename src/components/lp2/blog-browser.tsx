@@ -77,7 +77,7 @@ export function Lp2BlogBrowser({ posts }: { posts: BlogListItem[] }) {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search articles…"
               aria-label="Search articles"
-              className="h-13 w-full rounded-full border-2 border-(--lp2-ink)/15 bg-white pr-12 pl-12 text-base font-semibold outline-none placeholder:font-medium placeholder:text-(--lp2-ink-soft) focus:border-(--lp2-ink)/30"
+              className="h-13 w-full rounded-full border-2 border-(--lp2-ink)/15 bg-white pr-12 pl-12 text-lg font-semibold outline-none placeholder:font-medium placeholder:text-(--lp2-ink-soft) focus:border-(--lp2-ink)/30"
             />
             {query && (
               <button
@@ -93,7 +93,7 @@ export function Lp2BlogBrowser({ posts }: { posts: BlogListItem[] }) {
             {q && (
               <div className="absolute inset-x-0 top-full z-30 mt-2 overflow-hidden rounded-2xl bg-white">
                 {matches.length === 0 ? (
-                  <p className="px-4 py-5 text-sm font-semibold text-(--lp2-ink-soft)">
+                  <p className="px-4 py-5 text-lg font-semibold text-(--lp2-ink-soft)">
                     No articles match &ldquo;{query}&rdquo;.
                   </p>
                 ) : (
@@ -116,7 +116,7 @@ export function Lp2BlogBrowser({ posts }: { posts: BlogListItem[] }) {
                             <span className="block truncate text-sm font-bold">
                               {p.title}
                             </span>
-                            <span className="block text-xs font-semibold text-(--lp2-ink-soft)">
+                            <span className="block text-base font-semibold text-(--lp2-ink-soft)">
                               {p.dateLabel}
                             </span>
                           </span>
@@ -202,7 +202,7 @@ function Card({ post }: { post: BlogListItem }) {
           {post.tags.slice(0, 2).map((t) => (
             <TagPill key={t} tag={t} />
           ))}
-          <span className="text-xs font-bold text-(--lp2-ink-soft)">
+          <span className="text-base font-bold text-(--lp2-ink-soft)">
             {post.dateLabel}
           </span>
         </div>
@@ -212,7 +212,7 @@ function Card({ post }: { post: BlogListItem }) {
         </h2>
 
         {post.excerpt && (
-          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-(--lp2-ink-soft)">
+          <p className="mt-2 line-clamp-2 text-lg leading-relaxed text-(--lp2-ink-soft)">
             {post.excerpt}
           </p>
         )}
@@ -243,7 +243,7 @@ function EmptyState() {
       <p className="lp2-display mt-5 text-xl font-extrabold">
         Nothing published yet
       </p>
-      <p className="mt-2 text-sm text-(--lp2-ink-soft)">
+      <p className="mt-2 text-lg text-(--lp2-ink-soft)">
         We&apos;re writing. Check back soon — or start your trial and skip
         straight to the product.
       </p>

@@ -70,7 +70,7 @@ export function Lp2Faq() {
           'linear-gradient(to bottom, color-mix(in oklab, var(--lp2-grape) 22%, #fff), #fff 85%)',
       }}
     >
-      <div className="mx-auto max-w-3xl px-4 sm:px-6">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
         {/* `grass`, not `pop`. The highlight carries white text now, and
             lp2.css is explicit that pop is decoration only — never put
             text on it. White on that neon green is around 1.9:1, which
@@ -107,7 +107,7 @@ export function Lp2Faq() {
                   <Plus className="size-4" strokeWidth={3} />
                 </span>
               </summary>
-              <p className="border-t border-(--lp2-ink)/10 px-5 py-4 text-sm leading-relaxed text-(--lp2-ink-soft)">
+              <p className="border-t border-(--lp2-ink)/10 px-5 py-4 text-lg leading-relaxed text-(--lp2-ink-soft)">
                 {f.a}
               </p>
             </details>

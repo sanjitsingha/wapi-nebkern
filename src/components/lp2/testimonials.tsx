@@ -80,7 +80,7 @@ export function Lp2Testimonials() {
                 </span>
                 <span>
                   <span className="block text-sm font-extrabold">{q.name}</span>
-                  <span className="block text-xs font-semibold text-(--lp2-ink-soft)">
+                  <span className="block text-base font-semibold text-(--lp2-ink-soft)">
                     {q.role}
                   </span>
                 </span>

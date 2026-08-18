@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { Suspense, useState, useCallback, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Conversation, Message, Contact, ConversationStatus } from "@/types";
@@ -13,7 +13,6 @@ import {
 import { ConversationList } from "@/components/inbox/conversation-list";
 import { MessageThread } from "@/components/inbox/message-thread";
 import { ContactSidebar } from "@/components/inbox/contact-sidebar";
-import { toast } from "sonner";
 import { WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +21,14 @@ import { cn } from "@/lib/utils";
 const CONTACT_PANEL_STORAGE_KEY = "wacrm:inbox:contact-panel-open";
 
 export default function InboxPage() {
+  return (
+    <Suspense fallback={null}>
+      <InboxPageInner />
+    </Suspense>
+  );
+}
+
+function InboxPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   /**

@@ -40,14 +40,18 @@ export function PricingHero() {
         </span>
 
         <h1 className="lp2-display mt-6 text-4xl leading-[1.08] font-extrabold text-balance sm:text-6xl">
-          One flat fee. <Highlight color="lemon">Never</Highlight> per message.
+          One flat fee.{' '}
+          <Highlight color="lemon">
+            Never
+          </Highlight>{' '}
+          per message.
         </h1>
 
-        <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-lg">
-          Pick a plan for the size of your team, not the size of your send.
-          Meta bills your WhatsApp account directly for the messages you send,
-          at Meta&rsquo;s own published rates — we never mark those up, resell
-          them as credits, or take a cut of your volume.
+        <p className="mx-auto mt-6 max-w-2xl text-xl leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-2xl">
+          Pick a plan for the size of your team, not the size of your send. Meta
+          bills your WhatsApp account directly for the messages you send, at
+          Meta&rsquo;s own published rates — we never mark those up, resell them
+          as credits, or take a cut of your volume.
         </p>
 
         <div className="mt-9 flex flex-wrap justify-center gap-3">
@@ -145,7 +149,7 @@ function Panel({
             <span
               className={cn(
                 'mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-(--lp2-ink)',
-                good ? 'bg-(--lp2-grass) text-white' : 'bg-(--lp2-coral)',
+                good ? 'bg-(--lp2-grass) text-white' : 'bg-(--lp2-coral)'
               )}
             >
               {good ? (
@@ -171,7 +175,10 @@ function Panel({
  *  point). */
 type MatrixCell = boolean | string;
 
-type MatrixRow = { feature: string; cells: [MatrixCell, MatrixCell, MatrixCell] };
+type MatrixRow = {
+  feature: string;
+  cells: [MatrixCell, MatrixCell, MatrixCell];
+};
 
 const PLAN_COLUMNS = [
   { name: 'Try', price: '₹100', hue: 'sky', featured: false },
@@ -197,14 +204,20 @@ const GROUPS: { group: string; rows: MatrixRow[] }[] = [
       { feature: 'Templates & broadcast campaigns', cells: [true, true, true] },
       { feature: 'Campaign analytics', cells: [true, true, true] },
       { feature: 'Sales pipelines & deals', cells: [true, true, true] },
-      { feature: 'AI agent with your knowledge base', cells: [true, true, true] },
+      {
+        feature: 'AI agent with your knowledge base',
+        cells: [true, true, true],
+      },
     ],
   },
   {
     group: 'As you grow',
     rows: [
       { feature: 'No-code automations', cells: [false, true, true] },
-      { feature: 'Flows — the visual chatbot builder', cells: [false, true, true] },
+      {
+        feature: 'Flows — the visual chatbot builder',
+        cells: [false, true, true],
+      },
       { feature: 'WhatsApp calling', cells: [false, true, true] },
       { feature: 'Instagram & Messenger channels', cells: [false, true, true] },
       { feature: 'REST API, API keys & webhooks', cells: [false, true, true] },
@@ -213,8 +226,14 @@ const GROUPS: { group: string; rows: MatrixRow[] }[] = [
   {
     group: 'Billing',
     rows: [
-      { feature: 'Charges from us per message', cells: ['None', 'None', 'None'] },
-      { feature: 'Charges from us per contact', cells: ['None', 'None', 'None'] },
+      {
+        feature: 'Charges from us per message',
+        cells: ['None', 'None', 'None'],
+      },
+      {
+        feature: 'Charges from us per contact',
+        cells: ['None', 'None', 'None'],
+      },
       {
         feature: 'Meta’s own message charges',
         cells: ['Billed by Meta', 'Billed by Meta', 'Billed by Meta'],
@@ -260,7 +279,7 @@ export function PricingMatrix() {
                 key={plan.name}
                 className={cn(
                   'relative border-l-2 border-(--lp2-ink) px-4 py-6 text-center',
-                  plan.featured ? 'bg-(--lp2-mint)' : 'bg-(--lp2-cream)',
+                  plan.featured ? 'bg-(--lp2-mint)' : 'bg-(--lp2-cream)'
                 )}
                 style={
                   i === PLAN_COLUMNS.length - 1
@@ -281,7 +300,7 @@ export function PricingMatrix() {
                   <span className="lp2-display text-2xl font-extrabold">
                     {plan.price}
                   </span>
-                  <span className="text-xs font-bold text-(--lp2-ink-soft)">
+                  <span className="text-base font-bold text-(--lp2-ink-soft)">
                     /mo
                   </span>
                 </p>
@@ -289,9 +308,7 @@ export function PricingMatrix() {
                   href="/signup"
                   className={cn(
                     'mt-3 inline-flex h-9 w-full items-center justify-center rounded-lg border-2 border-(--lp2-ink) text-xs font-extrabold transition-transform duration-150 hover:-translate-y-0.5',
-                    plan.featured
-                      ? 'bg-(--lp2-grass) text-white'
-                      : 'bg-white',
+                    plan.featured ? 'bg-(--lp2-grass) text-white' : 'bg-white'
                   )}
                 >
                   Start free
@@ -310,8 +327,7 @@ export function PricingMatrix() {
                   // its corners. On desktop it sits mid-card, where a
                   // radius would notch it — hence `max-sm:`, not the
                   // inline style the always-cornered cells use.
-                  gi === 0 &&
-                    'max-sm:rounded-t-[14px] max-sm:border-t-0',
+                  gi === 0 && 'max-sm:rounded-t-[14px] max-sm:border-t-0'
                 )}
               >
                 {section.group}
@@ -347,7 +363,7 @@ export function PricingMatrix() {
               borderBottomRightRadius: CORNER,
             }}
           >
-            <p className="text-sm font-semibold text-(--lp2-ink-soft)">
+            <p className="text-lg font-semibold text-(--lp2-ink-soft)">
               All prices in INR, billed monthly. Change or cancel your plan
               whenever you like — your contacts and history stay yours.
             </p>
@@ -376,7 +392,7 @@ function MatrixValue({
     <div
       className={cn(
         'flex items-center gap-2.5 border-t-2 border-(--lp2-ink)/10 px-5 py-2.5 sm:justify-center sm:border-t-0 sm:border-l-2 sm:border-(--lp2-ink)/15 sm:py-3.5',
-        featured && 'bg-(--lp2-mint)/40',
+        featured && 'bg-(--lp2-mint)/40'
       )}
     >
       <span className="w-20 shrink-0 text-[10px] font-extrabold tracking-wide text-(--lp2-ink-soft) uppercase sm:sr-only sm:w-auto">
@@ -438,7 +454,7 @@ const BILLING_FAQS = [
 export function PricingFaq() {
   return (
     <section className="bg-(--lp2-grape-soft) py-20 sm:py-28">
-      <div className="mx-auto max-w-3xl px-4 sm:px-6">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHead
           hue="pop"
           title="The awkward questions, answered first."
@@ -464,14 +480,14 @@ export function PricingFaq() {
                   <Plus className="size-4" strokeWidth={3} />
                 </span>
               </summary>
-              <p className="border-t border-(--lp2-ink)/10 px-5 py-4 text-sm leading-relaxed text-(--lp2-ink-soft)">
+              <p className="border-t border-(--lp2-ink)/10 px-5 py-4 text-lg leading-relaxed text-(--lp2-ink-soft)">
                 {f.a}
               </p>
             </details>
           ))}
         </div>
 
-        <p className="mt-8 text-center text-sm font-semibold text-(--lp2-ink-soft)">
+        <p className="mt-8 text-center text-lg font-semibold text-(--lp2-ink-soft)">
           Still unsure?{' '}
           <Link href="/contact" className="underline underline-offset-2">
             Ask us anything

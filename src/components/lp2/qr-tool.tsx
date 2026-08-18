@@ -180,7 +180,7 @@ export function Lp2QrTool() {
           >
             WhatsApp number
           </label>
-          <p className="mt-1 text-sm text-(--lp2-ink-soft)">
+          <p className="mt-1 text-lg text-(--lp2-ink-soft)">
             With the country code, and no leading zeros — 91 for India.
           </p>
           <input
@@ -223,7 +223,7 @@ export function Lp2QrTool() {
               {message.length} / {MAX_MESSAGE_CHARS}
             </span>
           </div>
-          <p className="mt-1 text-sm text-(--lp2-ink-soft)">
+          <p className="mt-1 text-lg text-(--lp2-ink-soft)">
             Optional. Whoever scans lands in a chat with this already
             typed — all they do is hit send.
           </p>
@@ -298,7 +298,7 @@ export function Lp2QrTool() {
             ) : (
               <div className="flex flex-col items-center gap-2 text-center">
                 <QrCode className="size-10 text-(--lp2-ink)/20" />
-                <p className="max-w-40 text-xs text-(--lp2-ink-soft)">
+                <p className="max-w-40 text-base text-(--lp2-ink-soft)">
                   Your code appears here
                 </p>
               </div>
@@ -318,7 +318,7 @@ export function Lp2QrTool() {
                 </p>
               )}
 
-              <p className="rounded-xl bg-(--lp2-cream) px-3 py-2 text-xs break-all text-(--lp2-ink-soft)">
+              <p className="rounded-xl bg-(--lp2-cream) px-3 py-2 text-base break-all text-(--lp2-ink-soft)">
                 {generated.link}
               </p>
 
@@ -358,7 +358,7 @@ export function Lp2QrTool() {
                 href={generated.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1.5 text-xs font-medium text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink)"
+                className="flex items-center justify-center gap-1.5 text-base font-medium text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink)"
               >
                 <ExternalLink className="size-3.5" />
                 Test it in WhatsApp

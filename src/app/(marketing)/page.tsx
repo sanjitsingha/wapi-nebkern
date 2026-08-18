@@ -4,12 +4,11 @@ import { Lp2Nav } from '@/components/lp2/nav';
 import { Lp2Hero } from '@/components/lp2/hero';
 import { Lp2Industries } from '@/components/lp2/industries';
 import { Lp2Features } from '@/components/lp2/features';
-import { Lp2AiAgents } from '@/components/lp2/ai-agents';
-import { Lp2Automations } from '@/components/lp2/automations';
+
 import { Lp2AiPerformance } from '@/components/lp2/ai-performance';
 import { Lp2Integrations } from '@/components/lp2/integrations';
 import { Lp2Compare } from '@/components/lp2/compare';
-import { Lp2Testimonials } from '@/components/lp2/testimonials';
+
 import { Lp2Apart } from '@/components/lp2/apart';
 import { Lp2PricingNote } from '@/components/lp2/pricing-note';
 import { Lp2Faq } from '@/components/lp2/faq';
@@ -87,19 +86,13 @@ export default function Lp2Page() {
             the visitor has just been shown they are standing under. */}
         <Lp2Compare />
         <Lp2Features />
-        <Lp2AiAgents />
-        {/* Directly after the agents section, not one further down.
-            These two are a pair — the mechanism, then what it gets you
-            — and Automations used to sit between them, which meant the
-            "10X" payoff landed a full screen after the thing that is
-            supposed to produce it. */}
         <Lp2AiPerformance />
-        <Lp2Automations />
+
         {/* Placed here on purpose: the product story ends above, and
             "does it fit the stack I already run?" is the first
             practical objection once someone believes the story. */}
         <Lp2Integrations />
-        <Lp2Testimonials />
+
         <Lp2Apart />
         {/* Still no pricing block — plans live on /pricing, linked from
             the nav and the footer. This is one line, not that section

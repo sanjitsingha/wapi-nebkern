@@ -78,7 +78,7 @@ export function AutopilotHero() {
           Meet <Highlight color="grape">Autopilot</Highlight>.
         </h1>
 
-        <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-lg">
+        <p className="mx-auto mt-6 max-w-2xl text-xl leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-2xl">
           Every reply that goes out without a human typing it comes from one
           of three places — an AI Bot that understands, a Flow that guides,
           or an Automation that reacts. Different jobs, different tools,
@@ -180,7 +180,7 @@ export function AutopilotOverview() {
                   {o.tag}
                 </span>
               </p>
-              <p className="mt-2 flex-1 text-sm leading-relaxed text-(--lp2-ink-soft)">
+              <p className="mt-2 flex-1 text-lg leading-relaxed text-(--lp2-ink-soft)">
                 {o.body}
               </p>
               <span className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-(--lp2-ink) group-hover:text-(--lp2-grass-deep)">
@@ -213,7 +213,7 @@ export function AutopilotAiBot() {
             The one that actually{' '}
             <Highlight color="grape">understands</Highlight> the question.
           </h2>
-          <p className="mt-5 text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-lg">
+          <p className="mt-5 text-xl leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-2xl">
             Retrieval-augmented, not scripted — it searches your own
             knowledge base for the closest real answer, then writes a reply
             in context. Ask it the same thing five different ways; it holds
@@ -248,7 +248,7 @@ function AiBotCard() {
           </span>
           <div>
             <p className="lp2-display text-base font-extrabold">Your AI Bot</p>
-            <p className="flex items-center gap-1.5 text-xs font-bold text-(--lp2-ink-soft)">
+            <p className="flex items-center gap-1.5 text-base font-bold text-(--lp2-ink-soft)">
               <span className="size-2 rounded-full bg-(--lp2-grass)" />
               Trained on 12 documents
             </p>
@@ -270,7 +270,7 @@ function AiBotCard() {
           </div>
         </div>
 
-        <p className="mt-3 text-center text-xs font-bold text-(--lp2-ink-soft)">
+        <p className="mt-3 text-center text-base font-bold text-(--lp2-ink-soft)">
           Answered from your shipping policy · 3 seconds
         </p>
       </div>
@@ -426,7 +426,7 @@ export function AutopilotAutomations() {
             One rule, no canvas.{' '}
             <Highlight color="tangerine">Instant.</Highlight>
           </h2>
-          <p className="mt-5 text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-lg">
+          <p className="mt-5 text-xl leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-2xl">
             When a Flow is too much for what you need — one trigger, one or
             two actions, done — an Automation runs it the moment a message
             matches. No screens to design, nothing to test in a playground.
@@ -541,7 +541,7 @@ export function AutopilotChooser() {
               >
                 <c.icon className="size-5" style={{ color: `var(--lp2-${c.hue})` }} strokeWidth={2.5} />
               </span>
-              <p className="mt-4 text-sm leading-relaxed font-medium text-(--lp2-ink-soft)">
+              <p className="mt-4 text-lg leading-relaxed font-medium text-(--lp2-ink-soft)">
                 &ldquo;{c.when}&rdquo;
               </p>
               <p className="lp2-display mt-3 text-lg font-extrabold">→ {c.use}</p>

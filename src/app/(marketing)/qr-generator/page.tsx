@@ -76,7 +76,7 @@ export default function QrGeneratorPage() {
                 </Highlight>{' '}
                 generator
               </h1>
-              <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-lg">
+              <p className="mx-auto mt-5 max-w-xl text-xl leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-2xl">
                 Put your WhatsApp on a poster, a menu, a package or a shop
                 window. Someone scans, and the chat opens with your message
                 already written.
@@ -107,7 +107,7 @@ export default function QrGeneratorPage() {
                   />
                 </span>
                 <h2 className="mt-4 text-base font-extrabold">{p.title}</h2>
-                <p className="mt-2 text-sm leading-relaxed text-(--lp2-ink-soft)">
+                <p className="mt-2 text-lg leading-relaxed text-(--lp2-ink-soft)">
                   {p.body}
                 </p>
               </div>

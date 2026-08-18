@@ -49,7 +49,7 @@ export default function ContactUsPage() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
             <Link
               href="/"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink)"
+              className="inline-flex items-center gap-1.5 text-lg font-semibold text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink)"
             >
               <ArrowLeft className="size-4" strokeWidth={2.5} />
               Back home
@@ -62,7 +62,7 @@ export default function ContactUsPage() {
                   Talk to a <Highlight color="mint">real person</Highlight>
                 </h1>
 
-                <p className="mt-5 text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-lg">
+                <p className="mt-5 text-xl leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-2xl">
                   Questions about the product, pricing, moving an existing
                   WhatsApp number across, or whether any of this fits how your
                   team already works — send it over.
@@ -81,7 +81,7 @@ export default function ContactUsPage() {
                         <span className="block text-sm font-extrabold">
                           {a.title}
                         </span>
-                        <span className="mt-0.5 block text-sm leading-relaxed text-(--lp2-ink-soft)">
+                        <span className="mt-0.5 block text-lg leading-relaxed text-(--lp2-ink-soft)">
                           {a.body}
                         </span>
                       </span>
@@ -89,7 +89,7 @@ export default function ContactUsPage() {
                   ))}
                 </ul>
 
-                <p className="mt-9 text-sm leading-relaxed text-(--lp2-ink-soft)">
+                <p className="mt-9 text-lg leading-relaxed text-(--lp2-ink-soft)">
                   Looking for a specific desk — billing, privacy, abuse reports
                   — or our registered address and Grievance Officer?
                   They&rsquo;re all on{' '}

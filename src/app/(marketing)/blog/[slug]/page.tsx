@@ -159,11 +159,11 @@ export default async function Lp2BlogPostPage({
                         <Dot />
                       </>
                     )}
-                    <span className="text-sm font-semibold text-(--lp2-ink-soft)">
+                    <span className="text-lg font-semibold text-(--lp2-ink-soft)">
                       {formatPostDate(post.publishedAt)}
                     </span>
                     <Dot />
-                    <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-(--lp2-ink-soft)">
+                    <span className="inline-flex items-center gap-1.5 text-lg font-semibold text-(--lp2-ink-soft)">
                       <Clock className="size-3.5" strokeWidth={3} />
                       {minutes} min read
                     </span>
@@ -206,7 +206,7 @@ export default async function Lp2BlogPostPage({
                       className="h-2 w-12 rounded-full border-2 border-(--lp2-ink)"
                       style={{ backgroundColor: `var(--lp2-${postHue(p.slug)})` }}
                     />
-                    <p className="mt-3 text-xs font-bold text-(--lp2-ink-soft)">
+                    <p className="mt-3 text-base font-bold text-(--lp2-ink-soft)">
                       {formatPostDate(p.publishedAt)}
                     </p>
                     <h3 className="lp2-display mt-1.5 flex-1 text-lg font-extrabold text-balance">

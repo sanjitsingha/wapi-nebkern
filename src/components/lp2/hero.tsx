@@ -1,10 +1,10 @@
 import type { CSSProperties } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, MessageCircle, Star } from 'lucide-react';
+import { ArrowRight, MessageCircle } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import { AvatarStack, DotField } from './decor';
+import { DotField } from './decor';
 import { RotatingHeadline } from './hero-headline';
 import { press } from './ui';
 
@@ -52,12 +52,23 @@ export function Lp2Hero() {
 
       <FloatingLeads />
 
-      {/* Single centred column. The padding is tighter top and bottom
-          than it was with the mockup in place — a text-only fold with
-          128px of empty cream under it reads as a page that failed to
-          load something. */}
-      <div className="relative mx-auto max-w-7xl px-4 pt-14 pb-20 sm:px-6 lg:pt-20 lg:pb-24">
-        <Copy />
+      {/* Single centred column, held to a 70vh floor.
+
+          `min-h` rather than `h`: on a short laptop window or a phone in
+          landscape the copy must still be able to push the section
+          taller instead of being clipped. The padding stays as the
+          lower bound for those cases — below roughly 700px of viewport
+          it is the padding, not the 70vh, that sets the height.
+
+          `items-center` on the flex parent with a `w-full` child is what
+          centres the column vertically in that space; without the
+          wrapper the flex child would collapse to its content width and
+          the `mx-auto max-w-2xl` inside `Copy` would have nothing to
+          centre against. */}
+      <div className="relative mx-auto flex min-h-[82vh] max-w-7xl items-center px-4 pt-14 pb-20 sm:px-6 lg:pt-20 lg:pb-24">
+        <div className="w-full">
+          <Copy />
+        </div>
       </div>
     </section>
   );
@@ -208,22 +219,28 @@ function Copy() {
 
           A `span`, not a `Link`: it is a credential, not a CTA, and
           nothing useful sits behind a click. */}
-      <span className="inline-flex items-center gap-2 rounded-full border border-(--lp2-ink)/12 bg-white/70 py-1.5 pr-3.5 pl-3 text-xs font-semibold">
+      <span className="inline-flex items-center gap-2.5 rounded-full border border-(--lp2-ink)/12 bg-white/70 py-2.5 pr-5 pl-4 text-base font-semibold">
         {/* `alt=""` on purpose — the words next to it already say
             "Meta", so naming the logo makes a screen reader read the
             brand twice. Intrinsic size is 4096×825; the props below are
-            the display size so the optimiser serves ~80px rather than
-            resizing a 150KB PNG in the browser, and `w-auto` keeps the
-            true aspect ratio regardless. */}
+            the display size so the optimiser serves the right pixels
+            rather than resizing a 150KB PNG in the browser, and `w-auto`
+            keeps the true aspect ratio regardless. */}
         <Image
           src="https://media.instant.nebkern.com/assets/meta-logo.png"
           alt=""
-          width={79}
-          height={16}
+          width={124}
+          height={25}
           priority
-          className="h-4 w-auto"
+          className="h-5 w-auto"
         />
-        Official Meta Tech Provider
+        {/* `leading-none` is what actually lines the words up with the
+            wordmark. `items-center` centres the two boxes, but a text
+            node's box is its line-height — taller than the glyphs and
+            asymmetric around them — so the label sat visibly low next to
+            the logo. Collapsing the line box to the glyph height makes
+            the optical centre and the geometric centre the same thing. */}
+        <span className="leading-none">Official Meta Tech Provider</span>
       </span>
 
       {/* Two hard-broken lines rather than a `text-balance` blob: the
@@ -259,7 +276,7 @@ function Copy() {
         <RotatingHeadline />
       </h1>
 
-      <p className="mx-auto mt-7 max-w-2xl text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:mt-8 sm:text-lg">
+      <p className="mx-auto mt-7 max-w-3xl text-xl leading-relaxed text-pretty text-(--lp2-ink-soft) sm:mt-8 sm:text-2xl">
         One shared inbox for the whole team. AI agents that answer in seconds.
         Campaigns, pipelines and automations that keep every conversation moving
         towards a sale.
@@ -280,28 +297,6 @@ function Copy() {
           Start free — 14 days
           <ArrowRight className="size-4" strokeWidth={2.5} />
         </Link>
-      </div>
-
-      {/* Social proof. Small, grounded, and deliberately not another
-          outlined card — the eye needs somewhere to rest after four
-          consecutive bordered blocks. */}
-      <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-        <AvatarStack className="scale-90" />
-        <div className="text-center sm:text-left">
-          <div className="flex justify-center gap-0.5 sm:justify-start">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star
-                key={i}
-                className="size-3.5 fill-(--lp2-lemon) text-(--lp2-ink)"
-                strokeWidth={1.5}
-              />
-            ))}
-          </div>
-          <p className="mt-1 text-[13px] font-semibold text-(--lp2-ink-soft)">
-            Loved by <span className="text-(--lp2-ink)">2,000+</span> teams
-            selling on WhatsApp
-          </p>
-        </div>
       </div>
 
       {/* No decoration in here at all — no squiggle, no sparkle, and

@@ -245,7 +245,7 @@ function ChatCard() {
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-extrabold">Nova Store</p>
-          <p className="flex items-center gap-1.5 text-xs font-semibold text-(--lp2-ink-soft)">
+          <p className="flex items-center gap-1.5 text-base font-semibold text-(--lp2-ink-soft)">
             <span className="size-2 rounded-full bg-(--lp2-grass)" />
             online
           </p>

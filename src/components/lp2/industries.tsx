@@ -80,22 +80,132 @@ export function Lp2Industries() {
   return (
     <section
       id="industries"
-      className="relative z-10 scroll-mt-28 bg-(--lp2-lemon) py-12 shadow-[0_4px_0_var(--lp2-ink)] sm:py-16"
+      className="relative z-10 scroll-mt-28 overflow-hidden bg-(--lp2-lemon) py-12 shadow-[0_4px_0_var(--lp2-ink)] sm:py-16"
     >
+      <ChatDoodles />
+
       {/* One muted line instead of a section heading. A display-size
           title with a highlight box would give this band more weight
           than the hero above it. */}
-      <p className="px-4 text-center text-sm text-pretty text-(--lp2-ink-soft) sm:text-base">
+      <p className="relative px-4 text-center text-2xl text-pretty text-(--lp2-ink-soft) sm:text-3xl">
         Built for every business that sells over chat
       </p>
 
       {/* Full-bleed, outside any max-width wrapper: a ticker that stops
           short of the viewport edge looks like a broken carousel rather
           than something running past. */}
-      <div className="mt-8">
+      <div className="relative mt-8">
         <MarqueeRow />
       </div>
     </section>
+  );
+}
+
+/* ─── Doodle backdrop ─────────────────────────────────────────────── */
+
+/**
+ * A tiling doodle pattern behind the band — the texture people associate
+ * with a chat wallpaper, drawn from scratch.
+ *
+ * These glyphs are ours. WhatsApp's own doodle wallpaper is Meta's
+ * copyrighted artwork, and this product is an official Meta Tech
+ * Provider: reproducing their asset would put that standing at risk for
+ * the sake of a background. Same visual language, none of their paths.
+ *
+ * Inline SVG rather than the PNG that was asked for, because it is a
+ * few hundred bytes instead of a few hundred kilobytes, stays crisp on
+ * any display, needs no network request, and inherits `currentColor` —
+ * so it tracks the palette instead of baking a colour into a file.
+ *
+ * Held at 7% ink: this sits under 48px marquee text, and anything more
+ * assertive starts competing with the words it is meant to sit behind.
+ */
+function ChatDoodles() {
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 text-(--lp2-ink) opacity-[0.07]"
+      aria-hidden
+    >
+      <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern
+            id="lp2-chat-doodles"
+            x="0"
+            y="0"
+            width="300"
+            height="300"
+            patternUnits="userSpaceOnUse"
+          >
+            <g
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              {/* speech bubble */}
+              <g transform="translate(18 24) rotate(-8)">
+                <path d="M4 2h30a4 4 0 0 1 4 4v14a4 4 0 0 1-4 4H18l-9 7v-7H4a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4z" />
+              </g>
+
+              {/* double tick */}
+              <g transform="translate(112 40) rotate(6)">
+                <path d="M0 10 6 16 18 2" />
+                <path d="M12 16 16 20 30 4" />
+              </g>
+
+              {/* heart */}
+              <g transform="translate(206 22) rotate(12)">
+                <path d="M16 30C10 25 2 20 2 12A9 9 0 0 1 16 6 9 9 0 0 1 30 12c0 8-8 13-14 18z" />
+              </g>
+
+              {/* camera */}
+              <g transform="translate(30 118) rotate(5)">
+                <path d="M2 8h8l4-5h12l4 5h8a3 3 0 0 1 3 3v18a3 3 0 0 1-3 3H2a3 3 0 0 1-3-3V11a3 3 0 0 1 3-3z" />
+                <circle cx="20" cy="20" r="7" />
+              </g>
+
+              {/* clock */}
+              <g transform="translate(140 132) rotate(-10)">
+                <circle cx="16" cy="16" r="15" />
+                <path d="M16 7v9l6 4" />
+              </g>
+
+              {/* paper plane */}
+              <g transform="translate(228 126) rotate(14)">
+                <path d="M0 14 34 0 22 34 15 20z" />
+                <path d="M15 20 34 0" />
+              </g>
+
+              {/* shopping bag */}
+              <g transform="translate(58 218) rotate(-6)">
+                <path d="M2 10h28l-3 24H5z" />
+                <path d="M11 10a5 5 0 0 1 10 0" />
+              </g>
+
+              {/* smiley */}
+              <g transform="translate(158 226) rotate(8)">
+                <circle cx="16" cy="16" r="15" />
+                <path d="M10 12h.01M22 12h.01" />
+                <path d="M9 21a8 8 0 0 0 14 0" />
+              </g>
+
+              {/* star */}
+              <g transform="translate(250 214) rotate(-12)">
+                <path d="M15 1 19 11 30 12 22 19 24 30 15 24 6 30 8 19 0 12 11 11z" />
+              </g>
+
+              {/* location pin */}
+              <g transform="translate(112 92) rotate(0) scale(0.85)">
+                <path d="M13 33S25 21 25 13A12 12 0 0 0 1 13c0 8 12 20 12 20z" />
+                <circle cx="13" cy="13" r="4.5" />
+              </g>
+            </g>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#lp2-chat-doodles)" />
+      </svg>
+    </div>
   );
 }
 
@@ -137,14 +247,14 @@ function Item({ name, duplicate = false }: { name: string; duplicate?: boolean }
       aria-hidden={duplicate || undefined}
       className="flex shrink-0 items-center"
     >
-      <span className="text-lg font-semibold whitespace-nowrap sm:text-xl">
+      <span className="text-4xl font-semibold whitespace-nowrap sm:text-5xl">
         {name}
       </span>
       {/* The separator carries the spacing too, so every gap is equal
           without the list needing one. */}
       <span
         aria-hidden
-        className="mx-7 size-1.5 shrink-0 rounded-full bg-(--lp2-ink)/25 sm:mx-9"
+        className="mx-10 size-2.5 shrink-0 rounded-full bg-(--lp2-ink)/25 sm:mx-12"
       />
     </li>
   );

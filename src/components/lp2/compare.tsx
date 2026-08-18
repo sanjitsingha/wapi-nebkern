@@ -154,7 +154,7 @@ export function Lp2Compare() {
             WhatsApp Business API
           </h2>
 
-          <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-lg">
+          <p className="mx-auto mt-5 max-w-2xl text-xl leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-2xl">
             See how WhatsApp Business API compares to WhatsApp and the WhatsApp
             Business app.
           </p>
@@ -171,7 +171,7 @@ export function Lp2Compare() {
             the winning one: it is the answer to "but I'm already on the
             app", which is a thought the reader has while looking at the
             card on the right. */}
-        <p className="mx-auto mt-10 max-w-2xl text-center text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-lg">
+        <p className="mx-auto mt-10 max-w-2xl text-center text-xl leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-2xl">
           Already on the app? Keep the same number — embedded signup migrates it
           to the API for you.
         </p>
@@ -252,7 +252,7 @@ function Card({ side }: { side: 'api' | 'app' }) {
         >
           {title}
         </p>
-        <p className="mt-1.5 text-sm font-semibold text-(--lp2-ink-soft)">
+        <p className="mt-1.5 text-lg font-semibold text-(--lp2-ink-soft)">
           {blurb}
         </p>
       </div>
@@ -287,7 +287,11 @@ function Card({ side }: { side: 'api' | 'app' }) {
         )}
       >
         {winner ? (
-          <Btn href="/signup" className="h-12 w-full px-5 text-sm">
+          <Btn
+            href="/signup"
+            variant="plain"
+            className="h-12 w-full px-5 text-sm"
+          >
             Apply for the API — free
           </Btn>
         ) : (
@@ -296,7 +300,7 @@ function Card({ side }: { side: 'api' | 'app' }) {
           // second CTA here would split the one decision the section is
           // built to produce. The line is sized to the button opposite
           // so the two cards end level.
-          <p className="flex h-12 items-center text-sm leading-snug font-semibold text-balance text-(--lp2-ink-soft)">
+          <p className="flex h-12 items-center text-lg leading-snug font-semibold text-balance text-(--lp2-ink-soft)">
             Free, and stays free — but every limit above is Meta&rsquo;s, and no
             plan lifts them.
           </p>

@@ -27,7 +27,7 @@ export default function NewsletterPage() {
           <div className="mx-auto max-w-2xl px-4 sm:px-6">
             <Link
               href="/"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink)"
+              className="inline-flex items-center gap-1.5 text-lg font-semibold text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink)"
             >
               <ArrowLeft className="size-4" strokeWidth={2.5} />
               Back home
@@ -42,7 +42,7 @@ export default function NewsletterPage() {
               <Highlight color="mint">Worth opening.</Highlight>
             </h1>
 
-            <p className="mt-5 text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-lg">
+            <p className="mt-5 text-xl leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-2xl">
               What we learn running WhatsApp for teams that sell on it — the
               campaigns that worked, the automations that quietly earn their
               keep, and the Meta policy changes worth knowing about before they

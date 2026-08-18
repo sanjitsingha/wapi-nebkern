@@ -86,6 +86,7 @@ export function Lp2Pricing({
           hue="grape"
           title="Plans that stay friendly as you grow."
           highlight="stay friendly"
+          highlightText="white"
           subtitle="Every plan runs on the official WhatsApp Business API and starts with a 14-day trial. No card, no sales call, no minimum term."
         />
 
@@ -118,18 +119,18 @@ export function Lp2Pricing({
                 <h3 className="lp2-display text-xl font-extrabold">
                   {plan.name}
                 </h3>
-                <p className="mt-1 text-xs leading-relaxed font-semibold text-(--lp2-ink-soft)">
+                <p className="mt-1 text-base leading-relaxed font-semibold text-(--lp2-ink-soft)">
                   {plan.tagline}
                 </p>
                 <p className="mt-4 flex items-baseline gap-1.5">
                   <span className="lp2-display text-4xl font-extrabold">
                     {plan.price}
                   </span>
-                  <span className="text-sm font-bold text-(--lp2-ink-soft)">
+                  <span className="text-lg font-bold text-(--lp2-ink-soft)">
                     /month
                   </span>
                 </p>
-                <p className="mt-1.5 text-xs font-bold text-(--lp2-ink-soft)">
+                <p className="mt-1.5 text-base font-bold text-(--lp2-ink-soft)">
                   {plan.meta}
                 </p>
               </div>
@@ -177,7 +178,7 @@ export function Lp2Pricing({
           ))}
         </div>
 
-        <p className="mt-10 text-center text-sm font-semibold text-(--lp2-ink-soft)">
+        <p className="mt-10 text-center text-lg font-semibold text-(--lp2-ink-soft)">
           All prices in INR. Cancel any time — your contacts and history stay
           yours.
         </p>

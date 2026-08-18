@@ -57,7 +57,7 @@ export function UnsubscribeConfirm({
         <p className="lp2-display mt-3 text-2xl font-extrabold">
           You&rsquo;re unsubscribed
         </p>
-        <p className="mt-2 text-sm font-medium text-(--lp2-ink-soft)">
+        <p className="mt-2 text-lg font-medium text-(--lp2-ink-soft)">
           <span className="font-bold">{email}</span> won&rsquo;t get the
           newsletter again. Nothing else about your account changes.
         </p>
@@ -77,7 +77,7 @@ export function UnsubscribeConfirm({
         Unsubscribe <span className="font-extrabold">{email}</span> from the
         Instant newsletter?
       </p>
-      <p className="mt-2 text-sm leading-relaxed text-(--lp2-ink-soft)">
+      <p className="mt-2 text-lg leading-relaxed text-(--lp2-ink-soft)">
         This only stops the newsletter. It does not touch your account, your
         workspace, or anything your customers receive.
       </p>

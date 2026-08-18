@@ -127,8 +127,16 @@ export function SectionHead({
         )}
       </h2>
 
+      {/* The subtitle is sized to match the hero's supporting paragraph
+          exactly (`text-xl` / `sm:text-2xl`). Every section subtitle on
+          the page comes through here, so this is the one place that
+          keeps them all speaking at the same volume — if the hero's
+          size changes, change it here in the same commit.
+
+          `max-w-2xl` rather than `xl`: at 24px the narrower column broke
+          the sentence into too many short lines. */}
       {subtitle && (
-        <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-lg">
+        <p className="mx-auto mt-5 max-w-2xl text-xl leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-2xl">
           {subtitle}
         </p>
       )}

@@ -75,13 +75,13 @@ export function Lp2Integrations() {
               </Highlight>
             </h2>
 
-            <p className="mt-5 text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-lg">
+            <p className="mt-5 text-xl leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-2xl">
               Connect your CRM, payment portals and eCommerce platforms —
               Shopify, WooCommerce, HubSpot, Zapier — through the Instant REST
               API and outbound webhooks.
             </p>
 
-            <p className="mt-5 text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-lg">
+            <p className="mt-5 text-xl leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-2xl">
               Then automate the message that should follow:
             </p>
 
