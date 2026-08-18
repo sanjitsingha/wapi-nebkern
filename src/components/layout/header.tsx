@@ -11,7 +11,6 @@ import {
 // Phosphor, matching the sidebar it sits above — see the note there on
 // why the nav chrome moved off Lucide.
 import {
-  ChatCircleDots,
   Gauge,
   Gear,
   List as MenuIcon,
@@ -19,6 +18,7 @@ import {
   SignOut,
   WhatsappLogo,
 } from '@phosphor-icons/react';
+import { BrandLogo } from '@/components/brand/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -55,18 +55,15 @@ export function Header({ onOpenSidebar }: HeaderProps) {
   return (
     <header className="border-border bg-background flex h-14 shrink-0 items-center justify-between gap-3 border-b px-4 lg:px-6">
       <div className="flex min-w-0 items-center gap-2">
-        {/* Logo — always visible in the header */}
+        {/* Logo — always visible in the header. The full lockup rather
+            than the mark alone: at this height the wordmark still reads
+            on a phone, so there is nothing left to hide below `sm`. */}
         <Link
           href="/dashboard"
-          className="flex shrink-0 items-center gap-2"
+          className="flex shrink-0 items-center"
           title="Dashboard"
         >
-          <div className="bg-primary text-primary-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
-            <ChatCircleDots className="h-4 w-4" weight="fill" />
-          </div>
-          <span className="text-foreground hidden text-sm font-semibold tracking-tight sm:block">
-            Instant
-          </span>
+          <BrandLogo priority className="h-7" />
         </Link>
 
         {/* Hamburger — mobile only */}

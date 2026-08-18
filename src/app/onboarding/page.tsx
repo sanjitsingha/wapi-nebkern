@@ -7,7 +7,8 @@ import '../(marketing)/lp2.css';
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { ArrowRight, Check, Loader2, MessageSquare, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Check, Loader2, ShieldCheck } from 'lucide-react';
+import { BrandLogo } from '@/components/brand/logo';
 
 import { cn } from '@/lib/utils';
 import { formatMoney } from '@/lib/billing/plans';
@@ -119,11 +120,8 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <MessageSquare className="h-4.5 w-4.5 text-primary-foreground" />
-          </div>
-          <span className="text-lg font-bold tracking-tight">Instant</span>
+        <div className="flex items-center">
+          <BrandLogo priority className="h-7" />
         </div>
         <button
           type="button"

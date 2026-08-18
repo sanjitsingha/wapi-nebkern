@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Lp2Announce } from './announce';
-import { ArrowRight, ChevronDown, Menu, MessageCircle, X } from 'lucide-react';
+import { ArrowRight, ChevronDown, Menu, X } from 'lucide-react';
 
+import { BrandLogo } from '@/components/brand/logo';
 import { cn } from '@/lib/utils';
 import type { Lp2Hue } from './decor';
 import { press } from './ui';
@@ -127,16 +128,12 @@ const FEATURE_MENU: { label: string; desc: string; href: string }[] = [
 
 function Logo() {
   return (
-    <Link href="/" className="group flex items-center gap-2.5">
-      {/* Was an outlined tile that rotated on hover, with a lemon dot
-          stuck on the corner to make it "a character". Now just the
-          mark: a solid rounded square, no outline, no dot, no tilt. */}
-      <span className="flex size-8 items-center justify-center rounded-lg bg-(--lp2-grass)">
-        <MessageCircle className="size-4.5 text-white" strokeWidth={2.5} />
-      </span>
-      <span className="lp2-display text-xl font-extrabold tracking-tight">
-        Instant
-      </span>
+    <Link href="/" className="group flex items-center">
+      {/* Mark and wordmark in one image. This replaced a rounded tile
+          with a chat glyph beside the word "Instant" set in the display
+          face — a stand-in that matched neither the real lockup's
+          proportions nor its green. */}
+      <BrandLogo priority className="h-8" />
     </Link>
   );
 }
@@ -263,7 +260,7 @@ export function Lp2Nav() {
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-(--lp2-ink)/12 bg-(--lp2-cream)/85 backdrop-blur-md">
-      <Lp2Announce />
+        <Lp2Announce />
         {/* `relative` is the positioning anchor the full-width Features
           mega-menu resolves its `inset-x-0` against — see FeaturesMenu. */}
         <div className="relative mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">

@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { MessageCircle } from 'lucide-react';
 
+import { BrandLogo } from '@/components/brand/logo';
 import type { Lp2Hue } from './decor';
 import { LEGAL_LINKS } from './legal-links';
 
@@ -68,13 +68,12 @@ export function Lp2Footer() {
             Legal moved out to its own band below — see LEGAL_LINKS. */}
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2.5">
-              <span className="flex size-9 items-center justify-center rounded-xl border-2 border-white bg-(--lp2-grass)">
-                <MessageCircle className="size-4.5" strokeWidth={2.75} />
-              </span>
-              <span className="lp2-display text-xl font-extrabold tracking-tight">
-                Instant
-              </span>
+            {/* The lockup is green artwork on transparency, and this
+                panel is ink — the wordmark holds up against the dark on
+                its own, so unlike the Meta and MSME marks further down
+                it needs no white chip to sit on. */}
+            <Link href="/" className="flex items-center">
+              <BrandLogo className="h-9" />
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/65">
               The WhatsApp CRM for your whole team — shared inbox, AI agents,

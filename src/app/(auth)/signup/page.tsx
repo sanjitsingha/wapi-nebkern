@@ -18,7 +18,8 @@ import {
 } from "@/components/auth/password-requirements";
 import { rememberOAuthNext } from "@/lib/auth/oauth-next";
 import { isPasswordValid } from "@/lib/auth/password";
-import { MessageSquare, User, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { User, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { BrandLogo } from "@/components/brand/logo";
 
 /** Matches the six digits Supabase puts in `{{ .Token }}`. */
 const CODE_LENGTH = 6;
@@ -284,13 +285,8 @@ function SignupPageInner() {
       <div className="flex min-h-screen bg-background">
         <main className="flex w-full flex-col justify-center px-6 py-12 sm:px-12 lg:w-1/2">
           <div className="mx-auto w-full max-w-sm">
-            <div className="mb-10 flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-                <MessageSquare className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <span className="text-lg font-semibold tracking-tight text-foreground">
-                Instant
-              </span>
+            <div className="mb-10 flex items-center">
+              <BrandLogo priority className="h-8" />
             </div>
 
             <div className="mb-8">
@@ -394,13 +390,8 @@ function SignupPageInner() {
       <main className="flex w-full flex-col justify-center px-6 py-12 sm:px-12 lg:w-1/2">
         <div className="mx-auto w-full max-w-sm">
           {/* Logo */}
-          <div className="mb-10 flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <MessageSquare className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-semibold tracking-tight text-foreground">
-              Instant
-            </span>
+          <div className="mb-10 flex items-center">
+            <BrandLogo priority className="h-8" />
           </div>
 
           <div className="mb-8">
