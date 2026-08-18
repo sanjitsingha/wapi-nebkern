@@ -124,7 +124,7 @@ export function r2PublicUrl(path: string): string {
  */
 export async function presignUpload(
   path: string,
-  contentType: string,
+  contentType: string
 ): Promise<string> {
   const config = readConfig();
   if (!config) throw new Error('R2 is not configured');
@@ -139,7 +139,7 @@ export async function presignUpload(
       // timestamped path, so a given URL's bytes never change.
       CacheControl: 'public, max-age=31536000, immutable',
     }),
-    { expiresIn: UPLOAD_URL_TTL_SECONDS },
+    { expiresIn: UPLOAD_URL_TTL_SECONDS }
   );
 }
 
@@ -154,7 +154,7 @@ export async function presignUpload(
 export async function putR2Object(
   path: string,
   body: Buffer | Uint8Array,
-  contentType: string,
+  contentType: string
 ): Promise<void> {
   const config = readConfig();
   if (!config) throw new Error('R2 is not configured');
@@ -168,7 +168,7 @@ export async function putR2Object(
       // Immutable: the key contains Meta's media id, which identifies
       // exactly one file forever.
       CacheControl: 'public, max-age=31536000, immutable',
-    }),
+    })
   );
 }
 
@@ -178,6 +178,6 @@ export async function deleteR2Object(path: string): Promise<void> {
   if (!config) throw new Error('R2 is not configured');
 
   await client(config).send(
-    new DeleteObjectCommand({ Bucket: config.bucket, Key: path }),
+    new DeleteObjectCommand({ Bucket: config.bucket, Key: path })
   );
 }

@@ -2,7 +2,12 @@ import { NextResponse } from 'next/server'
 
 import { requireRole, toErrorResponse } from '@/lib/auth/account'
 import { decrypt } from '@/lib/whatsapp/encryption'
-import { getFlowStatus, publishFlow } from '@/lib/whatsapp/forms'
+import {
+  buildFlowJson,
+  getFlowStatus,
+  publishFlow,
+  uploadFlowJson,
+} from '@/lib/whatsapp/forms'
 
 /**
  * POST /api/whatsapp/forms/[id]/publish
@@ -38,7 +43,15 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     }
     const accessToken = decrypt(config.access_token)
 
+    const flowJson = buildFlowJson(form.name, form.fields ?? [])
+    let uploadValidationErrors: unknown[] = []
     try {
+      const uploaded = await uploadFlowJson({
+        flowId: form.meta_flow_id,
+        accessToken,
+        flowJson,
+      })
+      uploadValidationErrors = uploaded.validationErrors
       await publishFlow({ flowId: form.meta_flow_id, accessToken })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown Meta API error'
@@ -62,7 +75,14 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
 
     const { data: row, error: updateError } = await supabase
       .from('whatsapp_forms')
-      .update({ status, validation_errors: validationErrors })
+      .update({
+        flow_json: flowJson,
+        status,
+        validation_errors:
+          validationErrors.length > 0
+            ? validationErrors
+            : uploadValidationErrors,
+      })
       .eq('id', id)
       .select()
       .single()
