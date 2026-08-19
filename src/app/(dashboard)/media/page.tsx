@@ -39,9 +39,17 @@ import {
   FolderOpen,
   FileType,
   HardDrive,
-  Ruler,
   CalendarDays,
+  Filter,
+  ChevronDown,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from '@/components/ui/dropdown-menu';
 import {
   Table,
   TableBody,
@@ -157,6 +165,13 @@ export default function MediaPage() {
     );
   }, [items, search, kindFilter]);
 
+  // "Filter" while nothing is narrowed down, the kind's own name once it
+  // is — so the button reads as the control and then as the state.
+  const activeKindLabel =
+    kindFilter === 'all'
+      ? 'Filter'
+      : (KIND_FILTERS.find((f) => f.value === kindFilter)?.label ?? 'Filter');
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -219,23 +234,41 @@ export default function MediaPage() {
             className="h-11 border-border bg-card pl-8 text-foreground placeholder:text-muted-foreground"
           />
         </div>
-        <div className="inline-flex items-center gap-1 rounded-lg border border-border bg-card p-0.5">
-          {KIND_FILTERS.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              onClick={() => setKindFilter(f.value)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                kindFilter === f.value
-                  ? 'bg-primary-soft text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
+        {/* The button carries the active kind rather than a fixed
+            "Filter" label. Collapsing four always-visible buttons into a
+            menu hides which one is on, and a filtered table that looks
+            unfiltered is how people conclude their files are missing. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="outline"
+                className="h-11 border-border bg-card text-foreground hover:bg-muted"
+              />
+            }
+          >
+            <Filter className="size-4" />
+            {activeKindLabel}
+            <ChevronDown className="size-4 opacity-60" />
+          </DropdownMenuTrigger>
+          {/* Width is set here because the menu defaults to the width of
+              its anchor, and that anchor is a short button. */}
+          <DropdownMenuContent
+            align="start"
+            className="w-44 border-border bg-popover"
+          >
+            <DropdownMenuRadioGroup
+              value={kindFilter}
+              onValueChange={(value) => setKindFilter(value as KindFilter)}
             >
-              {f.label}
-            </button>
-          ))}
-        </div>
-
+              {KIND_FILTERS.map((f) => (
+                <DropdownMenuRadioItem key={f.value} value={f.value}>
+                  {f.label}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Library table */}
@@ -275,9 +308,6 @@ export default function MediaPage() {
                 <TableHead className="text-muted-foreground" icon={FileType}>Type</TableHead>
                 <TableHead className="text-muted-foreground hidden sm:table-cell" icon={HardDrive}>
                   Size
-                </TableHead>
-                <TableHead className="text-muted-foreground hidden lg:table-cell" icon={Ruler}>
-                  Dimensions
                 </TableHead>
                 <TableHead className="text-muted-foreground hidden md:table-cell" icon={CalendarDays}>
                   Added
@@ -327,9 +357,6 @@ export default function MediaPage() {
                     </TableCell>
                     <TableCell className="hidden text-sm text-muted-foreground tabular-nums sm:table-cell">
                       {formatBytes(item.size_bytes)}
-                    </TableCell>
-                    <TableCell className="hidden text-sm text-muted-foreground tabular-nums lg:table-cell">
-                      {item.width && item.height ? `${item.width}×${item.height}` : '—'}
                     </TableCell>
                     <TableCell className="hidden text-sm text-muted-foreground md:table-cell">
                       {formatDate(item.created_at)}
