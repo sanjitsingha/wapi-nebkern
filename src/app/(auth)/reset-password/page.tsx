@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { AuthBrandPanel } from "@/components/auth/brand-panel";
 import { BrandLogo } from "@/components/brand/logo";
+import { AuthLegalLinks } from "@/components/auth/legal-notice";
 import { NewPasswordForm } from "@/components/auth/new-password-form";
 
 // Where the emailed recovery *link* lands, for anyone who clicks it
@@ -89,6 +90,8 @@ export default function ResetPasswordPage() {
             <ArrowLeft className="h-4 w-4" />
             Back to sign in
           </Link>
+
+          <AuthLegalLinks />
         </div>
       </main>
 

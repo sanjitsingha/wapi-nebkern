@@ -20,6 +20,7 @@ import { rememberOAuthNext } from "@/lib/auth/oauth-next";
 import { isPasswordValid } from "@/lib/auth/password";
 import { User, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { BrandLogo } from "@/components/brand/logo";
+import { SignupLegalConsent } from "@/components/auth/legal-notice";
 
 /** Matches the six digits Supabase puts in `{{ .Token }}`. */
 const CODE_LENGTH = 6;
@@ -587,6 +588,8 @@ function SignupPageInner() {
             >
               {loading ? "Creating account..." : "Create account"}
             </Button>
+
+            <SignupLegalConsent />
           </form>
 
           <p className="mt-8 text-sm text-muted-foreground">

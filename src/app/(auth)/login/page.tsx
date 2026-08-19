@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { BrandLogo } from "@/components/brand/logo";
+import { AuthLegalLinks } from "@/components/auth/legal-notice";
 import { AuthBrandPanel } from "@/components/auth/brand-panel";
 import { GoogleAuthButton, AuthDivider } from "@/components/auth/google-button";
 import { GoogleGisButton } from "@/components/auth/google-gis-button";
@@ -242,6 +243,8 @@ function LoginPageInner() {
               Create account
             </Link>
           </p>
+
+          <AuthLegalLinks />
         </div>
       </main>
 

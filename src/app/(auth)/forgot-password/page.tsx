@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthBrandPanel } from "@/components/auth/brand-panel";
 import { BrandLogo } from "@/components/brand/logo";
+import { AuthLegalLinks } from "@/components/auth/legal-notice";
 import { NewPasswordForm } from "@/components/auth/new-password-form";
 import { ArrowLeft, Mail, KeyRound } from "lucide-react";
 
@@ -278,6 +279,8 @@ export default function ForgotPasswordPage() {
             <ArrowLeft className="h-4 w-4" />
             Back to sign in
           </Link>
+
+          <AuthLegalLinks />
         </div>
       </main>
 
