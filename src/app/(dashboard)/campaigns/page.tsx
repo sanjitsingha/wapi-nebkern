@@ -24,7 +24,6 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Radio,
-  Plus,
   Loader2,
   Shapes,
   ChevronDown,
@@ -38,7 +37,6 @@ import {
   Eye,
   CircleDot,
 } from 'lucide-react';
-import { FaWhatsapp } from 'react-icons/fa';
 import { cn } from '@/lib/utils';
 import {
   CategoryCell,
@@ -355,10 +353,8 @@ export default function BroadcastsPage() {
             canAct={canCreate}
             gateReason="create campaigns"
             onClick={() => setTemplatePickerOpen(true)}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 gap-2"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 h-11"
           >
-            <FaWhatsapp className="h-4 w-4" />
-            <Plus className="h-3.5 w-3.5" />
             New Campaign
           </GatedButton>
         </div>
@@ -375,20 +371,27 @@ export default function BroadcastsPage() {
             />
             <DropdownMenu>
               <DropdownMenuTrigger
-                render={<Button variant="outline" className="h-11 gap-2" />}
+                render={
+                  <Button variant="outline" className="h-11 gap-2 px-3.5" />
+                }
               >
                 <Shapes className="h-4 w-4" />
                 Category
                 <ChevronDown className="h-4 w-4" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-48">
+              {/* The menu primitives are built tight — items are
+                  px-1.5 py-1 — which reads as cramped on a filter list
+                  with an icon and a checkmark on each row. Opened up
+                  here rather than in the primitive, which 50-odd other
+                  call sites share. */}
+              <DropdownMenuContent className="w-52 p-1.5">
                 {categoryOptions.map((category) => {
                   const Icon = TEMPLATE_CATEGORY_STYLES[category].icon;
                   return (
                     <DropdownMenuCheckboxItem
                       key={category}
                       checked={selectedCategories.includes(category)}
-                      className="gap-2"
+                      className="gap-2.5 py-2 pl-2.5"
                       onCheckedChange={() =>
                         setSelectedCategories((prev) =>
                           prev.includes(category)
@@ -411,18 +414,25 @@ export default function BroadcastsPage() {
             </DropdownMenu>
             <DropdownMenu>
               <DropdownMenuTrigger
-                render={<Button variant="outline" className="h-11 gap-2" />}
+                render={
+                  <Button variant="outline" className="h-11 gap-2 px-3.5" />
+                }
               >
                 <Filter className="h-4 w-4" />
                 Status
                 <ChevronDown className="h-4 w-4" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-48">
+              {/* The menu primitives are built tight — items are
+                  px-1.5 py-1 — which reads as cramped on a filter list
+                  with an icon and a checkmark on each row. Opened up
+                  here rather than in the primitive, which 50-odd other
+                  call sites share. */}
+              <DropdownMenuContent className="w-52 p-1.5">
                 {statusOptions.map((status) => (
                   <DropdownMenuCheckboxItem
                     key={status}
                     checked={selectedStatuses.includes(status)}
-                    className="gap-2"
+                    className="gap-2.5 py-2 pl-2.5"
                     onCheckedChange={() =>
                       setSelectedStatuses((prev) =>
                         prev.includes(status)
@@ -480,10 +490,8 @@ export default function BroadcastsPage() {
             canAct={canCreate}
             gateReason="create campaigns"
             onClick={() => setTemplatePickerOpen(true)}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 mt-4 h-11 gap-2"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 mt-4 h-11"
           >
-            <FaWhatsapp className="h-4 w-4" />
-            <Plus className="h-3.5 w-3.5" />
             New Campaign
           </GatedButton>
         </div>
