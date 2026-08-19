@@ -1,7 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 import { verifyUnsubscribe } from '@/lib/newsletter-unsubscribe';
+import { sendMailQuietly } from '@/lib/email/deomail';
+import { goodbyeEmail } from '@/lib/email/newsletter-templates';
 
 /**
  * POST /api/newsletter/unsubscribe — { email, token }
@@ -50,6 +52,21 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+
+  // Confirmation that it worked, sent after the response for the same
+  // reason as the welcome: the opt-out has already been recorded and no
+  // mail failure should undo or delay that.
+  //
+  // Worth sending even though they asked to stop hearing from us — this
+  // is the receipt for the request, not more newsletter, and without it
+  // the only proof the click worked is a page they have already closed.
+  after(async () => {
+    const mail = goodbyeEmail(email);
+    await sendMailQuietly(
+      { from: 'newsletter', to: email, ...mail },
+      `goodbye to ${email}`
+    );
+  });
 
   // Deliberately not reporting whether the address was on the list.
   // A signed link proves the holder owns the address, but echoing

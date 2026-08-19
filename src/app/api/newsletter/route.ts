@@ -1,7 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 import { clientIp, isCaptchaConfigured, verifyCaptcha } from '@/lib/captcha';
+import { sendMailQuietly } from '@/lib/email/deomail';
+import { welcomeEmail } from '@/lib/email/newsletter-templates';
+import { isUnsubscribeConfigured } from '@/lib/newsletter-unsubscribe';
 
 /**
  * POST /api/newsletter — email, name optional.
@@ -80,6 +83,31 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: 'Could not sign you up. Please try again.' },
       { status: 500 }
+    );
+  }
+
+  // Welcome mail, after the response rather than before it.
+  //
+  // The row is already written — they ARE subscribed — so nothing about
+  // the email should change what this request returns. Blocking on it
+  // would add DeoMail's latency to the form submit, and a DeoMail
+  // outage would show "could not sign you up" to people who just were.
+  // `after` runs the send once the response is on its way.
+  //
+  // Skipped without UNSUBSCRIBE_SECRET: the welcome carries the opt-out
+  // link, and sending bulk mail with no way out is worse than sending
+  // nothing. The admin page already warns when that secret is missing.
+  if (isUnsubscribeConfigured()) {
+    after(async () => {
+      const mail = welcomeEmail(email, name);
+      await sendMailQuietly(
+        { from: 'newsletter', to: email, ...mail },
+        `welcome to ${email}`
+      );
+    });
+  } else {
+    console.warn(
+      '[newsletter] UNSUBSCRIBE_SECRET not set — welcome email skipped (it would have no opt-out link)'
     );
   }
 
