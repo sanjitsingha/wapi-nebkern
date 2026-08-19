@@ -2,6 +2,8 @@
 
 import { Download } from 'lucide-react';
 
+import { cn } from '@/lib/utils';
+
 // ============================================================
 // Export what is on screen.
 //
@@ -42,12 +44,17 @@ export function ExportCsvButton<T>({
   columns,
   filename,
   label = 'Export',
+  className,
 }: {
   rows: T[];
   columns: { header: string; value: (row: T) => unknown }[];
   /** Without extension — the date is appended. */
   filename: string;
   label?: string;
+  /** For the height, mainly. The default `h-8` suits a toolbar sitting
+   *  on its own; on pages where this shares a row with a search field
+   *  it has to match that instead, or the row looks broken. */
+  className?: string;
 }) {
   const download = () => {
     const csv = toCsv(rows, columns);
@@ -69,7 +76,10 @@ export function ExportCsvButton<T>({
       type="button"
       onClick={download}
       disabled={rows.length === 0}
-      className="text-muted-foreground hover:text-foreground hover:bg-muted inline-flex h-8 shrink-0 items-center gap-1.5 rounded-sm border border-(--admin-line) px-2.5 text-xs transition-colors disabled:pointer-events-none disabled:opacity-40"
+      className={cn(
+        'text-muted-foreground hover:text-foreground hover:bg-muted inline-flex h-8 shrink-0 items-center gap-1.5 rounded-sm border border-(--admin-line) px-2.5 text-xs transition-colors disabled:pointer-events-none disabled:opacity-40',
+        className
+      )}
     >
       <Download className="size-3.5" />
       {label}

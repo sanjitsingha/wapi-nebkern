@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 // Phosphor, matching the header this button sits in.
@@ -12,6 +12,7 @@ import {
   Info,
   Megaphone,
   Robot,
+  Trash,
   type Icon as PhosphorIcon,
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
@@ -21,6 +22,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface NotificationItem {
   id: string;
@@ -64,6 +72,49 @@ const TYPE_META: Record<
 };
 
 const SEEN_KEY = 'wacrm:notifications-seen-at';
+const DISMISSED_KEY = 'wacrm:notifications-dismissed';
+
+/**
+ * Dismissing is LOCAL, and cannot be anything else without new schema.
+ *
+ * This feed is assembled per request out of five source tables —
+ * conversations, message_templates, broadcasts, admin_notifications —
+ * and the ids (`msg-…`, `bc-…`, `ann-…`) are synthesised from those
+ * rows. There is no notifications table to delete a row from. Deleting
+ * the SOURCE would mean deleting somebody's conversation, or a
+ * broadcast, or an announcement every tenant is reading, so "delete"
+ * here means "stop showing me this", stored per device the same way
+ * the seen marker already is.
+ *
+ * Capped because ids derive from rows that eventually age out of the
+ * feed: an uncapped list would grow forever holding ids that can never
+ * match anything again.
+ */
+const DISMISSED_CAP = 200;
+
+function loadDismissed(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const parsed: unknown = JSON.parse(
+      window.localStorage.getItem(DISMISSED_KEY) ?? '[]'
+    );
+    return Array.isArray(parsed)
+      ? parsed.filter((v): v is string => typeof v === 'string')
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistDismissed(ids: string[]): string[] {
+  const capped = ids.slice(-DISMISSED_CAP);
+  try {
+    window.localStorage.setItem(DISMISSED_KEY, JSON.stringify(capped));
+  } catch {
+    // Storage unavailable (private mode) — dismissal lasts this session.
+  }
+  return capped;
+}
 
 /**
  * Background refresh cadence for the feed.
@@ -113,6 +164,111 @@ function persistSeenAt(): number {
 }
 
 /**
+ * One row of the feed, shared by the popover and the full-list modal.
+ *
+ * Extracted rather than duplicated: the two lists differ only in
+ * whether a delete control sits beside the row, and keeping one copy of
+ * the markup is what stops them drifting into two slightly different
+ * notification designs.
+ *
+ * The row and the delete control are SIBLINGS, never nested — a
+ * <button> inside a <button> is invalid HTML and browsers resolve it by
+ * dropping the inner one.
+ */
+function NotificationRow({
+  n,
+  fresh,
+  onOpen,
+  onDelete,
+}: {
+  n: NotificationItem;
+  fresh: boolean;
+  onOpen: (n: NotificationItem) => void;
+  /** Omitted in the popover, supplied in the modal. */
+  onDelete?: (n: NotificationItem) => void;
+}) {
+  const meta = TYPE_META[n.type];
+  return (
+    <li
+      className={cn(
+        'hover:bg-muted/60 flex items-start transition-colors',
+        fresh && 'bg-primary-soft/25'
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => onOpen(n)}
+        className={cn(
+          'flex min-w-0 flex-1 items-start gap-3 py-2.5 pl-4 text-left',
+          onDelete ? 'pr-2' : 'pr-4'
+        )}
+      >
+        <span
+          className={cn(
+            'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full',
+            meta.chip
+          )}
+        >
+          <meta.icon className="h-4 w-4" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-start justify-between gap-2">
+            <span
+              className={cn(
+                'text-foreground text-sm font-medium',
+                n.type === 'announcement' ? 'wrap-break-word' : 'truncate'
+              )}
+            >
+              {n.title}
+            </span>
+            <span className="text-muted-foreground shrink-0 text-[11px] whitespace-nowrap">
+              {formatDistanceToNow(new Date(n.at), { addSuffix: true })}
+            </span>
+          </span>
+          <span
+            className={cn(
+              'text-muted-foreground mt-0.5 block text-xs',
+              n.type === 'announcement'
+                ? 'wrap-break-word whitespace-pre-wrap'
+                : 'truncate'
+            )}
+          >
+            {n.body}
+          </span>
+          {n.type === 'announcement' && n.image && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={n.image}
+              alt=""
+              loading="lazy"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+              className="border-border mt-2 h-32 w-full rounded-lg border object-cover"
+            />
+          )}
+        </span>
+        {fresh && (
+          <span className="bg-primary mt-2 size-1.5 shrink-0 rounded-full" />
+        )}
+      </button>
+
+      {onDelete && (
+        <button
+          type="button"
+          onClick={() => onDelete(n)}
+          aria-label={`Delete "${n.title}"`}
+          title="Delete"
+          className="text-muted-foreground hover:bg-muted hover:text-destructive mt-2.5 mr-2 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors"
+        >
+          <Trash className="h-4 w-4" />
+        </button>
+      )}
+    </li>
+  );
+}
+
+/**
  * Header notification bell — WhatsApp-style.
  *
  * Badge semantics: unread-message notifications count until the chat is
@@ -134,6 +290,14 @@ export function NotificationsBell() {
   // when the popover opens so rows don't lose their highlight the
   // instant the seen marker advances.
   const [highlightSince, setHighlightSince] = useState<number>(0);
+  const [dismissed, setDismissed] = useState<string[]>(loadDismissed);
+  // The full-list modal, opened from the popover's footer.
+  const [showAll, setShowAll] = useState(false);
+
+  const visible = useMemo(() => {
+    const hidden = new Set(dismissed);
+    return items.filter((n) => !hidden.has(n.id));
+  }, [items, dismissed]);
 
   const refresh = useCallback(() => {
     void fetchNotifications().then((next) => {
@@ -198,8 +362,12 @@ export function NotificationsBell() {
   // be read off `items`, which meant the only way to keep the badge
   // live was to refetch the whole five-query feed on every inbound
   // message. This is both cheaper and faster.
+  // Counts `visible`, so dismissing an event notification also clears it
+  // from the badge. The message half rides `totalUnread` and is
+  // deliberately NOT reduced by dismissing: the chat is still unread,
+  // and the badge should not claim otherwise because the row was hidden.
   const badgeCount =
-    totalUnread + items.filter((n) => isEventUnseen(n, seenAt)).length;
+    totalUnread + visible.filter((n) => isEventUnseen(n, seenAt)).length;
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
@@ -220,127 +388,149 @@ export function NotificationsBell() {
     }
   };
 
-  return (
-    <Popover open={open} onOpenChange={handleOpenChange}>
-      <PopoverTrigger
-        aria-label={
-          badgeCount > 0
-            ? `Notifications (${badgeCount} new)`
-            : 'Notifications'
-        }
-        title="Notifications"
-        className="text-muted-foreground hover:bg-muted hover:text-foreground data-popup-open:bg-muted data-popup-open:text-foreground relative flex h-10 w-10 items-center justify-center rounded-md transition-colors focus:outline-none"
-      >
-        <Bell className="h-5 w-5" />
-        {badgeCount > 0 && (
-          <span className="bg-primary text-primary-foreground absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums">
-            {badgeCount > 99 ? '99+' : badgeCount}
-          </span>
-        )}
-      </PopoverTrigger>
+  // The popover closes first: a dialog opened from inside it would be
+  // unmounted the moment the popover dismisses, and two overlapping
+  // focus traps fight each other regardless.
+  const viewAll = () => {
+    setOpen(false);
+    setShowAll(true);
+  };
 
-      <PopoverContent
-        align="end"
-        sideOffset={8}
-        className="w-95 max-w-[calc(100vw-1rem)] gap-0 overflow-hidden p-0"
-      >
-        <div className="border-border flex items-center justify-between border-b px-4 py-3">
-          <p className="text-foreground text-sm font-semibold">Notifications</p>
+  const dismiss = (n: NotificationItem) => {
+    setDismissed((prev) =>
+      prev.includes(n.id) ? prev : persistDismissed([...prev, n.id])
+    );
+  };
+
+  return (
+    <>
+      <Popover open={open} onOpenChange={handleOpenChange}>
+        <PopoverTrigger
+          aria-label={
+            badgeCount > 0
+              ? `Notifications (${badgeCount} new)`
+              : 'Notifications'
+          }
+          title="Notifications"
+          className="text-muted-foreground hover:bg-muted hover:text-foreground data-popup-open:bg-muted data-popup-open:text-foreground relative flex h-10 w-10 items-center justify-center rounded-md transition-colors focus:outline-none"
+        >
+          <Bell className="h-5 w-5" />
           {badgeCount > 0 && (
-            <span className="bg-primary-soft text-primary rounded-full px-2 py-0.5 text-[11px] font-medium">
-              {badgeCount} new
+            <span className="bg-primary text-primary-foreground absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums">
+              {badgeCount > 99 ? '99+' : badgeCount}
             </span>
           )}
-        </div>
+        </PopoverTrigger>
 
-        {items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
-            <span className="bg-muted flex size-12 items-center justify-center rounded-full">
-              <BellSlash className="text-muted-foreground h-5 w-5" />
-            </span>
-            <p className="text-foreground mt-3 text-sm font-medium">
-              You&apos;re all caught up
+        <PopoverContent
+          align="end"
+          sideOffset={8}
+          className="w-95 max-w-[calc(100vw-1rem)] gap-0 overflow-hidden p-0"
+        >
+          <div className="border-border flex items-center justify-between border-b px-4 py-3">
+            <p className="text-foreground text-sm font-semibold">
+              Notifications
             </p>
-            <p className="text-muted-foreground mt-1 text-xs">
-              New messages, AI handoffs, template verdicts, campaign results,
-              and announcements show up here.
-            </p>
+            {badgeCount > 0 && (
+              <span className="bg-primary-soft text-primary rounded-full px-2 py-0.5 text-[11px] font-medium">
+                {badgeCount} new
+              </span>
+            )}
           </div>
-        ) : (
-          <ul className="max-h-105 overflow-y-auto py-1 scrollbar-thin">
-            {items.map((n) => {
-              const meta = TYPE_META[n.type];
-              const fresh =
-                n.type === 'message' || isEventUnseen(n, highlightSince);
-              return (
-                <li key={n.id}>
-                  <button
-                    type="button"
-                    onClick={() => openItem(n)}
-                    className={cn(
-                      'hover:bg-muted/60 flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors',
-                      fresh && 'bg-primary-soft/25',
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full',
-                        meta.chip,
-                      )}
-                    >
-                      <meta.icon className="h-4 w-4" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-start justify-between gap-2">
-                        <span
-                          className={cn(
-                            'text-foreground text-sm font-medium',
-                            n.type === 'announcement'
-                              ? 'wrap-break-word'
-                              : 'truncate',
-                          )}
-                        >
-                          {n.title}
-                        </span>
-                        <span className="text-muted-foreground shrink-0 text-[11px] whitespace-nowrap">
-                          {formatDistanceToNow(new Date(n.at), {
-                            addSuffix: true,
-                          })}
-                        </span>
-                      </span>
-                      <span
-                        className={cn(
-                          'text-muted-foreground mt-0.5 block text-xs',
-                          n.type === 'announcement'
-                            ? 'whitespace-pre-wrap wrap-break-word'
-                            : 'truncate',
-                        )}
-                      >
-                        {n.body}
-                      </span>
-                      {n.type === 'announcement' && n.image && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={n.image}
-                          alt=""
-                          loading="lazy"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
-                          className="border-border mt-2 h-32 w-full rounded-lg border object-cover"
-                        />
-                      )}
-                    </span>
-                    {fresh && (
-                      <span className="bg-primary mt-2 size-1.5 shrink-0 rounded-full" />
-                    )}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </PopoverContent>
-    </Popover>
+
+          {visible.length === 0 ? (
+            <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+              <span className="bg-muted flex size-12 items-center justify-center rounded-full">
+                <BellSlash className="text-muted-foreground h-5 w-5" />
+              </span>
+              <p className="text-foreground mt-3 text-sm font-medium">
+                You&apos;re all caught up
+              </p>
+              <p className="text-muted-foreground mt-1 text-xs">
+                New messages, AI handoffs, template verdicts, campaign results,
+                and announcements show up here.
+              </p>
+            </div>
+          ) : (
+            <ul className="max-h-105 scrollbar-thin overflow-y-auto py-1">
+              {visible.map((n) => (
+                <NotificationRow
+                  key={n.id}
+                  n={n}
+                  fresh={
+                    n.type === 'message' || isEventUnseen(n, highlightSince)
+                  }
+                  onOpen={openItem}
+                />
+              ))}
+            </ul>
+          )}
+
+          {visible.length > 0 && (
+            <div className="border-border border-t">
+              <button
+                type="button"
+                onClick={viewAll}
+                className="text-primary hover:bg-muted/60 w-full px-4 py-2.5 text-center text-xs font-medium transition-colors"
+              >
+                View all notifications
+              </button>
+            </div>
+          )}
+        </PopoverContent>
+      </Popover>
+
+      {/* Rendered outside the Popover on purpose — see viewAll(). */}
+      <Dialog
+        open={showAll}
+        onOpenChange={(next) => {
+          if (!next) setShowAll(false);
+        }}
+      >
+        <DialogContent className="border-border bg-popover text-popover-foreground gap-0 overflow-hidden p-0 sm:max-w-lg">
+          <DialogHeader className="border-border border-b px-4 py-3">
+            <DialogTitle className="text-sm">Notifications</DialogTitle>
+            <DialogDescription className="text-xs">
+              {/* Says where deleting applies. Without this the button
+                  reads like a server-side delete, which it is not. */}
+              Deleting removes a notification from this device only — it does
+              not touch the message, campaign, or announcement behind it.
+            </DialogDescription>
+          </DialogHeader>
+
+          {visible.length === 0 ? (
+            <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+              <span className="bg-muted flex size-12 items-center justify-center rounded-full">
+                <BellSlash className="text-muted-foreground h-5 w-5" />
+              </span>
+              <p className="text-foreground mt-3 text-sm font-medium">
+                Nothing left here
+              </p>
+              <p className="text-muted-foreground mt-1 text-xs">
+                New notifications will show up as they arrive.
+              </p>
+            </div>
+          ) : (
+            <ul className="max-h-[60vh] scrollbar-thin overflow-y-auto py-1">
+              {visible.map((n) => (
+                <NotificationRow
+                  key={n.id}
+                  n={n}
+                  // Highlighting is a popover affordance for "new since
+                  // you last looked". In a deliberate full list it is
+                  // just noise, so every row reads the same.
+                  fresh={false}
+                  onOpen={(item) => {
+                    setShowAll(false);
+                    openItem(item);
+                  }}
+                  onDelete={dismiss}
+                />
+              ))}
+            </ul>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

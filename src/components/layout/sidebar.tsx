@@ -121,9 +121,11 @@ const quickLinks: NavLink[] = [
   },
 ];
 
-// Expandable groups. Settings fans out into the real `?tab=` sections
-// (settings-sections.ts), so every child is a live page — no stubs.
-const groups: NavGroup[] = [
+// The main nav below Quick links. Mostly expandable groups, but an
+// entry may be a plain NavLink where a group would have exactly one
+// child — a chevron that reveals a single row is a click that buys
+// nothing and buries the destination's name under a category.
+const groups: (NavGroup | NavLink)[] = [
   {
     label: 'Contacts',
     icon: UsersThree,
@@ -137,8 +139,10 @@ const groups: NavGroup[] = [
   {
     label: 'Market',
     icon: Megaphone,
+    // Campaigns is not listed here. It sits in Quick links, and a nav
+    // that offers the same destination twice makes the reader stop and
+    // work out whether the two go to the same place.
     children: [
-      { label: 'Campaigns', icon: Megaphone, href: '/campaigns' },
       { label: 'Templates', icon: FileText, href: '/templates' },
       { label: 'Forms', icon: ClipboardText, href: '/forms', badge: 'New' },
       { label: 'Media', icon: ImageIcon, href: '/media' },
@@ -147,13 +151,11 @@ const groups: NavGroup[] = [
       // tool anyone can land on than as a page behind the login.
     ],
   },
-  {
-    label: 'Sales CRM',
-    icon: GitBranch,
-    children: [
-      { label: 'Pipelines', icon: GitBranch, href: '/pipelines' },
-    ],
-  },
+  // Pipelines sits here as a plain link, not a group. It was "Sales CRM"
+  // with exactly one child, so the chevron cost a click to reach the
+  // only thing behind it and hid the destination's real name behind a
+  // category. Give it a group again if a second page ever joins it.
+  { label: 'Pipelines', icon: GitBranch, href: '/pipelines' },
   {
     label: 'Automation',
     icon: Lightning,
@@ -222,21 +224,28 @@ export function Sidebar({
       if (href === '/calls') return !ent.allowCalling;
       return false;
     },
-    [entSnapshot],
+    [entSnapshot]
   );
 
   const visibleGroups = useMemo(
     () =>
-      groups.map((g) => ({
-        ...g,
-        children: g.children.map((c) => ({ ...c, locked: lockedFor(c.href) })),
-      })),
-    [lockedFor],
+      groups.map((g) =>
+        'children' in g
+          ? {
+              ...g,
+              children: g.children.map((c) => ({
+                ...c,
+                locked: lockedFor(c.href),
+              })),
+            }
+          : { ...g, locked: lockedFor(g.href) }
+      ),
+    [lockedFor]
   );
 
   const visibleQuickLinks = useMemo(
     () => quickLinks.map((l) => ({ ...l, locked: lockedFor(l.href) })),
-    [lockedFor],
+    [lockedFor]
   );
 
   // Straight through from the prop — no hover override. On mobile the
@@ -263,7 +272,10 @@ export function Sidebar({
       setOpenGroups({});
       return;
     }
-    const active = visibleGroups.find((g) => g.children.some(isLinkActive));
+    // Only groups can be opened; a flat entry has nothing to expand.
+    const active = visibleGroups.find(
+      (g) => 'children' in g && g.children.some(isLinkActive)
+    );
     if (active) {
       setOpenGroups((prev) =>
         prev[active.label] ? prev : { ...prev, [active.label]: true }
@@ -556,7 +568,15 @@ export function Sidebar({
 
           <div className="border-border my-4 border-t" />
 
-          <ul className="flex flex-col gap-1.5">{visibleGroups.map(renderGroup)}</ul>
+          <ul className="flex flex-col gap-1.5">
+            {visibleGroups.map((g) =>
+              'children' in g ? (
+                renderGroup(g)
+              ) : (
+                <li key={g.href}>{renderLink(g)}</li>
+              )
+            )}
+          </ul>
         </nav>
 
         {/* Footer — pinned below the scrolling nav. Walkthrough replays
@@ -572,7 +592,7 @@ export function Sidebar({
             }}
             data-walkthrough="walkthrough"
             title="Walkthrough"
-            className="relative flex w-full items-center gap-3.5 rounded-lg px-3 py-3.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="text-muted-foreground hover:bg-muted hover:text-foreground relative flex w-full items-center gap-3.5 rounded-lg px-3 py-3.5 text-sm font-medium transition-colors"
           >
             <Compass className="h-5.5 w-5.5 shrink-0" />
             <span
@@ -590,7 +610,7 @@ export function Sidebar({
             onClick={() => setSupportOpen(true)}
             data-walkthrough="support"
             title="Support"
-            className="relative flex w-full items-center gap-3.5 rounded-lg px-3 py-3.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="text-muted-foreground hover:bg-muted hover:text-foreground relative flex w-full items-center gap-3.5 rounded-lg px-3 py-3.5 text-sm font-medium transition-colors"
           >
             <span className="relative shrink-0">
               <Headset className="h-5.5 w-5.5" />

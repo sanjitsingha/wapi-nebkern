@@ -1,10 +1,12 @@
 'use client';
 
 import { Suspense, useState } from 'react';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ShieldCheck, Loader2 } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
+import { LOGO_URL, logoWidthFor } from '@/lib/brand';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -56,14 +58,27 @@ function AdminLoginInner() {
   return (
     <div className="bg-background flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <div className="mb-6 flex flex-col items-center gap-2 text-center">
-          <div className="bg-primary/10 flex size-11 items-center justify-center rounded-xl">
-            <ShieldCheck className="text-primary size-6" />
+        <div className="mb-6 flex flex-col items-center gap-3 text-center">
+          <Image
+            src={LOGO_URL}
+            alt="Instant"
+            width={logoWidthFor(32)}
+            height={32}
+            priority
+          />
+          {/* The shield moved inline with the heading rather than
+              sitting in its own tile above it — with a real logo on the
+              page, two stacked marks read as clutter, but the "this is
+              a restricted area" cue is still worth keeping. */}
+          <div className="flex flex-col items-center gap-1">
+            <h1 className="text-foreground flex items-center gap-1.5 text-lg font-semibold">
+              <ShieldCheck className="text-primary size-4" />
+              Admin panel
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              Sign in with an authorized admin account.
+            </p>
           </div>
-          <h1 className="text-foreground text-lg font-semibold">Admin panel</h1>
-          <p className="text-muted-foreground text-sm">
-            Sign in with an authorized admin account.
-          </p>
         </div>
 
         <form

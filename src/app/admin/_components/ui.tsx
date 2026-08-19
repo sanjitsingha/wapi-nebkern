@@ -15,9 +15,9 @@ import { cn } from '@/lib/utils';
 // again — sixteen pages doing that is how sixteen slightly different
 // tables happened the first time.
 //
-// The 2px corner comes from `--radius` on the admin root (admin.css),
-// not from classes here, so shadcn components rendered inside these
-// panels match without knowing anything about the admin.
+// The corner radius comes from `--radius` on the admin root
+// (admin.css), not from classes here, so shadcn components rendered
+// inside these panels match without knowing anything about the admin.
 // ============================================================
 
 /* ─── Page header ─────────────────────────────────────────────────── */
@@ -315,7 +315,7 @@ export function Meter({
       <span className="text-muted-foreground w-24 shrink-0 truncate text-xs">
         {label}
       </span>
-      <div className="bg-muted h-1.5 flex-1 overflow-hidden rounded-none">
+      <div className="bg-muted h-1.5 flex-1 overflow-hidden rounded-full">
         <div className={cn('h-full', color)} style={{ width: `${pct}%` }} />
       </div>
       <span className="admin-num text-foreground w-6 shrink-0 text-right text-xs">
