@@ -21,7 +21,7 @@ const getSubscribers = () =>
   cachedRead(ADMIN_TAGS.newsletter, ['all'], async () => {
     const { data } = await adminDb()
       .from('newsletter_subscribers')
-      .select('id, email, name, status, source_path, created_at')
+      .select('id, email, name, status, source_path, created_at, updated_at')
       .order('created_at', { ascending: false })
       .limit(2000);
 
