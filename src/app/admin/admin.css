@@ -12,16 +12,20 @@
    from (`--radius-sm` … `--radius-4xl` are all `calc()`s over it).
    Overriding it on the admin root re-scales the whole system in one
    place — including every shadcn Button, Input, Select and Dialog
-   rendered inside, none of which have to be touched. 2px reads as
-   "cut", not "rounded", and still avoids the harsh look of a true
-   square corner at small sizes.
+   rendered inside, none of which have to be touched.
+
+   This sat at 2px, which read as "cut" rather than "rounded" and
+   tipped the whole panel into looking like a spacecraft HUD. 6px is
+   the compromise: unmistakably rounded, still well inside the
+   product's 8.8px so the back office stays visibly denser and more
+   instrument-like than the tenant app.
 
    Everything else here is scoped under `.admin-ui` so nothing leaks
    into the tenant app, which shares these components.
    ============================================================ */
 
 .admin-ui {
-  --radius: 0.125rem;
+  --radius: 0.375rem;
 
   /* Hairlines. A console is mostly rules, and the product's border
      token is tuned for cards sitting apart on a page rather than a
@@ -46,20 +50,27 @@
 }
 
 /* Section and column labels. Small caps done properly: uppercase,
-   widely tracked, and never below 10px, where tracking stops helping
-   and legibility falls off. */
+   tracked, and never below 10px, where tracking stops helping and
+   legibility falls off.
+
+   Sans rather than mono, and tracking pulled back from 0.12em. Wide-
+   tracked monospace micro-caps is the house style of a sci-fi console
+   readout, and with one on every group heading and table column it was
+   most of what made the panel feel like a spaceship. `.admin-num`
+   keeps the monospace, which is where it earns its place — digits
+   lining up down a column. */
 .admin-label {
-  font-family: var(--font-mono-family), ui-monospace, SFMono-Regular, Menlo,
-    monospace;
   font-size: 10px;
   line-height: 1.2;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-/* Focus ring, squared off to match. The default is a rounded halo
-   that looks wrong against 2px corners. */
+/* Focus ring. `outline` follows the element's own border-radius, so
+   this softens along with --radius rather than needing its own value —
+   it only existed to stop the default halo looking wrong against the
+   old 2px corners. */
 .admin-ui :focus-visible {
   outline: 2px solid var(--primary);
-  outline-offset: 1px;
+  outline-offset: 2px;
 }
