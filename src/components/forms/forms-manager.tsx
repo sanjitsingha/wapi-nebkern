@@ -14,6 +14,9 @@ import {
   Send,
   MoreVertical,
   ClipboardList,
+  CircleDot,
+  ListChecks,
+  CalendarDays,
 } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
@@ -44,7 +47,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import type { WhatsAppForm } from '@/types';
+import type { WhatsAppForm, WhatsAppFormStatus } from '@/types';
 
 /**
  * List + lifecycle actions for WhatsApp Forms (native WhatsApp Flows —
@@ -53,6 +56,44 @@ import type { WhatsAppForm } from '@/types';
  * no Meta sync (a form's status changes only through actions taken
  * here, so there's nothing external to reconcile against).
  */
+/**
+ * What the destructive action means for a form in a given state.
+ *
+ * Meta lets a published Flow be deprecated but never deleted, so "get
+ * rid of this" lands differently at each point in a form's life. A form
+ * that is already DEPRECATED is finished on Meta's side, and the only
+ * thing left is the local row — deleting that is what actually takes it
+ * off this list. Before, DEPRECATED matched none of the cases and the
+ * actions menu rendered empty, which left the form stuck on the page
+ * with no way to act on it.
+ */
+function destructiveAction(status: WhatsAppFormStatus) {
+  if (status === 'DRAFT') {
+    return {
+      label: 'Delete',
+      title: 'Delete this form?',
+      describe: (name: string) =>
+        `"${name}" will be removed from Meta and from Instant. This can't be undone.`,
+    };
+  }
+  if (status === 'DEPRECATED') {
+    return {
+      label: 'Delete',
+      title: 'Remove this form?',
+      describe: (name: string) =>
+        `"${name}" is already deprecated on Meta and stays that way — this only takes it off ` +
+        `your list. Past responses keep their answers, but stop linking back to the form. ` +
+        `This can't be undone.`,
+    };
+  }
+  return {
+    label: 'Deprecate',
+    title: 'Deprecate this form?',
+    describe: (name: string) =>
+      `"${name}" can no longer be sent, but past responses stay intact. This can't be undone.`,
+  };
+}
+
 export function FormsManager() {
   const router = useRouter();
   const supabase = createClient();
@@ -121,14 +162,18 @@ export function FormsManager() {
       const res = await fetch(`/api/whatsapp/forms/${formToDelete.id}`, { method: 'DELETE' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || `Delete failed (HTTP ${res.status})`);
-      if (formToDelete.status === 'DRAFT') {
+      // DRAFT and DEPRECATED both leave the list — the row is gone
+      // server-side. Everything else survives as a deprecated row.
+      const removed =
+        formToDelete.status === 'DRAFT' || formToDelete.status === 'DEPRECATED';
+      if (removed) {
         setForms((prev) => prev.filter((f) => f.id !== formToDelete.id));
       } else {
         setForms((prev) =>
           prev.map((f) => (f.id === formToDelete.id ? { ...f, status: 'DEPRECATED' } : f)),
         );
       }
-      toast.success(formToDelete.status === 'DRAFT' ? 'Form deleted' : 'Form deprecated');
+      toast.success(removed ? 'Form deleted' : 'Form deprecated');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to delete form');
     } finally {
@@ -192,15 +237,31 @@ export function FormsManager() {
             />
           </div>
 
-          <Card>
+          <div className="overflow-x-auto rounded-xl border border-border bg-card">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="hidden md:table-cell">Fields</TableHead>
-                  <TableHead className="hidden lg:table-cell">Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
+                  <TableHead className="text-muted-foreground" icon={ClipboardList}>
+                    Name
+                  </TableHead>
+                  <TableHead className="text-muted-foreground" icon={CircleDot}>
+                    Status
+                  </TableHead>
+                  <TableHead
+                    className="hidden text-muted-foreground md:table-cell"
+                    icon={ListChecks}
+                  >
+                    Fields
+                  </TableHead>
+                  <TableHead
+                    className="hidden text-muted-foreground lg:table-cell"
+                    icon={CalendarDays}
+                  >
+                    Created
+                  </TableHead>
+                  <TableHead className="text-muted-foreground text-right">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -211,7 +272,10 @@ export function FormsManager() {
                   const canPublish = form.status === 'DRAFT';
                   const canSend = form.status === 'PUBLISHED';
                   return (
-                    <TableRow key={form.id} className="border-border [&>td]:py-4">
+                    <TableRow
+                      key={form.id}
+                      className="border-border hover:bg-muted/50"
+                    >
                       <TableCell className="font-medium text-foreground">
                         <div className="flex items-center gap-1.5">
                           <span>{form.name}</span>
@@ -273,15 +337,13 @@ export function FormsManager() {
                                 Send from inbox
                               </DropdownMenuItem>
                             )}
-                            {form.status !== 'DEPRECATED' && (
-                              <DropdownMenuItem
-                                onClick={() => setFormToDelete(form)}
-                                className="text-red-500 focus:text-red-500"
-                              >
-                                <Trash2 className="size-4" />
-                                {form.status === 'DRAFT' ? 'Delete' : 'Deprecate'}
-                              </DropdownMenuItem>
-                            )}
+                            <DropdownMenuItem
+                              onClick={() => setFormToDelete(form)}
+                              className="text-red-500 focus:text-red-500"
+                            >
+                              <Trash2 className="size-4" />
+                              {destructiveAction(form.status).label}
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -290,7 +352,7 @@ export function FormsManager() {
                 })}
               </TableBody>
             </Table>
-          </Card>
+          </div>
         </>
       )}
 
@@ -298,12 +360,16 @@ export function FormsManager() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {formToDelete?.status === 'DRAFT' ? 'Delete this form?' : 'Deprecate this form?'}
+              {formToDelete
+                ? destructiveAction(formToDelete.status).title
+                : 'Delete this form?'}
             </DialogTitle>
             <DialogDescription>
-              {formToDelete?.status === 'DRAFT'
-                ? `"${formToDelete?.name}" will be removed from Meta and from Instant. This can't be undone.`
-                : `"${formToDelete?.name}" can no longer be sent, but past responses stay intact. This can't be undone.`}
+              {formToDelete
+                ? destructiveAction(formToDelete.status).describe(
+                    formToDelete.name,
+                  )
+                : null}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -316,7 +382,7 @@ export function FormsManager() {
               onClick={handleDelete}
             >
               {deletingId === formToDelete?.id && <Loader2 className="size-4 animate-spin" />}
-              {formToDelete?.status === 'DRAFT' ? 'Delete' : 'Deprecate'}
+              {formToDelete ? destructiveAction(formToDelete.status).label : 'Delete'}
             </Button>
           </DialogFooter>
         </DialogContent>

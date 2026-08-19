@@ -20,10 +20,14 @@ import {
  *          deleted), so this re-generates and re-uploads the Flow
  *          JSON rather than attempting a partial update.
  *
- * DELETE — DRAFT: removed outright, both on Meta and locally. Any
- *          other status: deprecated on Meta (Meta rejects an outright
- *          delete for a published flow) and the local row is kept,
- *          marked DEPRECATED, so past responses stay attributable.
+ * DELETE — DRAFT: removed outright, both on Meta and locally.
+ *          DEPRECATED: already finished on Meta's side — it rejects both a
+ *          delete and a second deprecate — so this only clears the
+ *          local row, which is what takes the form off the list.
+ *          Any other status: deprecated on Meta (Meta rejects an
+ *          outright delete for a published flow) and the local row is
+ *          kept, marked DEPRECATED, so past responses stay
+ *          attributable.
  */
 
 function isNonEmptyString(v: unknown): v is string {
@@ -191,7 +195,12 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
       .eq('account_id', accountId)
       .maybeSingle()
 
-    if (existing.meta_flow_id && config?.access_token) {
+    // Deprecating is terminal on Meta: a flow in that state can be
+    // neither deleted nor deprecated again, so calling out would only
+    // earn a 400. Everything left to do for one is local.
+    const alreadyDeprecated = existing.status === 'DEPRECATED'
+
+    if (existing.meta_flow_id && config?.access_token && !alreadyDeprecated) {
       const accessToken = decrypt(config.access_token)
       try {
         if (existing.status === 'DRAFT') {
@@ -205,7 +214,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
       }
     }
 
-    if (existing.status === 'DRAFT') {
+    if (existing.status === 'DRAFT' || alreadyDeprecated) {
       const { error: deleteError } = await supabase.from('whatsapp_forms').delete().eq('id', id)
       if (deleteError) {
         console.error('[whatsapp-forms] delete error:', deleteError)
