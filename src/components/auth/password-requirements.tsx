@@ -43,14 +43,14 @@ export function PasswordRequirements({
       {states.map(({ rule, met }) => (
         <li key={rule.id} className="flex items-center gap-2">
           {met ? (
-            <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <Check className="text-primary h-3.5 w-3.5 shrink-0" />
           ) : (
             <X className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           )}
           <span
             className={cn(
               "transition-colors",
-              met ? "text-emerald-700 dark:text-emerald-300" : "text-muted-foreground",
+              met ? "text-primary" : "text-muted-foreground",
             )}
           >
             {rule.label}

@@ -7,8 +7,9 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MessageSquare, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { AuthBrandPanel } from "@/components/auth/brand-panel";
+import { AuthLogo } from "@/components/auth/logo";
 import { GoogleAuthButton, AuthDivider } from "@/components/auth/google-button";
 import { GoogleGisButton } from "@/components/auth/google-gis-button";
 import { googleGisEnabled } from "@/lib/auth/google-gis";
@@ -105,15 +106,7 @@ function LoginPageInner() {
       {/* Form panel */}
       <main className="flex w-full flex-col justify-center px-6 py-12 sm:px-12 lg:w-1/2">
         <div className="mx-auto w-full max-w-sm">
-          {/* Logo */}
-          <div className="mb-10 flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <MessageSquare className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-semibold tracking-tight text-foreground">
-              Instant
-            </span>
-          </div>
+          <AuthLogo />
 
           <div className="mb-8">
             <h2 className="text-3xl font-semibold tracking-tight text-foreground">

@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { MessageSquare, ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { AuthBrandPanel } from "@/components/auth/brand-panel";
+import { AuthLogo } from "@/components/auth/logo";
 import { NewPasswordForm } from "@/components/auth/new-password-form";
 
 // Where the emailed recovery *link* lands, for anyone who clicks it
@@ -38,14 +39,7 @@ export default function ResetPasswordPage() {
     <div className="flex min-h-screen bg-background">
       <main className="flex w-full flex-col justify-center px-6 py-12 sm:px-12 lg:w-1/2">
         <div className="mx-auto w-full max-w-sm">
-          <div className="mb-10 flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <MessageSquare className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-semibold tracking-tight text-foreground">
-              Instant
-            </span>
-          </div>
+          <AuthLogo />
 
           {hasSession === null && (
             <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
