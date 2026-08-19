@@ -2,7 +2,15 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search } from 'lucide-react';
+import {
+  Search,
+  Hash,
+  MessageSquareText,
+  Building2,
+  Flag,
+  CircleDot,
+  Clock,
+} from 'lucide-react';
 
 import type { SupportTicketStatus, SupportTicketPriority } from '@/types';
 import { formatTicketRef } from '@/lib/support/ticket-ref';
@@ -101,7 +109,10 @@ export function TicketsTable({
           value={filter}
           onValueChange={(v) => v && setFilter(v as Filter)}
         >
-          <SelectTrigger className="border-border h-11 w-full sm:w-52">
+          {/* Height goes through the `data-[size=default]` variant
+              because SelectTrigger's own `data-[size=default]:h-8`
+              outranks a plain `h-11` — see newsletter-table.tsx. */}
+          <SelectTrigger className="border-border w-full data-[size=default]:h-11 sm:w-52">
             <SelectValue placeholder="Filter" />
           </SelectTrigger>
           <SelectContent>
@@ -117,19 +128,39 @@ export function TicketsTable({
       <div className="border-border bg-card overflow-x-auto rounded-xl border">
         <Table>
           <TableHeader>
-            <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
-              <TableHead className="text-muted-foreground w-28">
+            {/* Full `bg-muted` rather than /50 so the header reads as a
+                distinct band above the rows. The hover has to match it
+                — a header inheriting the rows' `hover:bg-muted/50`
+                would LIGHTEN on hover, which looks like a mis-click. */}
+            <TableRow className="border-border bg-muted hover:bg-muted">
+              <TableHead icon={Hash} className="text-muted-foreground w-28">
                 Ticket
               </TableHead>
-              <TableHead className="text-muted-foreground">Subject</TableHead>
-              <TableHead className="text-muted-foreground hidden md:table-cell">
+              <TableHead
+                icon={MessageSquareText}
+                className="text-muted-foreground"
+              >
+                Subject
+              </TableHead>
+              <TableHead
+                icon={Building2}
+                className="text-muted-foreground hidden md:table-cell"
+              >
                 Account
               </TableHead>
-              <TableHead className="text-muted-foreground hidden lg:table-cell">
+              <TableHead
+                icon={Flag}
+                className="text-muted-foreground hidden lg:table-cell"
+              >
                 Priority
               </TableHead>
-              <TableHead className="text-muted-foreground">Status</TableHead>
-              <TableHead className="text-muted-foreground hidden sm:table-cell">
+              <TableHead icon={CircleDot} className="text-muted-foreground">
+                Status
+              </TableHead>
+              <TableHead
+                icon={Clock}
+                className="text-muted-foreground hidden sm:table-cell"
+              >
                 Updated
               </TableHead>
             </TableRow>
