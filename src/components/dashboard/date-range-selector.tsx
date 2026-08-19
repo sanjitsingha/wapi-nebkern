@@ -20,7 +20,6 @@ import {
   subMonths,
 } from 'date-fns'
 import {
-  ArrowRight,
   CalendarDays,
   Check,
   ChevronLeft,
@@ -206,6 +205,10 @@ function DateRangeDialog({
     ;[bandStart, bandEnd] = [bandEnd, bandStart]
   }
 
+  // A one-day range is just the endpoint circle — drawing a full-width
+  // strip behind a single cell would read as a stray pill.
+  const spansDays = !!bandStart && !!bandEnd && !isSameDay(bandStart, bandEnd)
+
   const dayCount =
     from && (to ?? previewEnd)
       ? differenceInCalendarDays(
@@ -259,21 +262,6 @@ function DateRangeDialog({
 
           {/* Calendar */}
           <div className="min-w-0 flex-1 p-5">
-            {/* Selected-range summary */}
-            <div className="mb-4 flex items-center gap-2">
-              <SummaryChip
-                label="Start"
-                date={bandStart}
-                active={!from || (!!from && !!to)}
-              />
-              <ArrowRight className="text-muted-foreground size-4 shrink-0" />
-              <SummaryChip
-                label="End"
-                date={to ?? (previewing ? bandEnd : null)}
-                active={!!from && !to}
-              />
-            </div>
-
             <div className="mb-3 flex items-center justify-between">
               <button
                 type="button"
@@ -320,17 +308,33 @@ function DateRangeDialog({
                 const isFuture = isAfter(day, today())
                 const isToday = isSameDay(day, today())
 
+                // The band is painted on the cell, not on the day
+                // button. The cell fills its whole grid column, so
+                // neighbours touch and a range reads as one continuous
+                // run — the buttons are w-9 inside a wider column, so
+                // painting them left a string of loose circles with
+                // daylight between them. Only the two ends are
+                // rounded; where a range breaks across a row it runs
+                // flush to the edge, which is what says "continues".
+                const banded = inBand && !outsideMonth && spansDays
+
                 return (
                   <div
                     key={day.toISOString()}
                     onMouseEnter={() => setHoverDay(day)}
+                    className={cn(
+                      'flex justify-center',
+                      banded && 'bg-primary-soft',
+                      banded && isStart && 'rounded-l-full',
+                      banded && isEnd && 'rounded-r-full',
+                    )}
                   >
                     <button
                       type="button"
                       disabled={outsideMonth || isFuture}
                       onClick={() => handleDayClick(day)}
                       className={cn(
-                        'mx-auto flex h-9 w-9 items-center justify-center rounded-full text-sm transition-colors',
+                        'flex h-9 w-9 items-center justify-center rounded-full text-sm transition-colors',
                         outsideMonth && 'invisible',
                         isFuture && !outsideMonth && 'text-muted-foreground/30 cursor-not-allowed',
                         !isFuture &&
@@ -338,11 +342,14 @@ function DateRangeDialog({
                           !isEndpoint &&
                           !inBand &&
                           'text-foreground hover:bg-muted',
+                        // Interior days sit on the band and add nothing
+                        // of their own — a second fill here is what made
+                        // each one look like a separate token.
                         !isFuture &&
                           !outsideMonth &&
                           !isEndpoint &&
                           inBand &&
-                          'bg-primary text-primary-foreground hover:bg-primary',
+                          'text-foreground',
                         isEndpoint &&
                           !outsideMonth &&
                           'bg-primary text-primary-foreground hover:bg-primary font-semibold shadow-sm',
@@ -389,37 +396,5 @@ function DateRangeDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
-}
-
-/** A Start / End date pill in the calendar summary row. */
-function SummaryChip({
-  label,
-  date,
-  active,
-}: {
-  label: string
-  date: Date | null
-  active: boolean
-}) {
-  return (
-    <div
-      className={cn(
-        'flex-1 rounded-lg border px-3 py-2 transition-colors',
-        active ? 'border-primary bg-primary-soft' : 'border-border bg-muted/40',
-      )}
-    >
-      <p className="text-muted-foreground text-[10px] font-semibold tracking-wide uppercase">
-        {label}
-      </p>
-      <p
-        className={cn(
-          'text-sm font-medium tabular-nums',
-          date ? 'text-foreground' : 'text-muted-foreground/60',
-        )}
-      >
-        {date ? format(date, 'MMM d, yyyy') : 'Select'}
-      </p>
-    </div>
   )
 }
