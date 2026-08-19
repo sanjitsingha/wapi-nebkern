@@ -198,7 +198,11 @@ export function FormBuilder({ initial }: { initial?: WhatsAppForm }) {
             A form opens inside WhatsApp itself — the customer never leaves the chat to answer it.
           </p>
         </div>
-        <Button variant="outline" onClick={() => router.push('/forms')}>
+        <Button
+          variant="outline"
+          onClick={() => router.push('/forms')}
+          className="h-11"
+        >
           Cancel
         </Button>
       </div>
@@ -234,7 +238,13 @@ export function FormBuilder({ initial }: { initial?: WhatsAppForm }) {
               onValueChange={(v) => setCategory((v ?? 'OTHER') as FlowCategory)}
               disabled={locked}
             >
-              <SelectTrigger id="form-category" className="h-11 w-full">
+              {/* Height goes through the `data-[size=default]` variant
+                  because SelectTrigger's own `data-[size=default]:h-8`
+                  outranks a plain `h-11` — see newsletter-table.tsx. */}
+              <SelectTrigger
+                id="form-category"
+                className="w-full data-[size=default]:h-11"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -278,7 +288,7 @@ export function FormBuilder({ initial }: { initial?: WhatsAppForm }) {
                     onValueChange={(v) => updateField(index, { type: (v ?? 'short_text') as FormFieldType })}
                     disabled={locked}
                   >
-                    <SelectTrigger className="h-11 w-full sm:w-52">
+                    <SelectTrigger className="w-full data-[size=default]:h-11 sm:w-52">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -392,7 +402,11 @@ export function FormBuilder({ initial }: { initial?: WhatsAppForm }) {
 
       {!locked && (
         <div className="flex justify-end gap-2 pb-8">
-          <Button variant="outline" onClick={() => router.push('/forms')}>
+          <Button
+            variant="outline"
+            onClick={() => router.push('/forms')}
+            className="h-11"
+          >
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={saving} className="h-11">
