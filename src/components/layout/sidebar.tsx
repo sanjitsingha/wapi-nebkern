@@ -478,8 +478,11 @@ export function Sidebar({
 
       <aside
         className={cn(
-          // Mobile: fixed drawer that slides in from the left, sitting below the header.
-          'border-border bg-card fixed top-14 bottom-0 left-0 z-40 flex w-64 flex-col overflow-hidden border-r',
+          // Mobile: fixed drawer that slides in from the left, sitting
+          // below the header. `top-16` tracks the header's `h-16` — the
+          // drawer is fixed, so it can't inherit that and the two have
+          // to be changed together.
+          'border-border bg-card fixed top-16 bottom-0 left-0 z-40 flex w-64 flex-col overflow-hidden border-r',
           'transition-transform duration-200 ease-out will-change-transform',
           open ? 'translate-x-0' : '-translate-x-full',
           // Desktop: static. Width animates between full and the rail; the

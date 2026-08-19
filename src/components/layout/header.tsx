@@ -53,7 +53,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
     'U';
 
   return (
-    <header className="border-border bg-background flex h-14 shrink-0 items-center justify-between gap-3 border-b px-4 lg:px-6">
+    <header className="border-border bg-background flex h-16 shrink-0 items-center justify-between gap-3 border-b px-4 lg:px-6">
       <div className="flex min-w-0 items-center gap-2">
         {/* Logo — always visible in the header. The full lockup rather
             than the mark alone: at this height the wordmark still reads
