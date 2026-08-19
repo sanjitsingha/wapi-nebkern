@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -19,13 +20,13 @@ import {
   Activity,
   LogOut,
   QrCode,
-  Terminal,
   Menu,
   Search,
   X,
 } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
+import { LOGO_URL, logoWidthFor } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { CommandPalette, type PaletteTarget } from './command-palette';
@@ -154,13 +155,15 @@ export function AdminShell({
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   )}
                 >
-                  {/* A square rail on the active item. Colour alone is
-                      easy to miss when several links share a hue, and a
-                      rounded pill here would fight the 2px system. */}
+                  {/* A rail on the active item. Colour alone is easy to
+                      miss when several links share a hue. Rounded on
+                      its outer edge now that the panel's radius is 6px
+                      rather than 2px — a hard square here was the last
+                      thing still reading as "cut". */}
                   <span
                     aria-hidden
                     className={cn(
-                      'absolute inset-y-0 left-0 w-0.5',
+                      'absolute inset-y-0 left-0 w-0.5 rounded-r-full',
                       active ? 'bg-primary' : 'bg-transparent'
                     )}
                   />
@@ -181,10 +184,23 @@ export function AdminShell({
 
       {/* Desktop rail */}
       <aside className="bg-card hidden w-56 shrink-0 flex-col border-r border-(--admin-line-strong) sm:flex">
-        <div className="flex items-center gap-2 border-b border-(--admin-line) px-4 py-3">
-          <Terminal className="text-primary size-4" />
-          <span className="admin-label text-foreground">Instant / admin</span>
-        </div>
+        {/* The logo stands in for the word "Instant" the label used to
+            spell out, so the rail reads as the brand rather than a
+            generic console. "/ admin" stays — it's what distinguishes
+            this from the customer app. */}
+        <Link
+          href="/admin"
+          className="flex items-center gap-2 border-b border-(--admin-line) px-4 py-3"
+        >
+          <Image
+            src={LOGO_URL}
+            alt="Instant"
+            width={logoWidthFor(20)}
+            height={20}
+            priority
+          />
+          <span className="admin-label text-muted-foreground">/ admin</span>
+        </Link>
 
         {/* Search affordance. ⌘K is invisible until someone tells you
             about it, and this is the telling. */}
@@ -226,8 +242,13 @@ export function AdminShell({
           <div className="bg-card absolute inset-y-0 left-0 w-60 overflow-y-auto py-3">
             <div className="flex items-center justify-between px-4 pb-3">
               <span className="admin-label flex items-center gap-2">
-                <Terminal className="text-primary size-4" />
-                Instant / admin
+                <Image
+                  src={LOGO_URL}
+                  alt="Instant"
+                  width={logoWidthFor(20)}
+                  height={20}
+                />
+                <span className="text-muted-foreground">/ admin</span>
               </span>
               <button
                 type="button"
