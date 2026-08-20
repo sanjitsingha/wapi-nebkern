@@ -148,6 +148,19 @@ export async function middleware(request: NextRequest) {
     // JWT's copy, so paying for a plan opens the gate on the very next
     // request rather than after a token refresh.
     const meta = user.app_metadata as Record<string, unknown> | undefined;
+
+    // The deletion lock (migration 086) is checked before the gates and
+    // before anything else, because it outranks them: an account on its
+    // way out should not be asked to finish onboarding or pay. Missing
+    // key means a session predating 086, which is treated as live — the
+    // API's own check reads the column directly and will catch it.
+    if (meta?.pending_deletion === true) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/account-deleted';
+      url.search = '';
+      return NextResponse.redirect(url);
+    }
+
     let profileComplete: boolean;
     let onboarded: boolean;
 

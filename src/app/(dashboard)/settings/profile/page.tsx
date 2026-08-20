@@ -8,6 +8,7 @@ import { PlanSection } from '@/components/settings/plan-config';
 import { PasswordForm } from '@/components/settings/password-form';
 import { ConnectedAccountsCard } from '@/components/settings/connected-accounts-card';
 import { SessionsCard } from '@/components/settings/sessions-card';
+import { DeleteAccountCard } from '@/components/settings/delete-account-card';
 import { useTabParam } from '@/components/settings/use-tab-param';
 
 const TABS = ['profile', 'plan'] as const;
@@ -44,6 +45,9 @@ function ProfilePageInner() {
           <PasswordForm />
           <ConnectedAccountsCard />
           <SessionsCard />
+          {/* Last, and only for the owner — the card returns null for
+              everyone else. */}
+          <DeleteAccountCard />
         </div>
       </TabsContent>
 

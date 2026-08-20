@@ -56,6 +56,24 @@ export class ForbiddenError extends Error {
 }
 
 /**
+ * The account is inside its deletion window (migration 086).
+ *
+ * Separate from ForbiddenError because the client has to tell the two
+ * apart: a role failure means "ask someone with more access", while
+ * this means "the account is locked and there is a deadline to undo
+ * it". The `code` is what the fetch wrappers switch on to send someone
+ * to the lockout screen instead of showing a generic toast.
+ */
+export class AccountDeletedError extends Error {
+  readonly status = 403 as const;
+  readonly code = "account_deleted" as const;
+  constructor(message = "This account is scheduled for deletion") {
+    super(message);
+    this.name = "AccountDeletedError";
+  }
+}
+
+/**
  * Convert one of the typed errors above (or anything else) into a
  * `NextResponse`. Routes can do:
  *
@@ -68,6 +86,12 @@ export class ForbiddenError extends Error {
  * server internals out of the wire.
  */
 export function toErrorResponse(err: unknown): NextResponse {
+  if (err instanceof AccountDeletedError) {
+    return NextResponse.json(
+      { error: err.message, code: err.code },
+      { status: err.status },
+    );
+  }
   if (err instanceof UnauthorizedError || err instanceof ForbiddenError) {
     return NextResponse.json({ error: err.message }, { status: err.status });
   }
@@ -118,9 +142,12 @@ export interface AccountContext {
  * the brief window during signup before the trigger has run — and the
  * caller falls back to querying `profiles`.
  */
-function claimsFromAppMetadata(
-  user: User,
-): { accountId: string; role: AccountRole; accountName: string } | null {
+function claimsFromAppMetadata(user: User): {
+  accountId: string;
+  role: AccountRole;
+  accountName: string;
+  pendingDeletion: boolean;
+} | null {
   const meta = user.app_metadata as Record<string, unknown> | undefined;
   if (!meta) return null;
 
@@ -136,7 +163,12 @@ function claimsFromAppMetadata(
   ) {
     return null;
   }
-  return { accountId, role, accountName };
+  // Absent on sessions predating 086. Treated as "not deleted" so an
+  // old session is not locked out by a key it never had — the fallback
+  // query below reads the column directly for anyone the fast path
+  // rejects, and the trigger stamps the key on the next account change.
+  const pendingDeletion = meta.pending_deletion === true;
+  return { accountId, role, accountName, pendingDeletion };
 }
 
 async function loadCurrentAccount(): Promise<AccountContext> {
@@ -153,6 +185,12 @@ async function loadCurrentAccount(): Promise<AccountContext> {
   // Fast path: everything we need arrived with the user object.
   const claims = claimsFromAppMetadata(user);
   if (claims) {
+    // The lock sits ahead of the return, so every one of the 68 routes
+    // that calls this is closed the moment deletion is confirmed —
+    // middleware only covers page navigation, never /api.
+    if (claims.pendingDeletion) {
+      throw new AccountDeletedError();
+    }
     return {
       supabase,
       userId: user.id,
@@ -172,7 +210,9 @@ async function loadCurrentAccount(): Promise<AccountContext> {
   // rather than silently returning a half-populated profile.
   const { data, error } = await supabase
     .from("profiles")
-    .select("account_id, account_role, account:accounts!inner(id, name)")
+    .select(
+      "account_id, account_role, account:accounts!inner(id, name, deletion_requested_at)",
+    )
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -196,6 +236,14 @@ async function loadCurrentAccount(): Promise<AccountContext> {
   // Supabase's typed client returns related rows as an array even
   // for `!inner` single-record joins; normalise to a single object.
   const accountRow = Array.isArray(data.account) ? data.account[0] : data.account;
+
+  // Same lock as the fast path. Deliberately NOT fail-open, unlike the
+  // onboarding gate: letting someone through on a bad read there costs
+  // a skipped paywall, letting them through here means writing to an
+  // account that is on its way to being deleted.
+  if (accountRow.deletion_requested_at != null) {
+    throw new AccountDeletedError();
+  }
 
   return {
     supabase,

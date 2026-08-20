@@ -45,6 +45,13 @@ export const KNOWN_CRONS = {
     description: 'Times out abandoned chatbot flow runs',
     intervalSeconds: 900,
   },
+  account_purge: {
+    label: 'Account purge',
+    description: 'Deletes accounts whose 30-day deletion window has closed',
+    // Daily. The window is measured in days, so running an hour late
+    // costs an hour; the "overdue" threshold is generous to match.
+    intervalSeconds: 86_400,
+  },
 } as const;
 
 export type CronJobKey = keyof typeof KNOWN_CRONS;

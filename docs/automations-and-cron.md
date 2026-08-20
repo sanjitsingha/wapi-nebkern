@@ -1,6 +1,6 @@
 # Background jobs & cron
 
-Four features in this app do nothing on their own. Each is an HTTP
+Five features in this app do nothing on their own. Each is an HTTP
 endpoint that only does work when something calls it on a schedule:
 
 | Job | Endpoint | Cadence | Without it |
@@ -9,6 +9,13 @@ endpoint that only does work when something calls it on a schedule:
 | **Broadcast scheduler** | `/api/broadcasts/cron` | 60s | **Scheduled broadcasts never send** |
 | Automations engine | `/api/automations/cron` | 60s | Delayed automation steps never resume |
 | Flows timeout sweep | `/api/flows/cron` | 5 min | Abandoned chatbot runs stay open forever |
+| Account purge | `/api/accounts/cron` | daily | Deleted accounts stay locked but are never actually removed |
+
+The account purge is the one job whose absence is *safe*: without it a
+deleted account stays locked and recoverable indefinitely rather than
+being erased on time. That is the right way round for a destructive
+sweep, but it does mean the 30-day promise in the product copy is only
+true while this is scheduled.
 
 They all authenticate the same way: a `x-cron-secret` request header that
 must equal `AUTOMATION_CRON_SECRET` in the server's environment.
@@ -35,7 +42,9 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 * * * * * curl -fsS -H "x-cron-secret: $AUTOMATION_CRON_SECRET" https://your-domain.com/api/broadcasts/cron    >/dev/null
 * * * * * curl -fsS -H "x-cron-secret: $AUTOMATION_CRON_SECRET" https://your-domain.com/api/automations/cron   >/dev/null
 */5 * * * * curl -fsS -H "x-cron-secret: $AUTOMATION_CRON_SECRET" https://your-domain.com/api/flows/cron       >/dev/null
+17 3 * * *  curl -fsS -H "x-cron-secret: $AUTOMATION_CRON_SECRET" https://your-domain.com/api/accounts/cron    >/dev/null
 ```
+
 </details>
 
 <details>

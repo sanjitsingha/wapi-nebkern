@@ -59,6 +59,9 @@ const JOBS = [
   { key: 'broadcasts', path: '/api/broadcasts/cron', everyTicks: 2 },
   { key: 'automations', path: '/api/automations/cron', everyTicks: 2 },
   { key: 'flows', path: '/api/flows/cron', everyTicks: 15 },
+  // Daily in production; every 30 min here so a deletion window that
+  // has been backdated for testing actually gets collected in a sitting.
+  { key: 'accounts', path: '/api/accounts/cron', everyTicks: 30 },
 ];
 
 let tick = 0;
@@ -66,7 +69,14 @@ let tick = 0;
 /** One-line summary of whatever shape a given cron route returns. */
 function summarize(body) {
   if (body == null || typeof body !== 'object') return '';
-  for (const k of ['dispatched', 'processed', 'resumed', 'swept', 'timedOut']) {
+  for (const k of [
+    'dispatched',
+    'processed',
+    'resumed',
+    'swept',
+    'timedOut',
+    'purged',
+  ]) {
     if (typeof body[k] === 'number' && body[k] > 0) return `${k}=${body[k]}`;
   }
   return 'idle';
