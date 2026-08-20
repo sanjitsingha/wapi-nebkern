@@ -97,6 +97,7 @@ export async function middleware(request: NextRequest) {
     '/settings',
     '/invoices',
     '/agents',
+    '/askmaya',
     '/broadcasts',
     '/flows',
     '/forms',

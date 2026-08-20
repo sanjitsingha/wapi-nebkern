@@ -89,11 +89,14 @@ const homeLink: NavLink = {
   href: '/dashboard',
 };
 
-// AI Agents sits on its own, outside any group — a first-class surface.
+// Maya sits on her own, outside any group — a first-class surface.
+// The walkthrough key stays 'agents': it is persisted per user to track
+// which tours they have seen, so renaming it would replay the tour for
+// everyone who had already dismissed it.
 const agentsLink: NavLink = {
-  label: 'AI Agents',
+  label: 'Maya',
   icon: Robot,
-  href: '/agents',
+  href: '/askmaya',
   badge: 'New',
   walkthrough: 'agents',
 };

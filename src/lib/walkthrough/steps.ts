@@ -66,10 +66,13 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     placement: 'right',
   },
   {
+    // `id` and `target` stay 'agents' — the id is persisted per user to
+    // remember which steps they have seen, and the target has to match
+    // the sidebar link's `walkthrough` key. Only the copy is renamed.
     id: 'agents',
     target: 'agents',
-    title: 'AI agents',
-    body: 'Hand a conversation to an AI agent trained on your business, and let it draft or send replies with your team watching.',
+    title: 'Meet Maya',
+    body: 'Hand a conversation to Maya, trained on your business, and let her draft or send replies with your team watching.',
     placement: 'right',
   },
   {

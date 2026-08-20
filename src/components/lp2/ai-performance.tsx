@@ -5,18 +5,20 @@ import { cn } from '@/lib/utils';
 import { SectionHead, press } from './ui';
 
 // ============================================================
-// "10X your performance with Instant AI" — the two agents, shown
-// working.
+// "10X your performance with Maya" — the assistant, shown working.
 //
 // Replaces the old three-step "Live by Thursday" block, which answered
 // "how much work is this to set up?". This slot sits after the feature
 // and automation sections, where a reader who now believes the product
 // works starts asking what it actually changes.
 //
-// Two cards rather than a list of capabilities, because the two agents
-// do genuinely different jobs — one turns a stranger into a qualified
-// lead, the other stops routine questions reaching a human at all — and
-// a reader is usually shopping for one of them specifically.
+// Two cards rather than a list of capabilities, because the two jobs
+// are genuinely different — one turns a stranger into a qualified lead,
+// the other stops routine questions reaching a human at all — and a
+// reader is usually shopping for one of them specifically. They are two
+// sides of one named assistant, not two products: the app ships a
+// single agent, so promising a fleet of them here would be a lie the
+// product cannot keep.
 //
 // Each card argues by demonstration: a real exchange, then the outcome
 // underneath it. The conversation markup is the same speech-bubble
@@ -29,7 +31,7 @@ import { SectionHead, press } from './ui';
 // gone by four-fifths of the way up. Mixed from the saturated hue
 // rather than using the `-soft` pastel directly: the pastels are close
 // enough to each other that two of them side by side read as a printing
-// error, and the point here is that these are two different agents.
+// error, and the point here is that these are two different jobs.
 //
 // The top of every card lands on white so the incoming speech bubbles —
 // white with an ink outline — keep their contrast where the eye starts.
@@ -42,9 +44,9 @@ const AGENTS = [
     hue: 'grape',
     stat: '24/7',
     statLabel: 'Qualifying and converting',
-    title: 'Lead-qualifying agent',
-    body: 'Works out who is serious, scores them, and writes the details straight into your CRM — while the enquiry is still warm.',
-    cta: 'Build an agent',
+    title: 'Maya qualifies your leads',
+    body: 'She works out who is serious, scores them, and writes the details straight into your CRM — while the enquiry is still warm.',
+    cta: 'Meet Maya',
     thread: [
       {
         side: 'in',
@@ -61,9 +63,9 @@ const AGENTS = [
     hue: 'sky',
     stat: '6s',
     statLabel: 'Average first reply',
-    title: 'Customer support agent',
-    body: 'Answers the questions that fill an inbox — delivery, returns, sizing, hours — and hands over the moment a person is genuinely needed.',
-    cta: 'Train your agent',
+    title: 'Maya answers your customers',
+    body: 'She handles the questions that fill an inbox — delivery, returns, sizing, hours — and hands over the moment a person is genuinely needed.',
+    cta: 'Train Maya',
     thread: [
       {
         side: 'in',
@@ -91,9 +93,9 @@ export function Lp2AiPerformance() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHead
           hue="coral"
-          title="10X your performance with Instant AI"
+          title="10X your performance with Maya"
           highlight="10X"
-          subtitle="Let Instant AI take the repetitive work off your team, so the hours they do spend on WhatsApp go into the conversations that build relationships — and revenue."
+          subtitle="Let Maya take the repetitive work off your team, so the hours they do spend on WhatsApp go into the conversations that build relationships — and revenue."
         />
 
         {/* `mt-20` rather than the usual 14: the stat pills hang above
@@ -231,7 +233,7 @@ function LeadCard() {
 
       <p className="mt-2.5 flex items-center gap-1.5 border-t border-(--lp2-ink)/10 pt-2 text-[11px] font-semibold text-(--lp2-ink-soft)">
         <CheckCheck className="size-3.5 shrink-0 text-(--lp2-grass)" strokeWidth={3} />
-        {/* Not "no one woken up" — the agents section directly above
+        {/* Not "no one woken up" — the Maya section directly above
             ends its diagram on "no human woken up", and the two land
             close enough now to read as a verbal tic rather than two
             claims. That line is sharper up there, where it pairs with a

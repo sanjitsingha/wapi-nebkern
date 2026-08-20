@@ -37,6 +37,7 @@ export default function robots(): MetadataRoute.Robots {
         '/automations',
         '/flows',
         '/agents',
+        '/askmaya',
         '/forms',
         '/calls',
         '/media',
