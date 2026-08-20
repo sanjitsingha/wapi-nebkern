@@ -2,7 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { formatDistanceToNow, format } from 'date-fns';
-import { ArrowDownLeft, ArrowUpRight, Loader2, PhoneMissed, PhoneOff } from 'lucide-react';
+import Link from 'next/link';
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  ChevronRight,
+  Loader2,
+  PhoneMissed,
+  PhoneOff,
+} from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
@@ -15,7 +23,21 @@ import { cn } from '@/lib/utils';
 // column — outcome, when, how long. Anything more belongs on /calls.
 // ============================================================
 
-const LIMIT = 8;
+/**
+ * How many calls the panel shows.
+ *
+ * Three, not the eight this used to render. The panel is a column of
+ * stacked sections and this one sat in the middle of it, so a chatty
+ * contact's history pushed everything below it — notes, tags, spam —
+ * far enough down to be a scroll away. A recent-calls list is a glance,
+ * not a record; the record is /calls.
+ */
+const PREVIEW_LIMIT = 3;
+
+/** Fetch one more than we show, purely to learn whether there IS more.
+ *  Cheaper than a second count query for a panel that re-fetches on
+ *  every realtime call event. */
+const FETCH_LIMIT = PREVIEW_LIMIT + 1;
 
 interface Row {
   id: string;
@@ -72,7 +94,7 @@ export function ContactCallHistory({ contactId }: { contactId: string }) {
       .select('id, direction, status, started_at, created_at, duration_seconds')
       .eq('contact_id', contactId)
       .order('created_at', { ascending: false })
-      .limit(LIMIT);
+      .limit(FETCH_LIMIT);
     return (data ?? []) as Row[];
   }, [supabase, contactId]);
 
@@ -120,9 +142,13 @@ export function ContactCallHistory({ contactId }: { contactId: string }) {
     );
   }
 
+  const visible = rows.slice(0, PREVIEW_LIMIT);
+  const hasMore = rows.length > PREVIEW_LIMIT;
+
   return (
+    <>
     <ul className="space-y-1">
-      {rows.map((row) => {
+      {visible.map((row) => {
         const { Icon, tone, label } = callOutcome(row.status, row.direction);
         const when = row.started_at ?? row.created_at;
         return (
@@ -147,5 +173,19 @@ export function ContactCallHistory({ contactId }: { contactId: string }) {
         );
       })}
     </ul>
+
+      {/* Always offered once there is any history, not only when the
+          preview overflows: /calls is where the full record lives, and
+          hiding the way there whenever a contact happens to have three
+          calls or fewer makes it findable only by accident. The count
+          hint appears only when it is true. */}
+      <Link
+        href="/calls"
+        className="text-muted-foreground hover:text-foreground hover:bg-muted mt-1 flex items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-[11px] font-medium transition-colors"
+      >
+        <span>{hasMore ? 'View all calls' : 'View call history'}</span>
+        <ChevronRight className="size-3.5 shrink-0" />
+      </Link>
+    </>
   );
 }

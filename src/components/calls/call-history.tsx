@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { formatDistanceToNow, format } from 'date-fns';
-import { Delete, Loader2, Phone, RefreshCw, Search } from 'lucide-react';
+import { Delete, Loader2, Phone, Search } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
 import { avatarColor } from '@/lib/avatar-color';
@@ -169,21 +169,10 @@ export function CallHistory() {
             Every WhatsApp voice call to and from your business number.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setPage(0);
-              load(0, false);
-            }}
-            disabled={loading || refreshing}
-          >
-            <RefreshCw className={cn('size-4', refreshing && 'animate-spin')} />
-            Refresh
-          </Button>
-          <Dialer />
-        </div>
+        {/* No Refresh button: the realtime subscription below already
+            puts new and updated calls on the page as they happen, so it
+            re-fetched what was almost always current. */}
+        <Dialer />
       </div>
 
       {/* Totals are over what's loaded, not the whole table — labelled as
@@ -394,7 +383,20 @@ function Dialer() {
 
   return (
     <>
-      <Button size="sm" onClick={() => setOpen(true)} disabled={callCenter.busy}>
+      {/* The page's only action now that Refresh is gone, so it carries
+          the primary treatment at the same h-11 the other dashboard
+          pages use for their lead button. The explicit hover matters:
+          the `default` variant's own hover is scoped to `[a]:`, so a
+          real <button> gets none of it.
+
+          `px-6` overrides the `px-2.5` the default size ships with —
+          that value is tuned for the h-8 button it was written for and
+          leaves the label crowded against the edges at this height. */}
+      <Button
+        onClick={() => setOpen(true)}
+        disabled={callCenter.busy}
+        className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-6"
+      >
         <Phone className="size-4" />
         New call
       </Button>
