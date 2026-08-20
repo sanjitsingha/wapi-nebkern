@@ -965,19 +965,36 @@ async function processCall(
     console.warn('[webhook] call event without id — skipping')
     return
   }
-  if (!call.from) {
-    console.warn('[webhook] call event without `from` — skipping', waCallId)
+  // USER_INITIATED = customer called us (inbound). Anything else (incl.
+  // BUSINESS_INITIATED) is outbound.
+  const direction = call.direction === 'BUSINESS_INITIATED' ? 'outbound' : 'inbound'
+
+  // Whose number this call belongs to.
+  //
+  // Meta reports `from`/`to` from ITS point of view, so on a
+  // business-initiated call `from` is OUR own number and `to` is the
+  // customer's. This used to read `from` unconditionally, which filed
+  // every outbound call against a contact created for the business's own
+  // number — putting our number in the call log where the customer's
+  // should be, and leaving a junk contact and a conversation with
+  // ourselves behind each time.
+  const counterparty = direction === 'outbound' ? call.to : call.from
+  if (!counterparty) {
+    console.warn(
+      `[webhook] ${direction} call event without \`${direction === 'outbound' ? 'to' : 'from'}\` — skipping`,
+      waCallId,
+    )
     return
   }
 
-  const fromPhone = normalizePhone(call.from)
+  const counterpartyPhone = normalizePhone(counterparty)
 
   // Name is unknown for a call — pass '' so an existing contact's name
   // isn't overwritten and a new one falls back to the phone number.
   const contactOutcome = await findOrCreateContact(
     accountId,
     configOwnerUserId,
-    fromPhone,
+    counterpartyPhone,
     '',
   )
   if (!contactOutcome) return
@@ -991,9 +1008,6 @@ async function processCall(
   if (!conversation) return
 
   const event = (call.event ?? '').toLowerCase()
-  // USER_INITIATED = customer called us (inbound). Anything else (incl.
-  // BUSINESS_INITIATED) is outbound. Layer A only expects inbound.
-  const direction = call.direction === 'BUSINESS_INITIATED' ? 'outbound' : 'inbound'
   const eventTs = call.timestamp
     ? new Date(parseInt(call.timestamp, 10) * 1000).toISOString()
     : new Date().toISOString()
