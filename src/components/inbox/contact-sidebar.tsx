@@ -269,7 +269,13 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
           </button>
         )}
       </div>
-      <ScrollArea className="flex-1">
+      {/* `min-h-0` is load-bearing. A flex child defaults to
+          `min-height: auto`, which refuses to shrink below its content —
+          so with enough in the panel this grew past the column instead
+          of scrolling, pushing everything below it out of reach. The
+          overflow was always set up correctly; it just never had a
+          bounded height to overflow against. */}
+      <ScrollArea className="min-h-0 flex-1">
         <div className="p-4">
           {/* Contact Info */}
           <div className="flex flex-col items-center text-center">
