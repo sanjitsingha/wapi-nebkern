@@ -1,14 +1,5 @@
-import {
-  ArrowRight,
-  Check,
-  CreditCard,
-  ShoppingBag,
-  ShoppingCart,
-  Users,
-  Webhook,
-  Workflow,
-  Zap,
-} from 'lucide-react';
+import Image from 'next/image';
+import { ArrowRight, Check } from 'lucide-react';
 
 import { Highlight } from './decor';
 import { Btn } from './ui';
@@ -28,25 +19,38 @@ import { Btn } from './ui';
 // no dedicated app in any marketplace yet — Zapier, Make and n8n are
 // wired through outbound webhooks and the REST API like any other
 // system. So the wording here is "through the API", never "one-click"
-// or "native", and the tiles carry that caption. If a real Shopify app
-// ever ships, this section can promise more; until then it cannot.
+// or "native". That load is carried entirely by the body paragraph now
+// that the artwork replaced the captioned tiles, so it has to keep
+// saying it. If a real Shopify app ever ships, this section can promise
+// more; until then it cannot.
 // ============================================================
 
-// Rising from the bottom, and green rather than sky: the payoff section
+// Rising from the bottom, and lemon rather than sky: the payoff section
 // directly above already puts a sky-washed card on the right-hand side,
-// and two blues stacked read as one long band. Grass is the brand green
-// and is clear of `lemon` above and `tangerine` below.
+// and two blues stacked read as one long band. Lemon is safe here — the
+// section above uses it only for a small badge, and `apart` below lays
+// no wash of its own.
+//
+// Held to 30% so it stays a wash. Lemon is a bright, high-value yellow;
+// much past this it stops reading as a tint behind the panel and starts
+// competing with the artwork sitting on it.
 const PANEL_WASH =
-  'linear-gradient(to top, color-mix(in oklab, var(--lp2-grass) 26%, #fff), #fff 88%)';
+  'linear-gradient(to top, color-mix(in oklab, var(--lp2-lemon) 30%, #fff), #fff 88%)';
 
-const APPS = [
-  { name: 'Shopify', hue: 'grass', icon: ShoppingBag, white: true },
-  { name: 'WooCommerce', hue: 'grape', icon: ShoppingCart, white: true },
-  { name: 'HubSpot', hue: 'tangerine', icon: Users },
-  { name: 'Zapier', hue: 'lemon', icon: Zap },
-  { name: 'Make', hue: 'sky', icon: Workflow, white: true },
-  { name: 'Razorpay', hue: 'coral', icon: CreditCard, white: true },
-] as const;
+/**
+ * The orbit artwork: the Instant mark ringed by the systems it talks to.
+ *
+ * Served from the media host like the rest of the brand assets — it is
+ * already covered by `next.config.ts`'s `images.remotePatterns` entry for
+ * `/assets/**`, so a re-cut of the diagram is a file swap rather than a
+ * deploy. (The filename's spelling is the asset's, not a typo here.)
+ */
+const ORBIT_ART = 'https://media.instant.nebkern.com/assets/intregation.png';
+
+/** The asset's true pixel size — `next/image` needs the real ratio to
+ *  reserve the box before the bytes land, or the panel reflows on first
+ *  paint. It is square. */
+const ORBIT_SIZE = 1000;
 
 /** The events worth pushing a WhatsApp message about. Ordinary
  *  commerce moments on purpose — the point is that they already happen
@@ -110,50 +114,31 @@ export function Lp2Integrations() {
           </div>
 
           {/* ── The visual ── */}
-          <AppGrid />
+          <AppOrbit />
         </div>
       </div>
     </section>
   );
 }
 
-function AppGrid() {
+function AppOrbit() {
   return (
     <div className="mx-auto w-full max-w-md lg:max-w-none">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {APPS.map((app) => (
-          <div
-            key={app.name}
-            className="flex flex-col items-center gap-2.5 rounded-xl border-2 border-(--lp2-ink) bg-white px-3 py-4 text-center"
-          >
-            <span
-              className="flex size-10 items-center justify-center rounded-xl"
-              style={{ backgroundColor: `var(--lp2-${app.hue})` }}
-            >
-              {/* White glyph on the deeper hues, ink on the pale ones —
-                  `lemon` and `tangerine` are nowhere near dark enough to
-                  carry white. */}
-              <app.icon
-                className={
-                  'white' in app && app.white ? 'size-5 text-white' : 'size-5'
-                }
-                strokeWidth={2.75}
-              />
-            </span>
-            <span className="text-xs leading-tight font-bold">{app.name}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* What actually does the connecting. Stated plainly under the
-          logos rather than left implied, because the tiles above are the
-          part a reader will over-read. */}
-      <div className="mt-3 flex items-center justify-center gap-2 rounded-xl border-2 border-(--lp2-ink) bg-(--lp2-lemon) px-4 py-3 text-center">
-        <Webhook className="size-4 shrink-0" strokeWidth={3} />
-        <span className="text-xs font-extrabold">
-          Connected with the REST API &amp; outbound webhooks
-        </span>
-      </div>
+      {/* No `priority`: this sits well below the fold, so it should stay
+          lazy and leave the hero's budget alone. */}
+      <Image
+        src={ORBIT_ART}
+        alt="The Instant mark ringed by Shopify, Make, Zoho, Google Sheets, Zapier and a REST API badge"
+        width={ORBIT_SIZE}
+        height={ORBIT_SIZE}
+        sizes="(min-width: 1024px) 36rem, (min-width: 640px) 28rem, 100vw"
+        // The house card treatment — ink border, hard offset shadow,
+        // same rounding as the panels in `apart` and `pricing-page`.
+        // `bg-white` matters: the PNG has an alpha channel, so without
+        // it the yellow wash would show through and the card would read
+        // as a tinted pane rather than a white one.
+        className="h-auto w-full rounded-3xl border-2 border-(--lp2-ink) bg-white shadow-(--lp2-shadow-lg)"
+      />
     </div>
   );
 }
