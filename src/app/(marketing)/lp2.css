@@ -59,6 +59,23 @@
   --lp2-tangerine: #ff9138;
   --lp2-tangerine-soft: #ffe8d2;
 
+  /* ── Maya ──
+     Sampled from the askMaya lockup rather than invented: `maya` is the
+     wordmark's body green, `lime` the chartreuse of the sparkles that
+     trail it. Kept apart from `grass` on purpose — grass is the product
+     brand (buttons, links, the pin mark), maya is one named feature.
+     Reaching for grass here would make the assistant look like the
+     company; reaching for maya on a button would do the reverse.
+
+     `maya` is decorative at this saturation — 2.6:1 on white, nowhere
+     near text-legible. Ink on `-soft` is what carries copy, exactly as
+     the confetti hues above work. `lime` is sparkle-only, never a
+     surface. */
+  --lp2-maya: #00c018;
+  --lp2-maya-soft: #d9f9dd;
+  --lp2-maya-deep: #067a12;
+  --lp2-lime: #80f038;
+
   /* ── The "sticker" shadow ──
      A hard, un-blurred offset in ink. It's the single detail doing the
      most work for the playful feel: soft blurred shadows read
@@ -122,6 +139,33 @@
   }
 }
 
+/* A speech bubble arriving — the /ask-maya hero.
+ *
+ * The exception to the "ambient only" rule above, and the reason it
+ * earns it: the hero has no headline or paragraph left to read, so this
+ * is not motion running behind copy, it IS the copy. A message that
+ * lands is also the one thing every reader already knows the meaning
+ * of, which is the whole argument the window is making.
+ *
+ * Plays ONCE, not infinite. A conversation that replays forever stops
+ * reading as a conversation. `backwards` holds the from-state during
+ * the delay so a bubble with `animation-delay` is not painted at full
+ * opacity for a beat before it starts. */
+@keyframes lp2-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.lp2 .lp2-bubble-in {
+  animation: lp2-bubble-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
 .lp2 .lp2-float {
   /* `--lp2-tilt` lets a rotated sticker keep its rotation while it
      bobs — the keyframe re-applies it, since transform is one property
@@ -170,6 +214,7 @@
   .lp2 .lp2-float,
   .lp2 .lp2-drift,
   .lp2 .lp2-typing-dot,
+  .lp2 .lp2-bubble-in,
   .lp2 .lp2-marquee-track {
     animation: none;
   }

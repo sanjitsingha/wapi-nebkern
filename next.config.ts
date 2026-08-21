@@ -159,6 +159,28 @@ const nextConfig: NextConfig = {
    * they apply to every response regardless of which cache rule
    * matched.
    */
+  /**
+   * The Autopilot page was renamed to Ask Maya — same content, new
+   * name, new URL. It is indexed and linked from outside, so the old
+   * path has to keep resolving rather than start 404ing.
+   *
+   * `permanent: true` is a 308, not a 301: Next uses 307/308 so the
+   * request method survives the hop, where many browsers silently
+   * rewrite a 301'd POST into a GET. Search engines treat 308 as
+   * equivalent to 301 for indexing, which is what we want here.
+   *
+   * Note this is /autopilot only. The in-app /askmaya route is a
+   * different surface entirely and is untouched.
+   */
+  async redirects() {
+    return [
+      {
+        source: "/autopilot",
+        destination: "/ask-maya",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

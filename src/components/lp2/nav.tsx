@@ -7,7 +7,8 @@ import { ArrowRight, ChevronDown, Menu, X } from 'lucide-react';
 
 import { BrandLogo } from '@/components/brand/logo';
 import { cn } from '@/lib/utils';
-import type { Lp2Hue } from './decor';
+import { Sparkle, type Lp2Hue } from './decor';
+import { MayaLockup } from './maya-lockup';
 import { press } from './ui';
 
 // ============================================================
@@ -45,7 +46,7 @@ const NAV: {
   children?: { label: string; desc: string; href: string }[];
 }[] = [
   { label: 'Features', href: '/#features', hue: 'lemon' },
-  { label: 'Autopilot', href: '/autopilot', hue: 'grape' },
+  { label: 'Ask Maya', href: '/ask-maya', hue: 'maya' },
   { label: 'Pricing', href: '/pricing', hue: 'sky' },
   {
     label: 'Resources',
@@ -95,9 +96,9 @@ const FEATURE_MENU: { label: string; desc: string; href: string }[] = [
     href: '/docs/whatsapp',
   },
   {
-    label: 'AI Bot & Automations',
+    label: 'Maya & Automations',
     desc: 'Replies that run themselves',
-    href: '/autopilot',
+    href: '/ask-maya',
   },
   {
     label: 'Visual Flow builder',
@@ -159,6 +160,54 @@ function Logo() {
  * a mega-menu that spans the whole bar instead of a card hung under one
  * word.
  */
+/**
+ * The Ask Maya link, which is not a plain nav word.
+ *
+ * The row above deliberately gave up per-link hover colours — five of
+ * them competing was more personality than a nav bar should have. This
+ * is not that: it is ONE item marked out, which is the thing five could
+ * not do. Maya is the newest surface on the site and the one nobody
+ * arrives already looking for, so the nav is where she gets introduced.
+ *
+ * Deliberately quieter than the signup button beside it — a soft tint
+ * and a hairline, against that one's solid fill. Two emphatic elements
+ * in the same bar would leave neither of them emphatic, and the CTA
+ * still has to win.
+ *
+ * Her lockup rather than the words "Ask Maya": it is the one item in
+ * the row that has a mark of its own, and the mark is what makes the
+ * eye stop. The text stays in the DOM for screen readers, since alt
+ * text alone would make this the only nav item announced by an image.
+ */
+function MayaNavLink({ href }: { href: string }) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        'group/maya inline-flex items-center gap-1.5 rounded-full border-2 border-(--lp2-maya)/35 bg-(--lp2-maya-soft)/60 py-1.5 pr-3.5 pl-3 outline-none',
+        'transition-colors duration-150 hover:border-(--lp2-maya)/70 hover:bg-(--lp2-maya-soft) focus-visible:border-(--lp2-maya)/70 focus-visible:bg-(--lp2-maya-soft)',
+      )}
+    >
+      {/* "ask" is set in type and "maya" comes from the lockup, so the
+          two halves of the name sit at the weights the brand uses. The
+          lockup carries an empty alt: the visible word beside it is
+          already the accessible name, and a mark that repeats it would
+          have a reader say "maya" twice. */}
+      <span className="text-base font-semibold">Ask</span>
+      <MayaLockup variant="bare" height={13} alt="" className="w-[36px]" />
+
+      {/* The sparkle from her own artwork, lifted out as a glyph. Grows
+          slightly on hover — the whole animation budget for a nav item,
+          and the one gesture that says "this one is different" without
+          moving the row. */}
+      <Sparkle
+        color="lime"
+        className="size-3 transition-transform duration-200 group-hover/maya:scale-125"
+      />
+    </Link>
+  );
+}
+
 function FeaturesMenu() {
   return (
     <div className="group/feat static">
@@ -274,6 +323,8 @@ export function Lp2Nav() {
                 <FeaturesMenu key="features" />
               ) : item.children ? (
                 <ResourcesMenu key={item.label} items={item.children} />
+              ) : item.href === '/ask-maya' ? (
+                <MayaNavLink key={item.label} href={item.href} />
               ) : (
                 <Link
                   key={item.label}
@@ -346,7 +397,17 @@ export function Lp2Nav() {
                   <Link
                     href={item.href}
                     onClick={() => setOpen(false)}
-                    className="flex items-center gap-3 rounded-2xl px-3 py-3 text-base font-bold transition-colors hover:bg-(--lp2-cream)"
+                    className={cn(
+                      'flex items-center gap-3 rounded-2xl px-3 py-3 text-base font-bold transition-colors hover:bg-(--lp2-cream)',
+                      // Maya gets the tint here too, so the row that is
+                      // marked out on desktop is not an ordinary row on
+                      // a phone. The sheet's bullets carry the hues, so
+                      // she keeps hers and gains a wash behind it —
+                      // enough to separate her from four plain rows
+                      // without turning the sheet into a colour chart.
+                      item.href === '/ask-maya' &&
+                        'bg-(--lp2-maya-soft)/50 hover:bg-(--lp2-maya-soft)',
+                    )}
                   >
                     <span
                       aria-hidden
@@ -354,6 +415,9 @@ export function Lp2Nav() {
                       style={{ backgroundColor: `var(--lp2-${item.hue})` }}
                     />
                     {item.label}
+                    {item.href === '/ask-maya' && (
+                      <Sparkle color="lime" className="size-3.5" />
+                    )}
                   </Link>
 
                   {/* Children listed flat rather than behind a toggle.

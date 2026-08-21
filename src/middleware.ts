@@ -247,6 +247,10 @@ export const config = {
     //     Anonymous pages: landing, pricing, blog, docs, contact and the
     //     legal documents. None of them read the session, and the legal
     //     ones are hit by payment-gateway and Meta reviewers.
-    '/((?!_next/static|_next/image|favicon\\.ico|widget\\.js|api/|docs|blog|pricing|contact|autopilot|privacy|terms|cookies|refunds|acceptable-use|whatsapp-messaging-policy|whatsapp-marketing-policy|dpa|security|subprocessors|data-retention|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    //     `ask-maya` (public, hyphenated) is a different path from
+    //     `askmaya` (the signed-in surface, in protectedPaths above).
+    //     The hyphen is load-bearing: it is what stops this exclusion
+    //     from also un-protecting the in-app page.
+    '/((?!_next/static|_next/image|favicon\\.ico|widget\\.js|api/|docs|blog|pricing|contact|ask-maya|privacy|terms|cookies|refunds|acceptable-use|whatsapp-messaging-policy|whatsapp-marketing-policy|dpa|security|subprocessors|data-retention|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

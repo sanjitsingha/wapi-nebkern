@@ -32,7 +32,7 @@ const COLUMNS: {
     hue: 'lemon',
     links: [
       { label: 'Features', href: '/#features' },
-      { label: 'Autopilot', href: '/autopilot' },
+      { label: 'Ask Maya', href: '/ask-maya' },
       { label: 'Pricing', href: '/pricing' },
     ],
   },

@@ -23,7 +23,10 @@ export type Lp2Hue =
   | 'tangerine'
   | 'pop'
   | 'mint'
-  | 'grass';
+  | 'grass'
+  /** Maya's own two, from the assistant's lockup — see lp2.css. */
+  | 'maya'
+  | 'lime';
 
 const hue = (h: Lp2Hue) => `var(--lp2-${h})`;
 

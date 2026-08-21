@@ -36,7 +36,7 @@ export const revalidate = 3600;
 const MARKETING: Array<[path: string, priority: number]> = [
   ['', 1],
   ['/pricing', 0.9],
-  ['/autopilot', 0.8],
+  ['/ask-maya', 0.8],
   ['/blog', 0.7],
   // A free tool people search for by name, so it earns a high priority
   // despite not being part of the product story.

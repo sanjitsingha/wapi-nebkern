@@ -17,7 +17,7 @@ import {
 
 import { cn } from '@/lib/utils';
 import { SectionHead, Btn } from './ui';
-import { AutopilotTeaserLink } from './autopilot';
+import { AskMayaTeaserLink } from './ask-maya';
 
 // ============================================================
 // No-code automations — the drag-and-drop flow builder, with the
@@ -66,7 +66,7 @@ export function Lp2Automations() {
             Build your first flow
             <ArrowRight className="size-5" strokeWidth={2.75} />
           </Btn>
-          <AutopilotTeaserLink />
+          <AskMayaTeaserLink />
         </div>
       </div>
     </section>
