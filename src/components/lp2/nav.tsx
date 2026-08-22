@@ -194,7 +194,7 @@ function MayaNavLink({ href }: { href: string }) {
           already the accessible name, and a mark that repeats it would
           have a reader say "maya" twice. */}
       <span className="text-base font-semibold">Ask</span>
-      <MayaLockup variant="bare" height={13} alt="" className="w-[36px]" />
+      <MayaLockup variant="bare" alt="" className="h-[13px]" />
 
       {/* The sparkle from her own artwork, lifted out as a glyph. Grows
           slightly on hover — the whole animation budget for a nav item,

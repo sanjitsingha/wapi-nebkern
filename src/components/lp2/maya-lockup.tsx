@@ -28,24 +28,11 @@ const LOCKUPS = {
 
 export function MayaLockup({
   variant = 'ask',
-  height,
   priority = false,
   alt,
   className,
 }: {
   variant?: keyof typeof LOCKUPS;
-  /**
-   * Rendered height in px at the smallest breakpoint; width follows the
-   * intrinsic ratio.
-   *
-   * To grow the mark responsively pass a WIDTH utility in `className`
-   * (`sm:w-[427px]`), never a height one. Height is the dimension the
-   * intrinsic `width`/`height` attributes below are pinned against —
-   * overriding it in CSS while the width attribute stays put stretches
-   * the lockup. Width utilities are safe because `h-auto` lets height
-   * track them.
-   */
-  height: number;
   /** Set on the hero mark so it is not queued behind lazier images. */
   priority?: boolean;
   /**
@@ -55,14 +42,31 @@ export function MayaLockup({
    * unset so it keeps its real alt.
    */
   alt?: string;
+  /**
+   * Size the mark here, with HEIGHT utilities only — `h-[13px]`,
+   * `h-[92px] sm:h-[124px]`. Width is `auto` below and follows the
+   * ratio; adding a width utility pins both dimensions and stretches
+   * the artwork.
+   */
   className?: string;
 }) {
   const { src, width: iw, height: ih } = LOCKUPS[variant];
 
-  // Width is computed from the intrinsic ratio and passed explicitly
-  // rather than left to `w-auto`, for the reason src/lib/brand.ts
-  // documents at length: a resolved `auto` width lands a pixel off the
-  // declared one and Next warns that a single dimension was modified.
+  // The width/height ATTRIBUTES are the file's intrinsic size, and the
+  // rendered size is CSS. Both attributes have to be the real numbers:
+  // they exist to hand the browser the true aspect ratio so it reserves
+  // the right box before the bytes land.
+  //
+  // Passing a computed pair instead — `Math.round(h * iw / ih)` against
+  // the rendered height — is what the first version did, and it warned
+  // on every render. The ratio of two rounded integers is not quite the
+  // ratio of the original (36/13 = 2.769 against 1351/493 = 2.741), so
+  // the height the browser computed from `h-auto` missed the declared
+  // height by a fraction of a pixel. Next compares each rendered
+  // dimension against its attribute and warns when exactly one differs
+  // — precisely that case. With true intrinsics and both dimensions
+  // resolved by CSS, both differ, and Next reads it as the deliberate
+  // resize it is.
   return (
     <Image
       src={src}
@@ -71,10 +75,10 @@ export function MayaLockup({
       // beside it should stop doing that, or pass alt="" so the name is
       // not announced twice.
       alt={alt ?? (variant === 'ask' ? 'ask maya' : 'maya')}
-      width={Math.round(height * (iw / ih))}
-      height={height}
+      width={iw}
+      height={ih}
       priority={priority}
-      className={cn('h-auto', className)}
+      className={cn('w-auto', className)}
     />
   );
 }

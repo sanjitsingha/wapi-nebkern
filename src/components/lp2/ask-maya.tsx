@@ -129,13 +129,18 @@ function MayaWindow() {
           and what a search result shows. Nothing else on the page is
           a heading of this rank.
 
-          Sized as a share of the window rather than in pixels, so the
-          mark keeps its proportion to the panel at every breakpoint —
-          a fixed width would swamp the box on a phone and get lost in
-          it on a desktop. `max-w-full` is the guard for the narrowest
-          screens. See MayaLockup: scale by width, never by height. */}
-      <h1 className="flex w-[38%] max-w-full min-w-[150px] shrink-0 justify-center self-center">
-        <MayaLockup variant="ask" height={92} priority className="w-full" />
+          Stepped by height at each breakpoint rather than set as a
+          percentage of the panel — MayaLockup sizes by height so its
+          width can stay `auto`, which is what keeps the true aspect
+          ratio and stops Next warning about a modified dimension. The
+          three steps track how much room the window actually has:
+          small on a phone, largest once the panel is at full width. */}
+      <h1 className="flex shrink-0 justify-center self-center">
+        <MayaLockup
+          variant="ask"
+          priority
+          className="h-[54px] sm:h-[72px] lg:h-[92px]"
+        />
       </h1>
 
       {/* Status line under the mark. Fills the gap the lockup used to
@@ -283,7 +288,7 @@ function HeroBubble({
           // an ink-outlined pill around it rather than body text, but
           // do not push it smaller, and do not put it back on a green.
           <span className="mb-2 inline-flex items-center rounded-full border-2 border-(--lp2-ink) bg-white px-2.5 py-1">
-            <MayaLockup variant="bare" height={12} className="w-[33px]" />
+            <MayaLockup variant="bare" className="h-[12px]" />
           </span>
         )}
         <p className="leading-snug">{text}</p>
@@ -385,7 +390,7 @@ function MayaChatCard() {
         <div className="flex items-center gap-3">
           {/* Her own mark, not a generic bot glyph — the same lockup
               the hero uses, at name size. */}
-          <MayaLockup variant="bare" height={26} />
+          <MayaLockup variant="bare" className="h-[26px]" />
           <p className="flex items-center gap-1.5 text-base font-bold text-(--lp2-ink-soft)">
             <span className="size-2 rounded-full bg-(--lp2-maya)" />
             Trained on 12 documents

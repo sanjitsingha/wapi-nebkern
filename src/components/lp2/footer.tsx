@@ -145,11 +145,19 @@ export function Lp2Footer() {
           <span className="flex items-center gap-2.5 rounded-xl bg-white px-4 py-2.5 text-(--lp2-ink)">
             {/* `alt=""` — the words beside it already say Meta, so a
                 name here makes a screen reader read the brand twice. */}
+            {/* Intrinsic 4096 × 825, not the rendered 79 × 16. The
+                attributes are only here to give the browser the true
+                ratio; `h-4 w-auto` is what sizes it. Declaring the
+                rendered pair instead rounds the ratio to 79/16 — off
+                the real 4.9648 by enough that the width `w-auto`
+                computes lands a fraction from the attribute, which is
+                exactly what Next's "width or height modified" warning
+                fires on. */}
             <Image
               src={META_LOGO}
               alt=""
-              width={79}
-              height={16}
+              width={4096}
+              height={825}
               className="h-4 w-auto shrink-0"
             />
             <span className="text-xs font-bold">
@@ -161,11 +169,14 @@ export function Lp2Footer() {
             {/* The mark already reads "MSME · Micro, Small & Medium
                 Enterprises", so the label beside it only has to carry
                 what the artwork does not: the registration. */}
+            {/* Intrinsic 600 × 276 — see the Meta mark above for why
+                these are the file's real dimensions and not the
+                rendered ones. */}
             <Image
               src={MSME_LOGO}
               alt=""
-              width={78}
-              height={36}
+              width={600}
+              height={276}
               className="h-9 w-auto shrink-0"
             />
             <span className="leading-tight">
