@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProfileForm } from '@/components/settings/profile-form';
 import { PlanSection } from '@/components/settings/plan-config';
 import { PasswordForm } from '@/components/settings/password-form';
+import { TwoFactorCard } from '@/components/settings/two-factor-card';
 import { ConnectedAccountsCard } from '@/components/settings/connected-accounts-card';
 import { SessionsCard } from '@/components/settings/sessions-card';
 import { DeleteAccountCard } from '@/components/settings/delete-account-card';
@@ -43,6 +44,10 @@ function ProfilePageInner() {
         <div className="flex flex-col gap-6">
           <ProfileForm />
           <PasswordForm />
+          {/* Directly under the password: the two are one subject —
+              what it takes to get into this account — and 2FA reads as
+              the answer to the risk the password card just raised. */}
+          <TwoFactorCard />
           <ConnectedAccountsCard />
           <SessionsCard />
           {/* Last, and only for the owner — the card returns null for

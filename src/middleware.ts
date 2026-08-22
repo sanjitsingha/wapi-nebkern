@@ -55,14 +55,39 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Is this a session that has passed the password step but still owes
+  // a 2FA code? Such a session is real — `getUser()` returns a user —
+  // but sits at AAL1 while a verified factor exists.
+  //
+  // Computed here because BOTH gates below need it and neither is
+  // correct without it. Skipping it in the redirect just below would
+  // trap the user in a loop: /login sends them to /dashboard, the 2FA
+  // gate sends them back to /login, forever.
+  //
+  // Fails open (`false`) on error — see the gate further down.
+  let awaitingMfa = false;
+  if (user) {
+    try {
+      const { data: aal } =
+        await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      awaitingMfa = aal?.nextLevel === 'aal2' && aal.currentLevel !== 'aal2';
+    } catch {
+      awaitingMfa = false;
+    }
+  }
+
   // Auth pages - redirect to dashboard if already logged in.
   // Exception: when an invite token is in the query string we
   // send the already-signed-in user to /join/<token> instead so
   // they can accept the invitation in one click. Without this,
   // a forwarded invite link to someone who's already signed in
   // would silently drop them on /dashboard.
+  //
+  // `!awaitingMfa`: a half-signed-in user has to be able to STAY on
+  // /login, because that is where the code step renders.
   if (
     user &&
+    !awaitingMfa &&
     (request.nextUrl.pathname === '/login' ||
       request.nextUrl.pathname === '/signup' ||
       request.nextUrl.pathname === '/forgot-password')
@@ -114,6 +139,32 @@ export async function middleware(request: NextRequest) {
   if (!user && onProtected) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
+    return NextResponse.redirect(url);
+  }
+
+  // Two-factor gate.
+  //
+  // THIS is what makes 2FA a gate rather than a screen the login page
+  // chooses to show. A user who has typed the right password but no
+  // code holds a genuine session, so every check that asks only "is
+  // there a user?" — including the one directly above — waves them
+  // through. Without this block, typing /dashboard at the code step
+  // would simply work.
+  //
+  // Sending them to /login is enough on its own: the page reads the
+  // same state and renders the code step, and `awaitingMfa` above stops
+  // the usual "already signed in" redirect from bouncing them back.
+  //
+  // Fails OPEN (`awaitingMfa` is false when the AAL lookup throws),
+  // matching readMfaStatus in src/lib/auth/mfa.ts: a transient fault
+  // should not lock someone out of their own account with no way to
+  // fix it. The exposure needs a stolen password AND a broken auth
+  // call in the same moment; the opposite default strands people
+  // permanently on nothing worse than a network blip.
+  if (user && awaitingMfa && onProtected) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    url.search = '';
     return NextResponse.redirect(url);
   }
 

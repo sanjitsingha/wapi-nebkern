@@ -13,7 +13,9 @@ import { AuthLegalLinks } from "@/components/auth/legal-notice";
 import { AuthBrandPanel } from "@/components/auth/brand-panel";
 import { GoogleAuthButton, AuthDivider } from "@/components/auth/google-button";
 import { GoogleGisButton } from "@/components/auth/google-gis-button";
+import { MfaChallenge } from "@/components/auth/mfa-challenge";
 import { googleGisEnabled } from "@/lib/auth/google-gis";
+import { readMfaStatus } from "@/lib/auth/mfa";
 import { rememberOAuthNext } from "@/lib/auth/oauth-next";
 
 // `useSearchParams` opts the component out of static prerendering
@@ -53,8 +55,22 @@ function LoginPageInner() {
   );
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  // Set once the password is accepted AND the account has 2FA on. While
+  // it holds a factor id the form is replaced by the code step: the
+  // session exists but sits at AAL1, which the middleware refuses.
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
+
+  /** Where a completed sign-in goes. Shared by the password path and the
+   *  2FA path so the invite token survives either. */
+  const finish = () => {
+    if (inviteToken) {
+      router.push(`/join/${encodeURIComponent(inviteToken)}`);
+    } else {
+      router.push("/dashboard");
+    }
+  };
 
   const handleGoogle = async () => {
     setError(null);
@@ -95,11 +111,26 @@ function LoginPageInner() {
       return;
     }
 
-    if (inviteToken) {
-      router.push(`/join/${encodeURIComponent(inviteToken)}`);
-    } else {
-      router.push("/dashboard");
+    // The password bought a session, but for a 2FA account that session
+    // is AAL1 — enough to ask for a code, not enough to enter the app.
+    // Swap the form for the code step rather than navigating; the
+    // middleware would only bounce them back here anyway.
+    const status = await readMfaStatus(supabase);
+    if (status.challengeRequired && status.factorId) {
+      setMfaFactorId(status.factorId);
+      setLoading(false);
+      return;
     }
+
+    finish();
+  };
+
+  /** Back out of a half-finished login. MfaChallenge has already signed
+   *  the AAL1 session out by this point. */
+  const cancelMfa = () => {
+    setMfaFactorId(null);
+    setPassword("");
+    setError(null);
   };
 
   return (
@@ -112,6 +143,21 @@ function LoginPageInner() {
             <BrandLogo priority className="h-8" />
           </div>
 
+          {/* Second step, for accounts with 2FA on. Returns early: the
+              password form, the Google buttons and the sign-up link all
+              belong to step one, and leaving them on screen would offer
+              a way around the gate. */}
+          {mfaFactorId ? (
+            <>
+              <MfaChallenge
+                factorId={mfaFactorId}
+                onVerified={finish}
+                onCancel={cancelMfa}
+              />
+              <AuthLegalLinks />
+            </>
+          ) : (
+          <>
           <div className="mb-8">
             <h2 className="text-3xl font-semibold tracking-tight text-foreground">
               {inviteToken ? "Sign in to accept" : "Welcome back"}
@@ -245,6 +291,8 @@ function LoginPageInner() {
           </p>
 
           <AuthLegalLinks />
+          </>
+          )}
         </div>
       </main>
 
