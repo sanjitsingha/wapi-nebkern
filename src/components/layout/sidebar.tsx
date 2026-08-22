@@ -60,7 +60,6 @@ interface NavLink {
   icon: PhosphorIcon;
   href: string;
   tab?: SettingsSection;
-  badge?: 'New' | 'Beta';
   unread?: boolean;
   /** Plan-gated: shown faded with an "Upgrade" badge; the target route
    *  renders the upgrade screen (server-side gate). */
@@ -75,7 +74,6 @@ interface NavLink {
 interface NavGroup {
   label: string;
   icon: PhosphorIcon;
-  badge?: 'New';
   children: NavLink[];
   /** See NavLink.walkthrough. Anchored on the group toggle, which is
    *  always mounted — the children only exist while expanded. */
@@ -97,7 +95,6 @@ const agentsLink: NavLink = {
   label: 'Maya',
   icon: Robot,
   href: '/askmaya',
-  badge: 'New',
   walkthrough: 'agents',
 };
 
@@ -147,7 +144,7 @@ const groups: (NavGroup | NavLink)[] = [
     // work out whether the two go to the same place.
     children: [
       { label: 'Templates', icon: FileText, href: '/templates' },
-      { label: 'Forms', icon: ClipboardText, href: '/forms', badge: 'New' },
+      { label: 'Forms', icon: ClipboardText, href: '/forms' },
       { label: 'Media', icon: ImageIcon, href: '/media' },
       // The QR generator moved out to the public site at /qr-generator.
       // It needs no account to be useful, so it works better as a free
@@ -162,11 +159,10 @@ const groups: (NavGroup | NavLink)[] = [
   {
     label: 'Automation',
     icon: Lightning,
-    badge: 'New',
     walkthrough: 'automation',
     children: [
       { label: 'Automations', icon: Lightning, href: '/automations' },
-      { label: 'Flows', icon: FlowArrow, href: '/flows', badge: 'Beta' },
+      { label: 'Flows', icon: FlowArrow, href: '/flows' },
     ],
   },
 ];
@@ -359,27 +355,6 @@ export function Sidebar({
             Upgrade
           </span>
         )}
-        {!link.locked && link.badge === 'Beta' && (
-          <span
-            className={cn(
-              'shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold tracking-wider uppercase transition-opacity duration-200',
-              softBadge.amber,
-              isCollapsed && 'lg:opacity-0'
-            )}
-          >
-            Beta
-          </span>
-        )}
-        {!link.locked && link.badge === 'New' && (
-          <span
-            className={cn(
-              'shrink-0 rounded-full bg-violet-600 px-1.5 py-0.5 text-[9px] font-bold tracking-wide text-white uppercase transition-opacity duration-200',
-              isCollapsed && 'lg:opacity-0'
-            )}
-          >
-            New
-          </span>
-        )}
         {link.unread && totalUnread > 0 && (
           <span
             aria-label={`${totalUnread} unread conversation${totalUnread === 1 ? '' : 's'}`}
@@ -433,16 +408,6 @@ export function Sidebar({
           >
             {group.label}
           </span>
-          {group.badge === 'New' && (
-            <span
-              className={cn(
-                'shrink-0 rounded-full bg-violet-600 px-1.5 py-0.5 text-[9px] font-bold tracking-wide text-white uppercase transition-opacity duration-200',
-                isCollapsed && 'lg:opacity-0'
-              )}
-            >
-              New
-            </span>
-          )}
           <CaretDown
             className={cn(
               'h-4.5 w-4.5 shrink-0 transition-all duration-200',
