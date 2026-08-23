@@ -100,6 +100,13 @@ export async function payForPlan(planKey: string): Promise<PaymentResult | null>
       }
     };
 
+    // Set the instant a payment is authorized. On success Razorpay fires
+    // `handler` AND then closes the modal, which also fires `ondismiss` —
+    // so without this flag the (synchronous) dismissal would win the race
+    // against the async verify and resolve `null`, throwing away a real
+    // payment as if the user had cancelled.
+    let authorized = false;
+
     const rzp = new window.Razorpay!({
       key: order.keyId,
       amount: order.amount,
@@ -110,9 +117,13 @@ export async function payForPlan(planKey: string): Promise<PaymentResult | null>
       // Brand green — matches --primary (#0b6623).
       theme: { color: '#0b6623' },
       modal: {
-        ondismiss: () => settle(() => resolve(null)),
+        // Only a genuine cancellation (closed before paying) resolves null.
+        ondismiss: () => {
+          if (!authorized) settle(() => resolve(null));
+        },
       },
       handler: (response) => {
+        authorized = true;
         // Payment authorized — verify server-side before claiming success.
         fetch('/api/billing/razorpay/verify', {
           method: 'POST',

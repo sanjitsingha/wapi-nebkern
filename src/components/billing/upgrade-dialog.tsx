@@ -1,21 +1,29 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { BadgeCheck, Check, Loader2 } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 
-import { cn } from '@/lib/utils';
 import { formatMoney } from '@/lib/billing/plans';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { payForPlan } from './razorpay-checkout';
 
-interface PlanOption {
+export interface PlanOption {
   key: string;
   name: string;
   tagline: string | null;
@@ -26,47 +34,62 @@ interface PlanOption {
   isFeatured: boolean;
 }
 
+function priceLabel(plan: PlanOption): string {
+  return `${formatMoney(plan.amount, plan.currency)}/${
+    plan.interval === 'yearly' ? 'yr' : 'mo'
+  }`;
+}
+
 /**
- * Self-serve upgrade — lists the active plan catalog and takes payment
- * through Razorpay Standard Checkout. On success the plan is already
- * active server-side; `onUpgraded` lets the parent refresh its
- * subscription state.
+ * Self-serve plan change. The parent decides WHICH plans to offer (only
+ * the tiers above the current one for a paid account; every plan for a
+ * trial/expired one) and passes them in — this dialog just lets the user
+ * pick one from a dropdown and pay for it through Razorpay Standard
+ * Checkout. On success the plan is already active server-side, so
+ * `onUpgraded` lets the parent refresh.
  */
 export function UpgradeDialog({
   open,
   onOpenChange,
-  currentPlanKey,
+  plans,
   onUpgraded,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentPlanKey?: string | null;
+  /** The plans the user may switch to, cheapest first. */
+  plans: PlanOption[];
   onUpgraded?: () => void;
 }) {
-  const [plans, setPlans] = useState<PlanOption[] | null>(null);
-  const [payingKey, setPayingKey] = useState<string | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [paying, setPaying] = useState(false);
 
+  // Default the dropdown to the featured plan (else the first offered)
+  // each time the dialog opens or the choices change; keep a still-valid
+  // prior choice.
   useEffect(() => {
-    if (!open || plans !== null) return;
-    let cancelled = false;
-    fetch('/api/billing/plans')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (!cancelled) setPlans(data?.plans ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setPlans([]);
-      });
-    return () => {
-      cancelled = true;
-    };
+    if (!open) return;
+    if (plans.length === 0) {
+      setSelectedKey(null);
+      return;
+    }
+    setSelectedKey((prev) =>
+      prev && plans.some((p) => p.key === prev)
+        ? prev
+        : (plans.find((p) => p.isFeatured)?.key ?? plans[0].key),
+    );
   }, [open, plans]);
 
-  const pay = async (plan: PlanOption) => {
-    setPayingKey(plan.key);
+  const selected = useMemo(
+    () => plans.find((p) => p.key === selectedKey) ?? null,
+    [plans, selectedKey],
+  );
+
+  const pay = async () => {
+    if (!selected) return;
+    setPaying(true);
     try {
-      const result = await payForPlan(plan.key);
-      if (result === null) return; // user closed the modal — no charge
+      const result = await payForPlan(selected.key);
+      if (result === null) return; // user closed the Razorpay modal — no charge
       toast.success(
         `${result.planName} plan is active${
           result.periodEnd
@@ -83,93 +106,105 @@ export function UpgradeDialog({
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Payment failed.');
     } finally {
-      setPayingKey(null);
+      setPaying(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Choose a plan</DialogTitle>
+          <DialogTitle>Change plan</DialogTitle>
+          <DialogDescription>
+            Choose a plan and continue to secure payment.
+          </DialogDescription>
         </DialogHeader>
 
-        {plans === null ? (
-          <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" />
-            Loading plans…
-          </div>
-        ) : plans.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            No plans are available right now — please contact support.
+        {plans.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            No other plans are available right now.
           </p>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {plans.map((plan) => {
-              const isCurrent = plan.key === currentPlanKey;
-              return (
-                <div
-                  key={plan.key}
-                  className={cn(
-                    'flex flex-col rounded-xl border border-border p-4',
-                    plan.isFeatured && 'border-primary/40 ring-1 ring-primary/20',
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold">{plan.name}</p>
-                    {isCurrent && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-semibold text-primary">
-                        <BadgeCheck className="size-3" />
-                        Current
-                      </span>
-                    )}
-                  </div>
-                  {plan.tagline && (
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {plan.tagline}
-                    </p>
-                  )}
-                  <p className="mt-3 flex items-baseline gap-1">
-                    <span className="text-2xl font-bold tracking-tight">
-                      {formatMoney(plan.amount, plan.currency)}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      /{plan.interval === 'yearly' ? 'yr' : 'mo'}
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label
+                htmlFor="plan-select"
+                className="text-sm font-medium text-foreground"
+              >
+                Plan
+              </label>
+              <Select
+                value={selectedKey ?? undefined}
+                onValueChange={(v) => setSelectedKey(v)}
+              >
+                <SelectTrigger id="plan-select" className="w-full">
+                  <SelectValue placeholder="Select a plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {plans.map((p) => (
+                    <SelectItem key={p.key} value={p.key}>
+                      {p.name} — {priceLabel(p)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selected && (
+              <div className="rounded-xl border border-border bg-muted/30 p-4">
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="text-sm font-semibold text-foreground">
+                    {selected.name}
+                  </p>
+                  <p className="text-sm font-bold tabular-nums text-foreground">
+                    {formatMoney(selected.amount, selected.currency)}
+                    <span className="text-xs font-normal text-muted-foreground">
+                      /{selected.interval === 'yearly' ? 'yr' : 'mo'}
                     </span>
                   </p>
-                  <ul className="mt-3 flex-1 space-y-1.5">
-                    {plan.features.slice(0, 5).map((f) => (
+                </div>
+                {selected.tagline && (
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {selected.tagline}
+                  </p>
+                )}
+                {selected.features.length > 0 && (
+                  <ul className="mt-3 space-y-1.5">
+                    {selected.features.slice(0, 5).map((f) => (
                       <li key={f} className="flex items-start gap-1.5 text-xs">
                         <Check className="mt-0.5 size-3 shrink-0 text-primary" />
                         <span>{f}</span>
                       </li>
                     ))}
                   </ul>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={plan.isFeatured ? 'default' : 'outline'}
-                    className="mt-4"
-                    disabled={payingKey !== null}
-                    onClick={() => pay(plan)}
-                  >
-                    {payingKey === plan.key ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : isCurrent ? (
-                      'Extend plan'
-                    ) : (
-                      `Pay ${formatMoney(plan.amount, plan.currency)}`
-                    )}
-                  </Button>
-                </div>
-              );
-            })}
+                )}
+              </div>
+            )}
           </div>
         )}
 
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={paying}
+          >
+            Cancel
+          </Button>
+          <Button type="button" onClick={pay} disabled={!selected || paying}>
+            {paying ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : selected ? (
+              `Continue — ${formatMoney(selected.amount, selected.currency)}`
+            ) : (
+              'Continue'
+            )}
+          </Button>
+        </DialogFooter>
+
         <p className="text-center text-[11px] text-muted-foreground">
-          Payments are processed securely by Razorpay. Paying for your current
-          plan extends the existing period.
+          Payments are processed securely by Razorpay.
         </p>
       </DialogContent>
     </Dialog>

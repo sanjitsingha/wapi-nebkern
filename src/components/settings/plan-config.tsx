@@ -27,7 +27,7 @@ import { formatMoney } from '@/lib/billing/plans';
 import { type Invoice } from '@/lib/billing/invoice';
 import { TRIAL_DAYS, type SubscriptionState } from '@/lib/billing/subscription';
 import { useEntitlements } from '@/hooks/use-entitlements';
-import { UpgradeDialog } from '@/components/billing/upgrade-dialog';
+import { UpgradeDialog, type PlanOption } from '@/components/billing/upgrade-dialog';
 
 /** Mirrors AccountBilling from /api/account/subscription. */
 interface AccountBilling {
@@ -440,18 +440,22 @@ function Invoices() {
 export function PlanSection() {
   const [sub, setSub] = useState<SubscriptionState | null>(null);
   const [billing, setBilling] = useState<AccountBilling | null>(null);
+  const [plans, setPlans] = useState<PlanOption[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/account/subscription')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
+    Promise.all([
+      fetch('/api/account/subscription').then((r) => (r.ok ? r.json() : null)),
+      fetch('/api/billing/plans').then((r) => (r.ok ? r.json() : null)),
+    ])
+      .then(([subData, planData]) => {
         if (cancelled) return;
-        setSub(data?.subscription ?? null);
-        setBilling(data?.billing ?? null);
+        setSub(subData?.subscription ?? null);
+        setBilling(subData?.billing ?? null);
+        setPlans(planData?.plans ?? []);
       })
       .catch(() => {
         /* leave state null — the section still renders */
@@ -464,7 +468,21 @@ export function PlanSection() {
     };
   }, [reloadKey]);
 
-  const canUpgrade = !sub || sub.status !== 'active' || !billing;
+  // What can this account move to?
+  //   • Active on a paid plan → only the tiers priced ABOVE the current
+  //     one (a genuine upgrade). Empty ⇒ they're on the top plan.
+  //   • Trial / expired / grandfathered (no paid plan) → every plan.
+  // Compared by price, so a retired/renamed current plan that no longer
+  // appears in the catalog still resolves correctly off billing.amount.
+  const sortedPlans = [...(plans ?? [])].sort((a, b) => a.amount - b.amount);
+  const isActivePaid = sub?.status === 'active' && !!billing?.planKey;
+  const currentAmount = billing?.amount ?? null;
+  const choices =
+    isActivePaid && currentAmount != null
+      ? sortedPlans.filter((p) => p.amount > currentAmount)
+      : sortedPlans;
+  const onTopPlan = isActivePaid && sortedPlans.length > 0 && choices.length === 0;
+  const canUpgrade = choices.length > 0;
 
   return (
     <Card className="gap-0 overflow-hidden py-0">
@@ -473,7 +491,9 @@ export function PlanSection() {
           <div>
             <h3 className="text-base font-semibold text-foreground">Plan</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Your current subscription and invoices.
+              {onTopPlan
+                ? "You're on our top plan — nothing higher to upgrade to."
+                : 'Your current subscription and invoices.'}
             </p>
           </div>
           <Button
@@ -481,17 +501,25 @@ export function PlanSection() {
             size="sm"
             variant={canUpgrade ? 'default' : 'outline'}
             onClick={() => setUpgradeOpen(true)}
+            disabled={loading || !canUpgrade}
+            title={
+              onTopPlan
+                ? "You're already on the highest plan"
+                : isActivePaid
+                  ? 'Move to a higher plan'
+                  : 'Choose a plan'
+            }
             className="shrink-0"
           >
-            {canUpgrade ? 'Upgrade' : 'Change plan'}
-            <ArrowUpRight className="size-4" />
+            {onTopPlan ? 'Top plan' : 'Upgrade'}
+            {!onTopPlan && <ArrowUpRight className="size-4" />}
           </Button>
         </div>
 
         <UpgradeDialog
           open={upgradeOpen}
           onOpenChange={setUpgradeOpen}
-          currentPlanKey={billing?.planKey}
+          plans={choices}
           onUpgraded={() => setReloadKey((k) => k + 1)}
         />
 
