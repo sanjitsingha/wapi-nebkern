@@ -24,10 +24,10 @@ import { Btn } from './ui';
 // price instead, and the unit line under it reads PER MONTH. Same
 // shape, opposite and correct argument.
 //
-// ⚠ ₹100 is duplicated from `pricing.tsx` (and `pricing-page.tsx`,
-// which already had its own copy). If plan pricing changes, all three
-// have to move together — grep for the figure rather than trusting
-// this comment.
+// ⚠ The entry price here duplicates Starter in
+// `src/lib/marketing/pricing-data.ts` (the /pricing source of truth). If
+// the entry plan's price changes, move it there AND here — grep for the
+// figure rather than trusting this comment.
 //
 // WHY HERE
 //
@@ -44,8 +44,8 @@ import { Btn } from './ui';
 // as the bottom of the section above rather than as its own beat.
 // ============================================================
 
-/** Entry plan, mirrored from `pricing.tsx`. See the warning above. */
-const STARTING_PRICE = '₹100';
+/** Entry plan (Starter), mirrored from pricing-data.ts. See the warning above. */
+const STARTING_PRICE = '₹499';
 
 export function Lp2PricingNote() {
   return (

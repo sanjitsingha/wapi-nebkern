@@ -11,8 +11,9 @@ import type { SubscriptionState } from '@/lib/billing/subscription';
  *  (e.g. 'grandfathered') falls back to a generic "Active". */
 const TIER_LABELS: Record<string, string> = {
   starter: 'Starter',
-  pro: 'Pro',
+  growth: 'Growth',
   business: 'Business',
+  pro: 'Pro', // legacy: accounts still on the retired Pro tier (migration 088)
 };
 
 /**

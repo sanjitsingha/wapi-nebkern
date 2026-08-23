@@ -91,53 +91,55 @@ export function mapBillingPlanRow(p: {
 }
 
 export interface PlanTier {
-  id: 'starter' | 'pro' | 'business';
+  id: 'starter' | 'growth' | 'business';
   name: string;
   tagline: string;
-  /** Placeholder — set real pricing when checkout is built. */
   priceLabel: string;
   /** Visually highlight this tier as the recommended default. */
   featured?: boolean;
   features: string[];
 }
 
+// Mirrors the Instant pricing book (src/lib/marketing/pricing-data.ts +
+// migration 088). The live, sellable numbers come from the billing_plans
+// DB table; this static catalog is a lightweight display fallback.
 export const PLAN_TIERS: PlanTier[] = [
   {
     id: 'starter',
     name: 'Starter',
-    tagline: 'For getting started on WhatsApp',
-    priceLabel: 'Pricing coming soon',
+    tagline: 'For solo founders and small clinics',
+    priceLabel: '₹499/mo',
     features: [
-      '1 WhatsApp number',
+      '1 user · 1 WhatsApp number',
       'Shared team inbox',
-      'Up to 1,000 contacts',
+      'Up to 2,000 contacts',
       'Broadcast campaigns',
     ],
   },
   {
-    id: 'pro',
-    name: 'Pro',
-    tagline: 'For growing teams',
-    priceLabel: 'Pricing coming soon',
+    id: 'growth',
+    name: 'Growth',
+    tagline: 'For growing D2C brands and clinics',
+    priceLabel: '₹799/mo',
     featured: true,
     features: [
       'Everything in Starter',
-      'AI auto-reply',
-      'Automations & flows',
-      'Instagram DMs',
-      'Up to 25,000 contacts',
+      'Maya AI agent — unlimited replies',
+      'Automations & WhatsApp Flows',
+      'Meta Ads + Shopify/CRM connectors',
+      'Up to 5,000 contacts',
     ],
   },
   {
     id: 'business',
     name: 'Business',
-    tagline: 'For scale',
-    priceLabel: 'Pricing coming soon',
+    tagline: 'For established brands scaling up',
+    priceLabel: '₹999/mo',
     features: [
-      'Everything in Pro',
-      'Unlimited contacts',
-      'Priority support',
-      'Advanced analytics',
+      'Everything in Growth',
+      'Up to 10,000 contacts',
+      'Roles & granular permissions',
+      'Dedicated CSM · SLA-backed uptime',
     ],
   },
 ];

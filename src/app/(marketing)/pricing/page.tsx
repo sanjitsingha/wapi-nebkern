@@ -1,29 +1,30 @@
 import type { Metadata } from 'next';
 
 import { Lp2Nav } from '@/components/lp2/nav';
-import { Lp2Pricing } from '@/components/lp2/pricing';
-import { Lp2Cta } from '@/components/lp2/cta';
 import { Lp2Footer } from '@/components/lp2/footer';
+import { PricingCards } from '@/components/lp2/pricing-cards';
 import {
   PricingHero,
-  PricingNoPerMessage,
-  PricingMatrix,
+  MetaPricingBlock,
+  HowMayaWorks,
+  AddonsBlock,
+  CompetitorComparison,
+  FairUsePolicy,
   PricingFaq,
+  PricingFinalCta,
 } from '@/components/lp2/pricing-page';
 
-// The dedicated pricing page the nav points at. The plan cards are the
-// same <Lp2Pricing> block the landing page shows — reused rather than
-// recreated, since three tiers of copy maintained in two files would
-// disagree within a release. `compareLink` is off here: the matrix it
-// links to is further down this very page.
+// The dedicated pricing page. Plan data (prices, features, add-ons, the
+// competitor comparison, FAQ) all come from src/lib/marketing/pricing-data.ts
+// so the numbers live in one place. Fully static — nothing here reads the
+// database or the request; the plan CTAs point at /signup, which starts the
+// trial and later lands the buyer on the in-app checkout.
 export const metadata: Metadata = {
-  title: { absolute: 'Pricing — flat monthly plans, no per-message fees' },
+  title: { absolute: 'Pricing — Maya AI included, zero markup on Meta' },
   description:
-    'Plans from ₹100/month with every core feature included. No per-message or per-contact charges from us — Meta bills your WhatsApp account directly at its own rates. Compare Try, Pro and Business side by side.',
+    'Instant by Nebkern: a flat platform fee with Maya AI included and Meta charges passed through at zero markup. Starter ₹499, Growth ₹799, Business ₹999/mo — plus a 14-day free trial. All prices exclude 18% GST.',
   robots: { index: true, follow: true },
 };
-
-// Fully static — nothing here reads the database or the request.
 
 export default function PricingPage() {
   return (
@@ -31,11 +32,14 @@ export default function PricingPage() {
       <Lp2Nav />
       <main>
         <PricingHero />
-        <Lp2Pricing compareLink={false} />
-        <PricingNoPerMessage />
-        <PricingMatrix />
+        <PricingCards />
+        <MetaPricingBlock />
+        <HowMayaWorks />
+        <AddonsBlock />
+        <CompetitorComparison />
+        <FairUsePolicy />
         <PricingFaq />
-        <Lp2Cta />
+        <PricingFinalCta />
       </main>
       <Lp2Footer />
     </>
