@@ -141,9 +141,14 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     icon: UsersRound,
     group: 'workspace',
   },
+  // "Billing & usage" was the whole problem: it sounded like the place
+  // you manage your Instant subscription, which is Profile → Plan. This
+  // page is what META bills for WhatsApp conversations — a different
+  // company taking a different payment. The id stays 'billing' because
+  // it is the URL; only the label and the page moved.
   billing: {
     id: 'billing',
-    label: 'Billing & usage',
+    label: 'Meta charges',
     icon: Wallet,
     group: 'workspace',
   },

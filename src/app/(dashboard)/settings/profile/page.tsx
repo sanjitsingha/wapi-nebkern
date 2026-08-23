@@ -5,6 +5,7 @@ import { Suspense } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProfileForm } from '@/components/settings/profile-form';
 import { PlanSection } from '@/components/settings/plan-config';
+import { ActivationCodeCard } from '@/components/settings/activation-code-card';
 import { PasswordForm } from '@/components/settings/password-form';
 import { TwoFactorCard } from '@/components/settings/two-factor-card';
 import { ConnectedAccountsCard } from '@/components/settings/connected-accounts-card';
@@ -57,7 +58,15 @@ function ProfilePageInner() {
       </TabsContent>
 
       <TabsContent value="plan">
-        <PlanSection />
+        <div className="flex flex-col gap-6">
+          <PlanSection />
+          {/* Redeeming a code changes the plan shown directly above, so
+              the two belong on one screen. This used to live on Settings
+              → Meta charges, wrapped in a second, thinner plan summary —
+              which is what made that page look like the subscription
+              screen when it is about what Meta bills for conversations. */}
+          <ActivationCodeCard />
+        </div>
       </TabsContent>
     </Tabs>
   );

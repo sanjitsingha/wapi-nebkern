@@ -15,7 +15,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { SettingsPanelHead } from './settings-panel-head';
 
 type NotConfiguredReason =
   | 'no_config'
@@ -122,12 +121,10 @@ export function BillingConfig() {
 
   return (
     <div>
-      {/* "Billing & usage" names the whole section and is rendered by the
-          page above; this panel is the WhatsApp half of it. */}
-      <SettingsPanelHead
-        title="WhatsApp usage"
-        description="Your estimated WhatsApp spend this billing period, from Meta's conversation analytics. Meta does not expose a live wallet balance via API — open WhatsApp Manager for your actual balance and invoices."
-      />
+      {/* No heading of its own any more. This was one of two panels under
+          a "Billing & usage" page head, so it needed its own title to
+          say which half it was. It is the whole page now, and the page
+          head above says everything this one did. */}
 
       {loading ? (
         <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
