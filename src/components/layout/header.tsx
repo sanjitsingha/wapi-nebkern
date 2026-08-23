@@ -30,6 +30,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { PresenceDot } from '@/components/presence/presence-dot';
 import { NotificationsBell } from '@/components/layout/notifications-bell';
+import { TrialStatusChip } from '@/components/billing/trial-status-chip';
 
 interface HeaderProps {
   /** Wired to the shell's drawer state. Used only on mobile — the
@@ -78,6 +79,11 @@ export function Header({ onOpenSidebar }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-1 sm:gap-2">
+        {/* First in the right-hand group, ahead of the bell: it is
+            status rather than an action, and it renders nothing at all
+            on a paid account — so the icons keep their usual positions
+            for everyone past the trial. */}
+        <TrialStatusChip />
         <NotificationsBell />
 
         {/* Settings is a header destination in its own right rather than

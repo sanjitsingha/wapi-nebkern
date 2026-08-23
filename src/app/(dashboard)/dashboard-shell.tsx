@@ -8,7 +8,6 @@ import { AvailabilityProvider } from '@/hooks/use-availability';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { PresenceHeartbeat } from '@/components/presence/presence-heartbeat';
-import { TrialBanner } from '@/components/billing/trial-banner';
 import { AppPopup } from '@/components/layout/app-popup';
 import { AnnouncementBar } from '@/components/layout/announcement-bar';
 import { WhatsAppConnectBanner } from '@/components/layout/whatsapp-connect-banner';
@@ -84,13 +83,11 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
       <Header onOpenSidebar={() => setSidebarOpen(true)} />
       {/* Admin-managed announcement bar, directly under the navbar */}
       <AnnouncementBar />
-      {/* Trial/subscription status bar, below the announcement bar */}
-      <TrialBanner />
-      {/* Setup nudge, last of the three bars. Below the trial banner on
-          purpose: an account that has not paid has a more pressing
-          problem than one that has not connected a number, and the two
-          only overlap during a trial. Renders nothing for anyone who
-          cannot change settings, or once a number is connected. */}
+      {/* Setup nudge. The trial bar used to sit here too; it is a chip
+          in the header now (billing/trial-status-chip.tsx), which
+          leaves this as the only full-width band under the navbar.
+          Renders nothing for anyone who cannot change settings, or once
+          a number is connected. */}
       <WhatsAppConnectBanner />
       {/* Sidebar + main content side-by-side below the header */}
       <div className="flex flex-1 overflow-hidden">
