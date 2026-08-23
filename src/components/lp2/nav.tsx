@@ -176,33 +176,43 @@ function Logo() {
  *
  * Her lockup rather than the words "Ask Maya": it is the one item in
  * the row that has a mark of its own, and the mark is what makes the
- * eye stop. The text stays in the DOM for screen readers, since alt
- * text alone would make this the only nav item announced by an image.
+ * eye stop. The whole name is the artwork now — the `ask` cut, not the
+ * bare one under a typed "Ask" — so the alt text is the accessible
+ * name and nothing repeats it in the DOM.
  */
 function MayaNavLink({ href }: { href: string }) {
   return (
     <Link
       href={href}
       className={cn(
-        'group/maya inline-flex items-center gap-1.5 rounded-full border-2 border-(--lp2-maya)/35 bg-(--lp2-maya-soft)/60 py-1.5 pr-3.5 pl-3 outline-none',
+        // Height is pinned rather than left to the padding. The typed
+        // "Ask" used to set it — a 24px line box that happened to land
+        // the pill at 40px — and with the word gone the lockup alone
+        // would have collapsed it to 29px, short beside the h-10 CTA.
+        'group/maya inline-flex h-10 items-center rounded-full border-2 border-(--lp2-maya)/35 bg-(--lp2-maya-soft)/60 px-3.5 outline-none',
         'transition-colors duration-150 hover:border-(--lp2-maya)/70 hover:bg-(--lp2-maya-soft) focus-visible:border-(--lp2-maya)/70 focus-visible:bg-(--lp2-maya-soft)',
       )}
     >
-      {/* "ask" is set in type and "maya" comes from the lockup, so the
-          two halves of the name sit at the weights the brand uses. The
-          lockup carries an empty alt: the visible word beside it is
-          already the accessible name, and a mark that repeats it would
-          have a reader say "maya" twice. */}
-      <span className="text-base font-semibold">Ask</span>
-      <MayaLockup variant="bare" alt="" className="h-[13px]" />
+      {/* The whole name in one mark, so "ask" is drawn rather than set
+          in the UI face beside a lockup that owns only half the name.
+          No separate Sparkle glyph either: the `ask` cut ends in the
+          same chartreuse cluster, and a second one hung off its right
+          edge read as a duplicate of the artwork's own.
 
-      {/* The sparkle from her own artwork, lifted out as a glyph. Grows
-          slightly on hover — the whole animation budget for a nav item,
-          and the one gesture that says "this one is different" without
-          moving the row. */}
-      <Sparkle
-        color="lime"
-        className="size-3 transition-transform duration-200 group-hover/maya:scale-125"
+          26px, which is the compromise this cut forces. The two files
+          share a glyph scale — `maya` is 1351x493 and sits inside
+          `ask maya`'s 1697x493 unchanged — so matching the old 13px
+          would have kept "maya" identical and rendered "ask" at 3.5px,
+          since "ask" is only 27% of the box height (rows 253-385 of
+          493). Legibility there costs size here: "maya" comes out
+          twice its old height, and "ask" still only reaches ~7px.
+
+          Scale on hover instead of the sparkle's. A transform does not
+          reflow, so the row stays put while the pill's own width is
+          fixed by the padding. */}
+      <MayaLockup
+        variant="ask"
+        className="h-[26px] transition-transform duration-200 group-hover/maya:scale-105"
       />
     </Link>
   );
