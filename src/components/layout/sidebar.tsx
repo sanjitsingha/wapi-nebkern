@@ -24,7 +24,7 @@ import {
   ClipboardText,
   Compass,
   FileText,
-  // Flows gets its own glyph rather than sharing AI Agents' Robot — in
+  // Flows gets its own glyph rather than borrowing a neighbour's — in
   // the collapsed rail the icon is the only thing left, so two
   // destinations cannot wear the same one.
   FlowArrow,
@@ -38,7 +38,6 @@ import {
   Lock,
   Megaphone,
   PhoneCall,
-  Robot,
   SidebarSimple,
   UsersThree,
   X,
@@ -87,16 +86,10 @@ const homeLink: NavLink = {
   href: '/dashboard',
 };
 
-// Maya sits on her own, outside any group — a first-class surface.
-// The walkthrough key stays 'agents': it is persisted per user to track
-// which tours they have seen, so renaming it would replay the tour for
-// everyone who had already dismissed it.
-const agentsLink: NavLink = {
-  label: 'Maya',
-  icon: Robot,
-  href: '/askmaya',
-  walkthrough: 'agents',
-};
+// Maya has no row here any more. She moved into Settings → Workspace
+// (/settings/maya), which is also where her rail entry lives — see
+// settings-sections.ts. /askmaya and /agents both still resolve, so
+// nothing that linked to the old surface is broken.
 
 const quickLinks: NavLink[] = [
   {
@@ -503,7 +496,6 @@ export function Sidebar({
           )}
           <ul className="flex flex-col gap-1.5">
             <li>{renderLink(homeLink)}</li>
-            <li>{renderLink(agentsLink)}</li>
           </ul>
 
           {/* Expanded: single-line label. Collapsed (lg rail): instead of

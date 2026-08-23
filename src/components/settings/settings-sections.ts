@@ -34,6 +34,8 @@ import {
  * order, so this is also the top-to-bottom order within each group.
  */
 export const SETTINGS_SECTIONS = [
+  // Maya — alone, above everything, in a group with no heading.
+  'maya',
   // Account — you, not the workspace.
   'profile',
   // Workspace — the business everyone on the team shares.
@@ -62,8 +64,19 @@ export const DEFAULT_SECTION: SettingsSection = 'profile';
 export interface SectionMeta {
   id: SettingsSection;
   label: string;
-  icon: LucideIcon;
-  group: 'account' | 'workspace' | 'channels' | 'developers';
+  /** Optional only because a section carrying a `mark` draws artwork
+   *  instead of a glyph. Every other row needs one. */
+  icon?: LucideIcon;
+  /**
+   * Draw the row as a wordmark rather than an icon and a label. Maya is
+   * the only section with artwork of her own and should stay the only
+   * one — a rail of competing logos is not a nav.
+   *
+   * `label` is still required: it is the row's accessible fallback and
+   * what the lock and coming-soon tooltips quote.
+   */
+  mark?: 'maya';
+  group: 'assistant' | 'account' | 'workspace' | 'channels' | 'developers';
   /**
    * Shelved channel: the rail shows the entry with a "Soon" badge and
    * makes it non-navigable, and the section's page renders the
@@ -92,6 +105,21 @@ export interface SectionMeta {
  * Declared in the same order as SETTINGS_SECTIONS.
  */
 export const SECTION_META: Record<SettingsSection, SectionMeta> = {
+  /* ── Maya ────────────────────────────────────────────────────────── */
+  // The assistant herself, not her credentials — those are "AI & models"
+  // under Developers, which is where the provider, key and model live.
+  // This is where you talk to her and see whether she is live.
+  //
+  // In a group of her own above Account, with no heading over it: she is
+  // not an account setting or a workspace one, and a heading over a
+  // single row is a label looking for a list. The mark carries the name.
+  maya: {
+    id: 'maya',
+    label: 'Maya',
+    mark: 'maya',
+    group: 'assistant',
+  },
+
   /* ── Account ─────────────────────────────────────────────────────── */
   profile: {
     id: 'profile',
@@ -209,6 +237,8 @@ export const RAIL_GROUPS: {
   label: string | null;
   group: SectionMeta['group'];
 }[] = [
+  // Headingless, and first. See SECTION_META.maya.
+  { label: null, group: 'assistant' },
   { label: 'Account', group: 'account' },
   { label: 'Workspace', group: 'workspace' },
   { label: 'Channels', group: 'channels' },

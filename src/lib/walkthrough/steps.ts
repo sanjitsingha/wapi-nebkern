@@ -66,14 +66,20 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     placement: 'right',
   },
   {
-    // `id` and `target` stay 'agents' — the id is persisted per user to
-    // remember which steps they have seen, and the target has to match
-    // the sidebar link's `walkthrough` key. Only the copy is renamed.
+    // `id` stays 'agents' — it is persisted per user to remember which
+    // steps they have seen, so renaming it would replay the tour for
+    // everyone who had already dismissed it.
+    //
+    // Unanchored since Maya moved into Settings → Workspace: she has no
+    // row of her own in the sidebar to point at any more, and the step
+    // after this one already spotlights Settings. A null target renders
+    // a centred card, which is a supported mode rather than a fallback
+    // (see resolveTarget in walkthrough-overlay.tsx) — so the beat is
+    // kept and the copy says where to find her instead.
     id: 'agents',
-    target: 'agents',
+    target: null,
     title: 'Meet Maya',
-    body: 'Hand a conversation to Maya, trained on your business, and let her draft or send replies with your team watching.',
-    placement: 'right',
+    body: 'Maya is your AI teammate, trained on your business — she can draft or send replies with your team watching. You will find her in Settings, under Workspace.',
   },
   {
     id: 'settings',

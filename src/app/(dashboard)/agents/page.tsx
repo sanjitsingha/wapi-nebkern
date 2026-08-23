@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation';
 
-// The AI agent surface moved to /askmaya when the assistant was named
-// Maya. Keep the old URL working: it shipped in the sidebar, in
-// /docs/ai-agents, and in the walkthrough, so it is sitting in
-// bookmarks and in anything already linked externally.
+// The original name for this surface, from before the assistant was
+// called Maya. It pointed at /askmaya through the rename; now that the
+// page has moved into Settings it goes straight to its real home
+// instead of bouncing through a second redirect on the way.
 export default function AgentsPage() {
-  redirect('/askmaya');
+  redirect('/settings/maya');
 }
