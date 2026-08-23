@@ -1,63 +1,16 @@
 import { unsubscribeUrl } from '@/lib/newsletter-unsubscribe';
+// The frame, the wordmark and the button live in ./shell — password
+// reset needed the same chrome, and two copies of an email shell drift.
+import { button, shell, site, SOFT } from './shell';
 
 /**
  * The two newsletter emails: welcome on signup, confirmation on the way
  * out.
  *
- * Written as inline-styled tables rather than anything clever. Email
- * clients are not browsers — Gmail strips <style> blocks, Outlook
- * renders through Word, and flexbox/grid are not available. Inline
- * styles on tables is the only layout that survives all of them.
- *
  * Every template returns html AND text. A missing text/plain part reads
  * as spam to most filters, and some people genuinely read mail in
  * plain text.
  */
-
-/**
- * Read at call time, not module load.
- *
- * `unsubscribeUrl` in newsletter-unsubscribe.ts resolves the same env
- * var per call, and having one of them freeze at import while the other
- * doesn't is how a template ends up with two different base URLs in the
- * same email. It also makes the module impossible to test without
- * controlling import order.
- */
-function site(): string {
-  return (
-    process.env.NEXT_PUBLIC_SITE_URL ?? 'https://instant.nebkern.com'
-  ).replace(/\/$/, '');
-}
-
-/** The brand green, as a literal. Emails cannot read CSS variables. */
-const GREEN = '#0b6623';
-const INK = '#191826';
-const SOFT = '#5c5a70';
-
-function shell(bodyHtml: string, footerHtml: string): string {
-  return `<!doctype html>
-<html lang="en">
-<body style="margin:0;padding:0;background:#f5f5f4;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f4;padding:32px 12px;">
-    <tr><td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:12px;padding:32px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
-        <tr><td style="padding-bottom:20px;">
-          <span style="font-size:18px;font-weight:700;color:${GREEN};letter-spacing:-0.01em;">Instant</span>
-        </td></tr>
-        <tr><td style="font-size:15px;line-height:1.6;color:${INK};">${bodyHtml}</td></tr>
-        <tr><td style="padding-top:28px;border-top:1px solid #e7e5e4;font-size:12px;line-height:1.6;color:${SOFT};">
-          ${footerHtml}
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
-}
-
-function button(href: string, label: string): string {
-  return `<a href="${href}" style="display:inline-block;background:${GREEN};color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:11px 20px;border-radius:8px;">${label}</a>`;
-}
 
 export function welcomeEmail(email: string, name?: string | null) {
   // The unsubscribe link is not decoration. Every bulk email needs a

@@ -35,6 +35,24 @@
  * Add a line to SENDERS. It resolves to `<local>@MAIL_DOMAIN` with no
  * further config. Override the address with `MAIL_FROM_<KEY>` when it
  * needs a different domain.
+ *
+ * WHICH ADDRESSES ARE ACTUALLY VERIFIED
+ *
+ * A default here is a GUESS at what DeoMail will accept, and a wrong
+ * guess fails silently: the send returns 403 SENDER_NOT_AUTHORIZED, the
+ * caller logs it, and nobody notices until a user says they never got
+ * an email. That is exactly how password reset shipped broken.
+ *
+ * Verified on instant.nebkern.com as of 2026-08-23, by attempting a
+ * send from each and reading the response:
+ *
+ *   contact@    yes        support@    yes        billing@    yes
+ *   no-reply@   yes        newsletter@ NO         hello@      NO
+ *                                                 admin@      NO
+ *
+ * So `newsletter` needs its MAIL_FROM_NEWSLETTER override to send at
+ * all. Re-check this list after adding a sender here — the dashboard
+ * is the source of truth, not this file.
  */
 
 export const SENDERS = {
@@ -58,6 +76,24 @@ export const SENDERS = {
   /** Anything automated with no meaningful reply address — alerts,
    *  confirmations, system notices. */
   system: { local: 'no-reply', name: 'Instant' },
+
+  /**
+   * Verification codes: the password reset code today, and any other
+   * one-time code added later.
+   *
+   * Its own key rather than reusing `system`, even though both default
+   * to the same local part, because the two are pointed at different
+   * addresses in practice and for different reasons. A code is the one
+   * email where a no-reply address is the honest answer — there is
+   * nothing to reply to, and the six digits are the whole message. The
+   * notices `system` carries (an account scheduled for deletion, a
+   * recovery link) are ones a worried owner may well reply to, so those
+   * are overridden to a monitored address.
+   *
+   * Keeping them separate means changing one does not silently move the
+   * other.
+   */
+  otp: { local: 'no-reply', name: 'Instant' },
 } as const;
 
 export type SenderKey = keyof typeof SENDERS;

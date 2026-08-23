@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { rememberOAuthNext } from "@/lib/auth/oauth-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +10,12 @@ import { AuthBrandPanel } from "@/components/auth/brand-panel";
 import { BrandLogo } from "@/components/brand/logo";
 import { AuthLegalLinks } from "@/components/auth/legal-notice";
 import { NewPasswordForm } from "@/components/auth/new-password-form";
-import { ArrowLeft, Mail, KeyRound } from "lucide-react";
+// The same six boxes the signup verification step uses. Shared so
+// the two code screens cannot drift apart in behaviour — paste
+// handling, backspace and autofill are fiddly enough to get right
+// once.
+import { OtpInput } from "@/components/auth/otp-input";
+import { ArrowLeft, Mail } from "lucide-react";
 
 // ============================================================
 // Password recovery, by six-digit code.
@@ -22,19 +26,41 @@ import { ArrowLeft, Mail, KeyRound } from "lucide-react";
 // opened in the Gmail in-app browser lands in a session that isn't the
 // one they were typing in.
 //
-// Supabase sends the code from the same `resetPasswordForEmail` call as
-// before; what makes it a code rather than a link is the Reset Password
-// email template containing `{{ .Token }}`. `verifyOtp({ type:
-// 'recovery' })` then returns a real session, which is what lets
-// <NewPasswordForm> just call `updateUser`.
+// The code is Supabase's, the email is ours. /api/auth/password-reset
+// asks the Admin API to mint a recovery token and hand back its OTP
+// without sending anything, then posts it through DeoMail from the
+// app's own verified domain. Supabase's Reset Password template and its
+// built-in SMTP are no longer in the path — and neither is the
+// `{{ .Token }}` placeholder that used to be load-bearing here.
 //
-// `redirectTo` is still passed so that a template which also keeps
-// `{{ .ConfirmationURL }}` has somewhere sane to land (/reset-password).
+// Nothing below that changes: `verifyOtp({ type: 'recovery' })` still
+// takes the same code and still returns a real session, which is what
+// lets <NewPasswordForm> just call `updateUser`.
+//
+// The reply is identical whether or not the address is registered, so
+// "Send code" always advances to the code step. That is the same
+// posture `resetPasswordForEmail` took, and it is deliberate: this
+// screen is unauthenticated, and a truthful answer would confirm which
+// addresses have accounts.
 // ============================================================
 
+/**
+ * How many digits the code has — one box each.
+ *
+ * This has to match Supabase's "Email OTP Length" (Authentication →
+ * Providers → Email). That setting decides what the code actually
+ * is; this constant only says how many boxes to draw and when the
+ * code counts as complete.
+ *
+ * They were out of step once — 6 here against 8 there — and the old
+ * single field hid it: it quietly dropped the last two digits and
+ * its submit button never enabled, so the code could not be entered
+ * at all. Boxes make the next mismatch obvious instead of silent,
+ * because six boxes under an eight-digit code is visible on sight.
+ */
 const CODE_LENGTH = 6;
-/** Supabase's own per-email resend limit is 60s by default; sit just
- *  inside it so the button doesn't invite a request the server refuses. */
+/** A courtesy cooldown, not the enforcement — the route rate-limits per
+ *  address and per caller regardless of what this button allows. */
 const RESEND_SECONDS = 60;
 
 type Step = "email" | "code" | "password";
@@ -57,14 +83,44 @@ export default function ForgotPasswordPage() {
     return () => clearTimeout(id);
   }, [cooldown]);
 
-  const sendCode = async (address: string) => {
-    // The destination for the link variant travels in a cookie, not on
-    // the redirect URL — a query string there has to be in Supabase's
-    // Redirect URLs allow-list separately (see lib/auth/oauth-next.ts).
-    rememberOAuthNext("/reset-password");
-    return supabase.auth.resetPasswordForEmail(address, {
-      redirectTo: `${window.location.origin}/auth/callback`,
-    });
+  /**
+   * Returns `{ error }` rather than throwing, to keep the two call sites
+   * below shaped exactly as they were when this was a Supabase call.
+   *
+   * A non-OK response is a real fault worth showing — the transport is
+   * unconfigured, or the caller is rate limited. "No such user" is not
+   * among them: the route answers that with the same 200 as a success.
+   */
+  const sendCode = async (
+    address: string,
+  ): Promise<{ error: { message: string } | null }> => {
+    let res: Response;
+    try {
+      res = await fetch("/api/auth/password-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: address }),
+      });
+    } catch {
+      return { error: { message: "Network error — please try again." } };
+    }
+
+    if (!res.ok) {
+      const body = (await res.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      return {
+        error: {
+          message:
+            body?.error ??
+            (res.status === 429
+              ? "Too many attempts. Try again in a few minutes."
+              : "Could not send the code — please try again."),
+        },
+      };
+    }
+
+    return { error: null };
   };
 
   const handleSendCode = async (e: React.FormEvent) => {
@@ -211,30 +267,21 @@ export default function ForgotPasswordPage() {
                 >
                   Six-digit code
                 </Label>
-                <div className="group relative">
-                  <KeyRound className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
-                  <Input
-                    id="code"
-                    // `inputMode` gets the numeric keypad on mobile;
-                    // `one-time-code` lets iOS and Android offer the code
-                    // straight from the notification.
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    autoFocus
-                    placeholder="000000"
-                    value={code}
-                    onChange={(e) =>
-                      setCode(
-                        e.target.value.replace(/\D/g, "").slice(0, CODE_LENGTH),
-                      )
-                    }
-                    required
-                    // `pr-11` matches `pl-11` so the digits sit on the
-                    // true centre — with padding on one side only, the
-                    // tracking pushes them visibly right.
-                    className="h-12 rounded-xl border-border bg-muted/40 pr-11 pl-11 text-center text-lg font-semibold tracking-[0.4em] text-foreground placeholder:font-normal placeholder:tracking-[0.4em] placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-background focus-visible:ring-primary/20"
-                  />
-                </div>
+                <OtpInput
+                  id="code"
+                  value={code}
+                  // Clear the rejection as soon as they start
+                  // correcting it, so the boxes are not still red
+                  // underneath a fresh code.
+                  onChange={(v) => {
+                    setCode(v);
+                    if (error) setError(null);
+                  }}
+                  length={CODE_LENGTH}
+                  disabled={loading}
+                  autoFocus
+                  invalid={!!error}
+                />
               </div>
 
               <Button
