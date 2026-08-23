@@ -40,3 +40,58 @@ export function buildMediaPath(
       .slice(0, 40) || 'file';
   return `account-${accountId}/${now}-${safeBase}.${ext}`;
 }
+
+/**
+ * The inverse of an upload: recover an object's storage path from the
+ * public URL we stored in the database.
+ *
+ * Needed because rows keep the public URL, not the path — so replacing
+ * a file (a new avatar over an old one) has nothing to hand
+ * `deleteAccountMedia` without parsing it back out.
+ *
+ * The two backends print different URLs, and the path each expects
+ * differs to match:
+ *
+ *   Supabase  <origin>/storage/v1/object/public/<bucket>/account-<id>/<file>
+ *             -> "account-<id>/<file>"        (bucket is a separate arg)
+ *   R2        <public-base>/<bucket>/account-<id>/<file>
+ *             -> "<bucket>/account-<id>/<file>"  (bucket is the prefix)
+ *
+ * Returns null for anything that is not one of ours — an OAuth
+ * provider's avatar, a Gravatar, a hand-entered URL, or a malformed
+ * one. That case is the whole reason this returns a nullable: a caller
+ * about to delete "the old file" must not delete a URL it never
+ * uploaded. Requiring the `account-` segment is what draws that line;
+ * a URL without it is not something this app put in a bucket.
+ *
+ * Note this establishes only that a path LOOKS like ours. It is not an
+ * ownership check — the delete route re-derives the caller's account
+ * from their session and refuses any path outside it, which is where
+ * tenant separation is actually enforced.
+ */
+export function storagePathFromPublicUrl(
+  bucket: string,
+  url: string,
+): string | null {
+  let pathname: string;
+  try {
+    pathname = new URL(url).pathname;
+  } catch {
+    return null;
+  }
+
+  const supabaseMarker = `/storage/v1/object/public/${bucket}/`;
+  const supabaseAt = pathname.indexOf(supabaseMarker);
+  if (supabaseAt !== -1) {
+    const rest = pathname.slice(supabaseAt + supabaseMarker.length);
+    return rest.startsWith('account-') ? decodeURIComponent(rest) : null;
+  }
+
+  // Leading slash dropped so the bucket prefix leads, which is the shape
+  // R2 keys take.
+  const r2Marker = `/${bucket}/account-`;
+  const r2At = pathname.indexOf(r2Marker);
+  if (r2At !== -1) return decodeURIComponent(pathname.slice(r2At + 1));
+
+  return null;
+}

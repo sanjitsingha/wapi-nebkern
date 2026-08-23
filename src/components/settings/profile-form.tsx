@@ -2,10 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2, Upload, Trash2, Mail, CircleAlert } from 'lucide-react';
+import { Loader2, Upload, Mail, CircleAlert } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
-import { uploadAccountMedia } from '@/lib/storage/upload-media';
+import {
+  deleteAccountMedia,
+  uploadAccountMedia,
+} from '@/lib/storage/upload-media';
+import { storagePathFromPublicUrl } from '@/lib/storage/paths';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,7 +47,6 @@ export function ProfileForm() {
   const [email, setEmail] = useState('');
   const [pendingAvatar, setPendingAvatar] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [removeAvatar, setRemoveAvatar] = useState(false);
   const [saving, setSaving] = useState(false);
   const [emailChangePending, setEmailChangePending] = useState(false);
 
@@ -61,8 +64,10 @@ export function ProfileForm() {
     };
   }, [previewUrl]);
 
-  const currentAvatar =
-    previewUrl ?? (!removeAvatar ? profile?.avatar_url ?? null : null);
+  // There is no way to clear a photo any more — only to replace one —
+  // so this is the staged preview if there is one, otherwise whatever
+  // is saved.
+  const currentAvatar = previewUrl ?? profile?.avatar_url ?? null;
 
   const initial = (fullName || profile?.full_name || profile?.email || 'U')
     .charAt(0)
@@ -89,14 +94,6 @@ export function ProfileForm() {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPendingAvatar(file);
     setPreviewUrl(URL.createObjectURL(file));
-    setRemoveAvatar(false);
-  };
-
-  const onRemoveAvatar = () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPendingAvatar(null);
-    setPreviewUrl(null);
-    setRemoveAvatar(true);
   };
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -116,7 +113,11 @@ export function ProfileForm() {
 
     setSaving(true);
     try {
-      let nextAvatarUrl: string | null = profile.avatar_url ?? null;
+      // Held separately from `nextAvatarUrl`, which is about to be
+      // reassigned — this is the object that becomes garbage once a
+      // replacement is saved.
+      const previousAvatarUrl = profile.avatar_url ?? null;
+      let nextAvatarUrl: string | null = previousAvatarUrl;
 
       // Upload a newly-staged image, if any.
       //
@@ -132,8 +133,6 @@ export function ProfileForm() {
           pendingAvatar,
         );
         nextAvatarUrl = publicUrl;
-      } else if (removeAvatar) {
-        nextAvatarUrl = null;
       }
 
       // Persist name + avatar to profiles.
@@ -146,6 +145,36 @@ export function ProfileForm() {
         .eq('user_id', user.id);
       if (updateError) {
         throw new Error(`Save failed: ${updateError.message}`);
+      }
+
+      // The replacement is saved and nothing points at the old file any
+      // more, so it can go.
+      //
+      // Strictly AFTER the update, never before: deleting first would
+      // leave the row pointing at an object that no longer exists if the
+      // update then failed, and a broken avatar is worse than an orphan.
+      //
+      // Best-effort and unawaited. A delete that fails costs a few KB in
+      // a bucket; it is not worth a red toast on top of a save that
+      // worked, and not worth making the user wait for either.
+      //
+      // `storagePathFromPublicUrl` returning null is the important
+      // case, not an edge one: it is what stops this touching an avatar
+      // we never uploaded, such as the one a social login brought with
+      // it. The delete route also re-checks the account segment against
+      // the session, so a bad parse cannot reach another tenant's file.
+      if (
+        pendingAvatar &&
+        previousAvatarUrl &&
+        previousAvatarUrl !== nextAvatarUrl
+      ) {
+        const stalePath = storagePathFromPublicUrl(
+          AVATAR_BUCKET,
+          previousAvatarUrl,
+        );
+        if (stalePath) {
+          void deleteAccountMedia(AVATAR_BUCKET, stalePath).catch(() => {});
+        }
       }
 
       // Email change goes through Supabase Auth, which emails a
@@ -172,7 +201,6 @@ export function ProfileForm() {
       setEmailChangePending(emailSent);
       setPendingAvatar(null);
       setPreviewUrl(null);
-      setRemoveAvatar(false);
       await refreshProfile();
 
       toast.success(
@@ -192,8 +220,7 @@ export function ProfileForm() {
     !!profile &&
     (fullName.trim() !== (profile.full_name ?? '') ||
       email.trim().toLowerCase() !== (profile.email ?? '').toLowerCase() ||
-      pendingAvatar !== null ||
-      removeAvatar);
+      pendingAvatar !== null);
 
   const joined = user?.created_at
     ? new Date(user.created_at).toLocaleDateString(undefined, {
@@ -232,6 +259,17 @@ export function ProfileForm() {
                 className="hidden"
                 onChange={onPickFile}
               />
+              {/* The only control here now. The format-and-size line
+                  that used to sit beside it is gone: it spent a row of
+                  the card restating limits that almost nobody is about
+                  to breach, and onPickFile still rejects the wrong type
+                  or an oversized file with a toast that says which it
+                  was — at the moment it is actually useful.
+
+                  Removing a photo went with it. What that button
+                  actually produced was an account with a letter where a
+                  face had been; replacing one is the thing people come
+                  here to do. */}
               <Button
                 type="button"
                 variant="outline"
@@ -240,24 +278,8 @@ export function ProfileForm() {
                 disabled={saving}
               >
                 <Upload className="size-4" />
-                {currentAvatar ? 'Change photo' : 'Upload photo'}
+                {currentAvatar ? 'Change photo' : 'Set profile photo'}
               </Button>
-              {currentAvatar && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={onRemoveAvatar}
-                  disabled={saving}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <Trash2 className="size-4" />
-                  Remove
-                </Button>
-              )}
-              <span className="text-xs text-muted-foreground">
-                PNG, JPG, WebP, or GIF · up to 2 MB
-              </span>
             </div>
           </div>
         </div>
