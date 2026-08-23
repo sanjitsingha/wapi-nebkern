@@ -90,7 +90,11 @@ export function ActivationCodeCard({
               if (e.key === 'Enter') redeem();
             }}
           />
-          <Button onClick={redeem} disabled={redeeming}>
+          <Button
+            onClick={redeem}
+            disabled={redeeming}
+            className="h-11 border border-white/25 px-5"
+          >
             {redeeming ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (

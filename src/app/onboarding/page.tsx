@@ -7,8 +7,9 @@ import '../(marketing)/lp2.css';
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { ArrowRight, Check, Loader2, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Check, Loader2, ShieldCheck } from 'lucide-react';
 import { BrandLogo } from '@/components/brand/logo';
+import { ActivationCodeCard } from '@/components/settings/activation-code-card';
 
 import { cn } from '@/lib/utils';
 import { formatMoney } from '@/lib/billing/plans';
@@ -59,6 +60,19 @@ export default function OnboardingPage() {
   const [payingKey, setPayingKey] = useState<string | null>(null);
   const busy = startingTrial || payingKey !== null;
 
+  // This page serves two audiences the middleware routes here:
+  //   • a brand-new owner who hasn't chosen a plan → "Welcome aboard",
+  //     offered both the paid plans and the free trial.
+  //   • an owner whose plan has LAPSED (trial ran out, or a paid plan
+  //     went canceled/past_due/expired) → "No active plan", offered the
+  //     paid plans only. The trial is gone; it must not be offered again.
+  // We tell them apart by the effective subscription status from the
+  // server, which already folds trial expiry in.
+  const [lapsed, setLapsed] = useState(false);
+  // The activation-code entry stays folded away behind a link until asked
+  // for — most people arriving here pay; a code is the exception path.
+  const [showCode, setShowCode] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
     fetch('/api/billing/plans')
@@ -68,6 +82,29 @@ export default function OnboardingPage() {
       })
       .catch(() => {
         if (!cancelled) setPlans([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/account/subscription')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const status = data?.subscription?.status;
+        if (!cancelled)
+          setLapsed(
+            status === 'expired' ||
+              status === 'canceled' ||
+              status === 'past_due',
+          );
+      })
+      .catch(() => {
+        // Network hiccup — default to the welcoming copy, which is safe
+        // to show either way (the trial link is a no-op for an already
+        // onboarded account, which the server route enforces).
       });
     return () => {
       cancelled = true;
@@ -134,15 +171,40 @@ export default function OnboardingPage() {
 
       <main className="mx-auto max-w-5xl px-6 pb-20">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold text-primary">Welcome aboard 🎉</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-            Pick the plan that fits
-          </h1>
-          <p className="mt-3 text-muted-foreground">
-            Every plan runs on the official WhatsApp Business API. You can change
-            or cancel it anytime from Settings&nbsp;→&nbsp;Plan — nothing here is
-            locked in.
-          </p>
+          {lapsed ? (
+            <>
+              {/* A chip, not a plain label — it reads as a status the way
+                  the header's trial chip does. Light-only palette: no
+                  `dark:` variants (they'd fire on the OS setting, not the
+                  app). See trial-status-chip.tsx. */}
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/40 bg-red-500/15 px-3 py-1 text-xs font-semibold text-red-950">
+                <AlertTriangle className="size-3.5 shrink-0" />
+                No active plan
+              </span>
+              <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+                Choose a plan to keep going
+              </h1>
+              <p className="mt-3 text-muted-foreground">
+                Your plan has ended, so the app is paused. Pick a plan below to
+                turn it back on — your conversations, contacts and campaigns are
+                all still here, exactly as you left them.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-semibold text-primary">
+                Welcome aboard 🎉
+              </p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+                Pick the plan that fits
+              </h1>
+              <p className="mt-3 text-muted-foreground">
+                Every plan runs on the official WhatsApp Business API. You can
+                change or cancel it anytime from Settings&nbsp;→&nbsp;Plan —
+                nothing here is locked in.
+              </p>
+            </>
+          )}
         </div>
 
         {plans === null ? (
@@ -151,8 +213,9 @@ export default function OnboardingPage() {
           </div>
         ) : plans.length === 0 ? (
           <p className="py-16 text-center text-sm text-muted-foreground">
-            No paid plans are available right now — start your free trial below,
-            and you can upgrade later.
+            {lapsed
+              ? 'No plans are available to purchase right now. Please contact support so we can get you going again.'
+              : 'No paid plans are available right now — start your free trial below, and you can upgrade later.'}
           </p>
         ) : (
           /* `.lp2` is the scope every --lp2-* token hangs off, and the
@@ -270,20 +333,48 @@ export default function OnboardingPage() {
         )}
 
         {/* The quiet exit. One line, no chrome — findable for someone
-            who wants it, invisible to someone who doesn't. */}
-        <p className="mt-10 text-center text-sm text-muted-foreground">
-          Not ready to decide?{' '}
-          <button
-            type="button"
-            onClick={startTrial}
-            disabled={busy}
-            className="font-medium text-foreground underline underline-offset-4 transition-colors hover:text-primary disabled:opacity-50"
-          >
-            {startingTrial
-              ? 'Starting your trial…'
-              : `Skip and start a ${TRIAL_DAYS}-day free trial`}
-          </button>
-        </p>
+            who wants it, invisible to someone who doesn't. Gone once the
+            plan has lapsed: the trial is a one-time offer, and re-offering
+            it to someone who already used it is a dead end (the server
+            won't restart it). */}
+        {!lapsed && (
+          <p className="mt-10 text-center text-sm text-muted-foreground">
+            Not ready to decide?{' '}
+            <button
+              type="button"
+              onClick={startTrial}
+              disabled={busy}
+              className="font-medium text-foreground underline underline-offset-4 transition-colors hover:text-primary disabled:opacity-50"
+            >
+              {startingTrial
+                ? 'Starting your trial…'
+                : `Skip and start a ${TRIAL_DAYS}-day free trial`}
+            </button>
+          </p>
+        )}
+
+        {/* The activation-code way in. Only offered to a lapsed account —
+            a brand-new owner has no code to redeem yet, and it would just
+            be noise on the welcome path. Redeeming turns a plan on with no
+            payment; on success we reload into the app so the middleware
+            re-evaluates the (now live) plan. */}
+        {lapsed &&
+          (showCode ? (
+            <div className="mx-auto mt-10 max-w-md">
+              <ActivationCodeCard onRedeemed={goToApp} />
+            </div>
+          ) : (
+            <p className="mt-10 text-center text-sm text-muted-foreground">
+              Have an activation code?{' '}
+              <button
+                type="button"
+                onClick={() => setShowCode(true)}
+                className="font-medium text-foreground underline underline-offset-4 transition-colors hover:text-primary"
+              >
+                Enter it here
+              </button>
+            </p>
+          ))}
 
         <div className="mx-auto mt-8 flex max-w-2xl items-center justify-center gap-2 text-center text-[11px] text-muted-foreground">
           <ShieldCheck className="size-3.5 shrink-0" />

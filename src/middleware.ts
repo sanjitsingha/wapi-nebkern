@@ -1,6 +1,11 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+import {
+  computeSubscription,
+  type AccountSubscriptionRow,
+} from '@/lib/billing/subscription';
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -214,19 +219,35 @@ export async function middleware(request: NextRequest) {
 
     let profileComplete: boolean;
     let onboarded: boolean;
+    // The subscription-bearing fields computeSubscription reads. Mirrored
+    // into app_metadata by migration 087, so the expiry gate below costs no
+    // query in the common case. subscription_status is NOT NULL in the
+    // schema, so a string here is the tell that 087's keys are present;
+    // trial_ends_at is legitimately null for a paid account that never
+    // trialed, and plan is always set.
+    let subRow: AccountSubscriptionRow | null;
 
     if (
       typeof meta?.profile_complete === 'boolean' &&
-      typeof meta?.onboarded === 'boolean'
+      typeof meta?.onboarded === 'boolean' &&
+      typeof meta?.subscription_status === 'string'
     ) {
       profileComplete = meta.profile_complete;
       onboarded = meta.onboarded;
+      subRow = {
+        plan: typeof meta.plan === 'string' ? meta.plan : null,
+        subscription_status: meta.subscription_status,
+        trial_ends_at:
+          typeof meta.trial_ends_at === 'string' ? meta.trial_ends_at : null,
+      };
     } else {
-      // Fallback for sessions predating 079, and for the window during
+      // Fallback for sessions predating 079/087, and for the window during
       // signup before the trigger has stamped the row.
       const { data: prof } = await supabase
         .from('profiles')
-        .select('profile_completed_at, account:accounts!inner(onboarded_at)')
+        .select(
+          'profile_completed_at, account:accounts!inner(onboarded_at, plan, subscription_status, trial_ends_at)',
+        )
         .eq('user_id', user.id)
         .maybeSingle();
       // Supabase surfaces an !inner join as an object or a single-element
@@ -234,11 +255,20 @@ export async function middleware(request: NextRequest) {
       const accountRow = Array.isArray(prof?.account)
         ? prof?.account[0]
         : prof?.account;
-      // Fail OPEN on both: a missing profile row, a pre-070/073 fork
+      // Fail OPEN on all of these: a missing profile row, a pre-070/073 fork
       // without the column, or a transient read error must never trap a
-      // user behind a gate they have no way to clear.
+      // user behind a gate they have no way to clear. A null subRow makes
+      // computeSubscription report 'active' (hasAccess), so the expiry gate
+      // fails open too.
       onboarded = accountRow ? accountRow.onboarded_at != null : true;
       profileComplete = prof ? prof.profile_completed_at != null : true;
+      subRow = accountRow
+        ? {
+            plan: accountRow.plan,
+            subscription_status: accountRow.subscription_status,
+            trial_ends_at: accountRow.trial_ends_at,
+          }
+        : null;
     }
 
     const redirectTo = (pathname: string) => {
@@ -252,12 +282,31 @@ export async function middleware(request: NextRequest) {
       // Details outrank the plan step — someone with both pending goes
       // to /welcome first, including when they land on /onboarding.
       if (!onWelcome) return redirectTo('/welcome');
+    } else if (!onboarded) {
+      // Hasn't chosen a plan or started a trial yet — the one-time gate.
+      if (onWelcome || !onOnboarding) return redirectTo('/onboarding');
     } else {
-      // Done with it; don't let them sit on the gate. Hand them
-      // straight to the next one so this isn't a double redirect.
-      if (onWelcome) return redirectTo(onboarded ? '/dashboard' : '/onboarding');
-      if (!onboarded && !onOnboarding) return redirectTo('/onboarding');
-      if (onboarded && onOnboarding) return redirectTo('/dashboard');
+      // Onboarded. A second, ONGOING gate now applies: has the plan lapsed?
+      // Trial expiry is folded in on read, so this catches a trial that ran
+      // out just as much as a paid plan gone canceled/past_due/expired.
+      const { hasAccess } = computeSubscription(subRow);
+
+      if (onWelcome) return redirectTo(hasAccess ? '/dashboard' : '/onboarding');
+
+      if (hasAccess) {
+        // Live plan — don't let them linger on the paywall.
+        if (onOnboarding) return redirectTo('/dashboard');
+      } else {
+        // Lapsed. /onboarding is the paywall (it reads the same state and
+        // shows the "no active plan" copy). Settings and invoices stay
+        // reachable so the owner can pay or review billing from there too;
+        // everything else in the app is sent to the paywall.
+        const allowedWhileLapsed =
+          onOnboarding ||
+          request.nextUrl.pathname.startsWith('/settings') ||
+          request.nextUrl.pathname.startsWith('/invoices');
+        if (!allowedWhileLapsed) return redirectTo('/onboarding');
+      }
     }
   }
 

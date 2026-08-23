@@ -137,19 +137,37 @@ export function computeSubscription(account: AccountRow): SubscriptionState { �
 
 ### 5.2 Gate policy (what "expired" blocks)
 
-Because there is **no checkout yet**, a hard paywall would lock users out with no
-way to pay. Recommended for this pass:
+**Updated (Razorpay checkout has shipped).** The original soft gate existed only
+because there was no way to pay; with checkout live, a lapsed account is now
+**hard-gated** at the route level (migration 087 + `src/middleware.ts`):
 
-- **Read stays available.** Users can still see their data.
-- **Costly / outward actions are blocked** when `!hasAccess`: sending messages,
-  launching broadcasts, running automations/flows that send. These already funnel
-  through a few server routes (`/api/whatsapp/send`, `/api/whatsapp/broadcast`,
-  the automations/flows senders), so a single `requireActiveSubscription()` guard
-  covers them.
-- A persistent, non-dismissible **"trial ended"** banner points to "choose a plan"
-  (which is a stub until checkout ships).
+- **The whole in-app surface redirects to the paywall** (`/onboarding`, which
+  reads the same state and renders "No active plan") when `!hasAccess` — a trial
+  that ran out, or a paid plan gone `canceled` / `past_due` / `expired`.
+- **Settings and invoices stay reachable** (`/settings/*`, `/invoices/*`) so the
+  owner can pay or review billing from there as well as from the paywall.
+- **The middleware pays no query for this.** Migration 087 mirrors
+  `plan` / `subscription_status` / `trial_ends_at` into `app_metadata` (extending
+  079); `computeSubscription` runs against those in the gate. Trial expiry is
+  time-based off the mirrored `trial_ends_at`, so no cron is needed for
+  correctness.
+- **The send/broadcast 402 guard stays** as defense in depth: the routes still
+  call `assertActiveSubscription`, so a background sender or a stale tab can't
+  slip an outward action past the gate.
 
-*(This strictness is an open decision — see §8.)*
+The earlier soft-gate design is preserved below for history.
+
+> Because there is **no checkout yet**, a hard paywall would lock users out with no
+> way to pay. Recommended for this pass:
+>
+> - **Read stays available.** Users can still see their data.
+> - **Costly / outward actions are blocked** when `!hasAccess`: sending messages,
+>   launching broadcasts, running automations/flows that send. These already funnel
+>   through a few server routes (`/api/whatsapp/send`, `/api/whatsapp/broadcast`,
+>   the automations/flows senders), so a single `requireActiveSubscription()` guard
+>   covers them.
+> - A persistent, non-dismissible **"trial ended"** banner points to "choose a plan"
+>   (which is a stub until checkout ships).
 
 ```ts
 // implemented: src/lib/billing/guard.ts
@@ -221,7 +239,10 @@ Steps 1–4 give a visible, working trial countdown. 5–6 add enforcement.
 ## 8. Decisions (resolved)
 
 1. **Existing accounts:** ✅ grandfather to `active` — new signups get the trial.
-2. **Expiry strictness now:** ✅ block sends/broadcasts on expiry via
-   `requireActiveSubscription()`; app stays readable; "trial ended" banner shown.
+2. **Expiry strictness now:** ✅ **hard gate** (revised once Razorpay checkout
+   shipped). A lapsed account is redirected to the paywall (`/onboarding`) from
+   the whole in-app surface, with Settings/invoices kept reachable to pay. The
+   send/broadcast 402 guard remains underneath. *(Superseded the original
+   sends-only soft gate.)*
 3. **Trial length:** ✅ 14 days (kept as a single const for easy change).
 ```
