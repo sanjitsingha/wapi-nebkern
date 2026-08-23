@@ -41,6 +41,15 @@
 //
 // The second copy is `aria-hidden`, and the strip is a real <ul>, so a
 // screen reader hears sixteen industries once rather than thirty-two.
+//
+// THE TILT
+//
+// The band is rotated 2deg counter-clockwise, so its right end rides up
+// and it cuts a diagonal across the two white sections it sits between.
+// Two degrees and not one: a tilt small enough to be mistaken for a
+// rendering fault is worse than none, and this has to read as a choice.
+// Everything inside rotates with it, so the names stay parallel to the
+// band's own edges rather than sitting level inside a slanted box.
 // ============================================================
 
 const INDUSTRIES = [
@@ -73,31 +82,53 @@ export function Lp2Industries() {
   // that reads — a hard, un-blurred ink edge along the bottom — so that
   // is what this asks for, at the same 4px and the same ink.
   //
-  // z-10 is load-bearing. The shadow is painted outside the border box,
-  // over whatever follows, and what follows is <Lp2Features> on solid
-  // white — a later sibling, so it wins the paint order by default and
-  // would cover the shadow completely. Raising this band puts it back.
+  // z-10 is load-bearing, and now sits on the wrapper rather than the
+  // band — a rotated element opens its own stacking context, so the
+  // z-index has to be applied outside it to have anything to act on.
+  // The shadow is painted beyond the border box, over whatever follows,
+  // and what follows is <Lp2Features> on solid white — a later sibling,
+  // so it wins the paint order by default and would cover the shadow
+  // completely. Raising this puts it back.
   return (
-    <section
-      id="industries"
-      className="relative z-10 scroll-mt-28 overflow-hidden bg-(--lp2-lemon) py-12 shadow-[0_4px_0_var(--lp2-ink)] sm:py-16"
-    >
-      <ChatDoodles />
+    // The tilt's overhang, clipped on one axis only.
+    //
+    // `overflow-x-clip` rather than `overflow-hidden`: hiding one axis
+    // makes the element a scroll container and coerces the other axis to
+    // `auto`, which would trap the band's rotated corners inside a box
+    // instead of letting them spill over the hero above and the features
+    // section below. That vertical overlap is the whole point of a
+    // tilted band. `clip` carries no such side effect, so the horizontal
+    // overhang is cut — no stray page-wide scrollbar — and the vertical
+    // one survives.
+    <div className="relative z-10 overflow-x-clip">
+      <section
+        id="industries"
+        // Wider than its container by a fixed 32px each side. Rotating a
+        // rectangle about its centre pulls two of its corners inward by
+        // (height / 2) x sin(angle) — about 5px here — so a band held to
+        // exactly 100% would leave a wedge of the page showing through
+        // at each end. Absolute units, not a percentage: the gap depends
+        // on the band's height, which barely moves, while a percentage
+        // would shrink with the viewport and run out on a phone.
+        className="relative -ml-8 w-[calc(100%+4rem)] -rotate-2 scroll-mt-28 overflow-hidden bg-(--lp2-lemon) py-12 shadow-[0_4px_0_var(--lp2-ink)] sm:py-16"
+      >
+        <ChatDoodles />
 
-      {/* One muted line instead of a section heading. A display-size
-          title with a highlight box would give this band more weight
-          than the hero above it. */}
-      <p className="relative px-4 text-center text-2xl text-pretty text-(--lp2-ink-soft) sm:text-3xl">
-        Built for every business that sells over chat
-      </p>
+        {/* One muted line instead of a section heading. A display-size
+            title with a highlight box would give this band more weight
+            than the hero above it. */}
+        <p className="relative px-4 text-center text-2xl text-pretty text-(--lp2-ink-soft) sm:text-3xl">
+          Built for every business that sells over chat
+        </p>
 
-      {/* Full-bleed, outside any max-width wrapper: a ticker that stops
-          short of the viewport edge looks like a broken carousel rather
-          than something running past. */}
-      <div className="relative mt-8">
-        <MarqueeRow />
-      </div>
-    </section>
+        {/* Full-bleed, outside any max-width wrapper: a ticker that
+            stops short of the viewport edge looks like a broken carousel
+            rather than something running past. */}
+        <div className="relative mt-8">
+          <MarqueeRow />
+        </div>
+      </section>
+    </div>
   );
 }
 
