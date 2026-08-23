@@ -11,6 +11,7 @@ import { PresenceHeartbeat } from '@/components/presence/presence-heartbeat';
 import { TrialBanner } from '@/components/billing/trial-banner';
 import { AppPopup } from '@/components/layout/app-popup';
 import { AnnouncementBar } from '@/components/layout/announcement-bar';
+import { WhatsAppConnectBanner } from '@/components/layout/whatsapp-connect-banner';
 import { WalkthroughProvider } from '@/components/walkthrough/walkthrough-provider';
 import { CallCenterProvider } from '@/components/calls/call-center';
 import { CookieConsentModal } from '@/components/consent/cookie-consent-modal';
@@ -85,6 +86,12 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
       <AnnouncementBar />
       {/* Trial/subscription status bar, below the announcement bar */}
       <TrialBanner />
+      {/* Setup nudge, last of the three bars. Below the trial banner on
+          purpose: an account that has not paid has a more pressing
+          problem than one that has not connected a number, and the two
+          only overlap during a trial. Renders nothing for anyone who
+          cannot change settings, or once a number is connected. */}
+      <WhatsAppConnectBanner />
       {/* Sidebar + main content side-by-side below the header */}
       <div className="flex flex-1 overflow-hidden">
         <Suspense fallback={null}>
