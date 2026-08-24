@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Lp2Announce } from './announce';
 import { ArrowRight, ChevronDown, Menu, X } from 'lucide-react';
 
@@ -180,17 +181,22 @@ function Logo() {
  * bare one under a typed "Ask" — so the alt text is the accessible
  * name and nothing repeats it in the DOM.
  */
-function MayaNavLink({ href }: { href: string }) {
+function MayaNavLink({ href, active }: { href: string; active?: boolean }) {
   return (
     <Link
       href={href}
+      aria-current={active ? 'page' : undefined}
       className={cn(
         // Height is pinned rather than left to the padding. The typed
         // "Ask" used to set it — a 24px line box that happened to land
         // the pill at 40px — and with the word gone the lockup alone
         // would have collapsed it to 29px, short beside the h-10 CTA.
-        'group/maya inline-flex h-10 items-center rounded-full border-2 border-(--lp2-maya)/35 bg-(--lp2-maya-soft)/60 px-3.5 outline-none',
+        'group/maya inline-flex h-10 items-center rounded-full border-2 px-3.5 outline-none',
         'transition-colors duration-150 hover:border-(--lp2-maya)/70 hover:bg-(--lp2-maya-soft) focus-visible:border-(--lp2-maya)/70 focus-visible:bg-(--lp2-maya-soft)',
+        // The active page wears the lit state permanently.
+        active
+          ? 'border-(--lp2-maya)/70 bg-(--lp2-maya-soft)'
+          : 'border-(--lp2-maya)/35 bg-(--lp2-maya-soft)/60',
       )}
     >
       {/* The whole name in one mark, so "ask" is drawn rather than set
@@ -276,15 +282,21 @@ function FeaturesMenu() {
  */
 function ResourcesMenu({
   items,
+  active,
 }: {
   items: { label: string; desc: string; href: string }[];
+  active?: boolean;
 }) {
   return (
     <div className="group/res relative">
       <button
         type="button"
         aria-haspopup="true"
-        className="flex items-center gap-1 rounded-lg px-3 py-2 text-base font-semibold transition-colors duration-150 outline-none group-focus-within/res:bg-(--lp2-ink)/5 group-hover/res:bg-(--lp2-ink)/5"
+        aria-current={active ? 'page' : undefined}
+        className={cn(
+          'flex items-center gap-1 rounded-lg px-3 py-2 text-base font-semibold transition-colors duration-150 outline-none group-focus-within/res:bg-(--lp2-ink)/5 group-hover/res:bg-(--lp2-ink)/5',
+          active && 'bg-(--lp2-ink)/8 text-(--lp2-ink)',
+        )}
       >
         Resources
         <ChevronDown
@@ -315,6 +327,18 @@ function ResourcesMenu({
 
 export function Lp2Nav() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+
+  // A link is "active" when the current path is it or sits under it.
+  // Home/anchor links (href '/#…' → base '/') never light up — they're
+  // section jumps, not a page you can be "on".
+  const isActive = (href: string) => {
+    const base = href.split('#')[0];
+    if (!base || base === '/') return false;
+    return pathname === base || pathname.startsWith(base + '/');
+  };
+  const isGroupActive = (item: (typeof NAV)[number]) =>
+    isActive(item.href) || !!item.children?.some((c) => isActive(c.href));
 
   return (
     <>
@@ -332,20 +356,42 @@ export function Lp2Nav() {
               item.label === 'Features' ? (
                 <FeaturesMenu key="features" />
               ) : item.children ? (
-                <ResourcesMenu key={item.label} items={item.children} />
+                <ResourcesMenu
+                  key={item.label}
+                  items={item.children}
+                  active={isGroupActive(item)}
+                />
               ) : item.href === '/ask-maya' ? (
-                <MayaNavLink key={item.label} href={item.href} />
+                <MayaNavLink
+                  key={item.label}
+                  href={item.href}
+                  active={isActive(item.href)}
+                />
               ) : (
                 <Link
                   key={item.label}
                   href={item.href}
+                  aria-current={isActive(item.href) ? 'page' : undefined}
                   // Each link used to hover into its own colour, lift half
                   // a pixel and grow a 2px outline. Five different hover
                   // colours in one row is a lot of personality for a nav
                   // bar whose job is to get out of the way; one quiet wash
                   // does the same work. The hues live on in the mobile
                   // sheet's bullets, where they identify rather than shout.
-                  className="rounded-lg px-3 py-2 text-base font-semibold transition-colors duration-150 outline-none hover:bg-(--lp2-ink)/5 focus-visible:bg-(--lp2-ink)/5"
+                  //
+                  // The active page keeps a permanent wash and a yellow
+                  // underline — the one place the palette still earns a
+                  // job on desktop.
+                  style={
+                    isActive(item.href)
+                      ? { textDecorationColor: 'var(--lp2-lemon)' }
+                      : undefined
+                  }
+                  className={cn(
+                    'rounded-lg px-3 py-2 text-base font-semibold transition-colors duration-150 outline-none hover:bg-(--lp2-ink)/5 focus-visible:bg-(--lp2-ink)/5',
+                    isActive(item.href) &&
+                      'text-(--lp2-ink) underline decoration-2 underline-offset-[6px]',
+                  )}
                 >
                   {item.label}
                 </Link>
@@ -402,11 +448,14 @@ export function Lp2Nav() {
         {open && (
           <div className="border-t border-(--lp2-ink)/12 bg-white lg:hidden">
             <ul className="mx-auto max-w-7xl space-y-1 px-4 py-3 sm:px-6">
-              {NAV.map((item) => (
+              {NAV.map((item) => {
+                const active = isGroupActive(item);
+                return (
                 <li key={item.label}>
                   <Link
                     href={item.href}
                     onClick={() => setOpen(false)}
+                    aria-current={active ? 'page' : undefined}
                     className={cn(
                       'flex items-center gap-3 rounded-2xl px-3 py-3 text-base font-bold transition-colors hover:bg-(--lp2-cream)',
                       // Maya gets the tint here too, so the row that is
@@ -417,6 +466,12 @@ export function Lp2Nav() {
                       // without turning the sheet into a colour chart.
                       item.href === '/ask-maya' &&
                         'bg-(--lp2-maya-soft)/50 hover:bg-(--lp2-maya-soft)',
+                      // Active page: a permanent wash so the current row
+                      // stands out in the list.
+                      active &&
+                        (item.href === '/ask-maya'
+                          ? 'bg-(--lp2-maya-soft)'
+                          : 'bg-(--lp2-ink)/8'),
                     )}
                   >
                     <span
@@ -441,7 +496,12 @@ export function Lp2Nav() {
                           <Link
                             href={child.href}
                             onClick={() => setOpen(false)}
-                            className="block rounded-xl px-3 py-2 text-lg font-semibold text-(--lp2-ink-soft) transition-colors hover:bg-(--lp2-cream) hover:text-(--lp2-ink)"
+                            aria-current={isActive(child.href) ? 'page' : undefined}
+                            className={cn(
+                              'block rounded-xl px-3 py-2 text-lg font-semibold text-(--lp2-ink-soft) transition-colors hover:bg-(--lp2-cream) hover:text-(--lp2-ink)',
+                              isActive(child.href) &&
+                                'bg-(--lp2-cream) text-(--lp2-ink)',
+                            )}
                           >
                             {child.label}
                           </Link>
@@ -450,7 +510,8 @@ export function Lp2Nav() {
                     </ul>
                   )}
                 </li>
-              ))}
+                );
+              })}
             </ul>
 
             <div className="mx-auto max-w-7xl px-4 pb-4 sm:px-6">

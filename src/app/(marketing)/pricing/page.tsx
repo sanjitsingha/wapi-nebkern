@@ -9,7 +9,6 @@ import {
   HowMayaWorks,
   AddonsBlock,
   CompetitorComparison,
-  FairUsePolicy,
   PricingFaq,
   PricingFinalCta,
 } from '@/components/lp2/pricing-page';
@@ -37,7 +36,6 @@ export default function PricingPage() {
         <HowMayaWorks />
         <AddonsBlock />
         <CompetitorComparison />
-        <FairUsePolicy />
         <PricingFaq />
         <PricingFinalCta />
       </main>

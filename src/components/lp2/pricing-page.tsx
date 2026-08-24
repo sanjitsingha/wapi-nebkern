@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Check } from 'lucide-react';
+import { ArrowRight, Check, Info } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import {
@@ -34,7 +34,7 @@ export function PricingHero() {
     <section className="relative -mt-19 overflow-hidden bg-(--lp2-mint) pt-19 sm:-mt-20 sm:pt-20">
       <DotField />
 
-      <div className="relative mx-auto max-w-4xl px-4 pt-14 pb-16 text-center sm:px-6 sm:pt-20 sm:pb-20">
+      <div className="relative mx-auto max-w-5xl px-4 pt-14 pb-16 text-center sm:px-6 sm:pt-20 sm:pb-20">
         <span
           className="inline-flex items-center gap-2 rounded-full border-2 border-(--lp2-ink) bg-white px-3.5 py-1.5 text-xs font-bold shadow-(--lp2-shadow-sm)"
           style={{ transform: 'rotate(-1.5deg)' }}
@@ -43,12 +43,13 @@ export function PricingHero() {
           Maya included · unlimited AI replies · zero markup on Meta
         </span>
 
-        <h1 className="lp2-display mt-6 text-4xl leading-[1.08] font-extrabold text-balance sm:text-6xl">
-          WhatsApp API with Maya AI, at prices that{' '}
+        <h1 className="lp2-display mx-auto mt-6 max-w-5xl text-4xl leading-[1.08] font-extrabold text-pretty sm:text-6xl">
+          WhatsApp API with Maya AI,
+          <br className="hidden sm:block" /> at prices that{' '}
           <Highlight color="lemon">actually make sense</Highlight>.
         </h1>
 
-        <p className="mx-auto mt-6 max-w-2xl text-xl leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-2xl">
+        <p className="mx-auto mt-6 max-w-3xl text-xl leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-2xl">
           A flat platform fee, and every rupee you send to Meta goes to Meta —
           passed through at cost, with no hidden markup, ever.
         </p>
@@ -206,6 +207,35 @@ export function HowMayaWorks() {
             </div>
           ))}
         </div>
+
+        {/* Fair-use lives here now, as one quiet line with a hover/focus
+            info box, instead of its own section. CSS-only (peer-hover),
+            so this section stays server-rendered. */}
+        <p className="mt-6 flex items-center justify-center gap-1.5 text-center text-sm font-semibold text-(--lp2-ink-soft)">
+          &ldquo;Unlimited&rdquo; Maya replies are subject to fair use
+          <span className="relative inline-flex">
+            <button
+              type="button"
+              aria-label={FAIR_USE.title}
+              aria-describedby="maya-fairuse"
+              className="peer inline-flex size-4 items-center justify-center rounded-full text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink) focus-visible:text-(--lp2-ink) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--lp2-ink)"
+            >
+              <Info className="size-4" strokeWidth={2.5} />
+            </button>
+            <span
+              id="maya-fairuse"
+              role="tooltip"
+              className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 w-72 max-w-[85vw] -translate-x-1/2 rounded-xl border-2 border-(--lp2-ink) bg-(--lp2-ink) px-3.5 py-3 text-left opacity-0 shadow-(--lp2-shadow-sm) transition-opacity duration-150 peer-hover:opacity-100 peer-focus-visible:opacity-100"
+            >
+              <span className="block text-xs font-extrabold text-white">
+                {FAIR_USE.title}
+              </span>
+              <span className="mt-1 block text-xs leading-relaxed font-medium text-white/85">
+                {FAIR_USE.body}
+              </span>
+            </span>
+          </span>
+        </p>
       </div>
     </section>
   );
@@ -320,28 +350,6 @@ export function CompetitorComparison() {
         <p className="mt-6 text-center text-xs leading-relaxed text-(--lp2-ink-soft)">
           {footnote}
         </p>
-      </div>
-    </section>
-  );
-}
-
-/* ═══════════════════════ Fair-use policy ════════════════════════ */
-
-export function FairUsePolicy() {
-  return (
-    <section className="bg-white py-14">
-      <div className="mx-auto max-w-3xl px-4 sm:px-6">
-        <details className="group rounded-xl border-2 border-(--lp2-ink) bg-(--lp2-lemon-soft)">
-          <summary className="flex cursor-pointer list-none items-center gap-3 px-5 py-4 text-base font-bold [&::-webkit-details-marker]:hidden">
-            <span className="flex-1">{FAIR_USE.title}</span>
-            <span className="text-xs font-bold text-(--lp2-ink-soft) group-open:hidden">
-              Read
-            </span>
-          </summary>
-          <p className="border-t border-(--lp2-ink)/10 px-5 py-4 text-sm leading-relaxed text-(--lp2-ink-soft)">
-            {FAIR_USE.body}
-          </p>
-        </details>
       </div>
     </section>
   );
