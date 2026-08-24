@@ -1,5 +1,4 @@
 import {
-  Crown,
   Shield,
   UserCog,
   UserIcon,
@@ -21,13 +20,13 @@ import type { ChipVariant } from './settings-chip';
  */
 export const ROLE_META: Record<
   AccountRole,
-  { icon: LucideIcon; label: string; variant: ChipVariant; className: string }
+  { icon: LucideIcon | null; label: string; variant: ChipVariant; className: string }
 > = {
   owner: {
-    icon: Crown,
-    label: 'Owner',
-    variant: 'owner',
-    className: softBadge.amber,
+    icon: null,
+    label: 'Admin',
+    variant: 'muted',
+    className: 'border-border bg-transparent text-foreground',
   },
   admin: {
     icon: Shield,

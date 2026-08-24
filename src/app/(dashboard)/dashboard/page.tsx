@@ -24,10 +24,12 @@ import type {
   ActivityItem,
   ConversationsSeriesPoint,
   DashboardDateRange,
+  DashboardMemberFilter,
   MetricsBundle,
   PipelineDonutData,
   ResponseTimeSummary,
 } from '@/lib/dashboard/types'
+import type { Profile } from '@/types'
 
 import { MetricCard } from '@/components/dashboard/metric-card'
 import { SkeletonCard } from '@/components/dashboard/skeleton'
@@ -36,10 +38,20 @@ import { PipelineDonut } from '@/components/dashboard/pipeline-donut'
 import { ResponseTimeChart } from '@/components/dashboard/response-time-chart'
 import { ActivityFeed } from '@/components/dashboard/activity-feed'
 import { DateRangeSelector } from '@/components/dashboard/date-range-selector'
+import { TeamMemberSelector } from '@/components/dashboard/team-member-selector'
 
 // Default window: the last 30 local days (inclusive of today).
 function defaultRange(): DashboardDateRange {
   return { from: subDays(startOfDay(new Date()), 29), to: startOfDay(new Date()) }
+}
+
+function toMemberFilter(p: Profile | null): DashboardMemberFilter | null {
+  if (!p) return null
+  return {
+    profileId: p.id,
+    userId: p.user_id,
+    name: p.full_name || p.email,
+  }
 }
 
 export default function DashboardPage() {
@@ -48,6 +60,8 @@ export default function DashboardPage() {
   const [metricsLoading, setMetricsLoading] = useState(true)
 
   const [range, setRange] = useState<DashboardDateRange>(defaultRange)
+  const [member, setMember] = useState<Profile | null>(null)
+
   const [series, setSeries] = useState<ConversationsSeriesPoint[] | null>(null)
   const [seriesLoading, setSeriesLoading] = useState(true)
 
@@ -63,49 +77,58 @@ export default function DashboardPage() {
   // Load everything that depends on the selected date range: the metric
   // cards and the conversations series. Each block owns its skeleton so a
   // slow query never blocks a faster one.
-  const loadRangeScoped = useCallback((r: DashboardDateRange) => {
-    const db = createClient()
+  const loadRangeScoped = useCallback(
+    (r: DashboardDateRange, mFilter: DashboardMemberFilter | null) => {
+      const db = createClient()
 
-    setMetricsLoading(true)
-    void loadMetrics(db, r)
-      .then((m) => setMetrics(m))
-      .catch((err) => console.error('[dashboard] metrics failed:', err))
-      .finally(() => setMetricsLoading(false))
+      setMetricsLoading(true)
+      void loadMetrics(db, r, mFilter)
+        .then((m) => setMetrics(m))
+        .catch((err) => console.error('[dashboard] metrics failed:', err))
+        .finally(() => setMetricsLoading(false))
 
-    setSeriesLoading(true)
-    void loadConversationsSeries(db, r)
-      .then((s) => setSeries(s))
-      .catch((err) => console.error('[dashboard] series failed:', err))
-      .finally(() => setSeriesLoading(false))
-  }, [])
+      setSeriesLoading(true)
+      void loadConversationsSeries(db, r, mFilter)
+        .then((s) => setSeries(s))
+        .catch((err) => console.error('[dashboard] series failed:', err))
+        .finally(() => setSeriesLoading(false))
+    },
+    [],
+  )
 
-  const loadRangeIndependent = useCallback(() => {
-    const db = createClient()
+  const loadRangeIndependent = useCallback(
+    (mFilter: DashboardMemberFilter | null) => {
+      const db = createClient()
 
-    void loadResponseTime(db)
-      .then((rt) => setResponseTime(rt))
-      .catch((err) => console.error('[dashboard] response time failed:', err))
-      .finally(() => setResponseTimeLoading(false))
+      setResponseTimeLoading(true)
+      void loadResponseTime(db, mFilter)
+        .then((rt) => setResponseTime(rt))
+        .catch((err) => console.error('[dashboard] response time failed:', err))
+        .finally(() => setResponseTimeLoading(false))
 
-    void loadPipelineDonut(db)
-      .then((p) => setPipeline(p))
-      .catch((err) => console.error('[dashboard] pipeline failed:', err))
-      .finally(() => setPipelineLoading(false))
+      setPipelineLoading(true)
+      void loadPipelineDonut(db, mFilter)
+        .then((p) => setPipeline(p))
+        .catch((err) => console.error('[dashboard] pipeline failed:', err))
+        .finally(() => setPipelineLoading(false))
 
-    // Fetch up to 50 so the biggest page-size option in the feed
-    // (50 rows) is already in memory — switching sizes then becomes
-    // a pure client-side slice with no extra round trip.
-    void loadActivity(db, 50)
-      .then((a) => setActivity(a))
-      .catch((err) => console.error('[dashboard] activity failed:', err))
-      .finally(() => setActivityLoading(false))
-  }, [])
+      // Fetch up to 50 so the biggest page-size option in the feed
+      // (50 rows) is already in memory — switching sizes then becomes
+      // a pure client-side slice with no extra round trip.
+      setActivityLoading(true)
+      void loadActivity(db, 50, mFilter)
+        .then((a) => setActivity(a))
+        .catch((err) => console.error('[dashboard] activity failed:', err))
+        .finally(() => setActivityLoading(false))
+    },
+    [],
+  )
 
   useEffect(() => {
-    // Initial load uses the default range.
-    loadRangeScoped(range)
-    loadRangeIndependent()
-    // Mount-only: the selector's onChange handles subsequent range
+    // Initial load uses the default range and all team members.
+    loadRangeScoped(range, null)
+    loadRangeIndependent(null)
+    // Mount-only: the selector onChange handles subsequent range/member
     // switches so the setState calls stay out of the
     // set-state-in-effect rule's way.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -116,9 +139,20 @@ export default function DashboardPage() {
   const handleRangeChange = useCallback(
     (r: DashboardDateRange) => {
       setRange(r)
-      loadRangeScoped(r)
+      loadRangeScoped(r, toMemberFilter(member))
     },
-    [loadRangeScoped],
+    [loadRangeScoped, member],
+  )
+
+  // Team member switch handler
+  const handleMemberChange = useCallback(
+    (m: Profile | null) => {
+      setMember(m)
+      const mFilter = toMemberFilter(m)
+      loadRangeScoped(range, mFilter)
+      loadRangeIndependent(mFilter)
+    },
+    [loadRangeScoped, loadRangeIndependent, range],
   )
 
   // Delta comparison copy, e.g. "vs previous 30 days".
@@ -137,11 +171,18 @@ export default function DashboardPage() {
             Live analytics across conversations, contacts, deals, broadcasts, and automations.
           </p>
         </div>
-        <DateRangeSelector
-          value={range}
-          onChange={handleRangeChange}
-          disabled={metricsLoading || seriesLoading}
-        />
+        <div className="flex flex-wrap items-center gap-2.5">
+          <TeamMemberSelector
+            value={member}
+            onChange={handleMemberChange}
+            disabled={metricsLoading || seriesLoading}
+          />
+          <DateRangeSelector
+            value={range}
+            onChange={handleRangeChange}
+            disabled={metricsLoading || seriesLoading}
+          />
+        </div>
       </div>
 
       {/* Metric cards */}

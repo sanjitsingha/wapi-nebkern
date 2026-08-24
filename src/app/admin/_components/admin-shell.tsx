@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   Users,
   UserCog,
-  CreditCard,
   KeyRound,
   Bell,
   Megaphone,
@@ -17,12 +16,13 @@ import {
   Inbox,
   Mails,
   LifeBuoy,
-  Activity,
   LogOut,
   QrCode,
   Menu,
   Search,
   X,
+  Clock,
+  Gauge,
 } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
@@ -64,7 +64,10 @@ const NAV: {
   {
     group: 'Revenue',
     items: [
-      { label: 'Plans', href: '/admin/plans', icon: CreditCard },
+      // Plans are fixed (defined in code + seeded in the DB), so there is
+      // no plan editor here. Assigning a plan to an account is done from
+      // the account page's manual-billing editor, which reads the same
+      // seeded plans.
       {
         label: 'Activation codes',
         href: '/admin/activation-codes',
@@ -94,7 +97,9 @@ const NAV: {
   },
   {
     group: 'Platform',
-    items: [{ label: 'System', href: '/admin/system', icon: Activity }],
+    items: [
+      { label: 'Usage & Quotas', href: '/admin/usage', icon: Gauge },
+    ],
   },
 ];
 
@@ -102,12 +107,43 @@ const PALETTE_PAGES = NAV.flatMap((g) =>
   g.items.map((i) => ({ label: i.label, href: i.href, group: g.group }))
 );
 
+function AdminClock() {
+  const [time, setTime] = useState<string>('');
+
+  useEffect(() => {
+    const update = () => {
+      const d = new Date();
+      setTime(
+        d.toLocaleTimeString(undefined, {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true,
+        })
+      );
+    };
+    update();
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <span
+      className="text-muted-foreground hidden items-center gap-1.5 font-mono text-[11px] tabular-nums sm:inline-flex"
+      title="Current System Time"
+    >
+      <Clock className="size-3.5 opacity-70" />
+      {time || '--:--:--'}
+    </span>
+  );
+}
+
 export function AdminShell({
-  email,
+  email: _email,
   accounts,
   children,
 }: {
-  email: string | null;
+  email?: string | null;
   /** For ⌘K. Already in the layout's cache, so this is not a new read. */
   accounts: PaletteTarget[];
   children: React.ReactNode;
@@ -292,9 +328,7 @@ export function AdminShell({
             >
               <Search className="size-4" />
             </button>
-            <span className="text-muted-foreground hidden font-mono text-[11px] sm:inline">
-              {email}
-            </span>
+            <AdminClock />
             <Button
               type="button"
               variant="outline"

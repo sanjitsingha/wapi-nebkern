@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Sparkles, AlertTriangle } from 'lucide-react';
+import { Timer, AlertTriangle } from 'lucide-react';
 import type { SubscriptionState } from '@/lib/billing/subscription';
 
 /**
@@ -72,7 +72,7 @@ export function TrialStatusChip() {
         }
         className={`${shell} border-amber-500/40 bg-amber-500/15 text-amber-950 hover:bg-amber-500/25`}
       >
-        <Sparkles className="size-3.5 shrink-0" />
+        <Timer className="size-3.5 shrink-0" />
         {d > 0 ? (
           <>
             <span className="hidden sm:inline">

@@ -3,7 +3,7 @@
 import { Suspense, useState } from 'react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ShieldCheck, Loader2 } from 'lucide-react';
+import { Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
 import { LOGO_URL, logoWidthFor } from '@/lib/brand';
@@ -21,6 +21,7 @@ function AdminLoginInner() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(initialError);
 
@@ -58,27 +59,25 @@ function AdminLoginInner() {
   return (
     <div className="bg-background flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <div className="mb-6 flex flex-col items-center gap-3 text-center">
-          <Image
-            src={LOGO_URL}
-            alt="Instant"
-            width={logoWidthFor(32)}
-            height={32}
-            priority
-          />
-          {/* The shield moved inline with the heading rather than
-              sitting in its own tile above it — with a real logo on the
-              page, two stacked marks read as clutter, but the "this is
-              a restricted area" cue is still worth keeping. */}
-          <div className="flex flex-col items-center gap-1">
-            <h1 className="text-foreground flex items-center gap-1.5 text-lg font-semibold">
-              <ShieldCheck className="text-primary size-4" />
-              Admin panel
+        <div className="mb-6 flex flex-col items-center gap-2 text-center">
+          <div className="flex items-center justify-center gap-2.5">
+            <Image
+              src={LOGO_URL}
+              alt="Instant"
+              width={logoWidthFor(28)}
+              height={28}
+              priority
+            />
+            <span className="text-muted-foreground/40 text-base select-none" aria-hidden="true">
+              |
+            </span>
+            <h1 className="text-foreground text-lg font-semibold">
+              Admin Panel
             </h1>
-            <p className="text-muted-foreground text-sm">
-              Sign in with an authorized admin account.
-            </p>
           </div>
+          <p className="text-muted-foreground text-sm">
+            Sign in with an authorized admin account.
+          </p>
         </div>
 
         <form
@@ -89,29 +88,51 @@ function AdminLoginInner() {
             <Label htmlFor="email" className="text-foreground">
               Email
             </Label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={loading}
-              required
-            />
+            <div className="group relative">
+              <Mail className="text-muted-foreground group-focus-within:text-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 transition-colors" />
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                placeholder="admin@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+                required
+                className="pl-9"
+              />
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="password" className="text-foreground">
               Password
             </Label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-              required
-            />
+            <div className="group relative">
+              <Lock className="text-muted-foreground group-focus-within:text-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 transition-colors" />
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                required
+                className="pl-9 pr-9"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2 transition-colors"
+              >
+                {showPassword ? (
+                  <EyeOff className="size-4" />
+                ) : (
+                  <Eye className="size-4" />
+                )}
+              </button>
+            </div>
           </div>
 
           {error && (

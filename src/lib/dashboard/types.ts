@@ -17,6 +17,19 @@ export interface DashboardDateRange {
   to: Date
 }
 
+/**
+ * Filter criteria for scoping the dashboard to a specific team member.
+ * `null` or `undefined` means account-wide aggregation.
+ */
+export interface DashboardMemberFilter {
+  /** The profile primary key (`profiles.id`), used for deals.assigned_to */
+  profileId?: string | null
+  /** The auth.users UUID (`profiles.user_id`), used for conversations.assigned_agent_id, contacts.user_id, messages */
+  userId?: string | null
+  /** Teammate's display name */
+  name?: string | null
+}
+
 export interface MetricsBundle {
   // Range-scoped counts. `current` covers the selected window; `previous`
   // covers the immediately-preceding window of equal length, so the cards

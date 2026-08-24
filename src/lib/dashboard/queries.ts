@@ -13,6 +13,7 @@ import type {
   ActivityItem,
   ConversationsSeriesPoint,
   DashboardDateRange,
+  DashboardMemberFilter,
   MetricsBundle,
   PipelineDonutData,
   PipelineStageSlice,
@@ -23,9 +24,8 @@ import type {
 // ------------------------------------------------------------
 // All client-side aggregation. RLS scopes every query to the
 // signed-in user automatically, so we never pass user_id explicitly
-// here. Perf is acceptable for the current scale (low thousands of
-// messages) — if a tenant's dataset outgrows this, we'd migrate the
-// heavy aggregations to SQL RPCs. Noted in the PR.
+// for tenancy. When a team member filter is selected, we scope the
+// queries to that specific teammate's assigned items.
 // ------------------------------------------------------------
 
 type DB = SupabaseClient;
@@ -34,7 +34,8 @@ type DB = SupabaseClient;
 
 export async function loadMetrics(
   db: DB,
-  range: DashboardDateRange
+  range: DashboardDateRange,
+  member?: DashboardMemberFilter | null
 ): Promise<MetricsBundle> {
   // The selected window is [from, to] inclusive. We extend `to` to the
   // start of the following day so the upper bound is exclusive and
@@ -46,6 +47,79 @@ export async function loadMetrics(
   const rangeEnd = addLocalDays(range.to, 1).toISOString();
   const prevStart = addLocalDays(range.from, -dayCount).toISOString();
 
+  let curConvQ = db
+    .from('conversations')
+    .select('id', { count: 'exact', head: true })
+    .gte('created_at', rangeStart)
+    .lt('created_at', rangeEnd);
+
+  let prevConvQ = db
+    .from('conversations')
+    .select('id', { count: 'exact', head: true })
+    .gte('created_at', prevStart)
+    .lt('created_at', rangeStart);
+
+  let curContactsQ = db
+    .from('contacts')
+    .select('id', { count: 'exact', head: true })
+    .gte('created_at', rangeStart)
+    .lt('created_at', rangeEnd);
+
+  let prevContactsQ = db
+    .from('contacts')
+    .select('id', { count: 'exact', head: true })
+    .gte('created_at', prevStart)
+    .lt('created_at', rangeStart);
+
+  const curMsgQ = member?.userId
+    ? db
+        .from('messages')
+        .select('id, conversations!inner(assigned_agent_id)', {
+          count: 'exact',
+          head: true,
+        })
+        .eq('sender_type', 'agent')
+        .eq('conversations.assigned_agent_id', member.userId)
+        .gte('created_at', rangeStart)
+        .lt('created_at', rangeEnd)
+    : db
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('sender_type', 'agent')
+        .gte('created_at', rangeStart)
+        .lt('created_at', rangeEnd);
+
+  const prevMsgQ = member?.userId
+    ? db
+        .from('messages')
+        .select('id, conversations!inner(assigned_agent_id)', {
+          count: 'exact',
+          head: true,
+        })
+        .eq('sender_type', 'agent')
+        .eq('conversations.assigned_agent_id', member.userId)
+        .gte('created_at', prevStart)
+        .lt('created_at', rangeStart)
+    : db
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('sender_type', 'agent')
+        .gte('created_at', prevStart)
+        .lt('created_at', rangeStart);
+
+  let dealsQ = db.from('deals').select('value, status').eq('status', 'open');
+
+  if (member?.userId) {
+    curConvQ = curConvQ.eq('assigned_agent_id', member.userId);
+    prevConvQ = prevConvQ.eq('assigned_agent_id', member.userId);
+    curContactsQ = curContactsQ.eq('user_id', member.userId);
+    prevContactsQ = prevContactsQ.eq('user_id', member.userId);
+  }
+
+  if (member?.profileId) {
+    dealsQ = dealsQ.eq('assigned_to', member.profileId);
+  }
+
   const [
     newConvCur,
     newConvPrev,
@@ -55,39 +129,13 @@ export async function loadMetrics(
     messagesPrev,
     openDeals,
   ] = await Promise.all([
-    db
-      .from('conversations')
-      .select('id', { count: 'exact', head: true })
-      .gte('created_at', rangeStart)
-      .lt('created_at', rangeEnd),
-    db
-      .from('conversations')
-      .select('id', { count: 'exact', head: true })
-      .gte('created_at', prevStart)
-      .lt('created_at', rangeStart),
-    db
-      .from('contacts')
-      .select('id', { count: 'exact', head: true })
-      .gte('created_at', rangeStart)
-      .lt('created_at', rangeEnd),
-    db
-      .from('contacts')
-      .select('id', { count: 'exact', head: true })
-      .gte('created_at', prevStart)
-      .lt('created_at', rangeStart),
-    db
-      .from('messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('sender_type', 'agent')
-      .gte('created_at', rangeStart)
-      .lt('created_at', rangeEnd),
-    db
-      .from('messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('sender_type', 'agent')
-      .gte('created_at', prevStart)
-      .lt('created_at', rangeStart),
-    db.from('deals').select('value, status').eq('status', 'open'),
+    curConvQ,
+    prevConvQ,
+    curContactsQ,
+    prevContactsQ,
+    curMsgQ,
+    prevMsgQ,
+    dealsQ,
   ]);
 
   const openDealsRows = (openDeals.data ?? []) as { value: number | null }[];
@@ -118,16 +166,30 @@ export async function loadMetrics(
 
 export async function loadConversationsSeries(
   db: DB,
-  range: DashboardDateRange
+  range: DashboardDateRange,
+  member?: DashboardMemberFilter | null
 ): Promise<ConversationsSeriesPoint[]> {
   const start = startOfLocalDay(range.from).toISOString();
   const end = addLocalDays(range.to, 1).toISOString();
-  const { data, error } = await db
-    .from('messages')
-    .select('created_at, sender_type')
-    .gte('created_at', start)
-    .lt('created_at', end)
-    .order('created_at', { ascending: true });
+
+  const query = member?.userId
+    ? db
+        .from('messages')
+        .select(
+          'created_at, sender_type, conversations!inner(assigned_agent_id)'
+        )
+        .eq('conversations.assigned_agent_id', member.userId)
+        .gte('created_at', start)
+        .lt('created_at', end)
+        .order('created_at', { ascending: true })
+    : db
+        .from('messages')
+        .select('created_at, sender_type')
+        .gte('created_at', start)
+        .lt('created_at', end)
+        .order('created_at', { ascending: true });
+
+  const { data, error } = await query;
   if (error) throw error;
 
   const keys = dayKeysBetween(range.from, range.to);
@@ -153,13 +215,25 @@ export async function loadConversationsSeries(
 
 // --- 3. Pipeline donut -------------------------------------------------
 
-export async function loadPipelineDonut(db: DB): Promise<PipelineDonutData> {
+export async function loadPipelineDonut(
+  db: DB,
+  member?: DashboardMemberFilter | null
+): Promise<PipelineDonutData> {
+  let dealsQ = db
+    .from('deals')
+    .select('stage_id, value, status')
+    .eq('status', 'open');
+
+  if (member?.profileId) {
+    dealsQ = dealsQ.eq('assigned_to', member.profileId);
+  }
+
   const [stagesRes, dealsRes] = await Promise.all([
     db
       .from('pipeline_stages')
       .select('id, name, color, pipeline_id, position')
       .order('position'),
-    db.from('deals').select('stage_id, value, status').eq('status', 'open'),
+    dealsQ,
   ]);
 
   const stages = (stagesRes.data ?? []) as {
@@ -201,7 +275,10 @@ export async function loadPipelineDonut(db: DB): Promise<PipelineDonutData> {
 
 // --- 4. Response time by day of week ----------------------------------
 
-export async function loadResponseTime(db: DB): Promise<ResponseTimeSummary> {
+export async function loadResponseTime(
+  db: DB,
+  member?: DashboardMemberFilter | null
+): Promise<ResponseTimeSummary> {
   // Pull the last 14 days of messages in one shot, then walk per
   // conversation to find each "first inbound" → "first subsequent
   // outbound" pair. This widget is a rolling "this week vs last week"
@@ -209,12 +286,25 @@ export async function loadResponseTime(db: DB): Promise<ResponseTimeSummary> {
   // independent of the dashboard's selected date range (which drives the
   // metric cards + conversations chart instead).
   const fourteenDaysAgo = daysAgoStart(13).toISOString();
-  const { data, error } = await db
-    .from('messages')
-    .select('conversation_id, sender_type, created_at')
-    .gte('created_at', fourteenDaysAgo)
-    .order('conversation_id', { ascending: true })
-    .order('created_at', { ascending: true });
+
+  const query = member?.userId
+    ? db
+        .from('messages')
+        .select(
+          'conversation_id, sender_type, created_at, conversations!inner(assigned_agent_id)'
+        )
+        .eq('conversations.assigned_agent_id', member.userId)
+        .gte('created_at', fourteenDaysAgo)
+        .order('conversation_id', { ascending: true })
+        .order('created_at', { ascending: true })
+    : db
+        .from('messages')
+        .select('conversation_id, sender_type, created_at')
+        .gte('created_at', fourteenDaysAgo)
+        .order('conversation_id', { ascending: true })
+        .order('created_at', { ascending: true });
+
+  const { data, error } = await query;
   if (error) throw error;
 
   const rows = (data ?? []) as {
@@ -300,42 +390,84 @@ export async function loadResponseTime(db: DB): Promise<ResponseTimeSummary> {
 
 export async function loadActivity(
   db: DB,
-  limit = 20
+  limit = 20,
+  member?: DashboardMemberFilter | null
 ): Promise<ActivityItem[]> {
   // Pull ~10 from each source (plenty of headroom after merge-sort),
   // then interleave by timestamp. The individual per-table limits
   // keep the payload small; the final limit is enforced after sort.
+  const msgsQ = member?.userId
+    ? db
+        .from('messages')
+        .select(
+          'id, content_text, sender_type, created_at, conversation_id, conversations!inner(contact_id, assigned_agent_id, contacts(name, phone))'
+        )
+        .eq('sender_type', 'customer')
+        .eq('conversations.assigned_agent_id', member.userId)
+        .order('created_at', { ascending: false })
+        .limit(10)
+    : db
+        .from('messages')
+        .select(
+          'id, content_text, sender_type, created_at, conversation_id, conversations(contact_id, contacts(name, phone))'
+        )
+        .eq('sender_type', 'customer')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+  const contactsQ = member?.userId
+    ? db
+        .from('contacts')
+        .select('id, name, phone, created_at')
+        .eq('user_id', member.userId)
+        .order('created_at', { ascending: false })
+        .limit(10)
+    : db
+        .from('contacts')
+        .select('id, name, phone, created_at')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+  const dealsQ = member?.profileId
+    ? db
+        .from('deals')
+        .select('id, title, updated_at, stage:pipeline_stages(name)')
+        .eq('assigned_to', member.profileId)
+        .order('updated_at', { ascending: false })
+        .limit(10)
+    : db
+        .from('deals')
+        .select('id, title, updated_at, stage:pipeline_stages(name)')
+        .order('updated_at', { ascending: false })
+        .limit(10);
+
+  const broadcastsQ = member?.userId
+    ? db
+        .from('broadcasts')
+        .select('id, name, status, total_recipients, created_at')
+        .eq('user_id', member.userId)
+        .order('created_at', { ascending: false })
+        .limit(5)
+    : db
+        .from('broadcasts')
+        .select('id, name, status, total_recipients, created_at')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+  const autoLogsQ = db
+    .from('automation_logs')
+    .select(
+      'id, trigger_event, status, created_at, automation:automations(name), contact:contacts(name, phone)'
+    )
+    .order('created_at', { ascending: false })
+    .limit(member?.userId ? 5 : 10);
+
   const [msgs, contacts, deals, broadcasts, autoLogs] = await Promise.all([
-    db
-      .from('messages')
-      .select(
-        'id, content_text, sender_type, created_at, conversation_id, conversations(contact_id, contacts(name, phone))'
-      )
-      .eq('sender_type', 'customer')
-      .order('created_at', { ascending: false })
-      .limit(10),
-    db
-      .from('contacts')
-      .select('id, name, phone, created_at')
-      .order('created_at', { ascending: false })
-      .limit(10),
-    db
-      .from('deals')
-      .select('id, title, updated_at, stage:pipeline_stages(name)')
-      .order('updated_at', { ascending: false })
-      .limit(10),
-    db
-      .from('broadcasts')
-      .select('id, name, status, total_recipients, created_at')
-      .order('created_at', { ascending: false })
-      .limit(5),
-    db
-      .from('automation_logs')
-      .select(
-        'id, trigger_event, status, created_at, automation:automations(name), contact:contacts(name, phone)'
-      )
-      .order('created_at', { ascending: false })
-      .limit(10),
+    msgsQ,
+    contactsQ,
+    dealsQ,
+    broadcastsQ,
+    autoLogsQ,
   ]);
 
   const items: ActivityItem[] = [];
