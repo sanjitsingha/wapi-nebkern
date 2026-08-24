@@ -6,6 +6,8 @@ import {
   stopFlowForContact,
 } from '@/lib/flows/engine';
 import { emitWebhookEvent } from '@/lib/webhooks/emit';
+import { logAudit } from '@/lib/audit/log';
+import { AUDIT } from '@/lib/audit/events';
 
 /**
  * POST /api/conversations/[id]/assign
@@ -34,7 +36,7 @@ export async function POST(
 ) {
   try {
     const { id: conversationId } = await params;
-    const { supabase, accountId } = await getCurrentAccount();
+    const { supabase, accountId, userId } = await getCurrentAccount();
 
     const body = (await request.json()) as Body;
 
@@ -42,7 +44,7 @@ export async function POST(
     // scopes to their account) and grab the contact it belongs to.
     const { data: conversation, error: convErr } = await supabase
       .from('conversations')
-      .select('id, contact_id')
+      .select('id, contact_id, contact:contacts(name, phone)')
       .eq('id', conversationId)
       .maybeSingle();
     if (convErr || !conversation) {
@@ -52,6 +54,15 @@ export async function POST(
       );
     }
     const contactId = conversation.contact_id as string;
+    // Supabase returns an embedded to-one as an object or a 1-element array
+    // depending on inferred cardinality — normalise before reading.
+    const contactRow = Array.isArray(conversation.contact)
+      ? conversation.contact[0]
+      : conversation.contact;
+    const contactLabel =
+      (contactRow?.name as string | null) ||
+      (contactRow?.phone as string | null) ||
+      null;
 
     if (body.type === 'flow') {
       // Start the bot first — if it can't run (missing/invalid/inactive
@@ -79,6 +90,23 @@ export async function POST(
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
+
+      const { data: flow } = await supabase
+        .from('flows')
+        .select('name')
+        .eq('id', body.flowId)
+        .maybeSingle();
+      await logAudit({
+        accountId,
+        actorUserId: userId,
+        action: AUDIT.CONVERSATION_ASSIGNED_BOT,
+        targetType: 'conversation',
+        targetId: conversationId,
+        targetLabel: contactLabel,
+        metadata: { bot: flow?.name ?? null, flowId: body.flowId },
+        request,
+      });
+
       return NextResponse.json({
         ok: true,
         assigned_flow_id: body.flowId,
@@ -130,6 +158,17 @@ export async function POST(
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
+
+      await logAudit({
+        accountId,
+        actorUserId: userId,
+        action: AUDIT.CONVERSATION_ASSIGNED_AI,
+        targetType: 'conversation',
+        targetId: conversationId,
+        targetLabel: contactLabel,
+        request,
+      });
+
       return NextResponse.json({
         ok: true,
         assigned_agent_id: null,
@@ -160,6 +199,34 @@ export async function POST(
         conversation_id: conversationId,
         contact_id: contactId,
         agent_id: assigned_agent_id,
+      });
+    }
+
+    if (assigned_agent_id) {
+      const { data: agent } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('user_id', assigned_agent_id)
+        .maybeSingle();
+      await logAudit({
+        accountId,
+        actorUserId: userId,
+        action: AUDIT.CONVERSATION_ASSIGNED_AGENT,
+        targetType: 'conversation',
+        targetId: conversationId,
+        targetLabel: contactLabel,
+        metadata: { assignee: agent?.full_name || agent?.email || null },
+        request,
+      });
+    } else {
+      await logAudit({
+        accountId,
+        actorUserId: userId,
+        action: AUDIT.CONVERSATION_UNASSIGNED,
+        targetType: 'conversation',
+        targetId: conversationId,
+        targetLabel: contactLabel,
+        request,
       });
     }
 

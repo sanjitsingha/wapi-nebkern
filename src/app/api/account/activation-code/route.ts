@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 
 import { requireRole, toErrorResponse } from '@/lib/auth/account';
+import { logAudit } from '@/lib/audit/log';
+import { AUDIT } from '@/lib/audit/events';
 
 /** RPC error slug → user-facing message + HTTP status. */
 const ERRORS: Record<string, { message: string; status: number }> = {
@@ -36,7 +38,7 @@ const ERRORS: Record<string, { message: string; status: number }> = {
  */
 export async function POST(request: Request) {
   try {
-    const { supabase } = await requireRole('admin');
+    const { supabase, accountId, userId } = await requireRole('admin');
 
     const body = await request.json().catch(() => null);
     const code = typeof body?.code === 'string' ? body.code.trim() : '';
@@ -76,6 +78,20 @@ export async function POST(request: Request) {
       };
       return NextResponse.json({ error: mapped.message }, { status: mapped.status });
     }
+
+    await logAudit({
+      accountId,
+      actorUserId: userId,
+      action: AUDIT.BILLING_ACTIVATION_REDEEMED,
+      targetType: 'plan',
+      targetId: result.plan_key ?? null,
+      targetLabel: result.plan_name ?? result.plan_key ?? null,
+      metadata: {
+        durationDays: result.duration_days ?? null,
+        periodEnd: result.period_end ?? null,
+      },
+      request,
+    });
 
     return NextResponse.json({
       planKey: result.plan_key,

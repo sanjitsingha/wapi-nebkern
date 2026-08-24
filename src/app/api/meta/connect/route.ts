@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 
 import { requireRole, toErrorResponse } from '@/lib/auth/account';
+import { logAudit } from '@/lib/audit/log';
+import { AUDIT } from '@/lib/audit/events';
 import { getAccountEntitlements } from '@/lib/billing/entitlements';
 import { getMetaAssets } from '@/lib/meta/connect';
 import {
@@ -69,6 +71,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: result.error }, { status: 409 });
     }
 
+    await logAudit({
+      accountId,
+      actorUserId: userId,
+      action: AUDIT.CHANNEL_CONNECTED,
+      targetType: 'channel',
+      targetId: 'meta',
+      targetLabel: result.instagramUsername
+        ? `${result.pageName} + Instagram`
+        : result.pageName,
+      metadata: {
+        channel: 'Instagram & Messenger',
+        page: result.pageName,
+        instagram: result.instagramUsername ?? null,
+      },
+      request,
+    });
+
     return NextResponse.json({
       success: true,
       page: { id: result.pageId, name: result.pageName },
@@ -89,14 +108,25 @@ export async function POST(request: Request) {
  * that looks connected and cannot send. Conversations, contacts and
  * message history are untouched.
  */
-export async function DELETE() {
+export async function DELETE(request: Request) {
   try {
-    const { supabase, accountId } = await requireRole('admin');
+    const { supabase, accountId, userId } = await requireRole('admin');
 
     const result = await disconnectMetaChannels(supabase, accountId);
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 500 });
     }
+
+    await logAudit({
+      accountId,
+      actorUserId: userId,
+      action: AUDIT.CHANNEL_DISCONNECTED,
+      targetType: 'channel',
+      targetId: 'meta',
+      targetLabel: 'Instagram & Messenger',
+      request,
+    });
+
     return NextResponse.json({ success: true });
   } catch (err) {
     return toErrorResponse(err);

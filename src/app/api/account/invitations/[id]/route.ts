@@ -21,9 +21,11 @@ import {
   rateLimitResponse,
   RATE_LIMITS,
 } from "@/lib/rate-limit";
+import { logAudit } from "@/lib/audit/log";
+import { AUDIT } from "@/lib/audit/events";
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
@@ -36,6 +38,13 @@ export async function DELETE(
     if (!limit.success) return rateLimitResponse(limit);
 
     const { id } = await params;
+
+    // Snapshot the invite (role/label) for the log before it's gone.
+    const { data: invite } = await ctx.supabase
+      .from("account_invitations")
+      .select("role, label")
+      .eq("id", id)
+      .maybeSingle();
 
     // No `eq('account_id', ctx.accountId)` — the RLS policy
     // (`is_account_member(account_id, 'admin')`) already scopes
@@ -65,6 +74,17 @@ export async function DELETE(
         { status: 404 },
       );
     }
+
+    await logAudit({
+      accountId: ctx.accountId,
+      actorUserId: ctx.userId,
+      action: AUDIT.INVITATION_REVOKED,
+      targetType: "invitation",
+      targetId: id,
+      targetLabel: invite?.label || (invite?.role ? `${invite.role} invite` : null),
+      metadata: { role: invite?.role ?? null },
+      request,
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err) {

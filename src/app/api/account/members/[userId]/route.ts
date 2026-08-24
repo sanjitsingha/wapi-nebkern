@@ -19,6 +19,9 @@ import type { PostgrestError } from "@supabase/supabase-js";
 
 import { requireRole, toErrorResponse } from "@/lib/auth/account";
 import { isAccountRole } from "@/lib/auth/roles";
+import { supabaseAdmin } from "@/lib/billing/admin-client";
+import { logAudit } from "@/lib/audit/log";
+import { AUDIT } from "@/lib/audit/events";
 import {
   checkRateLimit,
   rateLimitResponse,
@@ -58,8 +61,67 @@ export async function PATCH(
     const { userId } = await params;
 
     const body = (await request.json().catch(() => null)) as
-      | { role?: unknown }
+      | { role?: unknown; avatar_url?: unknown }
       | null;
+
+    // Avatar update — an admin sets a teammate's profile picture. RLS only
+    // lets a user update their OWN profile row (migration 017), so this
+    // goes through the service role, scoped to a target we first confirm is
+    // a member of the caller's account. Kept separate from the role path.
+    if (body && "avatar_url" in body) {
+      const avatarUrl = body.avatar_url;
+      if (
+        avatarUrl !== null &&
+        (typeof avatarUrl !== "string" ||
+          avatarUrl.length > 1000 ||
+          !/^https?:\/\//i.test(avatarUrl))
+      ) {
+        return NextResponse.json(
+          { error: "Invalid avatar_url" },
+          { status: 400 },
+        );
+      }
+
+      // The caller (admin, via RLS is_account_member) can read teammate
+      // profiles; use that to confirm the target is in this account before
+      // the service-role write.
+      const { data: target } = await ctx.supabase
+        .from("profiles")
+        .select("account_id, full_name, email")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!target || target.account_id !== ctx.accountId) {
+        return NextResponse.json(
+          { error: "That member is not part of your account" },
+          { status: 404 },
+        );
+      }
+
+      const { error } = await supabaseAdmin()
+        .from("profiles")
+        .update({ avatar_url: avatarUrl })
+        .eq("user_id", userId)
+        .eq("account_id", ctx.accountId);
+      if (error) {
+        console.error("[members route] avatar update failed:", error);
+        return NextResponse.json(
+          { error: "Failed to update photo" },
+          { status: 500 },
+        );
+      }
+
+      await logAudit({
+        accountId: ctx.accountId,
+        actorUserId: ctx.userId,
+        action: AUDIT.MEMBER_PHOTO_CHANGED,
+        targetType: "member",
+        targetId: userId,
+        targetLabel: target.full_name || target.email || null,
+        request,
+      });
+      return NextResponse.json({ ok: true, avatar_url: avatarUrl });
+    }
+
     const role = body?.role;
 
     if (!isAccountRole(role)) {
@@ -81,12 +143,31 @@ export async function PATCH(
       );
     }
 
+    // Snapshot the current role/name for the audit trail before the RPC
+    // flips it.
+    const { data: before } = await ctx.supabase
+      .from("profiles")
+      .select("account_role, full_name, email")
+      .eq("user_id", userId)
+      .maybeSingle();
+
     const { error } = await ctx.supabase.rpc("set_member_role", {
       p_user_id: userId,
       p_new_role: role,
     });
 
     if (error) return rpcErrorToResponse(error);
+
+    await logAudit({
+      accountId: ctx.accountId,
+      actorUserId: ctx.userId,
+      action: AUDIT.MEMBER_ROLE_CHANGED,
+      targetType: "member",
+      targetId: userId,
+      targetLabel: before?.full_name || before?.email || null,
+      metadata: { from: before?.account_role ?? null, to: role },
+      request,
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err) {
@@ -95,7 +176,7 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ userId: string }> },
 ) {
   try {
@@ -109,11 +190,28 @@ export async function DELETE(
 
     const { userId } = await params;
 
+    // Name for the log, captured before the member leaves the account.
+    const { data: before } = await ctx.supabase
+      .from("profiles")
+      .select("full_name, email")
+      .eq("user_id", userId)
+      .maybeSingle();
+
     const { data, error } = await ctx.supabase.rpc("remove_account_member", {
       p_user_id: userId,
     });
 
     if (error) return rpcErrorToResponse(error);
+
+    await logAudit({
+      accountId: ctx.accountId,
+      actorUserId: ctx.userId,
+      action: AUDIT.MEMBER_REMOVED,
+      targetType: "member",
+      targetId: userId,
+      targetLabel: before?.full_name || before?.email || null,
+      request,
+    });
 
     return NextResponse.json({ ok: true, newPersonalAccountId: data });
   } catch (err) {

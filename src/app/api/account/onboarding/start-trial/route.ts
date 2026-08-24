@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 
 import { requireRole, toErrorResponse } from '@/lib/auth/account';
 import { TRIAL_DAYS } from '@/lib/billing/subscription';
+import { logAudit } from '@/lib/audit/log';
+import { AUDIT } from '@/lib/audit/events';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -19,9 +21,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * existing state, and it never downgrades an already-active (paid or
  * activation-coded) account back to trialing.
  */
-export async function POST() {
+export async function POST(request: Request) {
   try {
-    const { supabase, accountId } = await requireRole('admin');
+    const { supabase, accountId, userId } = await requireRole('admin');
 
     const { data: account, error: readErr } = await supabase
       .from('accounts')
@@ -65,6 +67,14 @@ export async function POST() {
         { status: 500 },
       );
     }
+
+    await logAudit({
+      accountId,
+      actorUserId: userId,
+      action: AUDIT.BILLING_TRIAL_STARTED,
+      metadata: { trialDays: TRIAL_DAYS },
+      request,
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err) {

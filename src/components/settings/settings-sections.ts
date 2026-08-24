@@ -6,6 +6,7 @@ import {
   MessageSquareCode,
   Phone,
   PlugZap,
+  ScrollText,
   Sparkles,
   Store,
   Tags,
@@ -41,6 +42,7 @@ export const SETTINGS_SECTIONS = [
   // Workspace — the business everyone on the team shares.
   'business-profile',
   'members',
+  'activity-log',
   'billing',
   'customization',
   // Channels — every way a conversation can reach the inbox.
@@ -139,6 +141,14 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     id: 'members',
     label: 'Team members',
     icon: UsersRound,
+    group: 'workspace',
+  },
+  // The account activity log — who did what, when. Admin+ only to view
+  // (the page and its API both gate on the role).
+  'activity-log': {
+    id: 'activity-log',
+    label: 'Activity log',
+    icon: ScrollText,
     group: 'workspace',
   },
   // "Billing & usage" was the whole problem: it sounded like the place

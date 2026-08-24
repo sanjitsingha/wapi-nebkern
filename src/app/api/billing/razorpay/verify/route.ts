@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 
 import { requireRole, toErrorResponse } from '@/lib/auth/account';
 import { supabaseAdmin } from '@/lib/billing/admin-client';
+import { logAudit } from '@/lib/audit/log';
+import { AUDIT } from '@/lib/audit/events';
 import {
   razorpay,
   razorpayConfigured,
@@ -256,6 +258,22 @@ export async function POST(request: Request) {
         { status: 500 },
       );
     }
+
+    await logAudit({
+      accountId: ctx.accountId,
+      actorUserId: ctx.userId,
+      action: AUDIT.BILLING_PAYMENT,
+      targetType: 'plan',
+      targetId: plan.key,
+      targetLabel: plan.name,
+      metadata: {
+        amount: (Number(order.amount) || plan.amount) / 100,
+        currency: plan.currency,
+        interval,
+        invoiceNumber: invoice?.invoice_number ?? null,
+      },
+      request,
+    });
 
     return NextResponse.json({
       planKey: plan.key,

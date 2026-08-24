@@ -37,6 +37,8 @@ import {
   rateLimitResponse,
   RATE_LIMITS,
 } from "@/lib/rate-limit";
+import { logAudit } from "@/lib/audit/log";
+import { AUDIT } from "@/lib/audit/events";
 
 // Resolve the base URL we publish invite links under.
 //
@@ -266,6 +268,17 @@ export async function POST(request: Request) {
         { status: 500 },
       );
     }
+
+    await logAudit({
+      accountId: ctx.accountId,
+      actorUserId: ctx.userId,
+      action: AUDIT.MEMBER_INVITED,
+      targetType: "invitation",
+      targetId: data.id,
+      targetLabel: label || `${role} invite`,
+      metadata: { role, label },
+      request,
+    });
 
     return NextResponse.json(
       {

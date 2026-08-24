@@ -27,6 +27,8 @@ import {
   rateLimitResponse,
   RATE_LIMITS,
 } from "@/lib/rate-limit";
+import { logAudit } from "@/lib/audit/log";
+import { AUDIT } from "@/lib/audit/events";
 
 function rpcErrorToResponse(err: PostgrestError): NextResponse {
   if (err.code === "42501") {
@@ -81,11 +83,29 @@ export async function POST(request: Request) {
       );
     }
 
+    // Name for the log (the new owner). Read before the RPC; still valid
+    // after since only the role/pointer change.
+    const { data: newOwner } = await ctx.supabase
+      .from("profiles")
+      .select("full_name, email")
+      .eq("user_id", newOwnerUserId)
+      .maybeSingle();
+
     const { error } = await ctx.supabase.rpc("transfer_account_ownership", {
       p_new_owner_user_id: newOwnerUserId,
     });
 
     if (error) return rpcErrorToResponse(error);
+
+    await logAudit({
+      accountId: ctx.accountId,
+      actorUserId: ctx.userId,
+      action: AUDIT.OWNERSHIP_TRANSFERRED,
+      targetType: "member",
+      targetId: newOwnerUserId,
+      targetLabel: newOwner?.full_name || newOwner?.email || null,
+      request,
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err) {

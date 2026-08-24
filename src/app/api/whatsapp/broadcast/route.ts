@@ -16,6 +16,8 @@ import {
   RATE_LIMITS,
 } from '@/lib/rate-limit'
 import { assertActiveSubscription } from '@/lib/billing/guard'
+import { logAudit } from '@/lib/audit/log'
+import { AUDIT } from '@/lib/audit/events'
 
 interface BroadcastResult {
   phone: string
@@ -281,6 +283,21 @@ export async function POST(request: Request) {
         failedCount++
       }
     }
+
+    await logAudit({
+      accountId,
+      actorUserId: user.id,
+      action: AUDIT.BROADCAST_SENT,
+      targetType: 'broadcast',
+      targetLabel: template_name,
+      metadata: {
+        template: template_name,
+        total: recipients.length,
+        sent: sentCount,
+        failed: failedCount + skippedCount,
+      },
+      request,
+    })
 
     return NextResponse.json({
       success: true,
