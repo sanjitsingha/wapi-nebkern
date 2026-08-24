@@ -1191,13 +1191,21 @@ export function MessageThread({
               "inline-flex items-center justify-center h-9 gap-1.5 px-3 text-sm font-medium rounded-md border border-border hover:bg-muted transition-colors",
               assignedAgentId ? "text-primary border-primary/30" : "text-muted-foreground"
             )}>
-              <UserPlus className="h-4 w-4" />
+              {currentAssignee ? (
+                <AgentAvatar
+                  name={currentAssignee.full_name}
+                  avatarUrl={currentAssignee.avatar_url}
+                  className="size-5 text-[9px]"
+                />
+              ) : (
+                <UserPlus className="h-4 w-4" />
+              )}
               <span className="hidden max-w-32 truncate sm:inline">
                 {currentAssignee?.full_name ?? "Assign"}
               </span>
               <ChevronDown className="h-3.5 w-3.5" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="border-border bg-popover">
+            <DropdownMenuContent align="end" className="w-64 border-border bg-popover">
               <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Agents
               </div>
@@ -1218,15 +1226,22 @@ export function MessageThread({
                         isSelected ? "text-primary" : "text-popover-foreground"
                       )}
                     >
-                      <PresenceDot
-                        status={presence}
-                        label={presenceLabel(
-                          presence,
-                          getRow(p.user_id)?.last_seen_at ?? null,
-                          now
-                        )}
-                        className="mr-2"
-                      />
+                      <span className="relative mr-2 shrink-0">
+                        <AgentAvatar
+                          name={p.full_name}
+                          avatarUrl={p.avatar_url}
+                          className="size-6 text-[10px]"
+                        />
+                        <PresenceDot
+                          status={presence}
+                          label={presenceLabel(
+                            presence,
+                            getRow(p.user_id)?.last_seen_at ?? null,
+                            now
+                          )}
+                          className="absolute -right-0.5 -bottom-0.5 ring-2 ring-popover"
+                        />
+                      </span>
                       <span className="flex-1">
                         {p.full_name}
                         {p.user_id === user?.id ? " (me)" : ""}
@@ -1376,5 +1391,43 @@ export function MessageThread({
         />
       )}
     </div>
+  );
+}
+
+/**
+ * Small round avatar for a teammate in the assign control — their photo
+ * if they have one, else a coloured initial (same scheme as the contact
+ * avatars, stable per person).
+ */
+function AgentAvatar({
+  name,
+  avatarUrl,
+  className,
+}: {
+  name: string;
+  avatarUrl?: string | null;
+  className?: string;
+}) {
+  if (avatarUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={avatarUrl}
+        alt={name}
+        className={cn("shrink-0 rounded-full object-cover", className)}
+      />
+    );
+  }
+  const c = avatarColor(name);
+  return (
+    <span
+      className={cn(
+        "flex shrink-0 items-center justify-center rounded-full font-semibold",
+        className,
+      )}
+      style={{ backgroundColor: c.bg, color: c.fg }}
+    >
+      {(name || "?").charAt(0).toUpperCase()}
+    </span>
   );
 }

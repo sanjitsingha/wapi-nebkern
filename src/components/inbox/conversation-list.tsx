@@ -214,6 +214,22 @@ export function ConversationList({
   const { data: availableTags = [] } = useTags();
   const { data: profiles = [] } = useTeamMembers();
 
+  // user_id → { name, avatar }, for the "assigned to <person>" chip on
+  // each row. conversation.assigned_agent_id holds the teammate's user_id
+  // (the same value the assignee filter matches on).
+  const memberById = useMemo(() => {
+    const m = new Map<string, { name: string; avatarUrl: string | null }>();
+    for (const p of profiles) {
+      if (p.user_id) {
+        m.set(p.user_id, {
+          name: p.full_name || p.email || "Teammate",
+          avatarUrl: p.avatar_url ?? null,
+        });
+      }
+    }
+    return m;
+  }, [profiles]);
+
   const onConversationsLoadedRef = useRef(onConversationsLoaded);
   useEffect(() => {
     onConversationsLoadedRef.current = onConversationsLoaded;
@@ -615,17 +631,25 @@ export function ConversationList({
           </div>
         ) : (
           <div className="flex flex-col">
-            {filtered.map((conv) => (
-              <ConversationItem
-                key={conv.id}
-                conversation={conv as Conversation}
-                isActive={conv.id === activeConversationId}
-                onSelect={handleSelect}
-                tagMap={tagMap}
-                flows={flows}
-                onAssignFlow={assignFlow}
-              />
-            ))}
+            {filtered.map((conv) => {
+              const c = conv as Conversation;
+              const assignee = c.assigned_agent_id
+                ? memberById.get(c.assigned_agent_id)
+                : undefined;
+              return (
+                <ConversationItem
+                  key={conv.id}
+                  conversation={c}
+                  isActive={conv.id === activeConversationId}
+                  onSelect={handleSelect}
+                  tagMap={tagMap}
+                  flows={flows}
+                  onAssignFlow={assignFlow}
+                  assignedAgentName={assignee?.name}
+                  assignedAgentAvatar={assignee?.avatarUrl ?? null}
+                />
+              );
+            })}
           </div>
         )}
       </ScrollArea>
@@ -688,6 +712,10 @@ interface ConversationItemProps {
   tagMap: Map<string, Tag>;
   flows: FlowOption[];
   onAssignFlow: (conversationId: string, flowId: string | null) => void;
+  /** Display name of the assigned teammate, if any. */
+  assignedAgentName?: string;
+  /** Avatar of the assigned teammate, if they have one. */
+  assignedAgentAvatar?: string | null;
 }
 
 function ConversationItem({
@@ -697,6 +725,8 @@ function ConversationItem({
   tagMap,
   flows,
   onAssignFlow,
+  assignedAgentName,
+  assignedAgentAvatar,
 }: ConversationItemProps) {
   const contact = conversation.contact as ContactWithTags | undefined;
   const displayName =
@@ -834,13 +864,45 @@ function ConversationItem({
             )}
           </div>
 
-          <BotControl
-            conversationId={conversation.id}
-            assignedFlowId={assignedFlowId}
-            assignedFlowName={assignedFlow?.name}
-            flows={flows}
-            onAssignFlow={onAssignFlow}
-          />
+          <div className="flex shrink-0 items-center gap-1.5">
+            {/* Who's handling it — shown beside the bot chip when a
+                teammate is assigned to the conversation. Carries the
+                teammate's dp (avatar, or coloured initials fallback). */}
+            {assignedAgentName && (
+              <span
+                title={`Assigned to ${assignedAgentName}`}
+                className="inline-flex max-w-32 items-center gap-1.5 rounded-full bg-muted py-1 pr-3 pl-1 text-[11px] font-medium text-foreground"
+              >
+                {assignedAgentAvatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={assignedAgentAvatar}
+                    alt={assignedAgentName}
+                    className="size-5 shrink-0 rounded-full object-cover"
+                  />
+                ) : (
+                  <span
+                    className="flex size-5 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold"
+                    style={(() => {
+                      const c = avatarColor(assignedAgentName);
+                      return { backgroundColor: c.bg, color: c.fg };
+                    })()}
+                  >
+                    {assignedAgentName.charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <span className="truncate">{assignedAgentName}</span>
+              </span>
+            )}
+
+            <BotControl
+              conversationId={conversation.id}
+              assignedFlowId={assignedFlowId}
+              assignedFlowName={assignedFlow?.name}
+              flows={flows}
+              onAssignFlow={onAssignFlow}
+            />
+          </div>
         </div>
       </div>
     </div>
