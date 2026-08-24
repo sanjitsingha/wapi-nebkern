@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  PLAN_ENTITLEMENTS,
   UNLIMITED_ENTITLEMENTS,
   atLimit,
+  entitlementsForPlanKey,
   parsePlanLimits,
   sanitizeLimitsInput,
 } from "./entitlements";
@@ -124,5 +126,31 @@ describe("sanitizeLimitsInput", () => {
     expect(sanitizeLimitsInput(null)).toEqual({});
     expect(sanitizeLimitsInput({})).toEqual({});
     expect(sanitizeLimitsInput([])).toBeNull();
+  });
+});
+
+describe("entitlementsForPlanKey", () => {
+  it("resolves the known plans from the catalog", () => {
+    expect(entitlementsForPlanKey("starter")).toEqual(PLAN_ENTITLEMENTS.starter);
+    expect(entitlementsForPlanKey("growth")).toEqual(PLAN_ENTITLEMENTS.growth);
+    expect(entitlementsForPlanKey("business")).toEqual(PLAN_ENTITLEMENTS.business);
+  });
+
+  it("normalizes case and the _yearly suffix", () => {
+    expect(entitlementsForPlanKey("GROWTH")).toEqual(PLAN_ENTITLEMENTS.growth);
+    expect(entitlementsForPlanKey("growth_yearly")).toEqual(
+      PLAN_ENTITLEMENTS.growth,
+    );
+  });
+
+  it("maps the retired 'pro' tier onto business", () => {
+    expect(entitlementsForPlanKey("pro")).toEqual(PLAN_ENTITLEMENTS.business);
+  });
+
+  it("returns null for an unknown or empty key (caller fails safe)", () => {
+    expect(entitlementsForPlanKey("mystery")).toBeNull();
+    expect(entitlementsForPlanKey("")).toBeNull();
+    expect(entitlementsForPlanKey(null)).toBeNull();
+    expect(entitlementsForPlanKey(undefined)).toBeNull();
   });
 });

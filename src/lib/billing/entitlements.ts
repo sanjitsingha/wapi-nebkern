@@ -1,12 +1,29 @@
 // ============================================================
-// Plan entitlements — per-plan limits & feature gates (migration 062).
+// Plan entitlements — per-plan limits & feature gates.
 //
-// The admin sets a `limits` jsonb on each billing_plans row; an account
-// inherits the limits of its accounts.billing_plan_key. Missing key /
-// null value ⇒ unlimited / allowed, and an account with NO plan key at
-// all (trial, grandfathered) is unconstrained — the whole module fails
-// OPEN, mirroring computeSubscription()'s philosophy: a billing hiccup
-// must never lock a paying tenant out of their data.
+// SOURCE OF TRUTH IS CODE. Enforcement reads the hardcoded PLAN_ENTITLEMENTS
+// catalog below, keyed by the account's billing_plan_key — never the
+// billing_plans.limits column. That is deliberate and is the security
+// posture the product wants: a DB edit, a mistaken admin toggle, or a
+// tampered row cannot widen what a plan is allowed to do. Prices and names
+// still live in billing_plans (and stay editable in admin); only the
+// limits/gates are frozen in the repo.
+//
+// Resolution:
+//   • No billing_plan_key at all (trial / grandfathered) → UNLIMITED.
+//     These accounts never bought a plan and keep full access, as before.
+//   • A key in the catalog → that plan's entitlements.
+//   • A key we DON'T recognize (bug / bad data / tampering) → the
+//     locked-down MINIMAL default. Fails SAFE, not open.
+//   • A transient DB read error → UNLIMITED (a billing hiccup must never
+//     lock a paying tenant out of their own data).
+//
+// Adding a new sellable plan therefore means adding it to PLAN_ENTITLEMENTS
+// here, not just to the DB — by design.
+//
+// parsePlanLimits / sanitizeLimitsInput below are retained only for the
+// admin API's validation and older callers; they no longer drive
+// enforcement.
 //
 // Server routes gate with:
 //
@@ -55,7 +72,8 @@ export interface PlanEntitlements {
   allowIntegrations: boolean;
 }
 
-/** The fail-open default: everything allowed, nothing capped. */
+/** The fail-open default: everything allowed, nothing capped. Used for
+ *  trial / grandfathered accounts (no plan key) and transient read errors. */
 export const UNLIMITED_ENTITLEMENTS: PlanEntitlements = {
   maxUsers: null,
   maxContacts: null,
@@ -69,6 +87,89 @@ export const UNLIMITED_ENTITLEMENTS: PlanEntitlements = {
   allowFlows: true,
   allowIntegrations: true,
 };
+
+/**
+ * Locked-down default for a plan key we don't recognize (a bug, bad data,
+ * or tampering). Real trial/grandfathered accounts have NO key and get
+ * UNLIMITED instead — this only catches unknown keys, so enforcement fails
+ * SAFE rather than open. Everything off; no new records may be created.
+ */
+export const MINIMAL_ENTITLEMENTS: PlanEntitlements = {
+  maxUsers: 1,
+  maxContacts: 0,
+  storageMb: 0,
+  maxAutomations: 0,
+  maxCampaigns: 0,
+  maxFlows: 0,
+  allowCalling: false,
+  allowInstagram: false,
+  allowAutomations: false,
+  allowFlows: false,
+  allowIntegrations: false,
+};
+
+/**
+ * The hardcoded plan → entitlements catalog. THE source of truth for
+ * enforcement. Mirrors the plan book (src/lib/marketing/pricing-data.ts and
+ * migration 088's seed) — keep the three in step. `null` = unlimited.
+ */
+export const PLAN_ENTITLEMENTS: Record<string, PlanEntitlements> = {
+  starter: {
+    maxUsers: 1,
+    maxContacts: 2000,
+    storageMb: null,
+    maxAutomations: null,
+    maxCampaigns: null,
+    maxFlows: null,
+    allowCalling: false,
+    allowInstagram: false,
+    allowAutomations: true,
+    allowFlows: false,
+    allowIntegrations: false,
+  },
+  growth: {
+    maxUsers: 2,
+    maxContacts: 5000,
+    storageMb: null,
+    maxAutomations: null,
+    maxCampaigns: null,
+    maxFlows: null,
+    allowCalling: true,
+    allowInstagram: true,
+    allowAutomations: true,
+    allowFlows: true,
+    allowIntegrations: true,
+  },
+  business: {
+    maxUsers: 5,
+    maxContacts: 10000,
+    storageMb: null,
+    maxAutomations: null,
+    maxCampaigns: null,
+    maxFlows: null,
+    allowCalling: true,
+    allowInstagram: true,
+    allowAutomations: true,
+    allowFlows: true,
+    allowIntegrations: true,
+  },
+};
+
+/**
+ * Resolve a raw billing_plan_key to its catalog entitlements, or null when
+ * the key is unknown. Normalizes the '_yearly' suffix (yearly billing, same
+ * limits) and maps the retired 'pro' tier onto 'business' so legacy payers
+ * are never downgraded.
+ */
+export function entitlementsForPlanKey(
+  planKey: string | null | undefined,
+): PlanEntitlements | null {
+  if (!planKey) return null;
+  let key = planKey.toLowerCase().trim();
+  if (key.endsWith('_yearly')) key = key.slice(0, -'_yearly'.length);
+  if (key === 'pro') key = 'business'; // retired tier → nearest current
+  return PLAN_ENTITLEMENTS[key] ?? null;
+}
 
 function num(v: unknown): number | null {
   return typeof v === 'number' && Number.isFinite(v) && v >= 0
@@ -158,11 +259,15 @@ export function sanitizeLimitsInput(
 }
 
 /**
- * Resolve the entitlements for an account: accounts.billing_plan_key →
- * billing_plans.limits. Works with either the RLS-scoped session client
- * (members can read their own account row + active plans) or the
- * service-role client. Any miss — no plan key, unknown key, read error —
- * fails open to UNLIMITED_ENTITLEMENTS.
+ * Resolve the entitlements for an account from the hardcoded catalog:
+ * accounts.billing_plan_key → PLAN_ENTITLEMENTS (never the DB limits
+ * column). Works with either the RLS-scoped session client or the
+ * service-role client — it only reads the account's own plan key.
+ *
+ *   • no key (trial / grandfathered) → UNLIMITED
+ *   • known key                      → that plan's entitlements
+ *   • unknown key                    → MINIMAL (fails safe)
+ *   • read error                     → UNLIMITED (never lock out a payer)
  */
 export async function getAccountEntitlements(
   db: SupabaseClient,
@@ -176,15 +281,7 @@ export async function getAccountEntitlements(
       .maybeSingle();
     const planKey = account?.billing_plan_key as string | null | undefined;
     if (!planKey) return UNLIMITED_ENTITLEMENTS;
-
-    const { data: plan } = await db
-      .from('billing_plans')
-      .select('limits')
-      .eq('key', planKey)
-      .maybeSingle();
-    if (!plan) return UNLIMITED_ENTITLEMENTS;
-
-    return parsePlanLimits(plan.limits);
+    return entitlementsForPlanKey(planKey) ?? MINIMAL_ENTITLEMENTS;
   } catch {
     return UNLIMITED_ENTITLEMENTS;
   }
