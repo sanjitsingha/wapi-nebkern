@@ -16,6 +16,7 @@ import type {
   AutomationBranch,
   CreateDealStepConfig,
   AssignConversationStepConfig,
+  MessageTemplate,
 } from '@/types'
 import { supabaseAdmin } from './admin-client'
 import { engineSendText, engineSendTemplate, engineSendInteractiveButtons } from './meta-send'
@@ -536,6 +537,29 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
             // {{vars.order_number}}, {{vars.customer_name}}, etc.
             .map((k) => interpolate(String(cfg.variables![k]), args))
         : []
+
+      // URL / COPY_CODE button parameters, keyed by button index. Also
+      // interpolated so a tracking-link button can carry {{vars.order_id}}.
+      const buttonParams: Record<number, string> = {}
+      for (const [k, v] of Object.entries(cfg.button_params ?? {})) {
+        buttonParams[Number(k)] = interpolate(String(v), args)
+      }
+
+      // The full template row lets the sender build the header/body/button
+      // components — the legacy body-only path can't satisfy a URL button
+      // that requires a parameter (Meta error #131008).
+      let templateRow: MessageTemplate | undefined
+      {
+        let tq = supabaseAdmin()
+          .from('message_templates')
+          .select('*')
+          .eq('account_id', args.automation.account_id)
+          .eq('name', cfg.template_name)
+        if (cfg.language) tq = tq.eq('language', cfg.language)
+        const { data: tpl } = await tq.limit(1).maybeSingle()
+        templateRow = (tpl as MessageTemplate | null) ?? undefined
+      }
+
       const { whatsapp_message_id } = await engineSendTemplate({
         accountId: args.automation.account_id,
         userId: args.automation.user_id,
@@ -544,6 +568,11 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
         templateName: cfg.template_name,
         language: cfg.language,
         params,
+        template: templateRow,
+        messageParams: {
+          body: params,
+          ...(Object.keys(buttonParams).length ? { buttonParams } : {}),
+        },
       })
       return `template sent via Meta (${whatsapp_message_id})`
     }

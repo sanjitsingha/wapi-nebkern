@@ -4,6 +4,8 @@ import {
   sendInteractiveButtons,
   type InteractiveButton,
 } from '@/lib/whatsapp/meta-api'
+import type { MessageTemplate } from '@/types'
+import type { SendTimeParams } from '@/lib/whatsapp/template-send-builder'
 import { decrypt } from '@/lib/whatsapp/encryption'
 import {
   sanitizePhoneForMeta,
@@ -46,6 +48,11 @@ interface SendTemplateArgs {
   templateName: string
   language?: string
   params?: string[]
+  /** Full template row — lets the sender build header/body/button
+   *  components (needed for URL/COPY_CODE buttons). */
+  template?: MessageTemplate
+  /** Structured send-time values (body + button params). */
+  messageParams?: SendTimeParams
 }
 
 interface SendButtonsArgs {
@@ -134,6 +141,8 @@ async function sendViaMeta(input: SendInput): Promise<{ whatsapp_message_id: str
         templateName: input.templateName,
         language: input.language,
         params: input.params,
+        template: input.template,
+        messageParams: input.messageParams,
       })
       return r.messageId
     }

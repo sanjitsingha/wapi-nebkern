@@ -840,6 +840,9 @@ export interface SendTemplateStepConfig {
   template_name: string;
   language?: string;
   variables?: Record<string, string>;
+  /** Send-time values for URL/COPY_CODE buttons that need a parameter,
+   *  keyed by the button's index in the template (as a string). */
+  button_params?: Record<string, string>;
 }
 
 export interface SendButtonsStepConfig {

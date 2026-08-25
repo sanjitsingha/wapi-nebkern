@@ -446,19 +446,42 @@ function extractTemplateVars(body: string): string[] {
   return [...set].sort((a, b) => Number(a) - Number(b))
 }
 
+/** Buttons that need a send-time parameter: URL buttons with a {{n}} in
+ *  the link, and COPY_CODE buttons. Returns the button index + a label. */
+function buttonsNeedingParams(
+  t: MessageTemplate,
+): { index: number; label: string }[] {
+  return (t.buttons ?? [])
+    .map((b, index) => ({ b, index }))
+    .filter(
+      ({ b }) =>
+        (b.type === "URL" && /\{\{/.test(b.url)) || b.type === "COPY_CODE",
+    )
+    .map(({ b, index }) => ({
+      index,
+      label:
+        b.type === "COPY_CODE"
+          ? `Copy-code button "${b.text}"`
+          : `Link button "${b.text}"`,
+    }))
+}
+
 function SendTemplateFields({
   templateName,
   language,
   variables,
+  buttonParams,
   onChange,
 }: {
   templateName: string
   language: string
   variables: Record<string, string>
+  buttonParams: Record<string, string>
   onChange: (patch: {
     template_name?: string
     language?: string
     variables?: Record<string, string>
+    button_params?: Record<string, string>
   }) => void
 }) {
   const { templates } = useResources()
@@ -492,9 +515,12 @@ function SendTemplateFields({
     (t) => toValue(t.name, t.language ?? "en_US") === current,
   )
   const placeholders = selected ? extractTemplateVars(selected.body_text) : []
+  const needyButtons = selected ? buttonsNeedingParams(selected) : []
 
   const setVar = (key: string, val: string) =>
     onChange({ variables: { ...variables, [key]: val } })
+  const setBtn = (index: number, val: string) =>
+    onChange({ button_params: { ...buttonParams, [String(index)]: val } })
 
   return (
     <>
@@ -511,10 +537,17 @@ function SendTemplateFields({
             const ph = tpl ? extractTemplateVars(tpl.body_text) : []
             const pruned: Record<string, string> = {}
             for (const k of ph) if (variables[k] != null) pruned[k] = variables[k]
+            const needy = tpl ? buttonsNeedingParams(tpl) : []
+            const prunedBtn: Record<string, string> = {}
+            for (const { index } of needy) {
+              const key = String(index)
+              if (buttonParams[key] != null) prunedBtn[key] = buttonParams[key]
+            }
             onChange({
               template_name: name ?? "",
               language: lang ?? "",
               variables: pruned,
+              button_params: prunedBtn,
             })
           }}
           className={SELECT_CLASS}
@@ -564,6 +597,31 @@ function SendTemplateFields({
             <code className="text-foreground">{"{{vars.order_total}}"}</code> (for
             WooCommerce orders) or{" "}
             <code className="text-foreground">{"{{message.text}}"}</code>.
+          </p>
+        </FieldBlock>
+      )}
+
+      {selected && needyButtons.length > 0 && (
+        <FieldBlock label="Button values">
+          <div className="space-y-2">
+            {needyButtons.map(({ index, label }) => (
+              <div key={index} className="flex items-center gap-2">
+                <span className="w-40 shrink-0 truncate text-xs text-muted-foreground">
+                  {label}
+                </span>
+                <Input
+                  value={buttonParams[String(index)] ?? ""}
+                  onChange={(e) => setBtn(index, e.target.value)}
+                  placeholder="e.g. {{vars.order_id}}"
+                  className="bg-muted text-foreground"
+                />
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+            A link button appends this to its URL (e.g. an order id for a
+            tracking link); a copy-code button shows this as the code. Required
+            — Meta rejects the send without it.
           </p>
         </FieldBlock>
       )}
@@ -1289,6 +1347,7 @@ function StepEditor({
           templateName={(cfg.template_name as string) ?? ""}
           language={(cfg.language as string) ?? ""}
           variables={(cfg.variables as Record<string, string>) ?? {}}
+          buttonParams={(cfg.button_params as Record<string, string>) ?? {}}
           onChange={(patch) => set(patch)}
         />
       )
