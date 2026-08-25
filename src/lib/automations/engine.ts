@@ -744,22 +744,50 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
  * Pick the conversation a send-type step should use. Prefer the id the
  * webhook handed us (it's the one that just got the inbound message);
  * fall back to the contact's conversation for resumed/wait paths and
- * manual engine POSTs. Throws if none exists — send steps have
- * no meaningful target without a conversation.
+ * manual engine POSTs.
+ *
+ * When the contact has no conversation yet — e.g. a woocommerce_order or
+ * new_contact_created trigger for someone who has never messaged — one is
+ * created so the send step has a target. The UNIQUE(account_id, contact_id)
+ * index makes a lost race safe (we re-read on conflict).
  */
 async function resolveConversationId(args: ExecuteArgs): Promise<string> {
   const fromCtx = args.context.conversation_id
   if (fromCtx) return fromCtx
   if (!args.contactId) throw new Error('cannot resolve conversation: no contact')
-  const { data, error } = await supabaseAdmin()
+  const db = supabaseAdmin()
+
+  const { data, error } = await db
     .from('conversations')
     .select('id')
     .eq('account_id', args.automation.account_id)
     .eq('contact_id', args.contactId)
     .maybeSingle()
   if (error) throw new Error(`conversation lookup failed: ${error.message}`)
-  if (!data?.id) throw new Error('no conversation for contact')
-  return data.id as string
+  if (data?.id) return data.id as string
+
+  // None yet — create it (sender-of-record is the automation's owner).
+  const { data: created } = await db
+    .from('conversations')
+    .insert({
+      account_id: args.automation.account_id,
+      user_id: args.automation.user_id,
+      contact_id: args.contactId,
+    })
+    .select('id')
+    .single()
+  if (created?.id) return created.id as string
+
+  // Lost the UNIQUE(account_id, contact_id) race — re-read the winner.
+  const { data: again } = await db
+    .from('conversations')
+    .select('id')
+    .eq('account_id', args.automation.account_id)
+    .eq('contact_id', args.contactId)
+    .maybeSingle()
+  if (again?.id) return again.id as string
+
+  throw new Error('no conversation for contact')
 }
 
 /**
