@@ -31,11 +31,16 @@ export async function upsertContactFromOrder(
     return { contactId: null, contactCreated: false, skippedReason: 'no_phone' };
   }
 
+  // Match on phone_normalized — the same key the app dedupes contacts on
+  // (unique index idx_contacts_account_phone_normalized). Matching the raw
+  // `phone` string misses contacts saved in a different format (e.g. with a
+  // leading +) and then collides with that unique index on insert.
   const { data: existing } = await db
     .from('contacts')
     .select('id, name, email')
     .eq('account_id', accountId)
-    .eq('phone', phone)
+    .eq('phone_normalized', phone)
+    .limit(1)
     .maybeSingle();
 
   let contactId: string;
@@ -63,6 +68,16 @@ export async function upsertContactFromOrder(
       .select('id')
       .single();
     if (error || !inserted) {
+      // Lost a race, or a phone-format mismatch tripped the unique index —
+      // the contact exists, so read it back rather than dropping the order.
+      const { data: found } = await db
+        .from('contacts')
+        .select('id')
+        .eq('account_id', accountId)
+        .eq('phone_normalized', phone)
+        .limit(1)
+        .maybeSingle();
+      if (found?.id) return { contactId: found.id as string, contactCreated: false };
       return { contactId: null, contactCreated: false };
     }
     contactId = inserted.id as string;
