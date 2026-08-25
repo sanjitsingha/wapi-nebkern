@@ -438,14 +438,28 @@ function AgentSelect({
 /** Template dropdown showing approved templates by name + language,
  *  storing both template_name and language. Falls back to manual name +
  *  language inputs when no approved templates are synced yet. */
+/** The distinct positional placeholders ({{1}}, {{2}}, …) in a template
+ *  body, sorted numerically. */
+function extractTemplateVars(body: string): string[] {
+  const set = new Set<string>()
+  for (const m of (body ?? "").matchAll(/\{\{\s*(\d+)\s*\}\}/g)) set.add(m[1])
+  return [...set].sort((a, b) => Number(a) - Number(b))
+}
+
 function SendTemplateFields({
   templateName,
   language,
+  variables,
   onChange,
 }: {
   templateName: string
   language: string
-  onChange: (patch: { template_name: string; language: string }) => void
+  variables: Record<string, string>
+  onChange: (patch: {
+    template_name?: string
+    language?: string
+    variables?: Record<string, string>
+  }) => void
 }) {
   const { templates } = useResources()
 
@@ -455,18 +469,14 @@ function SendTemplateFields({
         <FieldBlock label="Template name">
           <Input
             value={templateName}
-            onChange={(e) =>
-              onChange({ template_name: e.target.value, language })
-            }
+            onChange={(e) => onChange({ template_name: e.target.value })}
             className="bg-muted text-foreground"
           />
         </FieldBlock>
         <FieldBlock label="Language">
           <Input
             value={language}
-            onChange={(e) =>
-              onChange({ template_name: templateName, language: e.target.value })
-            }
+            onChange={(e) => onChange({ language: e.target.value })}
             className="bg-muted text-foreground"
           />
         </FieldBlock>
@@ -478,36 +488,86 @@ function SendTemplateFields({
   // share a name across languages stay distinct.
   const toValue = (name: string, lang: string) => `${name}::${lang}`
   const current = templateName ? toValue(templateName, language) : ""
-  const hasMatch = templates.some(
+  const selected = templates.find(
     (t) => toValue(t.name, t.language ?? "en_US") === current,
   )
+  const placeholders = selected ? extractTemplateVars(selected.body_text) : []
+
+  const setVar = (key: string, val: string) =>
+    onChange({ variables: { ...variables, [key]: val } })
 
   return (
-    <FieldBlock label="Template">
-      <select
-        value={current}
-        onChange={(e) => {
-          const [name, lang] = e.target.value.split("::")
-          onChange({ template_name: name ?? "", language: lang ?? "" })
-        }}
-        className={SELECT_CLASS}
-      >
-        <option value="">Select a template…</option>
-        {templates.map((t) => {
-          const lang = t.language ?? "en_US"
-          return (
-            <option key={t.id} value={toValue(t.name, lang)}>
-              {t.name} ({lang})
+    <>
+      <FieldBlock label="Template">
+        <select
+          value={current}
+          onChange={(e) => {
+            const [name, lang] = e.target.value.split("::")
+            const tpl = templates.find(
+              (t) => toValue(t.name, t.language ?? "en_US") === e.target.value,
+            )
+            // Prune stale keys so a template with fewer variables can't send
+            // extra params (Meta rejects a param-count mismatch).
+            const ph = tpl ? extractTemplateVars(tpl.body_text) : []
+            const pruned: Record<string, string> = {}
+            for (const k of ph) if (variables[k] != null) pruned[k] = variables[k]
+            onChange({
+              template_name: name ?? "",
+              language: lang ?? "",
+              variables: pruned,
+            })
+          }}
+          className={SELECT_CLASS}
+        >
+          <option value="">Select a template…</option>
+          {templates.map((t) => {
+            const lang = t.language ?? "en_US"
+            return (
+              <option key={t.id} value={toValue(t.name, lang)}>
+                {t.name} ({lang})
+              </option>
+            )
+          })}
+          {current && !selected && (
+            <option value={current}>
+              {templateName} ({language || "unknown"}) — not in approved list
             </option>
-          )
-        })}
-        {current && !hasMatch && (
-          <option value={current}>
-            {templateName} ({language || "unknown"}) — not in approved list
-          </option>
-        )}
-      </select>
-    </FieldBlock>
+          )}
+        </select>
+      </FieldBlock>
+
+      {selected && placeholders.length > 0 && (
+        <FieldBlock label="Template variables">
+          {/* Show the body so it's clear what each {{n}} fills. */}
+          <p className="mb-2 rounded-md bg-muted/60 px-3 py-2 text-xs whitespace-pre-wrap text-muted-foreground">
+            {selected.body_text}
+          </p>
+          <div className="space-y-2">
+            {placeholders.map((k) => (
+              <div key={k} className="flex items-center gap-2">
+                <span className="w-9 shrink-0 font-mono text-xs text-muted-foreground">
+                  {`{{${k}}}`}
+                </span>
+                <Input
+                  value={variables[k] ?? ""}
+                  onChange={(e) => setVar(k, e.target.value)}
+                  placeholder="text or {{vars.order_number}}"
+                  className="bg-muted text-foreground"
+                />
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+            Type a fixed value, or insert data with{" "}
+            <code className="text-foreground">{"{{vars.customer_first_name}}"}</code>
+            , <code className="text-foreground">{"{{vars.order_number}}"}</code>,{" "}
+            <code className="text-foreground">{"{{vars.order_total}}"}</code> (for
+            WooCommerce orders) or{" "}
+            <code className="text-foreground">{"{{message.text}}"}</code>.
+          </p>
+        </FieldBlock>
+      )}
+    </>
   )
 }
 
@@ -1228,6 +1288,7 @@ function StepEditor({
         <SendTemplateFields
           templateName={(cfg.template_name as string) ?? ""}
           language={(cfg.language as string) ?? ""}
+          variables={(cfg.variables as Record<string, string>) ?? {}}
           onChange={(patch) => set(patch)}
         />
       )
