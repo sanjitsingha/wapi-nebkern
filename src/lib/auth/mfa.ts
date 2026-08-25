@@ -104,14 +104,20 @@ export async function clearUnverifiedFactors(supabase: SupabaseClient) {
  *  for whoever is reading the auth dashboard. */
 export const TOTP_FRIENDLY_NAME = 'Authenticator app';
 
-/** TOTP codes are always six digits. Used to gate the submit button and
- *  to auto-submit once the field is full. */
+/** TOTP codes are always six digits. Sizes the code field and gates
+ *  submission until it is full. */
 export const OTP_LENGTH = 6;
 
-/** Strip anything that is not a digit and cap at six — authenticator
- *  apps show the code as "123 456" and that is what gets pasted. */
-export function normaliseOtp(raw: string): string {
-  return raw.replace(/\D/g, '').slice(0, OTP_LENGTH);
+/**
+ * Is this a submittable code — six boxes, every one of them a digit?
+ *
+ * A length check alone is not enough. OtpInput keeps a cleared middle
+ * box as a space so the digits after it hold their positions, which
+ * means "12 456" is six characters long and is NOT a code. Anything
+ * gating a submit button or a verify call has to use this.
+ */
+export function isCompleteOtp(code: string): boolean {
+  return new RegExp(`^\\d{${OTP_LENGTH}}$`).test(code);
 }
 
 /**

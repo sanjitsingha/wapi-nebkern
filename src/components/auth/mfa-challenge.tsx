@@ -1,13 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
-import { OTP_LENGTH, mfaErrorMessage, normaliseOtp } from '@/lib/auth/mfa';
+import { isCompleteOtp, mfaErrorMessage } from '@/lib/auth/mfa';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { OtpInput } from '@/components/ui/otp-input';
 
 // ============================================================
 // The second step of signing in, for accounts with 2FA on.
@@ -40,14 +39,16 @@ export function MfaChallenge({
   const [code, setCode] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+  // Bumped on every rejection, and used as the field's `key`.
+  //
+  // Emptying `code` is not enough on its own: after six digits the
+  // caret sits in the LAST box, so the next keystroke would land at
+  // position six of an empty code. Remounting puts the caret back in
+  // box one, which is where a retyped code has to start.
+  const [attempt, setAttempt] = useState(0);
 
   const verify = async (submitted: string) => {
-    if (submitted.length !== OTP_LENGTH || verifying) return;
+    if (!isCompleteOtp(submitted) || verifying) return;
     setVerifying(true);
     setError(null);
     try {
@@ -58,7 +59,7 @@ export function MfaChallenge({
       if (error) {
         setError(mfaErrorMessage(error.message));
         setCode('');
-        inputRef.current?.focus();
+        setAttempt((n) => n + 1);
         return;
       }
       onVerified();
@@ -78,9 +79,6 @@ export function MfaChallenge({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <span className="bg-primary-soft text-primary mb-5 inline-flex size-11 items-center justify-center rounded-xl">
-          <ShieldCheck className="size-5" />
-        </span>
         <h2 className="text-foreground text-3xl font-semibold tracking-tight">
           Enter your code
         </h2>
@@ -106,33 +104,34 @@ export function MfaChallenge({
           </div>
         )}
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="mfa-code" className="text-foreground text-sm font-medium">
+        <div className="flex flex-col gap-2">
+          {/* A plain label, not `htmlFor` — the field is six inputs, and
+              pointing the label at any one of them would be a lie. The
+              group carries its own accessible name via aria-label. */}
+          <Label className="text-foreground text-sm font-medium">
             Six-digit code
           </Label>
-          <Input
-            ref={inputRef}
-            id="mfa-code"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            placeholder="000000"
+          <OtpInput
+            key={attempt}
             value={code}
-            onChange={(e) => {
-              const next = normaliseOtp(e.target.value);
+            invalid={error !== null}
+            disabled={verifying}
+            autoFocus
+            ariaLabel="Six-digit authentication code"
+            onChange={(next) => {
               setCode(next);
               setError(null);
-              // Auto-submit on the sixth digit. The code is only valid
-              // for 30 seconds; making someone find a button with that
-              // clock running is a way to fail the login twice.
-              if (next.length === OTP_LENGTH) void verify(next);
             }}
-            className="h-12 rounded-xl border-border bg-muted/40 text-center font-mono text-lg tracking-[0.4em] focus-visible:border-primary focus-visible:bg-background focus-visible:ring-primary/20"
+            // Auto-submit on the sixth digit. The code is only valid for
+            // 30 seconds; making someone find a button with that clock
+            // running is a way to fail the login twice.
+            onComplete={(full) => void verify(full)}
           />
         </div>
 
         <Button
           type="submit"
-          disabled={code.length !== OTP_LENGTH || verifying}
+          disabled={!isCompleteOtp(code) || verifying}
           className="mt-1 h-12 w-full rounded-xl text-sm font-semibold"
         >
           {verifying ? 'Verifying…' : 'Verify and sign in'}

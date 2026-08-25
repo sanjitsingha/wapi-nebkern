@@ -7,16 +7,15 @@ import { Check, Copy, Loader2, ShieldCheck } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
 import {
-  OTP_LENGTH,
   TOTP_FRIENDLY_NAME,
   clearUnverifiedFactors,
+  isCompleteOtp,
   mfaErrorMessage,
-  normaliseOtp,
   readMfaStatus,
 } from '@/lib/auth/mfa';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { OtpInput } from '@/components/ui/otp-input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -62,6 +61,10 @@ export function TwoFactorCard() {
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  // Remount counter for the code field. Emptying `code` alone leaves
+  // the caret in the last box, so the next keystroke would land at
+  // position six of an empty code; a new `key` puts it back in box one.
+  const [attempt, setAttempt] = useState(0);
 
   const [disableOpen, setDisableOpen] = useState(false);
   const [disabling, setDisabling] = useState(false);
@@ -94,6 +97,7 @@ export function TwoFactorCard() {
         return;
       }
       setCode('');
+      setAttempt((n) => n + 1);
       setEnrolling({
         factorId: data.id,
         qr: data.totp.qr_code,
@@ -107,7 +111,7 @@ export function TwoFactorCard() {
   /** Confirm the user's app is producing the codes we expect. Only after
    *  this does the factor count as verified and start gating logins. */
   const verify = async (submitted: string) => {
-    if (!enrolling || submitted.length !== OTP_LENGTH) return;
+    if (!enrolling || !isCompleteOtp(submitted)) return;
     setVerifying(true);
     setError(null);
     try {
@@ -118,6 +122,7 @@ export function TwoFactorCard() {
       if (error) {
         setError(mfaErrorMessage(error.message));
         setCode('');
+        setAttempt((n) => n + 1);
         return;
       }
       setEnrolling(null);
@@ -274,29 +279,27 @@ export function TwoFactorCard() {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="totp-code" className="text-sm font-medium">
-                  Six-digit code
-                </Label>
-                <Input
-                  id="totp-code"
-                  // `inputMode` so phones open the number pad;
-                  // `one-time-code` so password managers and iOS offer the
-                  // code they can already see.
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  autoFocus
-                  placeholder="000000"
+              <div className="flex flex-col gap-2">
+                {/* No `htmlFor`: the field is six inputs, so pointing the
+                    label at one of them would be a lie. OtpInput names
+                    the group itself. */}
+                <Label className="text-sm font-medium">Six-digit code</Label>
+                <OtpInput
+                  // Remounts on a rejection so the caret returns to box
+                  // one — see the same trick in mfa-challenge.tsx.
+                  key={attempt}
                   value={code}
-                  onChange={(e) => {
-                    const next = normaliseOtp(e.target.value);
+                  invalid={error !== null}
+                  disabled={verifying}
+                  autoFocus
+                  ariaLabel="Six-digit code from your authenticator app"
+                  onChange={(next) => {
                     setCode(next);
                     setError(null);
-                    // Submit as soon as it is complete — nobody wants to
-                    // reach for a button with a 30-second clock running.
-                    if (next.length === OTP_LENGTH) void verify(next);
                   }}
-                  className="h-12 text-center font-mono text-lg tracking-[0.4em]"
+                  // Submit as soon as it is complete — nobody wants to
+                  // reach for a button with a 30-second clock running.
+                  onComplete={(full) => void verify(full)}
                 />
                 {error && <p className="text-sm text-red-500">{error}</p>}
               </div>
@@ -309,7 +312,7 @@ export function TwoFactorCard() {
             </Button>
             <Button
               type="button"
-              disabled={code.length !== OTP_LENGTH || verifying}
+              disabled={!isCompleteOtp(code) || verifying}
               onClick={() => void verify(code)}
             >
               {verifying && <Loader2 className="size-4 animate-spin" />}
