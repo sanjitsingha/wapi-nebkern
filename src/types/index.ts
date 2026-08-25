@@ -789,6 +789,7 @@ export type AutomationTriggerType =
   | 'new_contact_created'
   | 'conversation_assigned'
   | 'tag_added'
+  | 'woocommerce_order'
   | 'time_based';
 
 export type AutomationStepType =

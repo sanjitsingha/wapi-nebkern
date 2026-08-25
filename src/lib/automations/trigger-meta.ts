@@ -20,6 +20,10 @@ export const TRIGGER_META: Record<AutomationTriggerType, TriggerMeta> = {
     pillClass: softBadge.green,
   },
   tag_added: { label: 'Tag Added', pillClass: softBadge.amber },
+  woocommerce_order: {
+    label: 'WooCommerce Order',
+    pillClass: softBadge.purple,
+  },
   time_based: { label: 'Time-Based', pillClass: softBadge.neutral },
 }
 

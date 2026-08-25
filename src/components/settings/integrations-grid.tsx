@@ -20,6 +20,7 @@ import {
 
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
+import { WooCommerceConnect } from './woocommerce-connect';
 
 // ============================================================
 // Integrations "app store" — a grid of everything Instant can wire into,
@@ -164,14 +165,17 @@ const INTEGRATIONS: Integration[] = [
     cta: 'Connect via Zapier',
   },
   {
+    // Native connect flow (rendered by <WooCommerceConnect>, not the
+    // generic card) — kept in the data set so its group placement and
+    // ordering live here with everything else.
     id: 'woocommerce',
     name: 'WooCommerce',
-    description: 'Send order and shipping updates from your WooCommerce store.',
+    description: 'New orders create contacts and fire a WooCommerce automation.',
     icon: ShoppingCart,
     tone: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
-    group: 'app',
-    href: '/docs/api-and-integrations',
-    cta: 'Connect via Zapier',
+    group: 'builtin',
+    href: '#',
+    cta: 'Connect',
   },
   {
     id: 'slack',
@@ -291,9 +295,14 @@ export function IntegrationsGrid() {
               <p className="text-xs text-muted-foreground">{group.blurb}</p>
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {items.map((item) => (
-                <IntegrationCard key={item.id} item={item} />
-              ))}
+              {items.map((item) =>
+                // WooCommerce is a native connect flow, not a "via Zapier" link.
+                item.id === 'woocommerce' ? (
+                  <WooCommerceConnect key={item.id} />
+                ) : (
+                  <IntegrationCard key={item.id} item={item} />
+                ),
+              )}
             </div>
           </div>
         );

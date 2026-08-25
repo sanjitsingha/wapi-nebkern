@@ -166,6 +166,11 @@ const TRIGGER_OPTIONS: { value: AutomationTriggerType; label: string; hint: stri
   { value: "new_contact_created", label: "New Contact Created", hint: "When a contact is auto-created from an incoming message" },
   { value: "conversation_assigned", label: "Conversation Assigned", hint: "When assigned to an agent" },
   { value: "tag_added", label: "Tag Added", hint: "When a tag is added to a contact" },
+  {
+    value: "woocommerce_order",
+    label: "WooCommerce Order",
+    hint: "When a new order comes in from your connected WooCommerce store",
+  },
   { value: "time_based", label: "Time-Based", hint: "On a recurring schedule" },
 ]
 
