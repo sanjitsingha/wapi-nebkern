@@ -33,6 +33,7 @@ import {
   MousePointerClick,
   MessageSquareReply,
   Terminal,
+  Pencil,
   X,
 } from "lucide-react"
 
@@ -881,6 +882,7 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
   const isEditing = !!initial.id
   const [state, setState] = useState<BuilderInitial>(initial)
   const [saving, setSaving] = useState(false)
+  const [editingName, setEditingName] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   function patchTop<K extends keyof BuilderInitial>(key: K, value: BuilderInitial[K]) {
@@ -991,26 +993,49 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <input
-          value={state.name}
-          onChange={(e) => patchTop("name", e.target.value)}
-          placeholder="Untitled automation"
-          className="min-w-0 flex-1 rounded-md bg-transparent px-2 py-1 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:bg-muted focus:outline-none sm:text-base"
-        />
-        {/* Live/Draft status — replaces the old Active toggle; publishing
-            is now done from the Save split-button's menu. */}
-        {isEditing && (
-          <span
-            className={cn(
-              "hidden shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-medium sm:inline-flex",
-              state.is_active
-                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                : "bg-muted text-muted-foreground",
-            )}
-          >
-            {state.is_active ? "Live" : "Draft"}
-          </span>
-        )}
+        {/* Name (click the pencil / the name to rename) + Live-Draft
+            status, both on the left beside each other. */}
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          {editingName ? (
+            <input
+              autoFocus
+              value={state.name}
+              onChange={(e) => patchTop("name", e.target.value)}
+              onBlur={() => setEditingName(false)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === "Escape")
+                  (e.target as HTMLInputElement).blur()
+              }}
+              placeholder="Untitled automation"
+              className="min-w-0 flex-1 rounded-md bg-muted px-2 py-1 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:outline-none sm:text-base"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditingName(true)}
+              title="Rename"
+              className="group flex min-w-0 items-center gap-1.5 rounded-md px-2 py-1 transition-colors hover:bg-muted"
+            >
+              <span className="truncate text-sm font-semibold text-foreground sm:text-base">
+                {state.name || "Untitled automation"}
+              </span>
+              <Pencil className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70 transition-colors group-hover:text-foreground" />
+            </button>
+          )}
+
+          {isEditing && (
+            <span
+              className={cn(
+                "hidden shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-medium sm:inline-flex",
+                state.is_active
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "bg-muted text-muted-foreground",
+              )}
+            >
+              {state.is_active ? "Live" : "Draft"}
+            </span>
+          )}
+        </div>
 
         {/* Runs / execution logs */}
         {isEditing && (
@@ -1032,7 +1057,7 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
           <Button
             onClick={() => save(state.is_active ? undefined : true)}
             disabled={saving}
-            className="h-10 rounded-r-none bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+            className="h-11 rounded-r-none bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {state.is_active ? "Save" : "Publish"}
@@ -1041,7 +1066,7 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
             <DropdownMenuTrigger
               disabled={saving}
               aria-label="More options"
-              className="flex h-10 items-center rounded-md rounded-l-none border-l border-primary-foreground/25 bg-primary px-2.5 text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none disabled:opacity-50"
+              className="flex h-11 items-center rounded-md rounded-l-none border-l border-primary-foreground/15 bg-primary px-2.5 text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none disabled:opacity-50"
             >
               <ChevronDown className="h-4 w-4" />
             </DropdownMenuTrigger>
