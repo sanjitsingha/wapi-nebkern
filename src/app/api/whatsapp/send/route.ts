@@ -385,13 +385,31 @@ export async function POST(request: Request) {
     // (see supabase/migrations/001_initial_schema.sql):
     //   conversation_id, sender_type, content_type, content_text,
     //   media_url, template_name, message_id, status, created_at
+    // For a template send, store the rendered body (placeholders filled)
+    // so the inbox shows the actual message instead of a bare "Template".
+    const resolvedContentText =
+      message_type === 'template'
+        ? content_text ||
+          (templateRow?.body_text ?? '').replace(
+            /\{\{\s*(\d+)\s*\}\}/g,
+            (_m, n: string) => {
+              const vals: string[] =
+                (template_message_params?.body as string[] | undefined) ??
+                template_params ??
+                []
+              return vals[Number(n) - 1] ?? `{{${n}}}`
+            },
+          ) ||
+          null
+        : content_text || null
+
     const { data: messageRecord, error: msgError } = await supabase
       .from('messages')
       .insert({
         conversation_id,
         sender_type: 'agent',
         content_type: message_type,
-        content_text: content_text || null,
+        content_text: resolvedContentText,
         media_url: media_url || null,
         template_name: template_name || null,
         message_id: waMessageId,
@@ -413,7 +431,7 @@ export async function POST(request: Request) {
     await supabase
       .from('conversations')
       .update({
-        last_message_text: content_text || `[${message_type}]`,
+        last_message_text: resolvedContentText || `[${message_type}]`,
         last_message_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })

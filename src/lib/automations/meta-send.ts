@@ -26,6 +26,12 @@ import { supabaseAdmin } from './admin-client'
 // converge in a later refactor.
 // ------------------------------------------------------------
 
+/** Fill a template body's {{1}}, {{2}}, … placeholders with param values. */
+function renderTemplateBody(body: string, params: string[]): string {
+  if (!body) return ''
+  return body.replace(/\{\{\s*(\d+)\s*\}\}/g, (_, n) => params[Number(n) - 1] ?? `{{${n}}}`)
+}
+
 interface SendTextArgs {
   /** Account-level tenancy key. Drives contact + whatsapp_config
    *  lookups so an automation authored by user A still sends through
@@ -198,8 +204,21 @@ async function sendViaMeta(input: SendInput): Promise<{ whatsapp_message_id: str
   // as of migration 010 (Flows) — reused as-is here.
   const content_type =
     input.kind === 'template' ? 'template' : input.kind === 'buttons' ? 'interactive' : 'text'
+  // For templates, store the rendered body (placeholders filled) so the
+  // inbox shows the actual message instead of a bare "Template" chip.
+  const renderedTemplate =
+    input.kind === 'template'
+      ? renderTemplateBody(
+          input.template?.body_text ?? '',
+          input.messageParams?.body ?? input.params ?? [],
+        )
+      : null
   const content_text =
-    input.kind === 'text' ? input.text : input.kind === 'buttons' ? input.bodyText : null
+    input.kind === 'text'
+      ? input.text
+      : input.kind === 'buttons'
+        ? input.bodyText
+        : renderedTemplate || null
   const template_name = input.kind === 'template' ? input.templateName : null
 
   const { error: msgErr } = await db.from('messages').insert({
@@ -219,7 +238,7 @@ async function sendViaMeta(input: SendInput): Promise<{ whatsapp_message_id: str
 
   const lastMessageText =
     input.kind === 'template'
-      ? `[template:${input.templateName}]`
+      ? renderedTemplate || `[template:${input.templateName}]`
       : input.kind === 'buttons'
         ? input.bodyText
         : input.text
