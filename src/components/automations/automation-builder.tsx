@@ -1025,34 +1025,43 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
           </button>
         )}
 
-        {/* Save split-button: primary Save + a chevron menu to publish. */}
+        {/* Save/Publish split-button. Draft → primary is "Publish" (Save
+            moves into the menu); Live → primary is "Save" (menu offers
+            Unpublish). */}
         <div className="flex flex-shrink-0">
           <Button
-            onClick={() => save()}
+            onClick={() => save(state.is_active ? undefined : true)}
             disabled={saving}
-            className="h-9 rounded-r-none bg-primary text-primary-foreground hover:bg-primary/90"
+            className="h-10 rounded-r-none bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {isEditing ? "Save" : "Save Draft"}
+            {state.is_active ? "Save" : "Publish"}
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger
               disabled={saving}
-              aria-label="Publish options"
-              className="flex h-9 items-center rounded-md rounded-l-none border-l border-primary-foreground/25 bg-primary px-2 text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none disabled:opacity-50"
+              aria-label="More options"
+              className="flex h-10 items-center rounded-md rounded-l-none border-l border-primary-foreground/25 bg-primary px-2.5 text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none disabled:opacity-50"
             >
               <ChevronDown className="h-4 w-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => save()}>Save</DropdownMenuItem>
               {state.is_active ? (
-                <DropdownMenuItem onClick={() => save(false)}>
-                  Unpublish
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem onClick={() => save()}>Save</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => save(false)}>
+                    Unpublish
+                  </DropdownMenuItem>
+                </>
               ) : (
-                <DropdownMenuItem onClick={() => save(true)}>
-                  {isEditing ? "Publish" : "Save & publish"}
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem onClick={() => save()}>
+                    Save draft
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => save(true)}>
+                    Publish
+                  </DropdownMenuItem>
+                </>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
