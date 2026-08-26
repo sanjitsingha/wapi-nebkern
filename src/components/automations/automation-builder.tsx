@@ -32,6 +32,7 @@ import {
   ArrowUp,
   MousePointerClick,
   MessageSquareReply,
+  Terminal,
   X,
 } from "lucide-react"
 
@@ -39,7 +40,6 @@ import { Button } from "@/components/ui/button"
 import { InfoHint } from "@/components/ui/info-hint"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -914,15 +914,16 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
     setState((s) => ({ ...s, steps: moveAt(s.steps, path, direction) }))
   }
 
-  async function save() {
+  async function save(activeOverride?: boolean) {
     setSaving(true)
     try {
+      const nextActive = activeOverride ?? state.is_active
       const payload = {
         name: state.name || "Untitled automation",
         description: state.description || null,
         trigger_type: state.trigger_type,
         trigger_config: state.trigger_config,
-        is_active: state.is_active,
+        is_active: nextActive,
         steps: toApiSteps(state.steps),
       }
 
@@ -954,7 +955,20 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
         }
         return
       }
-      toast.success(isEditing ? "Automation saved" : "Automation created")
+      // Reflect the new publish state locally so the Live/Draft badge and
+      // the menu update without a refetch.
+      if (activeOverride !== undefined && activeOverride !== state.is_active) {
+        patchTop("is_active", activeOverride)
+      }
+      toast.success(
+        activeOverride === true
+          ? "Published"
+          : activeOverride === false
+            ? "Unpublished"
+            : isEditing
+              ? "Automation saved"
+              : "Automation created",
+      )
       if (!isEditing && body?.automation?.id) {
         router.replace(`/automations/${body.automation.id}/edit`)
       }
@@ -983,22 +997,66 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
           placeholder="Untitled automation"
           className="min-w-0 flex-1 rounded-md bg-transparent px-2 py-1 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:bg-muted focus:outline-none sm:text-base"
         />
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="hidden sm:inline">Active</span>
-          <Switch
-            checked={state.is_active}
-            onCheckedChange={(v) => patchTop("is_active", !!v)}
-            aria-label="Active"
-          />
+        {/* Live/Draft status — replaces the old Active toggle; publishing
+            is now done from the Save split-button's menu. */}
+        {isEditing && (
+          <span
+            className={cn(
+              "hidden shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-medium sm:inline-flex",
+              state.is_active
+                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                : "bg-muted text-muted-foreground",
+            )}
+          >
+            {state.is_active ? "Live" : "Draft"}
+          </span>
+        )}
+
+        {/* Runs / execution logs */}
+        {isEditing && (
+          <button
+            type="button"
+            onClick={() => router.push(`/automations/${initial.id}/logs`)}
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="Runs"
+            title="Runs"
+          >
+            <Terminal className="h-4 w-4" />
+          </button>
+        )}
+
+        {/* Save split-button: primary Save + a chevron menu to publish. */}
+        <div className="flex flex-shrink-0">
+          <Button
+            onClick={() => save()}
+            disabled={saving}
+            className="h-9 rounded-r-none bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {isEditing ? "Save" : "Save Draft"}
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              disabled={saving}
+              aria-label="Publish options"
+              className="flex h-9 items-center rounded-md rounded-l-none border-l border-primary-foreground/25 bg-primary px-2 text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none disabled:opacity-50"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => save()}>Save</DropdownMenuItem>
+              {state.is_active ? (
+                <DropdownMenuItem onClick={() => save(false)}>
+                  Unpublish
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem onClick={() => save(true)}>
+                  {isEditing ? "Publish" : "Save & publish"}
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-        <Button
-          onClick={save}
-          disabled={saving}
-          className="bg-primary text-primary-foreground hover:bg-primary/90"
-        >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {isEditing ? "Save" : "Save Draft"}
-        </Button>
       </header>
 
       {/* Canvas */}
