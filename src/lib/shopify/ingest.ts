@@ -6,7 +6,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import { normalizePhone, isValidE164 } from '@/lib/whatsapp/phone-utils';
+import { toIndianE164, isValidE164 } from '@/lib/whatsapp/phone-utils';
 import type { NormalizedOrder } from './client';
 
 export interface IngestResult {
@@ -22,7 +22,9 @@ export async function upsertContactFromOrder(
   order: NormalizedOrder,
 ): Promise<IngestResult> {
   if (!order.phone) return { contactId: null, contactCreated: false, skippedReason: 'no_phone' };
-  const phone = normalizePhone(order.phone);
+  // Canonicalize to 91XXXXXXXXXX so an order phone with or without the
+  // country code resolves to the same contact.
+  const phone = toIndianE164(order.phone);
   if (!phone || !isValidE164(phone)) {
     return { contactId: null, contactCreated: false, skippedReason: 'no_phone' };
   }

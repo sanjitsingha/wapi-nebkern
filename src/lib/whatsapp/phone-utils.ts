@@ -18,6 +18,25 @@ export function normalizePhone(phone: string): string {
 }
 
 /**
+ * Canonicalize an Indian number to E.164 digits: `91XXXXXXXXXX`.
+ *
+ * India-focused: a bare 10-digit mobile is assumed local and gets `91`
+ * prepended, and a leading trunk `0` is dropped first. Numbers that already
+ * carry `91` (12 digits) are left as-is, as are anything that doesn't look
+ * like an Indian number (kept, rather than mangled). This gives every
+ * contact ONE stored form so with/without the country code can't split into
+ * two contacts / two inboxes. Returns '' for empty input.
+ */
+export function toIndianE164(phone: string): string {
+  let d = normalizePhone(phone)
+  if (!d) return ''
+  d = d.replace(/^0+/, '') // drop trunk-prefix zero(s)
+  if (d.length === 10) return `91${d}` // bare 10-digit mobile → add 91
+  if (d.length === 11 && d.startsWith('0')) return `91${d.slice(1)}` // guard
+  return d // already has a country code (e.g. 91XXXXXXXXXX) — leave it
+}
+
+/**
  * Compare two phone numbers accounting for trunk prefix differences.
  * e.g. "370063949836" (with trunk 0) matches "37063949836" (without trunk 0)
  * by comparing the last 8 digits.
