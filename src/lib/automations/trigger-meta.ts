@@ -24,6 +24,10 @@ export const TRIGGER_META: Record<AutomationTriggerType, TriggerMeta> = {
     label: 'WooCommerce Order',
     pillClass: softBadge.purple,
   },
+  shopify_order: {
+    label: 'Shopify Order',
+    pillClass: softBadge.green,
+  },
   time_based: { label: 'Time-Based', pillClass: softBadge.neutral },
 }
 

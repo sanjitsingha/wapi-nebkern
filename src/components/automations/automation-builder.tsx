@@ -173,6 +173,11 @@ const TRIGGER_OPTIONS: { value: AutomationTriggerType; label: string; hint: stri
     label: "WooCommerce Order",
     hint: "When a new order comes in from your connected WooCommerce store",
   },
+  {
+    value: "shopify_order",
+    label: "Shopify Order",
+    hint: "When a new order comes in from your connected Shopify store",
+  },
   { value: "time_based", label: "Time-Based", hint: "On a recurring schedule" },
 ]
 

@@ -21,6 +21,7 @@ import {
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
 import { WooCommerceConnect } from './woocommerce-connect';
+import { ShopifyConnect } from './shopify-connect';
 
 // ============================================================
 // Integrations "app store" — a grid of everything Instant can wire into,
@@ -155,14 +156,15 @@ const INTEGRATIONS: Integration[] = [
     cta: 'Connect via Zapier',
   },
   {
+    // Native connect flow (rendered by <ShopifyConnect>).
     id: 'shopify',
     name: 'Shopify',
-    description: 'Trigger WhatsApp messages on orders, abandoned carts and fulfilment.',
+    description: 'New orders create contacts and fire a Shopify automation.',
     icon: ShoppingBag,
     tone: 'bg-green-500/10 text-green-600 dark:text-green-400',
-    group: 'app',
-    href: '/docs/api-and-integrations',
-    cta: 'Connect via Zapier',
+    group: 'builtin',
+    href: '#',
+    cta: 'Connect',
   },
   {
     // Native connect flow (rendered by <WooCommerceConnect>, not the
@@ -296,9 +298,12 @@ export function IntegrationsGrid() {
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {items.map((item) =>
-                // WooCommerce is a native connect flow, not a "via Zapier" link.
+                // WooCommerce & Shopify are native connect flows, not
+                // "via Zapier" links.
                 item.id === 'woocommerce' ? (
                   <WooCommerceConnect key={item.id} />
+                ) : item.id === 'shopify' ? (
+                  <ShopifyConnect key={item.id} />
                 ) : (
                   <IntegrationCard key={item.id} item={item} />
                 ),

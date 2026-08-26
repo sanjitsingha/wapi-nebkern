@@ -790,6 +790,7 @@ export type AutomationTriggerType =
   | 'conversation_assigned'
   | 'tag_added'
   | 'woocommerce_order'
+  | 'shopify_order'
   | 'time_based';
 
 export type AutomationStepType =
