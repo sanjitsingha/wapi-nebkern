@@ -32,6 +32,8 @@ import {
   X,
   Bot,
   Sparkles,
+  MoreVertical,
+  Trash2,
 } from "lucide-react";
 import { format, isToday, isYesterday, differenceInHours } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -114,6 +116,9 @@ interface MessageThreadProps {
    */
   contactPanelOpen?: boolean;
   onOpenContactPanel?: () => void;
+  /** Fired after this conversation is deleted, so the parent can remove it
+   *  from the list and deselect it. */
+  onDeleted?: (conversationId: string) => void;
 }
 
 function formatDateSeparator(dateStr: string): string {
@@ -189,10 +194,12 @@ export function MessageThread({
   onRefresh,
   contactPanelOpen,
   onOpenContactPanel,
+  onDeleted,
 }: MessageThreadProps) {
   const { user } = useAuth();
   const { getPresence, getRow, now } = usePresence();
   const [loading, setLoading] = useState(false);
+  const [deletingChat, setDeletingChat] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [formModalOpen, setFormModalOpen] = useState(false);
@@ -944,6 +951,33 @@ export function MessageThread({
     [conversation, onAssignChange],
   );
 
+  const deleteChat = useCallback(async () => {
+    if (!conversation) return;
+    if (
+      !window.confirm(
+        "Delete this chat and all its messages? This can’t be undone. The contact is kept.",
+      )
+    )
+      return;
+    setDeletingChat(true);
+    try {
+      const res = await fetch(`/api/conversations/${conversation.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Failed to delete chat");
+        return;
+      }
+      toast.success("Chat deleted");
+      onDeleted?.(conversation.id);
+    } catch {
+      toast.error("Failed to delete chat");
+    } finally {
+      setDeletingChat(false);
+    }
+  }, [conversation, onDeleted]);
+
   // Empty state — same WhatsApp-style doodle background as the active
   // thread below, so swapping between empty/selected doesn't change the
   // pattern under the user's eye.
@@ -1262,6 +1296,26 @@ export function MessageThread({
                   </DropdownMenuItem>
                 </>
               )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* More actions */}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label="More actions"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="border-border bg-popover">
+              <DropdownMenuItem
+                onClick={deleteChat}
+                disabled={deletingChat}
+                className="text-sm text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete chat
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
