@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { CheckCircle2, Loader2, ShoppingCart } from 'lucide-react';
+import { CheckCircle2, Loader2 } from 'lucide-react';
+
+/** WooCommerce brand logo, served from our media CDN. */
+const WOO_LOGO = 'https://media.instant.nebkern.com/assets/woocommerce-logo.png';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -108,9 +111,12 @@ export function WooCommerceConnect() {
     <>
       <div className="flex flex-col rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/20">
         <div className="flex items-start justify-between">
-          <span className="flex size-10 items-center justify-center rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
-            <ShoppingCart className="size-5" />
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={WOO_LOGO}
+            alt="WooCommerce"
+            className="h-11 w-auto object-contain"
+          />
           {connected && (
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="size-3" />
@@ -145,7 +151,15 @@ export function WooCommerceConnect() {
       <Dialog open={open} onOpenChange={(v) => !busy && setOpen(v)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="flex items-center gap-2.5">
+              <span className="flex size-8 items-center justify-center overflow-hidden rounded-md bg-white ring-1 ring-border">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={WOO_LOGO}
+                  alt=""
+                  className="size-5 object-contain"
+                />
+              </span>
               {connected ? 'WooCommerce' : 'Connect WooCommerce'}
             </DialogTitle>
             <DialogDescription>
