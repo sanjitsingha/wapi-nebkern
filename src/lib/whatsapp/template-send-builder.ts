@@ -169,6 +169,37 @@ function buttonNeedsSendParam(
   }
 }
 
+/**
+ * Percent-encode a URL button's send-time value.
+ *
+ * Meta pastes this straight onto the end of the approved base URL, so
+ * whatever comes out of an automation variable lands in a live link
+ * unescaped. An order number like "ORD 12/A" would arrive as a space
+ * and a path separator; anything carrying `&`, `#` or `?` would break
+ * the query string or truncate the link outright.
+ *
+ * `encodeURIComponent` is the right tool but too eager on its own: it
+ * escapes `/`, and a suffix that is genuinely a path segment —
+ * "orders/12345" against a base of "https://track.example.com/" — is a
+ * legitimate and common shape. Slashes are put back afterwards, so a
+ * path stays a path while spaces and query metacharacters are still
+ * neutralised.
+ *
+ * Already-encoded input is left alone: a value containing "%20" would
+ * otherwise become "%2520" and the link would 404. The check is a
+ * heuristic, but the alternative — double-encoding every value someone
+ * has already escaped by hand — is the more common failure.
+ */
+export function encodeUrlParam(raw: string): string {
+  const trimmed = raw.trim();
+  // Looks percent-encoded already (a % followed by two hex digits, and
+  // no bare characters that would themselves need escaping).
+  if (/%[0-9A-Fa-f]{2}/.test(trimmed) && !/[\s"<>{}|\\^`]/.test(trimmed)) {
+    return trimmed;
+  }
+  return encodeURIComponent(trimmed).replace(/%2F/g, '/');
+}
+
 function buildButtonComponent(
   button: TemplateButton,
   index: number,
@@ -189,7 +220,7 @@ function buildButtonComponent(
         type: 'button',
         sub_type: 'url',
         index: String(index),
-        parameters: [{ type: 'text', text: override }],
+        parameters: [{ type: 'text', text: encodeUrlParam(override) }],
       };
     }
     case 'COPY_CODE': {
