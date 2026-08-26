@@ -66,9 +66,12 @@ export function InfoHint({
 
       <PopoverContent side={side} align={align} className="w-72 gap-2 p-3">
         <p className="text-foreground text-sm font-medium">{label}</p>
-        <p className="text-muted-foreground text-[13px] leading-relaxed">
+        {/* A div, not a p: callers may pass block content (multiple
+            paragraphs), and a <p> inside a <p> is invalid HTML that breaks
+            hydration. */}
+        <div className="text-muted-foreground text-[13px] leading-relaxed">
           {children}
-        </p>
+        </div>
         {docs && (
           <Link
             href={docs}
