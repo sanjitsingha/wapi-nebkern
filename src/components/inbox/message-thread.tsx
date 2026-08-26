@@ -45,7 +45,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { MessageBubble } from "./message-bubble";
 import { MessageActions } from "./message-actions";
 import {
@@ -200,6 +209,7 @@ export function MessageThread({
   const { getPresence, getRow, now } = usePresence();
   const [loading, setLoading] = useState(false);
   const [deletingChat, setDeletingChat] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [formModalOpen, setFormModalOpen] = useState(false);
@@ -953,12 +963,6 @@ export function MessageThread({
 
   const deleteChat = useCallback(async () => {
     if (!conversation) return;
-    if (
-      !window.confirm(
-        "Delete this chat and all its messages? This can’t be undone. The contact is kept.",
-      )
-    )
-      return;
     setDeletingChat(true);
     try {
       const res = await fetch(`/api/conversations/${conversation.id}`, {
@@ -970,6 +974,7 @@ export function MessageThread({
         return;
       }
       toast.success("Chat deleted");
+      setConfirmDeleteOpen(false);
       onDeleted?.(conversation.id);
     } catch {
       toast.error("Failed to delete chat");
@@ -1309,8 +1314,7 @@ export function MessageThread({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="border-border bg-popover">
               <DropdownMenuItem
-                onClick={deleteChat}
-                disabled={deletingChat}
+                onClick={() => setConfirmDeleteOpen(true)}
                 className="text-sm text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
@@ -1333,6 +1337,41 @@ export function MessageThread({
           )}
         </div>
       </div>
+
+      {/* Delete-chat confirmation */}
+      <Dialog
+        open={confirmDeleteOpen}
+        onOpenChange={(v) => !deletingChat && setConfirmDeleteOpen(v)}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-4 w-4 text-red-600 dark:text-red-400" />
+              Delete chat
+            </DialogTitle>
+            <DialogDescription>
+              This deletes the conversation and all its messages, and can’t be
+              undone. The contact is kept.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDeleteOpen(false)}
+              disabled={deletingChat}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={deleteChat}
+              disabled={deletingChat}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              {deletingChat ? "Deleting…" : "Delete chat"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Messages Area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
