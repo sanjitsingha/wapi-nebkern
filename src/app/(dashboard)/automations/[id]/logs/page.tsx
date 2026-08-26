@@ -1,6 +1,6 @@
 "use client"
 
-import { use, useEffect, useState } from "react"
+import { Fragment, use, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
   ArrowLeft,
@@ -106,59 +106,89 @@ export default function AutomationLogsPage({
           </p>
         </div>
       ) : (
-        <ul className="space-y-2">
-          {logs.map((log) => {
-            const isOpen = openLogId === log.id
-            return (
-              <li
-                key={log.id}
-                className="rounded-xl border border-border bg-card"
-              >
-                <button
-                  type="button"
-                  onClick={() => setOpenLogId(isOpen ? null : log.id)}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left"
-                >
-                  {isOpen ? (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <StatusBadge status={log.status} />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium text-foreground">
-                      {log.contact?.name ?? log.contact?.phone ?? "Unknown contact"}
-                    </div>
-                    <div className="truncate text-xs text-muted-foreground">
-                      {log.trigger_event} · {log.steps_executed?.length ?? 0} step
-                      {log.steps_executed?.length === 1 ? "" : "s"}
-                    </div>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {formatRelative(log.created_at)}
-                  </div>
-                </button>
-                {isOpen && (
-                  <div className="border-t border-border px-4 py-3">
-                    {log.error_message && (
-                      <p className="mb-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-                        {log.error_message}
-                      </p>
-                    )}
-                    <ul className="space-y-1.5">
-                      {(log.steps_executed ?? []).map((r, i) => (
-                        <StepRow key={i} result={r} />
-                      ))}
-                      {(log.steps_executed ?? []).length === 0 && (
-                        <li className="text-xs text-muted-foreground">No steps recorded.</li>
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
+                  <th className="w-8" />
+                  <th className="px-3 py-2 font-medium">Status</th>
+                  <th className="px-3 py-2 font-medium">Contact</th>
+                  <th className="px-3 py-2 font-medium">Trigger</th>
+                  <th className="px-3 py-2 font-medium">Steps</th>
+                  <th className="px-3 py-2 text-right font-medium">When</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.map((log) => {
+                  const isOpen = openLogId === log.id
+                  const stepCount = log.steps_executed?.length ?? 0
+                  return (
+                    <Fragment key={log.id}>
+                      <tr
+                        onClick={() => setOpenLogId(isOpen ? null : log.id)}
+                        className={cn(
+                          "cursor-pointer border-b border-border transition-colors hover:bg-muted/40",
+                          isOpen && "bg-muted/30",
+                        )}
+                      >
+                        <td className="pl-3 align-middle text-muted-foreground">
+                          {isOpen ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 align-middle">
+                          <StatusBadge status={log.status} />
+                        </td>
+                        <td className="px-3 py-2.5 align-middle font-medium text-foreground">
+                          {log.contact?.name ??
+                            log.contact?.phone ??
+                            "Unknown contact"}
+                        </td>
+                        <td className="px-3 py-2.5 align-middle text-muted-foreground">
+                          {log.trigger_event}
+                        </td>
+                        <td className="px-3 py-2.5 align-middle text-muted-foreground">
+                          {stepCount}
+                        </td>
+                        <td
+                          className="px-3 py-2.5 text-right align-middle text-xs whitespace-nowrap text-muted-foreground"
+                          title={new Date(log.created_at).toLocaleString()}
+                        >
+                          {formatRelative(log.created_at)}
+                        </td>
+                      </tr>
+                      {isOpen && (
+                        <tr className="border-b border-border bg-muted/20">
+                          <td />
+                          <td colSpan={5} className="px-3 pt-1 pb-3">
+                            {log.error_message && (
+                              <p className="mb-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                                {log.error_message}
+                              </p>
+                            )}
+                            <ul className="space-y-1.5">
+                              {(log.steps_executed ?? []).map((r, i) => (
+                                <StepRow key={i} result={r} />
+                              ))}
+                              {stepCount === 0 && (
+                                <li className="text-xs text-muted-foreground">
+                                  No steps recorded.
+                                </li>
+                              )}
+                            </ul>
+                          </td>
+                        </tr>
                       )}
-                    </ul>
-                  </div>
-                )}
-              </li>
-            )
-          })}
-        </ul>
+                    </Fragment>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </div>
   )
