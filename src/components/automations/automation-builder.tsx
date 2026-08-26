@@ -36,6 +36,7 @@ import {
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { InfoHint } from "@/components/ui/info-hint"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
@@ -447,23 +448,149 @@ function extractTemplateVars(body: string): string[] {
 }
 
 /** Buttons that need a send-time parameter: URL buttons with a {{n}} in
- *  the link, and COPY_CODE buttons. Returns the button index + a label. */
+ *  the link, and COPY_CODE buttons. Returns the button index, a label,
+ *  and — for URL buttons — the approved base the value is appended to. */
 function buttonsNeedingParams(
   t: MessageTemplate,
-): { index: number; label: string }[] {
+): { index: number; label: string; kind: "url" | "code"; base?: string }[] {
   return (t.buttons ?? [])
     .map((b, index) => ({ b, index }))
     .filter(
       ({ b }) =>
         (b.type === "URL" && /\{\{/.test(b.url)) || b.type === "COPY_CODE",
     )
-    .map(({ b, index }) => ({
-      index,
-      label:
-        b.type === "COPY_CODE"
-          ? `Copy-code button "${b.text}"`
-          : `Link button "${b.text}"`,
-    }))
+    .map(({ b, index }) =>
+      b.type === "COPY_CODE"
+        ? {
+            index,
+            label: `Copy-code button "${b.text}"`,
+            kind: "code" as const,
+          }
+        : {
+            index,
+            label: `Link button "${b.text}"`,
+            kind: "url" as const,
+            // Everything before the {{1}}. This is the half that was
+            // fixed when Meta approved the template and cannot change
+            // per send — showing it is the difference between "what do
+            // I type here?" and an obvious blank to fill.
+            base: (b as { url: string }).url.replace(/\{\{\s*\d+\s*\}\}.*$/, ""),
+          },
+    )
+}
+
+/** The `{{vars.*}}` a WooCommerce order trigger publishes.
+ *
+ *  Mirrors the vars block in the WooCommerce webhook route; if a field
+ *  is added there, add it here or it stays invisible in the builder.
+ *
+ *  Only the handful a link or a code actually wants is offered as a
+ *  one-click chip — the rest live behind the info hint. Fifteen chips
+ *  under a field is a wall, and this step is used by every trigger, so
+ *  most of them are irrelevant most of the time. */
+const ORDER_VARS = [
+  "order_id",
+  "order_number",
+  "order_status",
+  "order_total",
+  "order_currency",
+  "customer_name",
+  "customer_first_name",
+  "customer_email",
+  "customer_phone",
+  "order_items",
+  "item_count",
+  "payment_method",
+  "shipping_city",
+  "shipping_address",
+  "order_date",
+] as const
+
+/** Why a link button only takes the tail of its URL, behind an "i" on
+ *  the field label.
+ *
+ *  Says nothing about any particular trigger: this step sends templates
+ *  on keyword matches, tags and schedules as much as on orders, and the
+ *  Meta rule it describes is the same in every one of those cases. */
+function ButtonValuesHint() {
+  return (
+    <InfoHint label="Button values" docs="/docs/templates" side="right">
+      <p>
+        A link button appends this to the URL Meta approved when the
+        template was created — everything before it is fixed, and changing
+        it means editing the template. A copy-code button shows this as the
+        code.
+      </p>
+      <p className="mt-2">
+        Type a fixed value or a{" "}
+        <code className="text-foreground">{"{{variable}}"}</code> your trigger
+        provides. Required — Meta rejects the send without it.
+      </p>
+    </InfoHint>
+  )
+}
+
+/** The full order-variable list, behind an "i" on the trigger card.
+ *
+ *  It lives on the trigger because the trigger is what publishes these
+ *  — every step below can use them, so documenting the list once at the
+ *  source beats repeating fifteen chips under each field. */
+function OrderVarsHint() {
+  return (
+    <InfoHint
+      label="Order variables"
+      docs="/docs/automations"
+      side="right"
+      className="ml-0.5 shrink-0"
+    >
+      <p>
+        Each order this trigger receives publishes these. Type{" "}
+        <code className="text-foreground">{"{{vars.name}}"}</code> in any step
+        below — a message, a template variable, a tracking link — and the
+        engine fills it in when the automation runs.
+      </p>
+      <div className="mt-2 flex flex-wrap gap-1">
+        {ORDER_VARS.map((v) => (
+          <code
+            key={v}
+            className="rounded bg-muted px-1 py-0.5 font-mono text-[10px] text-foreground"
+          >
+            {v}
+          </code>
+        ))}
+      </div>
+    </InfoHint>
+  )
+}
+
+/** Sample values, so the preview shows a plausible link rather than the
+ *  raw token. Only the shapes that matter for a URL need to be right. */
+const VAR_SAMPLES: Record<string, string> = {
+  order_id: "12345",
+  order_number: "1042",
+  order_status: "processing",
+  order_total: "2499.00",
+  order_currency: "INR",
+  customer_name: "Priya Raman",
+  customer_first_name: "Priya",
+  customer_email: "priya@example.com",
+  customer_phone: "919876543210",
+  order_items: "2x Linen Shirt",
+  item_count: "2",
+  payment_method: "UPI",
+  shipping_city: "Kochi",
+  shipping_address: "12 MG Road, Kochi, Kerala, 682001",
+  order_date: "2026-08-26",
+}
+
+/** Render a field's value the way it will look once the engine has
+ *  substituted real order data — `{{vars.order_id}}` becomes `12345`.
+ *  Unknown tokens are left visible rather than blanked, so a typo shows
+ *  up in the preview instead of silently vanishing at send time. */
+function previewValue(raw: string): string {
+  return raw.replace(/\{\{\s*vars\.([\w]+)\s*\}\}/g, (whole, name: string) =>
+    VAR_SAMPLES[name] !== undefined ? VAR_SAMPLES[name] : whole,
+  )
 }
 
 function SendTemplateFields({
@@ -590,39 +717,66 @@ function SendTemplateFields({
               </div>
             ))}
           </div>
+          {/* Names no specific variable. This step runs on every
+              trigger, and which `{{vars.*}}` exist depends entirely on
+              which one fired — the trigger card is where that list
+              lives, because the trigger is what publishes them. */}
           <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
             Type a fixed value, or insert data with{" "}
-            <code className="text-foreground">{"{{vars.customer_first_name}}"}</code>
-            , <code className="text-foreground">{"{{vars.order_number}}"}</code>,{" "}
-            <code className="text-foreground">{"{{vars.order_total}}"}</code> (for
-            WooCommerce orders) or{" "}
-            <code className="text-foreground">{"{{message.text}}"}</code>.
+            <code className="text-foreground">{"{{message.text}}"}</code> or a{" "}
+            <code className="text-foreground">{"{{vars.name}}"}</code> your
+            trigger provides.
           </p>
         </FieldBlock>
       )}
 
       {selected && needyButtons.length > 0 && (
-        <FieldBlock label="Button values">
-          <div className="space-y-2">
-            {needyButtons.map(({ index, label }) => (
-              <div key={index} className="flex items-center gap-2">
-                <span className="w-40 shrink-0 truncate text-xs text-muted-foreground">
-                  {label}
-                </span>
-                <Input
-                  value={buttonParams[String(index)] ?? ""}
-                  onChange={(e) => setBtn(index, e.target.value)}
-                  placeholder="e.g. {{vars.order_id}}"
-                  className="bg-muted text-foreground"
-                />
-              </div>
-            ))}
+        <FieldBlock label="Button values" hint={<ButtonValuesHint />}>
+          <div className="space-y-4">
+            {needyButtons.map(({ index, label, kind, base }) => {
+              const val = buttonParams[String(index)] ?? ""
+              return (
+                <div key={index} className="space-y-1.5">
+                  <span className="block text-xs font-medium text-foreground">
+                    {label}
+                  </span>
+
+                  {/* The approved base, then the box. Meta fixes
+                      everything left of {{1}} at approval time, so the
+                      only honest way to show this field is as the tail
+                      of a link that already exists. */}
+                  {kind === "url" && base && (
+                    <div className="flex flex-wrap items-center gap-1 font-mono text-[11px] text-muted-foreground">
+                      <span className="break-all">{base}</span>
+                      <span className="rounded bg-primary-soft px-1.5 py-0.5 text-primary">
+                        your value ↓
+                      </span>
+                    </div>
+                  )}
+
+                  <Input
+                    value={val}
+                    onChange={(e) => setBtn(index, e.target.value)}
+                    placeholder={
+                      kind === "url" ? "Value or {{variable}}" : "Code or {{variable}}"
+                    }
+                    className="bg-muted text-foreground"
+                  />
+
+                  {kind === "url" && base && val.trim() !== "" && (
+                    <p className="text-[11px] break-all text-muted-foreground">
+                      Sends as{" "}
+                      <span className="font-mono text-foreground">
+                        {base}
+                        {previewValue(val)}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              )
+            })}
           </div>
-          <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-            A link button appends this to its URL (e.g. an order id for a
-            tracking link); a copy-code button shows this as the code. Required
-            — Meta rejects the send without it.
-          </p>
+
         </FieldBlock>
       )}
     </>
@@ -931,8 +1085,16 @@ function TriggerCard({
                   </option>
                 ))}
               </select>
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                {TRIGGER_OPTIONS.find((o) => o.value === type)?.hint}
+              {/* The trigger is what publishes the variables, so this is
+                  where they are documented — one "i" beside the hint,
+                  only for the trigger that has any. Steps further down
+                  then just reference `{{vars.…}}` without each one
+                  carrying its own copy of the list. */}
+              <p className="mt-1 flex items-start gap-1 text-[11px] text-muted-foreground">
+                <span>
+                  {TRIGGER_OPTIONS.find((o) => o.value === type)?.hint}
+                </span>
+                {type === "woocommerce_order" && <OrderVarsHint />}
               </p>
             </div>
             {type === "keyword_match" && (
@@ -1598,14 +1760,21 @@ function StepEditor({
 
 function FieldBlock({
   label,
+  hint,
   children,
 }: {
   label: string
+  /** Optional "i" beside the label — for the explanation that would
+   *  otherwise sit under the field as a paragraph nobody reads twice. */
+  hint?: React.ReactNode
   children: React.ReactNode
 }) {
   return (
     <div className="mb-2 last:mb-0">
-      <label className="mb-1 block text-xs font-medium text-muted-foreground">{label}</label>
+      <div className="mb-1 flex items-center gap-1">
+        <label className="block text-xs font-medium text-muted-foreground">{label}</label>
+        {hint}
+      </div>
       {children}
     </div>
   )
