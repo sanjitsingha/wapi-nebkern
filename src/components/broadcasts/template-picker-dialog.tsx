@@ -30,9 +30,9 @@ interface TemplatePickerDialogProps {
 
 /**
  * Modal for picking an approved template. Selection is held locally and only
- * committed on "Continue", so cancelling leaves the caller's state untouched.
- * Reuses {@link Step1ChooseTemplate} (embedded) for the fetch + card grid so
- * the template cards look identical to the inline builder.
+ * committed on "Continue", so cancelling leaves the caller's state untouched —
+ * except on a double-click, which is an unambiguous "this one" and confirms
+ * straight away. {@link Step1ChooseTemplate} does the fetch, search and list.
  */
 export function TemplatePickerDialog({
   open,
@@ -67,9 +67,11 @@ export function TemplatePickerDialog({
 
         <div className="-mx-1 max-h-[60vh] overflow-y-auto px-1">
           <Step1ChooseTemplate
-            embedded
             selectedTemplate={selected}
             onSelect={setSelected}
+            // Double-clicking a row picks it and closes, so a decisive
+            // user never has to travel to the Continue button.
+            onConfirm={onConfirm}
           />
         </div>
 
