@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 
+import { openOAuthTab } from '@/lib/oauth/tab';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,6 +18,21 @@ import {
 } from '@/components/ui/dialog';
 
 const SHOPIFY_LOGO = 'https://media.instant.nebkern.com/assets/shopify-logo.png';
+
+/**
+ * Start on the access-token form rather than "Sign in with Shopify".
+ *
+ * OAuth is built and works (src/app/api/integrations/shopify/oauth/),
+ * but it needs a Partner app, and Shopify gates app creation behind a
+ * $19 one-time App Store registration. Until that exists, the OAuth
+ * button would send a merchant to a start route that can only answer
+ * "Shopify is not configured on this server".
+ *
+ * So: token paste leads, OAuth is one click away for anyone who has
+ * set the credentials up. Set this to `false` once SHOPIFY_CLIENT_ID
+ * and SHOPIFY_CLIENT_SECRET are live and the flow becomes the default.
+ */
+const DEFAULT_MANUAL = true;
 
 interface ConnectionStatus {
   shopDomain: string;
@@ -41,6 +57,20 @@ export function ShopifyConnect() {
   const [accessToken, setAccessToken] = useState('');
   const [apiSecret, setApiSecret] = useState('');
   const [busy, setBusy] = useState(false);
+  /**
+   * Which connect method the dialog is showing.
+   *
+   * Token paste is the default, and OAuth is the opt-in — the reverse
+   * of what the UX argues for, and deliberate. "Sign in with Shopify"
+   * needs a client id and secret from a Partner app, and creating one
+   * is gated behind Shopify's $19 App Store registration. Until that is
+   * paid for, the OAuth button can only fail, so it is not what a
+   * merchant should meet first.
+   *
+   * Flip DEFAULT_MANUAL to false the day SHOPIFY_CLIENT_ID is set on
+   * the server — that is the whole change.
+   */
+  const [manual, setManual] = useState(DEFAULT_MANUAL);
 
   const load = () => {
     fetch('/api/integrations/shopify/connect', { cache: 'no-store' })
@@ -50,6 +80,47 @@ export function ShopifyConnect() {
   };
 
   useEffect(load, []);
+
+  /**
+   * The normal path: hand the merchant to Shopify, let them sign in and
+   * approve, and take the token from the callback.
+   *
+   * Opens in a tab rather than navigating, so a half-filled settings
+   * page is still here when they come back — the same contract the Meta
+   * channels use (src/lib/oauth/tab.ts).
+   */
+  const install = async () => {
+    if (!shopDomain.trim()) {
+      toast.error('Enter your .myshopify.com store domain.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const outcome = await openOAuthTab(
+        `/api/integrations/shopify/oauth/start?tab=1&shop=${encodeURIComponent(
+          shopDomain.trim(),
+        )}`,
+        { name: 'shopify-oauth' },
+      );
+
+      if (outcome.status === 'blocked') {
+        toast.error('Your browser blocked the Shopify window. Allow pop-ups and try again.');
+        return;
+      }
+      // Closed without reporting — they backed out at Shopify's screen.
+      if (outcome.status === 'cancelled') return;
+
+      if (outcome.params.error) {
+        toast.error(outcome.params.error);
+        return;
+      }
+      toast.success('Shopify connected');
+      setOpen(false);
+      load();
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const connect = async () => {
     if (!shopDomain.trim() || !accessToken.trim() || !apiSecret.trim()) {
@@ -156,7 +227,9 @@ export function ShopifyConnect() {
             <DialogDescription>
               {connected
                 ? 'Your store is connected. New orders sync as contacts and trigger automations.'
-                : 'Create a custom app in Shopify (Settings → Apps → Develop apps) with the read_orders scope, then paste its Admin API access token and API secret key.'}
+                : manual
+                  ? 'Create a custom app in your Shopify admin and paste its credentials — the steps are below.'
+                  : 'Enter your store domain — you’ll sign in at Shopify and approve read access to your orders. No keys to copy.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -193,28 +266,84 @@ export function ShopifyConnect() {
                   onChange={(e) => setShopDomain(e.target.value)}
                   placeholder="mystore.myshopify.com"
                   disabled={busy}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !manual) void install();
+                  }}
                 />
               </Field>
-              <Field label="Admin API access token">
-                <Input
-                  type="password"
-                  value={accessToken}
-                  onChange={(e) => setAccessToken(e.target.value)}
-                  placeholder="shpat_xxxxxxxxxxxx"
-                  className="font-mono"
-                  disabled={busy}
-                />
-              </Field>
-              <Field label="API secret key">
-                <Input
-                  type="password"
-                  value={apiSecret}
-                  onChange={(e) => setApiSecret(e.target.value)}
-                  placeholder="shpss_ / secret"
-                  className="font-mono"
-                  disabled={busy}
-                />
-              </Field>
+
+              {/* The manual half stays available, but folded away. It is
+                  the fallback for a store that cannot install a public
+                  app, and the escape hatch while SHOPIFY_CLIENT_ID is
+                  not yet set on the server — not the path a merchant
+                  should meet first. */}
+              {manual && (
+                <>
+                  <Field label="Admin API access token">
+                    <Input
+                      type="password"
+                      value={accessToken}
+                      onChange={(e) => setAccessToken(e.target.value)}
+                      placeholder="shpat_xxxxxxxxxxxx"
+                      className="font-mono"
+                      disabled={busy}
+                    />
+                  </Field>
+                  <Field label="API secret key">
+                    <Input
+                      type="password"
+                      value={apiSecret}
+                      onChange={(e) => setApiSecret(e.target.value)}
+                      placeholder="shpss_ / secret"
+                      className="font-mono"
+                      disabled={busy}
+                    />
+                  </Field>
+                  {/* Numbered, because this is the part people get
+                      wrong: the two secrets sit on DIFFERENT tabs of
+                      the same app, and the access token is shown once
+                      and never again. */}
+                  <ol className="list-decimal space-y-1 pl-4 text-[11px] leading-relaxed text-muted-foreground">
+                    <li>
+                      In Shopify admin: Settings → Apps and sales channels →{' '}
+                      <span className="font-medium text-foreground">
+                        Develop apps
+                      </span>{' '}
+                      → Create an app.
+                    </li>
+                    <li>
+                      Configuration → Admin API scopes → tick{' '}
+                      <code className="text-foreground">read_orders</code> and{' '}
+                      <code className="text-foreground">read_customers</code> →
+                      Save.
+                    </li>
+                    <li>
+                      API credentials → Install app. Copy the{' '}
+                      <span className="font-medium text-foreground">
+                        Admin API access token
+                      </span>{' '}
+                      — Shopify shows it once.
+                    </li>
+                    <li>
+                      On the same page, reveal and copy the{' '}
+                      <span className="font-medium text-foreground">
+                        API secret key
+                      </span>
+                      . It signs the order webhooks.
+                    </li>
+                  </ol>
+                </>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setManual((v) => !v)}
+                className="text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+              >
+                {manual
+                  ? 'Sign in with Shopify instead'
+                  : 'Use an access token instead'}
+              </button>
             </div>
           )}
 
@@ -244,8 +373,18 @@ export function ShopifyConnect() {
                 >
                   Cancel
                 </Button>
-                <Button type="button" onClick={connect} disabled={busy}>
-                  {busy ? <Loader2 className="size-4 animate-spin" /> : 'Connect'}
+                <Button
+                  type="button"
+                  onClick={manual ? connect : install}
+                  disabled={busy}
+                >
+                  {busy ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : manual ? (
+                    'Connect'
+                  ) : (
+                    'Continue to Shopify'
+                  )}
                 </Button>
               </>
             )}

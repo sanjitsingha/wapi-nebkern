@@ -31,6 +31,113 @@ export interface NormalizedOrder {
 /** Order events we subscribe to. */
 export const SHOPIFY_TOPICS = ['orders/create', 'orders/updated'] as const;
 
+// ── OAuth ───────────────────────────────────────────────────────────
+//
+// The install flow, for merchants who should never see a token.
+//
+// Everything below the exchange is unchanged: an OAuth access token is
+// presented in the same X-Shopify-Access-Token header a custom app's
+// token uses, so verifyStore / createOrderWebhooks / normalizeOrder all
+// work against either. Only where the token COMES FROM differs.
+
+/**
+ * Scopes requested at install. Read-only and as narrow as the feature
+ * allows — a merchant reading this consent screen should see nothing
+ * that lets us change their store.
+ *
+ * `read_orders` covers the last 60 days; `read_all_orders` is what
+ * Shopify calls a protected scope and needs their approval, so it is
+ * deliberately not here. Order automations fire on new orders, which
+ * the base scope already delivers.
+ */
+export const SHOPIFY_SCOPES = ['read_orders', 'read_customers'] as const;
+
+/** Where the merchant is sent to log in and approve the install. */
+export function buildShopifyAuthorizeUrl(input: {
+  shopDomain: string;
+  clientId: string;
+  redirectUri: string;
+  state: string;
+}): string {
+  const u = new URL(`https://${input.shopDomain}/admin/oauth/authorize`);
+  u.searchParams.set('client_id', input.clientId);
+  u.searchParams.set('scope', SHOPIFY_SCOPES.join(','));
+  u.searchParams.set('redirect_uri', input.redirectUri);
+  u.searchParams.set('state', input.state);
+  return u.toString();
+}
+
+/** Trade the one-time `code` from the callback for a lasting token. */
+export async function exchangeShopifyCode(input: {
+  shopDomain: string;
+  clientId: string;
+  clientSecret: string;
+  code: string;
+}): Promise<{ accessToken?: string; error?: string }> {
+  try {
+    const res = await fetch(
+      `https://${input.shopDomain}/admin/oauth/access_token`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: input.clientId,
+          client_secret: input.clientSecret,
+          code: input.code,
+        }),
+      },
+    );
+    if (!res.ok) {
+      return {
+        error: `Shopify refused the authorization code (${res.status}).`,
+      };
+    }
+    const json = (await res.json()) as { access_token?: string };
+    if (!json.access_token) {
+      return { error: 'Shopify returned no access token.' };
+    }
+    return { accessToken: json.access_token };
+  } catch {
+    return { error: 'Could not reach Shopify to complete the install.' };
+  }
+}
+
+/**
+ * Verify the HMAC on an OAuth callback's query string.
+ *
+ * A DIFFERENT computation from the webhook signature above, and the two
+ * are easy to confuse: a webhook is a raw JSON body hashed to base64,
+ * while this is the sorted query parameters — minus `hmac` itself —
+ * joined as `k=v&k=v` and hashed to hex. Getting them the wrong way
+ * round yields a check that always fails.
+ *
+ * Without this, anyone who can guess the callback URL can post a `code`
+ * of their choosing at it.
+ */
+export function verifyShopifyOAuthHmac(
+  params: URLSearchParams,
+  clientSecret: string,
+): boolean {
+  const received = params.get('hmac');
+  if (!received) return false;
+
+  const message = [...params.entries()]
+    .filter(([k]) => k !== 'hmac' && k !== 'signature')
+    .map(([k, v]) => [k, v] as const)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&');
+
+  const expected = crypto
+    .createHmac('sha256', clientSecret)
+    .update(message, 'utf8')
+    .digest('hex');
+
+  const a = Buffer.from(received);
+  const b = Buffer.from(expected);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 function apiBase(shopDomain: string): string {
   return `https://${shopDomain}/admin/api/${API_VERSION}`;
 }
