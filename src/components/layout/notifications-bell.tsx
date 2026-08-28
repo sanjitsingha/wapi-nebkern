@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 // Phosphor, matching the header this button sits in.
 import {
+  At,
   Bell,
   BellSlash,
   ChatCircleDots,
@@ -16,6 +17,8 @@ import {
   type Icon as PhosphorIcon,
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
 import { useTotalUnread } from '@/hooks/use-total-unread';
 import {
   Popover,
@@ -32,7 +35,13 @@ import {
 
 interface NotificationItem {
   id: string;
-  type: 'message' | 'handoff' | 'template' | 'campaign' | 'announcement';
+  type:
+    | 'message'
+    | 'handoff'
+    | 'template'
+    | 'campaign'
+    | 'announcement'
+    | 'mention';
   title: string;
   body: string;
   at: string;
@@ -68,6 +77,12 @@ const TYPE_META: Record<
   announcement: {
     icon: Info,
     chip: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300',
+  },
+  // The accent colour, because a mention is the one item in this list
+  // where a named person is waiting on the reader specifically.
+  mention: {
+    icon: At,
+    chip: 'bg-primary-soft text-primary',
   },
 };
 
@@ -138,17 +153,58 @@ function loadSeenAt(): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-/** Fetch the aggregated feed; null on any failure so callers keep the
- *  last list instead of flashing empty. */
+/** One unread @mention, as /api/notifications/mentions hydrates it. */
+interface MentionRow {
+  id: string;
+  contactId: string;
+  contactName: string;
+  authorName: string;
+  body: string;
+  at: string;
+}
+
+/**
+ * Fetch the aggregated feed AND my unread mentions, then merge.
+ *
+ * Two endpoints because they are two different things: the feed is
+ * synthesised from source tables and dismissed per device, while a
+ * mention is a real row addressed to one person with read state in the
+ * database. Merging them here rather than server-side keeps that
+ * distinction — and means a failure in one still renders the other.
+ *
+ * Null on total failure so callers keep the last list instead of
+ * flashing empty.
+ */
 async function fetchNotifications(): Promise<NotificationItem[] | null> {
-  try {
-    const res = await fetch('/api/notifications');
-    if (!res.ok) return null;
-    const data = await res.json().catch(() => null);
-    return Array.isArray(data?.notifications) ? data.notifications : null;
-  } catch {
-    return null;
-  }
+  const [feed, mentions] = await Promise.all([
+    fetch('/api/notifications')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => (Array.isArray(d?.notifications) ? d.notifications : null))
+      .catch(() => null),
+    fetch('/api/notifications/mentions')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => (Array.isArray(d?.mentions) ? (d.mentions as MentionRow[]) : []))
+      .catch(() => [] as MentionRow[]),
+  ]);
+
+  if (feed === null && mentions.length === 0) return null;
+
+  const asItems: NotificationItem[] = mentions.map((m) => ({
+    id: `mention-${m.id}`,
+    type: 'mention',
+    title: `${m.authorName} mentioned you`,
+    // The contact is the context that makes this actionable — "Arjun
+    // mentioned you" alone tells nobody where to look.
+    body: `${m.body}\n— on ${m.contactName}`,
+    at: m.at,
+    // Deep-links to the conversation; the sidebar opens on Details, and
+    // the Team Inbox tab is one click from there.
+    href: `/inbox?contact=${m.contactId}`,
+  }));
+
+  return [...asItems, ...(feed ?? [])].sort(
+    (a, b) => new Date(b.at).getTime() - new Date(a.at).getTime(),
+  );
 }
 
 /** Persist "seen up to now" and return the new marker. Module-level so
@@ -279,6 +335,10 @@ function NotificationRow({
 export function NotificationsBell() {
   const router = useRouter();
   const totalUnread = useTotalUnread();
+  // Only for the mentions subscription below — the feed itself is
+  // scoped server-side by the session.
+  const { user } = useAuth();
+  const userId = user?.id;
 
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [open, setOpen] = useState(false);
@@ -349,8 +409,51 @@ export function NotificationsBell() {
     };
   }, []);
 
+  /**
+   * Mentions arrive live.
+   *
+   * A colleague typing your name and you finding out up to three
+   * minutes later defeats the point of tagging someone — the reason to
+   * @ a person rather than just write the note is that you need them
+   * NOW. So this subscribes narrowly: INSERTs on the mentions table
+   * filtered to rows addressed to this user, which is a handful of
+   * events a day rather than a firehose.
+   *
+   * Deliberately not the whole feed. The reasoning above about not
+   * re-running five queries on every event still holds; this refetches
+   * only because a mention is rare and genuinely urgent.
+   */
+  useEffect(() => {
+    if (!userId) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`mentions:${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'contact_thread_mentions',
+          filter: `user_id=eq.${userId}`,
+        },
+        () => refresh(),
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [userId, refresh]);
+
+  // `mention` is excluded here and counted separately below. Events use
+  // "newer than the last time the bell was opened", which is the right
+  // rule for an announcement nobody has to act on — but a mention is
+  // only answered by opening the thread, and glancing at the bell is
+  // not that. Its read state lives in the database.
   const isEventUnseen = (n: NotificationItem, since: number) =>
-    n.type !== 'message' && new Date(n.at).getTime() > since;
+    n.type !== 'message' &&
+    n.type !== 'mention' &&
+    new Date(n.at).getTime() > since;
 
   // Messages count until read in the inbox; events count until the bell
   // is opened.
@@ -366,8 +469,13 @@ export function NotificationsBell() {
   // from the badge. The message half rides `totalUnread` and is
   // deliberately NOT reduced by dismissing: the chat is still unread,
   // and the badge should not claim otherwise because the row was hidden.
+  // Mentions are already only-the-unread ones — the endpoint filters on
+  // `read_at IS NULL` — so every one present counts, and opening the
+  // contact's Team Inbox is what clears it.
   const badgeCount =
-    totalUnread + visible.filter((n) => isEventUnseen(n, seenAt)).length;
+    totalUnread +
+    visible.filter((n) => isEventUnseen(n, seenAt)).length +
+    visible.filter((n) => n.type === 'mention').length;
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
@@ -447,8 +555,8 @@ export function NotificationsBell() {
                 You&apos;re all caught up
               </p>
               <p className="text-muted-foreground mt-1 text-xs">
-                New messages, AI handoffs, template verdicts, campaign results,
-                and announcements show up here.
+                New messages, @mentions from your team, AI handoffs, template
+                verdicts, campaign results, and announcements show up here.
               </p>
             </div>
           ) : (
@@ -458,7 +566,9 @@ export function NotificationsBell() {
                   key={n.id}
                   n={n}
                   fresh={
-                    n.type === 'message' || isEventUnseen(n, highlightSince)
+                    n.type === 'message' ||
+                    n.type === 'mention' ||
+                    isEventUnseen(n, highlightSince)
                   }
                   onOpen={openItem}
                 />

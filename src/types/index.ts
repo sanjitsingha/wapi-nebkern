@@ -202,12 +202,54 @@ export interface ContactCustomValue {
   value?: string;
 }
 
+/**
+ * @deprecated Superseded by {@link ContactThreadMessage} (migration
+ * 094). Existing rows were copied into the thread; the table survives
+ * only so the copy can be checked before a later migration drops it.
+ */
 export interface ContactNote {
   id: string;
   contact_id: string;
   user_id: string;
   note_text: string;
   created_at: string;
+}
+
+/**
+ * One message in a contact's internal team thread (migration 094).
+ *
+ * Never leaves the account — this is the conversation ABOUT a customer,
+ * not with them. Anything sent to the customer is a `Message`.
+ */
+export interface ContactThreadMessage {
+  id: string;
+  account_id: string;
+  contact_id: string;
+  author_id: string;
+  body: string;
+  /** Soft delete — the row stays so mentions of it survive. */
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** A teammate tagged in a thread message. */
+export interface ContactThreadMention {
+  id: string;
+  account_id: string;
+  message_id: string;
+  contact_id: string;
+  user_id: string;
+  read_at: string | null;
+  created_at: string;
+}
+
+/** A member who can be @mentioned, as the picker needs them. */
+export interface MentionableMember {
+  user_id: string;
+  full_name: string;
+  email: string;
+  avatar_url?: string | null;
 }
 
 export type ListStatus = 'active' | 'archived';

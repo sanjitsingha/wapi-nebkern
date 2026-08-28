@@ -3,10 +3,9 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { useAuth } from "@/hooks/use-auth";
 import { avatarColor } from "@/lib/avatar-color";
 import { cn } from "@/lib/utils";
-import type { Contact, Deal, ContactNote, Tag } from "@/types";
+import type { Contact, Deal, Tag } from "@/types";
 import {
   AtSign,
   Phone,
@@ -15,7 +14,6 @@ import {
   Check,
   Tag as TagIcon,
   DollarSign,
-  StickyNote,
   Plus,
   X,
   ShieldAlert,
@@ -27,7 +25,7 @@ import {
 } from "lucide-react";
 import { useCallCenter } from "@/components/calls/call-center";
 import { ContactCallHistory } from "@/components/calls/contact-call-history";
-import { Button } from "@/components/ui/button";
+import { TeamThread } from "@/components/inbox/team-thread";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Popover,
@@ -35,7 +33,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { toast } from "sonner";
-import { format } from "date-fns";
 
 interface ContactSidebarProps {
   contact: Contact | null;
@@ -43,19 +40,19 @@ interface ContactSidebarProps {
 }
 
 export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) {
-  const { accountId } = useAuth();
   // Null outside the dashboard shell (the provider lives there), which is
   // why every use below is optional rather than assumed.
   const callCenter = useCallCenter();
+  /** Which half of the panel is showing. Resets to Details on a
+   *  contact change — landing in someone else's team thread because
+   *  that is where you were last is disorienting. */
+  const [tab, setTab] = useState<'details' | 'team'>('details');
   const [copied, setCopied] = useState(false);
   const [deals, setDeals] = useState<Deal[]>([]);
-  const [notes, setNotes] = useState<ContactNote[]>([]);
   const [tags, setTags] = useState<(Tag & { contact_tag_id: string })[]>([]);
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [tagSearch, setTagSearch] = useState("");
   const [savingTag, setSavingTag] = useState(false);
-  const [newNote, setNewNote] = useState("");
-  const [addingNote, setAddingNote] = useState(false);
   // Mirrors contact.is_spam locally so the toggle reflects instantly
   // without waiting for the parent to re-fetch and pass a fresh prop.
   const [isSpam, setIsSpam] = useState(false);
@@ -64,6 +61,8 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsSpam(!!contact?.is_spam);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTab('details');
   }, [contact]);
 
   const fetchContactData = useCallback(async () => {
@@ -71,16 +70,13 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
 
     const supabase = createClient();
 
-    // Fetch deals, notes, and tags in parallel
-    const [dealsRes, notesRes, tagsRes] = await Promise.all([
+    // Deals and tags in parallel. Notes are no longer read here — the
+    // Team Inbox tab fetches the thread that replaced them, and only
+    // when that tab is actually opened.
+    const [dealsRes, tagsRes] = await Promise.all([
       supabase
         .from("deals")
         .select("*, stage:pipeline_stages(*)")
-        .eq("contact_id", contact.id)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("contact_notes")
-        .select("*")
         .eq("contact_id", contact.id)
         .order("created_at", { ascending: false }),
       supabase
@@ -90,7 +86,6 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
     ]);
 
     if (dealsRes.data) setDeals(dealsRes.data);
-    if (notesRes.data) setNotes(notesRes.data);
     if (tagsRes.data) {
       const mapped = tagsRes.data
         .filter((ct: Record<string, unknown>) => ct.tags)
@@ -178,35 +173,6 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
     setTimeout(() => setCopied(false), 2000);
   }, [contact]);
 
-  const handleAddNote = useCallback(async () => {
-    if (!contact || !newNote.trim()) return;
-    if (!accountId) return;
-    setAddingNote(true);
-
-    const supabase = createClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const user = session?.user;
-
-    const { data, error } = await supabase
-      .from("contact_notes")
-      .insert({
-        contact_id: contact.id,
-        account_id: accountId,
-        user_id: user?.id,
-        note_text: newNote.trim(),
-      })
-      .select()
-      .single();
-
-    if (!error && data) {
-      setNotes((prev) => [data, ...prev]);
-      setNewNote("");
-    }
-    setAddingNote(false);
-  }, [contact, newNote, accountId]);
-
   const handleToggleSpam = useCallback(async () => {
     if (!contact || updatingSpam) return;
     const next = !isSpam;
@@ -269,12 +235,53 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
           </button>
         )}
       </div>
-      {/* `min-h-0` is load-bearing. A flex child defaults to
+
+      {/* Two views of the same contact: the record, and the team's
+          conversation about them. Tabs rather than stacking the thread
+          under the details — a chat needs its own height and its own
+          scroll, and appending it to a long details column would put
+          the composer somewhere nobody can reach without scrolling. */}
+      <div
+        role="tablist"
+        aria-label="Contact panel"
+        className="border-border flex shrink-0 border-b"
+      >
+        {(
+          [
+            ['details', 'Details'],
+            ['team', 'Team Inbox'],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            role="tab"
+            type="button"
+            aria-selected={tab === key}
+            onClick={() => setTab(key)}
+            className={cn(
+              'relative flex-1 px-3 py-2.5 text-xs font-medium transition-colors',
+              tab === key
+                ? 'text-foreground'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {label}
+            {tab === key && (
+              <span className="bg-primary absolute inset-x-3 -bottom-px h-0.5 rounded-full" />
+            )}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'team' ? (
+        <TeamThread contactId={contact.id} />
+      ) : (
+      /* `min-h-0` is load-bearing. A flex child defaults to
           `min-height: auto`, which refuses to shrink below its content —
           so with enough in the panel this grew past the column instead
           of scrolling, pushing everything below it out of reach. The
           overflow was always set up correctly; it just never had a
-          bounded height to overflow against. */}
+          bounded height to overflow against. */
       <ScrollArea className="min-h-0 flex-1">
         <div className="p-4">
           {/* Contact Info */}
@@ -548,53 +555,13 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
             </div>
           </div>
 
-          {/* Divider */}
-          <div className="my-4 border-t border-border" />
-
-          {/* Notes */}
-          <div>
-            <div className="flex items-center gap-2 px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              <StickyNote className="h-3 w-3" />
-              Notes
-            </div>
-            <div className="mt-2">
-              <div className="flex gap-2">
-                <textarea
-                  value={newNote}
-                  onChange={(e) => setNewNote(e.target.value)}
-                  placeholder="Add a note..."
-                  rows={2}
-                  className="flex-1 resize-none rounded-lg border border-border bg-muted px-3 py-2 text-xs text-foreground placeholder-muted-foreground outline-none focus:border-primary/50"
-                />
-                <Button
-                  size="sm"
-                  className="h-auto bg-primary px-2 hover:bg-primary/90"
-                  onClick={handleAddNote}
-                  disabled={!newNote.trim() || addingNote}
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </div>
-
-              <div className="mt-2 space-y-2">
-                {notes.map((note) => (
-                  <div
-                    key={note.id}
-                    className="rounded-lg bg-muted px-3 py-2"
-                  >
-                    <p className="whitespace-pre-wrap text-xs text-muted-foreground">
-                      {note.note_text}
-                    </p>
-                    <p className="mt-1 text-[10px] text-muted-foreground">
-                      {format(new Date(note.created_at), "MMM d, yyyy HH:mm")}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          {/* Notes used to sit here. They were one-line comments with
+              no reply, no addressee and no way to know one had been
+              left — which is what the Team Inbox tab now is. Migration
+              094 copied every existing note into the thread. */}
         </div>
       </ScrollArea>
+      )}
     </div>
   );
 }
