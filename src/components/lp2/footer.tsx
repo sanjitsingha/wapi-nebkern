@@ -31,7 +31,13 @@ const COLUMNS: {
     title: 'Product',
     hue: 'lemon',
     links: [
-      { label: 'Features', href: '/#features' },
+      // The same five the Features menu offers. A footer that says only
+      // "Features" hands a crawler one link into a section anchor; these
+      // are five real pages, and this is the site-wide link to each.
+      { label: 'Shared inbox', href: '/features/shared-inbox' },
+      { label: 'Campaigns', href: '/features/campaigns' },
+      { label: 'Segments & lists', href: '/features/segments' },
+      { label: 'Pipelines', href: '/features/pipelines' },
       { label: 'Ask Maya', href: '/ask-maya' },
       { label: 'Pricing', href: '/pricing' },
     ],

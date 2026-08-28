@@ -37,6 +37,14 @@ const MARKETING: Array<[path: string, priority: number]> = [
   ['', 1],
   ['/pricing', 0.9],
   ['/ask-maya', 0.8],
+  // The feature pages. Each targets a distinct search — someone looking
+  // for "whatsapp shared inbox" is not the same visitor as one looking
+  // for "whatsapp broadcast" — so they rank alongside /pricing rather
+  // than below the blog.
+  ['/features/shared-inbox', 0.8],
+  ['/features/campaigns', 0.8],
+  ['/features/segments', 0.8],
+  ['/features/pipelines', 0.8],
   ['/blog', 0.7],
   // A free tool people search for by name, so it earns a high priority
   // despite not being part of the product story.

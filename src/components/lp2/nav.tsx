@@ -74,57 +74,47 @@ const NAV: {
 /**
  * The Features mega-menu.
  *
- * A flat list of capabilities in four columns. It used to group them
- * under headings ("Engage", "Autopilot", "Grow", "Organize"), each with
- * a coloured dot and every item behind a tinted icon tile — a lot of
- * decoration standing between someone and the eight links they came for.
- * The headings were also our vocabulary, not the reader's: nobody
- * arrives looking for the "Engage" section.
+ * Five entries, not eight, and every one goes to a page written to sell
+ * that surface. It used to list eight and send most of them into
+ * /docs/* — documentation, which answers "how do I configure this" for
+ * someone who already bought. A visitor in the nav has not bought yet,
+ * and eight choices where three are near-synonyms ("Multi-channel" vs
+ * "Shared Team Inbox", "Contacts & CRM" vs "Sales Pipelines") is a menu
+ * that makes them work out our product structure before they can click.
  *
- * Now it is just the eight things, named and described. The grid still
- * gives it shape; the colour has gone back to the page, where it earns
- * its place.
+ * The cut ones are not gone from the site — multi-channel is the first
+ * thing the inbox page argues, CRM is the record under the pipelines
+ * page. They stopped being separate doors.
+ *
+ * Automations & Flows points at /ask-maya rather than a page of its
+ * own: that page already covers both in full, and a second one would
+ * compete with it for the same search.
  */
 const FEATURE_MENU: { label: string; desc: string; href: string }[] = [
   {
     label: 'Shared Team Inbox',
-    desc: 'One inbox, the whole team',
-    href: '/docs/inbox',
+    desc: 'One number, the whole team',
+    href: '/features/shared-inbox',
   },
   {
-    label: 'Multi-channel',
-    desc: 'WhatsApp, Instagram & Messenger',
-    href: '/docs/whatsapp',
+    label: 'Broadcast Campaigns',
+    desc: 'Reach thousands, one at a time',
+    href: '/features/campaigns',
   },
   {
-    label: 'Maya & Automations',
+    label: 'Automations & Flows',
     desc: 'Replies that run themselves',
     href: '/ask-maya',
   },
   {
-    label: 'Visual Flow builder',
-    desc: 'Branch every conversation',
-    href: '/docs/flows',
-  },
-  {
-    label: 'Broadcast Campaigns',
-    desc: 'Bulk template sends',
-    href: '/docs/campaigns',
-  },
-  {
     label: 'Segments & Lists',
-    desc: 'Target the right people',
-    href: '/docs/segments-and-lists',
-  },
-  {
-    label: 'Contacts & CRM',
-    desc: 'Every lead you own',
-    href: '/docs/contacts',
+    desc: 'Target the right few hundred',
+    href: '/features/segments',
   },
   {
     label: 'Sales Pipelines',
-    desc: 'Drag deals to close',
-    href: '/docs/pipelines',
+    desc: 'The chat is the deal',
+    href: '/features/pipelines',
   },
 ];
 
@@ -249,7 +239,11 @@ function FeaturesMenu() {
             sticker treatment, which suited the floating pill but reads
             as loud hanging off a flush bar. */}
         <div className="rounded-2xl border border-(--lp2-ink)/12 bg-white p-2">
-          <div className="grid grid-cols-4 gap-1">
+          {/* Five columns for five items — one row, no orphan. This was
+              `grid-cols-4` when the menu held eight and filled two rows
+              exactly; five items in it would leave one stranded on a
+              second row with three empty cells beside it. */}
+          <div className="grid grid-cols-5 gap-1">
             {FEATURE_MENU.map((it) => (
               <Link
                 key={it.label}
