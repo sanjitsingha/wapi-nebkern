@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 import { avatarColor } from "@/lib/avatar-color";
 import { cn } from "@/lib/utils";
 import type { Contact, Deal, Tag } from "@/types";
@@ -22,6 +23,7 @@ import {
   PanelRightClose,
   ExternalLink,
   PhoneCall,
+  AlertCircle,
 } from "lucide-react";
 import { useCallCenter } from "@/components/calls/call-center";
 import { ContactCallHistory } from "@/components/calls/contact-call-history";
@@ -32,6 +34,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { formatDetailedMetaError } from "@/lib/whatsapp/errors";
 import { toast } from "sonner";
 
 interface ContactSidebarProps {
@@ -43,20 +46,34 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
   // Null outside the dashboard shell (the provider lives there), which is
   // why every use below is optional rather than assumed.
   const callCenter = useCallCenter();
+  const { user, accountId } = useAuth();
   /** Which half of the panel is showing. Resets to Details on a
    *  contact change — landing in someone else's team thread because
    *  that is where you were last is disorienting. */
   const [tab, setTab] = useState<'details' | 'team'>('details');
+  const [unreadTeamCount, setUnreadTeamCount] = useState(0);
   const [copied, setCopied] = useState(false);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [tags, setTags] = useState<(Tag & { contact_tag_id: string })[]>([]);
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [tagSearch, setTagSearch] = useState("");
   const [savingTag, setSavingTag] = useState(false);
+  const [recentFailures, setRecentFailures] = useState<{
+    id: string;
+    content_text: string | null;
+    template_name: string | null;
+    error_message: string | null;
+    created_at: string;
+  }[]>([]);
   // Mirrors contact.is_spam locally so the toggle reflects instantly
   // without waiting for the parent to re-fetch and pass a fresh prop.
   const [isSpam, setIsSpam] = useState(false);
   const [updatingSpam, setUpdatingSpam] = useState(false);
+
+  const tabRef = useRef(tab);
+  useEffect(() => {
+    tabRef.current = tab;
+  }, [tab]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -70,10 +87,8 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
 
     const supabase = createClient();
 
-    // Deals and tags in parallel. Notes are no longer read here — the
-    // Team Inbox tab fetches the thread that replaced them, and only
-    // when that tab is actually opened.
-    const [dealsRes, tagsRes] = await Promise.all([
+    // Deals, tags and failed messages in parallel.
+    const [dealsRes, tagsRes, convsRes] = await Promise.all([
       supabase
         .from("deals")
         .select("*, stage:pipeline_stages(*)")
@@ -82,6 +97,10 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
       supabase
         .from("contact_tags")
         .select("id, tag_id, tags(*)")
+        .eq("contact_id", contact.id),
+      supabase
+        .from("conversations")
+        .select("id")
         .eq("contact_id", contact.id),
     ]);
 
@@ -94,6 +113,20 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
           contact_tag_id: ct.id as string,
         }));
       setTags(mapped);
+    }
+
+    const convIds = (convsRes.data ?? []).map((c) => c.id);
+    if (convIds.length > 0) {
+      const { data: failed } = await supabase
+        .from("messages")
+        .select("id, content_text, template_name, error_message, created_at")
+        .in("conversation_id", convIds)
+        .eq("status", "failed")
+        .order("created_at", { ascending: false })
+        .limit(4);
+      setRecentFailures((failed as typeof recentFailures) ?? []);
+    } else {
+      setRecentFailures([]);
     }
   }, [contact]);
 
@@ -119,6 +152,81 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
       cancelled = true;
     };
   }, []);
+
+  // Fetch unread team messages count
+  const fetchUnreadTeamMessages = useCallback(async () => {
+    if (!contact?.id || !user?.id) return;
+    const supabase = createClient();
+    const storageKey = `team_thread_seen_${user.id}_${contact.id}`;
+    const lastSeen = typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null;
+
+    let query = supabase
+      .from('contact_thread_messages')
+      .select('id, created_at, author_id', { count: 'exact', head: true })
+      .eq('contact_id', contact.id)
+      .is('deleted_at', null)
+      .neq('author_id', user.id);
+
+    if (lastSeen) {
+      query = query.gt('created_at', lastSeen);
+    }
+
+    const { count, error } = await query;
+    if (!error && typeof count === 'number') {
+      setUnreadTeamCount(count);
+    }
+  }, [contact?.id, user?.id]);
+
+  useEffect(() => {
+    if (!contact?.id || !user?.id) {
+      setUnreadTeamCount(0);
+      return;
+    }
+
+    if (tab === 'team') {
+      const storageKey = `team_thread_seen_${user.id}_${contact.id}`;
+      localStorage.setItem(storageKey, new Date().toISOString());
+      setUnreadTeamCount(0);
+      return;
+    }
+
+    void fetchUnreadTeamMessages();
+  }, [contact?.id, user?.id, tab, fetchUnreadTeamMessages]);
+
+  // Live updates for unseen team messages
+  useEffect(() => {
+    if (!contact?.id || !accountId || !user?.id) return;
+    const supabase = createClient();
+
+    const channel = supabase
+      .channel(`contact-team-unread:${contact.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'contact_thread_messages',
+          filter: `contact_id=eq.${contact.id}`,
+        },
+        (payload) => {
+          const row = payload.new as { author_id?: string };
+          if (!row || row.author_id === user.id) return;
+
+          if (tabRef.current === 'team') {
+            const storageKey = `team_thread_seen_${user.id}_${contact.id}`;
+            localStorage.setItem(storageKey, new Date().toISOString());
+            setUnreadTeamCount(0);
+          } else {
+            setUnreadTeamCount((prev) => prev + 1);
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [contact?.id, accountId, user?.id]);
 
   // Add or remove a tag on this contact, updating local state instantly.
   const toggleTag = useCallback(
@@ -257,15 +365,27 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
             role="tab"
             type="button"
             aria-selected={tab === key}
-            onClick={() => setTab(key)}
+            onClick={() => {
+              setTab(key);
+              if (key === 'team' && contact?.id && user?.id) {
+                const storageKey = `team_thread_seen_${user.id}_${contact.id}`;
+                localStorage.setItem(storageKey, new Date().toISOString());
+                setUnreadTeamCount(0);
+              }
+            }}
             className={cn(
-              'relative flex-1 px-3 py-2.5 text-xs font-medium transition-colors',
+              'relative flex-1 px-3 py-2.5 text-xs font-medium transition-colors flex items-center justify-center gap-1.5',
               tab === key
                 ? 'text-foreground'
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >
-            {label}
+            <span>{label}</span>
+            {key === 'team' && unreadTeamCount > 0 && tab !== 'team' && (
+              <span className="bg-red-500 text-white inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none animate-in fade-in zoom-in-75">
+                {unreadTeamCount > 99 ? '99+' : unreadTeamCount}
+              </span>
+            )}
             {tab === key && (
               <span className="bg-primary absolute inset-x-3 -bottom-px h-0.5 rounded-full" />
             )}
@@ -486,9 +606,9 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
               {tags.length === 0 ? (
                 <p className="px-1 text-xs text-muted-foreground">No tags</p>
               ) : (
-                tags.map((tag) => (
+                tags.map((tag, idx) => (
                   <span
-                    key={tag.contact_tag_id}
+                    key={tag.contact_tag_id || `${tag.id}-${idx}`}
                     className="group/tag inline-flex items-center gap-1 rounded-full py-0.5 pl-2 pr-1 text-[10px] font-medium"
                     style={{
                       backgroundColor: `${tag.color}20`,
@@ -555,10 +675,43 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
             </div>
           </div>
 
-          {/* Notes used to sit here. They were one-line comments with
-              no reply, no addressee and no way to know one had been
-              left — which is what the Team Inbox tab now is. Migration
-              094 copied every existing note into the thread. */}
+          {/* Recent Delivery Failures / Logs */}
+          {recentFailures.length > 0 && (
+            <>
+              <div className="my-4 border-t border-border" />
+              <div>
+                <div className="flex items-center gap-1.5 px-1 text-xs font-medium uppercase tracking-wider text-red-600 dark:text-red-400">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  Recent Delivery Failures ({recentFailures.length})
+                </div>
+                <div className="mt-2 space-y-2">
+                  {recentFailures.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-lg border border-red-200 bg-red-50/70 p-2.5 dark:border-red-500/20 dark:bg-red-950/30 text-xs"
+                    >
+                      <div className="flex items-baseline justify-between gap-1 text-[11px]">
+                        <span className="font-semibold text-red-700 dark:text-red-400 truncate">
+                          {item.template_name ? `Template: ${item.template_name}` : "Direct Message"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">
+                          {new Date(item.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      {item.content_text && (
+                        <p className="mt-1 line-clamp-2 text-foreground/80 text-[11px]">
+                          {item.content_text}
+                        </p>
+                      )}
+                      <div className="mt-1.5 rounded bg-red-100/80 px-2 py-1 text-[11px] font-medium text-red-800 dark:bg-red-900/40 dark:text-red-300 leading-snug">
+                        {formatDetailedMetaError(item.error_message)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </ScrollArea>
       )}

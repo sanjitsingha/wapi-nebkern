@@ -17,6 +17,7 @@ import {
   isTemplateWebhookField,
 } from '@/lib/whatsapp/template-webhook'
 import { parseFlowCompletion } from '@/lib/whatsapp/forms'
+import { formatDetailedMetaError } from '@/lib/whatsapp/errors'
 
 // Lazy-initialized to avoid build-time crash when env vars are missing
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -434,12 +435,36 @@ async function handleStatusUpdate(status: {
   status: string
   timestamp: string
   recipient_id: string
+  errors?: Array<{
+    code?: number
+    title?: string
+    message?: string
+    error_data?: { details?: string }
+  }>
 }) {
+  let errorMessage: string | null = null
+  if (status.errors && status.errors.length > 0) {
+    const err = status.errors[0]
+    errorMessage = formatDetailedMetaError({
+      code: err.code,
+      title: err.title,
+      message: err.message,
+      details: err.error_data?.details,
+    })
+  } else if (status.status === 'failed') {
+    errorMessage = formatDetailedMetaError('Message delivery failed (Undeliverable)')
+  }
+
   // 1) Mirror onto messages (legacy behavior) — Meta's status values
   //    already match the CHECK constraint on messages.status.
+  const msgUpdate: Record<string, unknown> = { status: status.status }
+  if (errorMessage && status.status === 'failed') {
+    msgUpdate.error_message = errorMessage
+  }
+
   const { error: msgErr } = await supabaseAdmin()
     .from('messages')
-    .update({ status: status.status })
+    .update(msgUpdate)
     .eq('message_id', status.id)
 
   if (msgErr) {
@@ -472,6 +497,7 @@ async function handleStatusUpdate(status: {
   if (status.status === 'sent' && !('sent_at' in update)) update.sent_at = tsIso
   if (status.status === 'delivered') update.delivered_at = tsIso
   if (status.status === 'read') update.read_at = tsIso
+  if (status.status === 'failed' && errorMessage) update.error_message = errorMessage
 
   const { error: recUpdateErr } = await supabaseAdmin()
     .from('broadcast_recipients')

@@ -86,20 +86,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
         <TrialStatusChip />
         <NotificationsBell />
 
-        {/* Settings is a header destination in its own right rather than
-            a row inside the account menu — it's the most-visited page in
-            the app during setup, and it carries the walkthrough anchor
-            (a real link, so the tour can point at something that is
-            always mounted). */}
-        <Link
-          href="/settings"
-          aria-label="Settings"
-          title="Settings"
-          data-walkthrough="settings"
-          className="text-muted-foreground hover:bg-muted hover:text-foreground flex h-10 w-10 items-center justify-center rounded-md transition-colors focus:outline-none"
-        >
-          <Gear className="h-5 w-5" />
-        </Link>
+
 
         <DropdownMenu>
           <DropdownMenuTrigger
@@ -234,15 +221,19 @@ export function Header({ onOpenSidebar }: HeaderProps) {
               </div>
             )}
 
-            {/* Sign out. The app had no way out from its own chrome —
-                the only signOut() call sites were Settings → Sessions,
-                onboarding and the admin shell, so a normal user had to
-                go hunting through Settings to log off. An account menu
-                is where everyone looks for it. */}
+            {/* Settings & Sign out */}
             <DropdownMenuSeparator className="my-2" />
             <DropdownMenuItem
+              render={<Link href="/settings" />}
+              data-walkthrough="settings"
+              className="gap-2.5 rounded-lg px-3 py-2.5 text-[15px] font-medium cursor-pointer text-foreground hover:bg-muted"
+            >
+              <Gear className="h-4.5 w-4.5 text-muted-foreground" />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem
               onClick={signOut}
-              className="text-destructive data-highlighted:text-destructive gap-2.5 rounded-lg px-3 py-2.5 text-[15px] font-medium"
+              className="text-destructive data-highlighted:text-destructive gap-2.5 rounded-lg px-3 py-2.5 text-[15px] font-medium cursor-pointer"
             >
               <SignOut className="h-4.5 w-4.5" />
               Sign out

@@ -16,10 +16,17 @@ import {
   CornerDownLeft,
   PhoneIncoming,
   PhoneMissed,
+  AlertTriangle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ReplyQuote } from "./reply-quote";
 import { MessageReactions } from "./message-reactions";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
+import { formatDetailedMetaError } from "@/lib/whatsapp/errors";
 
 interface MessageBubbleProps {
   message: Message;
@@ -37,9 +44,11 @@ interface MessageBubbleProps {
 function StatusIcon({
   status,
   channel,
+  errorMessage,
 }: {
   status: Message["status"];
   channel: ConversationChannel;
+  errorMessage?: string | null;
 }) {
   // Neither Instagram's nor Messenger's send API hands back
   // delivered/read granularity — collapse to sent/failed only rather
@@ -52,15 +61,57 @@ function StatusIcon({
       : status;
   switch (displayStatus) {
     case "sending":
-      return <Clock className="h-3 w-3 text-muted-foreground" />;
+      return (
+        <span title="Sending…">
+          <Clock className="h-3 w-3 text-muted-foreground" />
+        </span>
+      );
     case "sent":
-      return <Check className="h-3 w-3 text-muted-foreground" />;
+      return (
+        <span title="Sent">
+          <Check className="h-3 w-3 text-muted-foreground" />
+        </span>
+      );
     case "delivered":
-      return <CheckCheck className="h-3 w-3 text-muted-foreground" />;
+      return (
+        <span title="Delivered">
+          <CheckCheck className="h-3 w-3 text-muted-foreground" />
+        </span>
+      );
     case "read":
-      return <CheckCheck className="h-3 w-3 text-blue-400" />;
+      return (
+        <span title="Read">
+          <CheckCheck className="h-3 w-3 text-blue-400" />
+        </span>
+      );
     case "failed":
-      return <XCircle className="h-3 w-3 text-red-400" />;
+      return (
+        <Tooltip>
+          <TooltipTrigger
+            aria-label="Delivery failed"
+            className="inline-flex items-center focus:outline-none cursor-pointer"
+          >
+            <AlertTriangle className="h-3.5 w-3.5 text-red-500 fill-red-500/20 shrink-0" />
+          </TooltipTrigger>
+          <TooltipContent
+            side="top"
+            align="end"
+            className="max-w-xs p-2.5 text-xs shadow-md bg-popover text-popover-foreground border border-red-500/30 rounded-lg"
+          >
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="size-4 shrink-0 text-red-500 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-semibold text-red-600 dark:text-red-400">
+                  Delivery Failed
+                </p>
+                <p className="text-[11px] leading-relaxed text-foreground/90 font-normal">
+                  {formatDetailedMetaError(errorMessage)}
+                </p>
+              </div>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      );
     default:
       return null;
   }
@@ -365,7 +416,13 @@ export function MessageBubble({
           >
             {time}
           </span>
-          {isAgent && <StatusIcon status={message.status} channel={channel} />}
+          {isAgent && (
+            <StatusIcon
+              status={message.status}
+              channel={channel}
+              errorMessage={message.error_message}
+            />
+          )}
         </div>
       </div>
       {reactions && reactions.length > 0 && onToggleReaction && (

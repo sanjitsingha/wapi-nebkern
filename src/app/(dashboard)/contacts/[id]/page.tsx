@@ -14,6 +14,7 @@ import {
   filterMedia,
   type LinkItem,
 } from '@/components/contacts/contact-media';
+import { formatDetailedMetaError } from '@/lib/whatsapp/errors';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -75,6 +76,7 @@ import {
   MessageCircleOff,
   PhoneIncoming,
   PhoneMissed,
+  XCircle,
 } from 'lucide-react';
 
 const TABS = [
@@ -88,6 +90,28 @@ const TABS = [
 ] as const;
 
 const MARITAL_OPTIONS = ['Single', 'Married', 'Divorced', 'Widowed'] as const;
+
+const INDIAN_STATES = [
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
+  'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
+  'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
+  'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+  // Union Territories
+  'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry',
+] as const;
+
+const COUNTRIES = [
+  'India', 'Afghanistan', 'Australia', 'Bangladesh', 'Bhutan', 'Brazil',
+  'Canada', 'China', 'Egypt', 'France', 'Germany', 'Indonesia', 'Iran',
+  'Iraq', 'Israel', 'Italy', 'Japan', 'Kenya', 'Malaysia', 'Maldives',
+  'Mexico', 'Myanmar', 'Nepal', 'Netherlands', 'New Zealand', 'Nigeria',
+  'Oman', 'Pakistan', 'Philippines', 'Qatar', 'Russia', 'Saudi Arabia',
+  'Singapore', 'South Africa', 'South Korea', 'Spain', 'Sri Lanka',
+  'Sweden', 'Switzerland', 'Thailand', 'Turkey', 'UAE', 'UK', 'USA',
+  'Vietnam',
+] as const;
 
 /** "2m 14s" / "9s" — mirrors the webhook's call label formatting. */
 function formatCallDuration(seconds: number): string {
@@ -149,6 +173,7 @@ export default function ContactDetailPage() {
   const [editCity, setEditCity] = useState('');
   const [editState, setEditState] = useState('');
   const [editPinCode, setEditPinCode] = useState('');
+  const [editCountry, setEditCountry] = useState('India');
   const [savingDetails, setSavingDetails] = useState(false);
 
   const [allTags, setAllTags] = useState<Tag[]>([]);
@@ -171,6 +196,7 @@ export default function ContactDetailPage() {
 
   const [mediaMessages, setMediaMessages] = useState<Message[]>([]);
   const [linkItems, setLinkItems] = useState<LinkItem[]>([]);
+  const [contactMessages, setContactMessages] = useState<Message[]>([]);
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
   // Most-recent conversation for this contact, for the "Open chat" jump.
@@ -193,6 +219,7 @@ export default function ContactDetailPage() {
       setEditCity(data.city ?? '');
       setEditState(data.state ?? '');
       setEditPinCode(data.pin_code ?? '');
+      setEditCountry(data.country ?? 'India');
     }
     setLoading(false);
   }, [contactId, supabase]);
@@ -273,11 +300,12 @@ export default function ContactDetailPage() {
     const { data } = await supabase
       .from('messages')
       .select(
-        'id, conversation_id, sender_type, content_type, content_text, media_url, status, created_at',
+        'id, conversation_id, sender_type, content_type, content_text, template_name, media_url, status, error_message, created_at',
       )
       .in('conversation_id', convIds)
       .order('created_at', { ascending: false });
     const messages = (data ?? []) as Message[];
+    setContactMessages(messages);
     setMediaMessages(filterMedia(messages));
     setLinkItems(extractLinks(messages));
     setLoadingMedia(false);
@@ -318,6 +346,7 @@ export default function ContactDetailPage() {
       city: editCity.trim() || null,
       state: editState.trim() || null,
       pin_code: editPinCode.trim() || null,
+      country: editCountry || null,
       updated_at: new Date().toISOString(),
     }).eq('id', contactId);
     if (error) { toast.error('Failed to update contact'); }
@@ -465,11 +494,26 @@ export default function ContactDetailPage() {
         date: c.started_at ?? c.ended_at ?? c.created_at,
       });
     });
+    contactMessages
+      .filter((m) => m.status === 'failed')
+      .forEach((m) => {
+        events.push({
+          id: `failed-msg-${m.id}`,
+          icon: XCircle,
+          iconClass: 'bg-red-500/10 text-red-600',
+          title: `Delivery Failed — ${m.template_name ? `Template: ${m.template_name}` : 'Direct Message'}`,
+          detail: [
+            m.content_text ? `"${m.content_text.slice(0, 100)}${m.content_text.length > 100 ? '…' : ''}"` : null,
+            `Error: ${formatDetailedMetaError(m.error_message)}`,
+          ].filter(Boolean).join('\n'),
+          date: m.created_at,
+        });
+      });
 
     return events.sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     );
-  }, [contact, notes, deals, callLogs, defaultCurrency]);
+  }, [contact, notes, deals, callLogs, contactMessages, defaultCurrency]);
 
   if (loading) {
     return (
@@ -822,7 +866,7 @@ export default function ContactDetailPage() {
               <div className="space-y-1.5">
                 <Label className="text-muted-foreground text-xs">Marital status</Label>
                 <Select value={editMarital} onValueChange={(v) => setEditMarital(v ?? '')}>
-                  <SelectTrigger className="h-11 w-full bg-background border-border text-foreground">
+                  <SelectTrigger className="data-[size=default]:h-11 w-full bg-background border-border text-foreground">
                     <SelectValue placeholder="Select…" />
                   </SelectTrigger>
                   <SelectContent>
@@ -856,10 +900,30 @@ export default function ContactDetailPage() {
                   className="bg-background border-border text-foreground placeholder:text-muted-foreground" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-muted-foreground text-xs">Locality</Label>
-                <Input value={editLocality} onChange={(e) => setEditLocality(e.target.value)}
-                  placeholder="Area / locality"
-                  className="bg-background border-border text-foreground placeholder:text-muted-foreground" />
+                <Label className="text-muted-foreground text-xs">Country</Label>
+                <Select value={editCountry} onValueChange={(v) => setEditCountry(v ?? 'India')}>
+                  <SelectTrigger className="data-[size=default]:h-11 w-full bg-background border-border text-foreground">
+                    <SelectValue placeholder="Select country…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRIES.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-muted-foreground text-xs">State</Label>
+                <Select value={editState} onValueChange={(v) => setEditState(v ?? '')}>
+                  <SelectTrigger className="data-[size=default]:h-11 w-full bg-background border-border text-foreground">
+                    <SelectValue placeholder="Select state…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INDIAN_STATES.map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-muted-foreground text-xs">City</Label>
@@ -867,9 +931,10 @@ export default function ContactDetailPage() {
                   className="bg-background border-border text-foreground" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-muted-foreground text-xs">State</Label>
-                <Input value={editState} onChange={(e) => setEditState(e.target.value)}
-                  className="bg-background border-border text-foreground" />
+                <Label className="text-muted-foreground text-xs">Locality</Label>
+                <Input value={editLocality} onChange={(e) => setEditLocality(e.target.value)}
+                  placeholder="Area / locality"
+                  className="bg-background border-border text-foreground placeholder:text-muted-foreground" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-muted-foreground text-xs">Pin Code</Label>
@@ -881,7 +946,7 @@ export default function ContactDetailPage() {
 
             <div className="mt-6 flex justify-end border-t border-border pt-5">
               <Button onClick={saveDetails} disabled={savingDetails}
-                className="bg-primary hover:bg-primary-hover text-primary-foreground">
+                className="h-11 px-5 bg-primary hover:bg-primary-hover text-primary-foreground">
                 {savingDetails ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
                 Save Changes
               </Button>
@@ -1020,7 +1085,7 @@ export default function ContactDetailPage() {
                 </div>
                 <div className="mt-6 flex justify-end border-t border-border pt-5">
                   <Button onClick={saveCustomFields} disabled={savingCustom}
-                    className="bg-primary hover:bg-primary-hover text-primary-foreground">
+                    className="h-11 px-5 bg-primary hover:bg-primary-hover text-primary-foreground">
                     {savingCustom ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
                     Save Custom Fields
                   </Button>

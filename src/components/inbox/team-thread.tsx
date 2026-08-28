@@ -73,16 +73,31 @@ export function TeamThread({ contactId }: { contactId: string }) {
       messages: ContactThreadMessage[];
       authors: Record<string, Author>;
     };
-    setMessages(data.messages ?? []);
+    const incoming = data.messages ?? [];
+    const seenMsgIds = new Set<string>();
+    const dedupedMessages = incoming.filter((m) => {
+      if (!m?.id || seenMsgIds.has(m.id)) return false;
+      seenMsgIds.add(m.id);
+      return true;
+    });
+    setMessages(dedupedMessages);
     setAuthors(data.authors ?? {});
-    setMembers(
-      Object.values(data.authors ?? {}).map((a) => ({
-        user_id: a.user_id,
-        full_name: a.full_name ?? 'Member',
-        email: '',
-        avatar_url: a.avatar_url,
-      })),
-    );
+
+    const authorList = Object.values(data.authors ?? {});
+    const seenUserIds = new Set<string>();
+    const dedupedMembers: MentionableMember[] = [];
+    for (const a of authorList) {
+      if (a.user_id && !seenUserIds.has(a.user_id)) {
+        seenUserIds.add(a.user_id);
+        dedupedMembers.push({
+          user_id: a.user_id,
+          full_name: a.full_name ?? 'Member',
+          email: '',
+          avatar_url: a.avatar_url,
+        });
+      }
+    }
+    setMembers(dedupedMembers);
   }, [contactId]);
 
   useEffect(() => {
@@ -116,8 +131,9 @@ export function TeamThread({ contactId }: { contactId: string }) {
         },
         (payload) => {
           const row = payload.new as ContactThreadMessage;
+          if (!row?.id) return;
           setMessages((prev) => {
-            if (!prev) return prev;
+            if (!prev) return [row];
             // The sender already appended it optimistically.
             if (prev.some((m) => m.id === row.id)) return prev;
             return [...prev, row];
@@ -139,9 +155,15 @@ export function TeamThread({ contactId }: { contactId: string }) {
   const suggestions = useMemo(() => {
     if (!mentionQuery) return [];
     const q = mentionQuery.query.toLowerCase();
+    const seen = new Set<string>();
     return members
       .filter((m) => m.user_id !== user?.id)
       .filter((m) => !q || m.full_name.toLowerCase().includes(q))
+      .filter((m) => {
+        if (seen.has(m.user_id)) return false;
+        seen.add(m.user_id);
+        return true;
+      })
       .slice(0, 6);
   }, [mentionQuery, members, user?.id]);
 
@@ -178,7 +200,13 @@ export function TeamThread({ contactId }: { contactId: string }) {
       }
       setDraft('');
       setMentionQuery(null);
-      setMessages((prev) => (prev ? [...prev, data.message] : [data.message]));
+      if (data.message && data.message.id) {
+        setMessages((prev) => {
+          if (!prev) return [data.message];
+          if (prev.some((m) => m.id === data.message.id)) return prev;
+          return [...prev, data.message];
+        });
+      }
       if (data.mentioned > 0) {
         toast.success(
           data.mentioned === 1 ? '1 person notified' : `${data.mentioned} people notified`,
@@ -206,7 +234,7 @@ export function TeamThread({ contactId }: { contactId: string }) {
           ) : (
             messages.map((m, i) => (
               <ThreadBubble
-                key={m.id}
+                key={m.id || `msg-${i}`}
                 message={m}
                 author={authors[m.author_id]}
                 isMine={m.author_id === user?.id}
@@ -416,7 +444,7 @@ function MentionPicker({
         {members.map((m, i) => {
           const colors = avatarColor(m.user_id);
           return (
-            <li key={m.user_id}>
+            <li key={m.user_id || `member-${i}`}>
               <button
                 type="button"
                 // `onMouseDown`, not `onClick`: a click would blur the

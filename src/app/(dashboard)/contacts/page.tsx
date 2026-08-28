@@ -59,6 +59,9 @@ import {
   ArrowUp,
   ArrowDown,
   MessageCircleOff,
+  Download,
+  FileText,
+  ChevronDown,
 } from 'lucide-react';
 import { useEntitlements } from '@/hooks/use-entitlements';
 import { ContactForm } from '@/components/contacts/contact-form';
@@ -133,6 +136,7 @@ export default function ContactsPage() {
   // Bulk selection (page-scoped — only the loaded rows are selectable)
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   // All tags for display
   const [tagsMap, setTagsMap] = useState<Record<string, Tag>>({});
@@ -367,6 +371,64 @@ export default function ContactsPage() {
     setBulkDeleteOpen(false);
   }
 
+  async function handleExport(format: 'xlsx' | 'csv', idsToExport?: string[]) {
+    setExporting(true);
+    const toastId = toast.loading(
+      idsToExport && idsToExport.length > 0
+        ? `Exporting ${idsToExport.length} selected contact${idsToExport.length === 1 ? '' : 's'} as ${format.toUpperCase()}...`
+        : `Exporting contacts as ${format.toUpperCase()}...`,
+    );
+
+    try {
+      const res = await fetch('/api/contacts/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          format,
+          ids: idsToExport,
+          search: search.trim() || undefined,
+          tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
+          optedOutOnly: optedOutOnly || undefined,
+          createdFrom: createdFrom || undefined,
+          createdTo: createdTo || undefined,
+          createdSort,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Export failed (HTTP ${res.status})`);
+      }
+
+      const disposition = res.headers.get('Content-Disposition') ?? '';
+      const match = /filename="([^"]+)"/.exec(disposition);
+      const defaultFilename = `contacts-${idsToExport ? 'selected' : 'export'}-${new Date().toISOString().slice(0, 10)}.${format}`;
+      const filename = match?.[1] ?? defaultFilename;
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      toast.success(
+        `Successfully exported ${idsToExport ? idsToExport.length : 'all matching'} contacts as ${format.toUpperCase()}`,
+        { id: toastId },
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to export contacts',
+        { id: toastId },
+      );
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
   const hasNext = page < totalPages - 1;
   const hasPrev = page > 0;
@@ -442,6 +504,84 @@ export default function ContactsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="outline"
+                  disabled={exporting || (contacts.length === 0 && totalCount === 0)}
+                  className="border-border text-muted-foreground hover:bg-muted h-11"
+                >
+                  {exporting ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Download className="size-4" />
+                  )}
+                  Export
+                  <ChevronDown className="size-3.5 opacity-60" />
+                </Button>
+              }
+            />
+            <DropdownMenuContent align="end" className="w-56 p-1.5 space-y-1">
+              {selected.size > 0 ? (
+                <>
+                  <div className="px-3 pt-2 pb-1 text-xs font-semibold text-muted-foreground">
+                    Selected ({selected.size})
+                  </div>
+                  <DropdownMenuItem
+                    onClick={() => handleExport('xlsx', Array.from(selected))}
+                    className="cursor-pointer py-2.5 px-3"
+                  >
+                    <Download className="mr-2 size-4 text-emerald-600" />
+                    Export selected as Excel
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleExport('csv', Array.from(selected))}
+                    className="cursor-pointer py-2.5 px-3"
+                  >
+                    <FileText className="mr-2 size-4 text-blue-600" />
+                    Export selected as CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="my-1.5" />
+                  <div className="px-3 pt-2 pb-1 text-xs font-semibold text-muted-foreground">
+                    All Contacts ({totalCount})
+                  </div>
+                  <DropdownMenuItem
+                    onClick={() => handleExport('xlsx')}
+                    className="cursor-pointer py-2.5 px-3"
+                  >
+                    <Download className="mr-2 size-4 text-emerald-600" />
+                    Export all as Excel
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleExport('csv')}
+                    className="cursor-pointer py-2.5 px-3"
+                  >
+                    <FileText className="mr-2 size-4 text-blue-600" />
+                    Export all as CSV
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <>
+                  <DropdownMenuItem
+                    onClick={() => handleExport('xlsx')}
+                    className="cursor-pointer py-2.5 px-3"
+                  >
+                    <Download className="mr-2 size-4 text-emerald-600" />
+                    Export as Excel
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleExport('csv')}
+                    className="cursor-pointer py-2.5 px-3"
+                  >
+                    <FileText className="mr-2 size-4 text-blue-600" />
+                    Export as CSV
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {canEditSettings && (
             <Button
               variant="outline"

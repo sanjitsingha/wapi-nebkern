@@ -136,6 +136,9 @@ export interface Contact {
   city?: string;
   state?: string;
   pin_code?: string;
+  /** Country (migration 095). Free-form text, defaults to 'India' in
+   *  the UI. */
+  country?: string;
   /** Flagged as spam from the inbox contact panel (migration 030). */
   is_spam?: boolean;
   /** Notifications suppressed for this contact (migration 034). */
@@ -429,6 +432,8 @@ export interface Message {
   /** Only on a `form_response` row — the customer's answers, keyed by
    *  field label when resolvable, by raw field id otherwise. */
   form_answers?: Record<string, unknown> | null;
+  /** Detailed error message / reason if delivery failed. */
+  error_message?: string | null;
 }
 
 export type CallDirection = 'inbound' | 'outbound';
