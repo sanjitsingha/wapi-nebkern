@@ -703,7 +703,10 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
                           {item.content_text}
                         </p>
                       )}
-                      <div className="mt-1.5 rounded bg-red-100/80 px-2 py-1 text-[11px] font-medium text-red-800 dark:bg-red-900/40 dark:text-red-300 leading-snug">
+                      {/* `whitespace-pre-line` — the formatter returns
+                          the code, explanation, Meta's specifics and
+                          the fix on separate lines. */}
+                      <div className="mt-1.5 rounded bg-red-100/80 px-2 py-1 text-[11px] font-medium text-red-800 dark:bg-red-900/40 dark:text-red-300 leading-snug whitespace-pre-line">
                         {formatDetailedMetaError(item.error_message)}
                       </div>
                     </div>

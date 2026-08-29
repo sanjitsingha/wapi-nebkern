@@ -437,9 +437,18 @@ async function handleStatusUpdate(status: {
   recipient_id: string
   errors?: Array<{
     code?: number
+    // Meta's status errors carry BOTH shapes depending on the failure:
+    // some populate `title` + `error_data.details`, others the
+    // `error_user_title` / `error_user_msg` pair the Graph API uses.
+    // Reading only the first set is what made a template rejection
+    // arrive as "Message Undeliverable" with nothing actionable.
+    error_subcode?: number
     title?: string
     message?: string
+    href?: string
     error_data?: { details?: string }
+    error_user_title?: string
+    error_user_msg?: string
   }>
 }) {
   let errorMessage: string | null = null
@@ -447,12 +456,23 @@ async function handleStatusUpdate(status: {
     const err = status.errors[0]
     errorMessage = formatDetailedMetaError({
       code: err.code,
+      subcode: err.error_subcode,
       title: err.title,
       message: err.message,
       details: err.error_data?.details,
+      userTitle: err.error_user_title,
+      userMsg: err.error_user_msg,
     })
+    // The raw payload, once, for anything the map does not cover yet —
+    // the code is in the log even when the reader only sees prose.
+    console.warn(
+      '[whatsapp webhook] delivery failed:',
+      JSON.stringify(status.errors[0]),
+    )
   } else if (status.status === 'failed') {
-    errorMessage = formatDetailedMetaError('Message delivery failed (Undeliverable)')
+    // Genuinely no error object. Say so rather than implying we know
+    // the cause — "Undeliverable" reads like a diagnosis and is not one.
+    errorMessage = 'Delivery failed. Meta reported no reason for this message.'
   }
 
   // 1) Mirror onto messages (legacy behavior) — Meta's status values

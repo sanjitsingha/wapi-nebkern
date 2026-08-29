@@ -104,7 +104,13 @@ function StatusIcon({
                 <p className="font-semibold text-red-600 dark:text-red-400">
                   Delivery Failed
                 </p>
-                <p className="text-[11px] leading-relaxed text-foreground/90 font-normal">
+                {/* `whitespace-pre-line`: formatDetailedMetaError
+                    returns the code, the explanation, Meta's own
+                    specifics and the suggested action on separate
+                    lines. Collapsed into one paragraph they run
+                    together — several of those parts contain em-dashes
+                    themselves, so there is no visible seam. */}
+                <p className="text-[11px] leading-relaxed text-foreground/90 font-normal whitespace-pre-line">
                   {formatDetailedMetaError(errorMessage)}
                 </p>
               </div>

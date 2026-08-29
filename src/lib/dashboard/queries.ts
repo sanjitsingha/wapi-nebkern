@@ -9,11 +9,18 @@ import {
   mondayIndex,
   startOfLocalDay,
 } from './date-utils';
+import {
+  META_ERROR_CODE_MAP,
+  errorSummary,
+  extractErrorCode,
+} from '@/lib/whatsapp/errors';
 import type {
   ActivityItem,
   ConversationsSeriesPoint,
   DashboardDateRange,
   DashboardMemberFilter,
+  FailureGroup,
+  FailureReport,
   MetricsBundle,
   PipelineDonutData,
   PipelineStageSlice,
@@ -107,6 +114,31 @@ export async function loadMetrics(
         .gte('created_at', prevStart)
         .lt('created_at', rangeStart);
 
+  // Failed sends, current and previous window. Same shape as the sent
+  // counts above so the card can show a delta — a failure count without
+  // "and it was 3 last week" does not say whether anything changed.
+  const failedFor = (start: string, end: string) =>
+    member?.userId
+      ? db
+          .from('messages')
+          .select('id, conversations!inner(assigned_agent_id)', {
+            count: 'exact',
+            head: true,
+          })
+          .eq('status', 'failed')
+          .eq('conversations.assigned_agent_id', member.userId)
+          .gte('created_at', start)
+          .lt('created_at', end)
+      : db
+          .from('messages')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'failed')
+          .gte('created_at', start)
+          .lt('created_at', end);
+
+  const curFailedQ = failedFor(rangeStart, rangeEnd);
+  const prevFailedQ = failedFor(prevStart, rangeStart);
+
   let dealsQ = db.from('deals').select('value, status').eq('status', 'open');
 
   if (member?.userId) {
@@ -127,6 +159,8 @@ export async function loadMetrics(
     newContactsPrev,
     messagesCur,
     messagesPrev,
+    failedCur,
+    failedPrev,
     openDeals,
   ] = await Promise.all([
     curConvQ,
@@ -135,6 +169,8 @@ export async function loadMetrics(
     prevContactsQ,
     curMsgQ,
     prevMsgQ,
+    curFailedQ,
+    prevFailedQ,
     dealsQ,
   ]);
 
@@ -156,6 +192,10 @@ export async function loadMetrics(
     messagesSent: {
       current: messagesCur.count ?? 0,
       previous: messagesPrev.count ?? 0,
+    },
+    messagesFailed: {
+      current: failedCur.count ?? 0,
+      previous: failedPrev.count ?? 0,
     },
     openDealsValue,
     openDealsCount: openDealsRows.length,
@@ -593,4 +633,173 @@ export async function loadActivity(
   return items
     .sort((a, b) => (a.at > b.at ? -1 : a.at < b.at ? 1 : 0))
     .slice(0, limit);
+}
+
+// --- 6. Delivery failures ---------------------------------------------
+
+/**
+ * How many failures to read before grouping.
+ *
+ * Grouping has to happen in JS: the cause lives inside `error_message`
+ * as text, so Postgres cannot GROUP BY it without a generated column.
+ * That is a fair trade at this cap — a range with more than 500
+ * failures has a problem the top three groups will name regardless of
+ * whether the tail is counted exactly.
+ */
+const FAILURE_SCAN_LIMIT = 500;
+
+/** How many named broadcasts to list under one cause. */
+const BROADCASTS_PER_GROUP = 3;
+
+export async function loadFailures(
+  db: DB,
+  range: DashboardDateRange,
+  member?: DashboardMemberFilter | null
+): Promise<FailureReport> {
+  // Same windowing as loadMetrics: `to` is inclusive, so the upper
+  // bound is the start of the next day.
+  const rangeStart = startOfLocalDay(range.from).toISOString();
+  const rangeEnd = addLocalDays(range.to, 1).toISOString();
+
+  // The member filter needs the `!inner` join in the SELECT, not just
+  // an `.eq` — filtering on an embedded column without it returns
+  // every row with the embed nulled instead of narrowing the set. Same
+  // shape the message queries above use.
+  const failedQ = member?.userId
+    ? db
+        .from('messages')
+        .select(
+          'id, error_message, broadcast_id, conversation_id, created_at, conversations!inner(assigned_agent_id)'
+        )
+        .eq('status', 'failed')
+        .eq('conversations.assigned_agent_id', member.userId)
+        .gte('created_at', rangeStart)
+        .lt('created_at', rangeEnd)
+        .order('created_at', { ascending: false })
+        .limit(FAILURE_SCAN_LIMIT)
+    : db
+        .from('messages')
+        .select('id, error_message, broadcast_id, conversation_id, created_at')
+        .eq('status', 'failed')
+        .gte('created_at', rangeStart)
+        .lt('created_at', rangeEnd)
+        .order('created_at', { ascending: false })
+        .limit(FAILURE_SCAN_LIMIT);
+
+  // Denominator for the rate. Same window, same filter, so the
+  // percentage is honest rather than "failures over all messages ever".
+  const sentQ = member?.userId
+    ? db
+        .from('messages')
+        .select('id, conversations!inner(assigned_agent_id)', {
+          count: 'exact',
+          head: true,
+        })
+        .eq('sender_type', 'agent')
+        .eq('conversations.assigned_agent_id', member.userId)
+        .gte('created_at', rangeStart)
+        .lt('created_at', rangeEnd)
+    : db
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('sender_type', 'agent')
+        .gte('created_at', rangeStart)
+        .lt('created_at', rangeEnd);
+
+  const [failedRes, sentRes] = await Promise.all([failedQ, sentQ]);
+
+  const rows = (failedRes.data ?? []) as {
+    id: string;
+    error_message: string | null;
+    broadcast_id: string | null;
+    conversation_id: string | null;
+  }[];
+
+  const total = rows.length;
+  const sent = sentRes.count ?? 0;
+  // Denominator is attempts, not successes — a 100% failure rate should
+  // read as 100%, which `failed / sent` cannot produce.
+  const attempts = sent + total;
+
+  if (total === 0) {
+    return { total: 0, failureRate: attempts > 0 ? 0 : null, groups: [] };
+  }
+
+  // Name the broadcasts involved, so a group can say WHICH campaign
+  // rather than just "9 from a broadcast".
+  const broadcastIds = [
+    ...new Set(rows.map((r) => r.broadcast_id).filter((v): v is string => !!v)),
+  ];
+  const nameById = new Map<string, string>();
+  if (broadcastIds.length > 0) {
+    const { data: bcs } = await db
+      .from('broadcasts')
+      .select('id, name')
+      .in('id', broadcastIds);
+    for (const b of (bcs ?? []) as { id: string; name: string | null }[]) {
+      nameById.set(b.id, b.name || 'Untitled broadcast');
+    }
+  }
+
+  // Group by code where there is one, and by the message text where
+  // there is not — so unmapped errors still collapse together instead
+  // of each becoming its own group of one.
+  const groups = new Map<
+    string,
+    FailureGroup & { broadcastTally: Map<string, number> }
+  >();
+
+  for (const row of rows) {
+    const code = extractErrorCode(row.error_message);
+    const title = errorSummary(row.error_message);
+    const key = code !== null ? `c${code}` : `t${title}`;
+
+    let g = groups.get(key);
+    if (!g) {
+      g = {
+        code,
+        title,
+        action: code ? (META_ERROR_CODE_MAP[code]?.action ?? null) : null,
+        count: 0,
+        broadcastCount: 0,
+        broadcasts: [],
+        sampleContactId: null,
+        broadcastTally: new Map(),
+      };
+      groups.set(key, g);
+    }
+
+    g.count += 1;
+    if (row.broadcast_id) {
+      g.broadcastCount += 1;
+      g.broadcastTally.set(
+        row.broadcast_id,
+        (g.broadcastTally.get(row.broadcast_id) ?? 0) + 1
+      );
+    } else if (!g.sampleContactId && row.conversation_id) {
+      // First direct-message failure in the group becomes the "go and
+      // look at this one" link.
+      g.sampleContactId = row.conversation_id;
+    }
+  }
+
+  const out: FailureGroup[] = [...groups.values()]
+    .map(({ broadcastTally, ...g }) => ({
+      ...g,
+      broadcasts: [...broadcastTally.entries()]
+        .map(([id, count]) => ({
+          id,
+          name: nameById.get(id) ?? 'Untitled broadcast',
+          count,
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, BROADCASTS_PER_GROUP),
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  return {
+    total,
+    failureRate: attempts > 0 ? (total / attempts) * 100 : null,
+    groups: out,
+  };
 }

@@ -29,9 +29,18 @@ interface MetricCardProps {
    * fruit salad. Defaults to `green` so existing callers are unchanged.
    */
   tone?: MetricTone
+  /**
+   * Flip the delta's colouring, for a metric where UP is bad.
+   *
+   * The default reads a rise as green and a fall as red, which is right
+   * for conversations and messages sent and exactly wrong for failures
+   * — "+18 failed vs previous 30 days" in green congratulates you on a
+   * broken template.
+   */
+  invertDelta?: boolean
 }
 
-type MetricTone = 'green' | 'blue' | 'amber' | 'violet'
+type MetricTone = 'green' | 'blue' | 'amber' | 'violet' | 'red'
 
 /**
  * Soft tinted background + saturated glyph, one pair per tone. The
@@ -45,6 +54,7 @@ const TONE_CLASSES: Record<MetricTone, string> = {
   blue: 'bg-blue-500/12 text-blue-600 dark:text-blue-400',
   amber: 'bg-amber-500/14 text-amber-600 dark:text-amber-400',
   violet: 'bg-violet-500/12 text-violet-600 dark:text-violet-400',
+  red: 'bg-red-500/12 text-red-600 dark:text-red-400',
 }
 
 export function MetricCard({
@@ -54,6 +64,7 @@ export function MetricCard({
   delta,
   subtitle,
   tone = 'green',
+  invertDelta = false,
 }: MetricCardProps) {
   return (
     <div className="rounded-xl border border-border bg-card p-5 transition-shadow hover:shadow-sm">
@@ -71,18 +82,35 @@ export function MetricCard({
       <p className="mt-3 text-[28px] leading-none font-bold tracking-tight tabular-nums text-foreground">
         {value}
       </p>
-      {delta ? <DeltaRow sign={delta.sign} label={delta.label} /> : subtitle ? (
+      {delta ? (
+        <DeltaRow sign={delta.sign} label={delta.label} invert={invertDelta} />
+      ) : subtitle ? (
         <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
       ) : null}
     </div>
   )
 }
 
-function DeltaRow({ sign, label }: { sign: number; label: string }) {
+function DeltaRow({
+  sign,
+  label,
+  invert = false,
+}: {
+  sign: number
+  label: string
+  invert?: boolean
+}) {
+  // The ARROW still follows the number — a rise points up whatever it
+  // means. Only the COLOUR flips, because that is the part carrying the
+  // judgement.
+  const good = invert ? sign < 0 : sign > 0
+  const bad = invert ? sign > 0 : sign < 0
   const tone =
-    sign > 0
+    sign === 0
+      ? 'text-muted-foreground'
+      : good
       ? 'text-primary'
-      : sign < 0
+      : bad
       ? 'text-red-600 dark:text-red-400'
       : 'text-muted-foreground'
   const Arrow = sign > 0 ? ArrowUp : sign < 0 ? ArrowDown : Minus

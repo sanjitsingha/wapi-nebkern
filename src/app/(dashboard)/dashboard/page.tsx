@@ -10,11 +10,13 @@ import {
   UserPlus,
   DollarSign,
   Send,
+  AlertTriangle,
 } from 'lucide-react'
 
 import {
   loadActivity,
   loadConversationsSeries,
+  loadFailures,
   loadMetrics,
   loadPipelineDonut,
   loadResponseTime,
@@ -25,6 +27,7 @@ import type {
   ConversationsSeriesPoint,
   DashboardDateRange,
   DashboardMemberFilter,
+  FailureReport,
   MetricsBundle,
   PipelineDonutData,
   ResponseTimeSummary,
@@ -34,6 +37,7 @@ import type { Profile } from '@/types'
 import { MetricCard } from '@/components/dashboard/metric-card'
 import { SkeletonCard } from '@/components/dashboard/skeleton'
 import { ConversationsChart } from '@/components/dashboard/conversations-chart'
+import { FailurePanel } from '@/components/dashboard/failure-panel'
 import { PipelineDonut } from '@/components/dashboard/pipeline-donut'
 import { ResponseTimeChart } from '@/components/dashboard/response-time-chart'
 import { ActivityFeed } from '@/components/dashboard/activity-feed'
@@ -74,6 +78,9 @@ export default function DashboardPage() {
   const [activity, setActivity] = useState<ActivityItem[] | null>(null)
   const [activityLoading, setActivityLoading] = useState(true)
 
+  const [failures, setFailures] = useState<FailureReport | null>(null)
+  const [failuresLoading, setFailuresLoading] = useState(true)
+
   // Load everything that depends on the selected date range: the metric
   // cards and the conversations series. Each block owns its skeleton so a
   // slow query never blocks a faster one.
@@ -92,6 +99,12 @@ export default function DashboardPage() {
         .then((s) => setSeries(s))
         .catch((err) => console.error('[dashboard] series failed:', err))
         .finally(() => setSeriesLoading(false))
+
+      setFailuresLoading(true)
+      void loadFailures(db, r, mFilter)
+        .then((f) => setFailures(f))
+        .catch((err) => console.error('[dashboard] failures failed:', err))
+        .finally(() => setFailuresLoading(false))
     },
     [],
   )
@@ -186,9 +199,11 @@ export default function DashboardPage() {
       </div>
 
       {/* Metric cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Five cards: `lg:grid-cols-5` rather than 4, or the fifth is
+          stranded alone on a second row with three empty cells. */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {metricsLoading || !metrics ? (
-          Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
+          Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
         ) : (
           <>
             <MetricCard
@@ -239,6 +254,25 @@ export default function DashboardPage() {
                 ),
               }}
             />
+            {/* `invertDelta`: more failures is worse, and the default
+                colouring would paint a rise green. */}
+            <MetricCard
+              title="Failed Deliveries"
+              value={metrics.messagesFailed.current.toLocaleString()}
+              icon={AlertTriangle}
+              tone="red"
+              invertDelta
+              delta={{
+                sign:
+                  metrics.messagesFailed.current -
+                  metrics.messagesFailed.previous,
+                label: deltaLabel(
+                  metrics.messagesFailed.current -
+                    metrics.messagesFailed.previous,
+                  prevPeriodSuffix,
+                ),
+              }}
+            />
           </>
         )}
       </div>
@@ -266,6 +300,11 @@ export default function DashboardPage() {
           />
         </div>
       </div>
+
+      {/* Delivery problems. Above the response-time chart and the
+          activity feed: those describe how the team is doing, this one
+          is something to go and fix. */}
+      <FailurePanel report={failures} loading={failuresLoading} />
 
       {/* Response time */}
       <ResponseTimeChart data={responseTime} loading={responseTimeLoading} />
