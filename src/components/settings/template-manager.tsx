@@ -6,33 +6,33 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   Plus,
-  Trash2,
   Loader2,
   RefreshCw,
   AlertCircle,
-  Pencil,
-  RotateCcw,
   Copy,
   Search,
   Filter,
   ChevronDown,
-  MoreVertical,
   FileText,
   Shapes,
   CircleDot,
   Languages,
   User,
   CalendarDays,
+  ArrowUpRight,
+  Info,
 } from 'lucide-react';
+import { format } from 'date-fns';
 import { createClient } from '@/lib/supabase/client';
+import { TEMPLATE_CATEGORY_STYLES } from '@/components/templates/category-badge';
 import {
-  CategoryCell,
-  TEMPLATE_CATEGORY_STYLES,
-} from '@/components/templates/category-badge';
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Table,
@@ -50,14 +50,6 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import type { MessageTemplate, MessageTemplateStatus } from '@/types';
 import { templateStatusConfig } from '@/lib/template-status';
 
@@ -101,12 +93,6 @@ export function TemplateManager() {
   >([]);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  // Template selected for the confirm-delete dialog. The destructive
-  // action goes through this two-step so a slip on the trash icon
-  // doesn't take the template off Meta as well as locally.
-  const [templateToDelete, setTemplateToDelete] =
-    useState<MessageTemplate | null>(null);
 
   useEffect(() => {
     setLastSyncedAt(localStorage.getItem(LAST_SYNC_KEY));
@@ -222,29 +208,6 @@ export function TemplateManager() {
       toast.error(err instanceof Error ? err.message : 'Failed to sync templates');
     } finally {
       setSyncing(false);
-    }
-  }
-
-  async function confirmDelete() {
-    const target = templateToDelete;
-    if (!target || deletingId) return;
-    setDeletingId(target.id);
-    try {
-      const res = await fetch(`/api/whatsapp/templates/${target.id}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data?.error || `Delete failed (HTTP ${res.status})`);
-      }
-      toast.success('Template deleted');
-      setTemplates((prev) => prev.filter((t) => t.id !== target.id));
-      setTemplateToDelete(null);
-    } catch (err) {
-      console.error('Delete error:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to delete template');
-    } finally {
-      setDeletingId(null);
     }
   }
 
@@ -400,30 +363,26 @@ export function TemplateManager() {
           </div>
 
           <div className="border-border bg-card overflow-x-auto rounded-xl border">
-            {/* Compact rows — trim the body cells' vertical padding (the
-                shared TableCell ships at p-2) so the table reads denser.
-                Headers keep their h-10 since this only targets tbody td. */}
-            <Table className="[&_tbody_td]:py-1.5">
+            <Table>
               <TableHeader>
                 <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
-                  <TableHead className="text-muted-foreground" icon={CalendarDays}>Created</TableHead>
-                  <TableHead className="text-muted-foreground" icon={FileText}>Name</TableHead>
-                  <TableHead className="text-muted-foreground" icon={Shapes}>Category</TableHead>
-                  <TableHead className="text-muted-foreground" icon={CircleDot}>Status</TableHead>
-                  <TableHead className="text-muted-foreground hidden md:table-cell" icon={Languages}>
+                  <TableHead className="px-6 py-3.5 text-muted-foreground" icon={CalendarDays}>Created</TableHead>
+                  <TableHead className="px-6 py-3.5 text-muted-foreground" icon={FileText}>Name</TableHead>
+                  <TableHead className="px-6 py-3.5 text-muted-foreground" icon={Shapes}>Category</TableHead>
+                  <TableHead className="px-6 py-3.5 text-muted-foreground" icon={CircleDot}>Status</TableHead>
+                  <TableHead className="px-6 py-3.5 text-muted-foreground hidden md:table-cell" icon={Languages}>
                     Language
                   </TableHead>
-                  <TableHead className="text-muted-foreground hidden lg:table-cell" icon={User}>
+                  <TableHead className="px-6 py-3.5 text-muted-foreground hidden lg:table-cell" icon={User}>
                     Created by
                   </TableHead>
-                  <TableHead className="text-muted-foreground text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredTemplates.length === 0 ? (
                   <TableRow className="border-border hover:bg-transparent">
                     <TableCell
-                      colSpan={7}
+                      colSpan={6}
                       className="text-muted-foreground py-10 text-center text-sm"
                     >
                       No templates match your search or filters.
@@ -435,136 +394,88 @@ export function TemplateManager() {
                     const status = templateStatusConfig[statusKey];
                     const error =
                       template.rejection_reason || template.submission_error;
-                    const canEdit = statusKey === 'APPROVED';
-                    const canResubmit =
-                      statusKey === 'REJECTED' || statusKey === 'PAUSED';
-                    const canEditDraft = statusKey === 'DRAFT';
                     return (
                       <TableRow
                         key={template.id}
                         className="border-border"
                       >
-                        <TableCell className="text-muted-foreground whitespace-nowrap">
-                          {new Date(template.created_at).toLocaleDateString()}
+                        <TableCell className="px-6 py-4 text-sm text-muted-foreground whitespace-nowrap">
+                          {format(
+                            new Date(template.created_at),
+                            'MMM d, yyyy · h:mm a',
+                          )}
                         </TableCell>
-                        <TableCell className="font-medium text-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <span>{template.name}</span>
-                            {error && (
-                              <span
-                                title={error}
-                                aria-label={`Review issue: ${error}`}
+                        <TableCell className="group/cell px-6 py-4 font-medium text-foreground">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex min-w-0 items-center gap-1.5">
+                              <span className="truncate">{template.name}</span>
+                              {error && (
+                                <span
+                                  title={error}
+                                  aria-label={`Review issue: ${error}`}
+                                >
+                                  <AlertCircle className="size-3.5 shrink-0 text-red-400" />
+                                </span>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => copyTemplateName(template.name)}
+                                title="Copy template name"
+                                aria-label="Copy template name"
+                                className="text-muted-foreground hover:text-primary hover:bg-primary/10 size-7"
                               >
-                                <AlertCircle className="size-3.5 shrink-0 text-red-400" />
-                              </span>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => copyTemplateName(template.name)}
-                              title="Copy template name"
-                              aria-label="Copy template name"
-                              className="text-muted-foreground hover:text-primary hover:bg-primary/10 size-7"
-                            >
-                              <Copy className="size-3.5" />
-                            </Button>
+                                <Copy className="size-3.5" />
+                              </Button>
+                            </div>
+                            <OpenButton
+                              label="Open template"
+                              onClick={() =>
+                                router.push(`/templates/${template.id}/edit`)
+                              }
+                            />
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <CategoryCell
-                            category={template.category}
-                            originalCategory={template.original_category}
-                          />
+                        <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                          <span className="inline-flex items-center gap-1.5">
+                            {template.category}
+                            {template.original_category &&
+                              template.original_category !==
+                                template.category && (
+                                <Tooltip>
+                                  <TooltipTrigger
+                                    render={
+                                      <span
+                                        className="cursor-help"
+                                        aria-label="Category changed by Meta"
+                                      >
+                                        <Info className="size-3.5 shrink-0 text-amber-500" />
+                                      </span>
+                                    }
+                                  />
+                                  <TooltipContent>
+                                    Meta reclassified this template from{' '}
+                                    {template.original_category} to{' '}
+                                    {template.category}.
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                          </span>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1.5">
-                            <Badge className={`text-xs border ${status.classes}`}>
-                              {status.label}
-                            </Badge>
-                            {template.quality_score && (
-                              <span
-                                className={`text-[10px] uppercase font-medium ${
-                                  template.quality_score === 'GREEN'
-                                    ? 'text-emerald-400'
-                                    : template.quality_score === 'YELLOW'
-                                      ? 'text-yellow-400'
-                                      : 'text-red-400'
-                                }`}
-                                title="Meta quality score"
-                              >
-                                {template.quality_score}
-                              </span>
-                            )}
-                          </div>
+                        <TableCell
+                          className={`px-6 py-4 text-sm ${
+                            statusKey === 'REJECTED'
+                              ? 'text-red-500'
+                              : 'text-muted-foreground'
+                          }`}
+                        >
+                          {status.label}
                         </TableCell>
-                        <TableCell className="hidden text-xs uppercase text-muted-foreground md:table-cell">
+                        <TableCell className="hidden px-6 py-4 text-sm uppercase text-muted-foreground md:table-cell">
                           {template.language || '—'}
                         </TableCell>
-                        <TableCell className="hidden text-sm text-muted-foreground lg:table-cell">
+                        <TableCell className="hidden px-6 py-4 text-sm text-muted-foreground lg:table-cell">
                           {createdByLabel}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger
-                              render={
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="text-muted-foreground hover:text-foreground hover:bg-muted size-7"
-                                />
-                              }
-                              aria-label="Template actions"
-                            >
-                              <MoreVertical className="size-4" />
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-44">
-                              {canEdit && (
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    router.push(`/templates/${template.id}/edit`)
-                                  }
-                                >
-                                  <Pencil className="size-4" />
-                                  Edit
-                                </DropdownMenuItem>
-                              )}
-                              {canResubmit && (
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    router.push(`/templates/${template.id}/edit`)
-                                  }
-                                >
-                                  <RotateCcw className="size-4" />
-                                  Resubmit
-                                </DropdownMenuItem>
-                              )}
-                              {canEditDraft && (
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    router.push(`/templates/${template.id}/edit`)
-                                  }
-                                >
-                                  <Pencil className="size-4" />
-                                  Edit draft
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem
-                                onClick={() => copyTemplateName(template.name)}
-                              >
-                                <Copy className="size-4" />
-                                Copy name
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                variant="destructive"
-                                disabled={deletingId === template.id}
-                                onClick={() => setTemplateToDelete(template)}
-                              >
-                                <Trash2 className="size-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     );
@@ -575,51 +486,31 @@ export function TemplateManager() {
           </div>
         </>
       )}
-
-      {/* Confirm-delete dialog. Surfacing the meta_template_id case
-          separately so users understand a real Meta delete is happening,
-          not just a local cleanup. */}
-      <Dialog
-        open={templateToDelete !== null}
-        onOpenChange={(open) => {
-          if (!open) setTemplateToDelete(null);
-        }}
-      >
-        <DialogContent className="bg-popover border-border sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-popover-foreground">Delete template?</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              {templateToDelete?.meta_template_id
-                ? `"${templateToDelete?.name}" will be deleted from Meta and from Instant. Active broadcasts using this template will start failing on their next send. This can't be undone.`
-                : `"${templateToDelete?.name}" will be deleted from Instant. It was never submitted to Meta, so no remote cleanup is needed.`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="bg-popover border-border">
-            <Button
-              variant="outline"
-              onClick={() => setTemplateToDelete(null)}
-              disabled={deletingId !== null}
-              className="border-border text-muted-foreground hover:bg-muted"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={confirmDelete}
-              disabled={deletingId !== null}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              {deletingId !== null ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  Deleting…
-                </>
-              ) : (
-                'Delete'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </section>
+  );
+}
+
+/**
+ * A bordered arrow button that opens a destination from inside a table
+ * row. Hidden until its cell is hovered (or the button is focused).
+ * Mirrors the Flows and Automations tables.
+ */
+function OpenButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground opacity-0 transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary focus-visible:opacity-100 group-hover/cell:opacity-100"
+    >
+      <ArrowUpRight className="h-4 w-4" />
+    </button>
   );
 }

@@ -32,8 +32,6 @@ import {
   Check,
   Trash2,
   Loader2,
-  Image as ImageIcon,
-  Film,
   FileText,
   ExternalLink,
   FolderOpen,
@@ -43,6 +41,7 @@ import {
   Filter,
   ChevronDown,
 } from 'lucide-react';
+import { format } from 'date-fns';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -68,18 +67,8 @@ const KIND_FILTERS: { value: KindFilter; label: string }[] = [
   { value: 'document', label: 'Documents' },
 ];
 
-const KIND_ICON = {
-  image: ImageIcon,
-  video: Film,
-  document: FileText,
-} as const;
-
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  return format(new Date(iso), 'MMM d, yyyy · h:mm a');
 }
 
 export default function MediaPage() {
@@ -303,27 +292,26 @@ export default function MediaPage() {
           <Table>
             <TableHeader>
               <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
-                <TableHead className="w-14" />
-                <TableHead className="text-muted-foreground" icon={FileText}>Name</TableHead>
-                <TableHead className="text-muted-foreground" icon={FileType}>Type</TableHead>
-                <TableHead className="text-muted-foreground hidden sm:table-cell" icon={HardDrive}>
+                <TableHead className="w-14 pl-6" />
+                <TableHead className="px-6 py-3.5 text-muted-foreground" icon={FileText}>Name</TableHead>
+                <TableHead className="px-6 py-3.5 text-muted-foreground" icon={FileType}>Type</TableHead>
+                <TableHead className="px-6 py-3.5 text-muted-foreground hidden sm:table-cell" icon={HardDrive}>
                   Size
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden md:table-cell" icon={CalendarDays}>
+                <TableHead className="px-6 py-3.5 text-muted-foreground hidden md:table-cell" icon={CalendarDays}>
                   Added
                 </TableHead>
-                <TableHead className="text-muted-foreground text-right">
+                <TableHead className="px-6 py-3.5 text-muted-foreground text-right">
                   Actions
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((item) => {
-                const Icon = KIND_ICON[item.kind];
                 return (
                   <TableRow key={item.id} className="border-border hover:bg-muted/40">
                     {/* Thumbnail */}
-                    <TableCell>
+                    <TableCell className="pl-6">
                       <div className="size-9 shrink-0 overflow-hidden rounded-md bg-muted">
                         {item.kind === 'image' ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -346,22 +334,19 @@ export default function MediaPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="max-w-56 truncate font-medium text-foreground" title={item.name}>
+                    <TableCell className="max-w-56 truncate px-6 py-4 font-medium text-foreground" title={item.name}>
                       {item.name}
                     </TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium capitalize text-muted-foreground">
-                        <Icon className="size-3" />
-                        {item.kind}
-                      </span>
+                    <TableCell className="px-6 py-4 text-sm capitalize text-muted-foreground">
+                      {item.kind}
                     </TableCell>
-                    <TableCell className="hidden text-sm text-muted-foreground tabular-nums sm:table-cell">
+                    <TableCell className="hidden px-6 py-4 text-sm text-muted-foreground tabular-nums sm:table-cell">
                       {formatBytes(item.size_bytes)}
                     </TableCell>
-                    <TableCell className="hidden text-sm text-muted-foreground md:table-cell">
+                    <TableCell className="hidden px-6 py-4 text-sm text-muted-foreground md:table-cell">
                       {formatDate(item.created_at)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-6 py-4">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           type="button"

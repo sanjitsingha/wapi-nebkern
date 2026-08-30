@@ -17,7 +17,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { FormField, FormFieldType, WhatsAppForm } from '@/types';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import type {
+  FormField,
+  FormFieldType,
+  WhatsAppForm,
+  WhatsAppFormStatus,
+} from '@/types';
 import { FLOW_CATEGORIES, FORM_FIELD_TYPES, type FlowCategory } from '@/lib/whatsapp/forms';
 import { FormPreview } from './form-preview';
 
@@ -64,6 +77,40 @@ function newField(): FormField {
   return { id: '', type: 'short_text', label: '', required: true };
 }
 
+/**
+ * What the destructive action means for a form in a given state. Meta
+ * lets a published Flow be deprecated but never deleted, so "get rid of
+ * this" lands differently at each point in a form's life — a DRAFT or an
+ * already-DEPRECATED row is truly deleted, everything else is deprecated.
+ * (Kept here now that the Forms table no longer carries an actions menu.)
+ */
+function destructiveAction(status: WhatsAppFormStatus) {
+  if (status === 'DRAFT') {
+    return {
+      label: 'Delete',
+      title: 'Delete this form?',
+      describe: (name: string) =>
+        `"${name}" will be removed from Meta and from Instant. This can't be undone.`,
+    };
+  }
+  if (status === 'DEPRECATED') {
+    return {
+      label: 'Delete',
+      title: 'Remove this form?',
+      describe: (name: string) =>
+        `"${name}" is already deprecated on Meta and stays that way — this only takes it off ` +
+        `your list. Past responses keep their answers, but stop linking back to the form. ` +
+        `This can't be undone.`,
+    };
+  }
+  return {
+    label: 'Deprecate',
+    title: 'Deprecate this form?',
+    describe: (name: string) =>
+      `"${name}" can no longer be sent, but past responses stay intact. This can't be undone.`,
+  };
+}
+
 export function FormBuilder({ initial }: { initial?: WhatsAppForm }) {
   const router = useRouter();
   const isEdit = Boolean(initial);
@@ -77,6 +124,10 @@ export function FormBuilder({ initial }: { initial?: WhatsAppForm }) {
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Two-step delete/deprecate, same reasoning as the old table menu: the
+  // action also hits Meta, so a misclick shouldn't be free.
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   function updateField(index: number, patch: Partial<FormField>) {
     setFields((prev) => prev.map((f, i) => (i === index ? { ...f, ...patch } : f)));
@@ -185,7 +236,28 @@ export function FormBuilder({ initial }: { initial?: WhatsAppForm }) {
     }
   }
 
+  async function handleDelete() {
+    if (!initial) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/whatsapp/forms/${initial.id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || `Delete failed (HTTP ${res.status})`);
+      const removed =
+        initial.status === 'DRAFT' || initial.status === 'DEPRECATED';
+      toast.success(removed ? 'Form deleted' : 'Form deprecated');
+      router.push('/forms');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete form');
+      setDeleting(false);
+      setConfirmingDelete(false);
+    }
+  }
+
   const locked = isEdit && initial?.status !== 'DRAFT';
+  const deleteAction = initial ? destructiveAction(initial.status) : null;
 
   return (
     <section className="animate-in fade-in-50 mx-auto max-w-6xl space-y-6 duration-200">
@@ -198,17 +270,29 @@ export function FormBuilder({ initial }: { initial?: WhatsAppForm }) {
             A form opens inside WhatsApp itself — the customer never leaves the chat to answer it.
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => router.push('/forms')}
-          className="h-11"
-        >
-          Cancel
-        </Button>
+        <div className="flex items-center gap-2">
+          {isEdit && deleteAction && (
+            <Button
+              variant="outline"
+              onClick={() => setConfirmingDelete(true)}
+              className="h-11 text-red-500 hover:text-red-500"
+            >
+              <Trash2 className="size-4" />
+              {deleteAction.label}
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            onClick={() => router.push('/forms')}
+            className="h-11"
+          >
+            Cancel
+          </Button>
+        </div>
       </div>
 
       {locked && (
-        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-300">
+        <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-300">
           <AlertCircle className="size-4 shrink-0" />
           This form is published and can no longer be edited — publishing locks its structure on
           Meta&apos;s side. Create a new form for any changes.
@@ -424,6 +508,35 @@ export function FormBuilder({ initial }: { initial?: WhatsAppForm }) {
         <FormPreview formName={name} fields={fields} />
       </div>
       </div>
+
+      <Dialog
+        open={confirmingDelete}
+        onOpenChange={(open) => !open && !deleting && setConfirmingDelete(false)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {deleteAction ? deleteAction.title : 'Delete this form?'}
+            </DialogTitle>
+            <DialogDescription>
+              {deleteAction ? deleteAction.describe(initial?.name ?? '') : null}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmingDelete(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button variant="destructive" disabled={deleting} onClick={handleDelete}>
+              {deleting && <Loader2 className="size-4 animate-spin" />}
+              {deleteAction ? deleteAction.label : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

@@ -7,12 +7,9 @@ import { toast } from "sonner";
 import {
   Bot,
   Plus,
-  Trash2,
   Loader2,
   MessageSquare,
   PlayCircle,
-  PauseCircle,
-  Archive,
   HelpCircle,
   UserPlus,
   FileText,
@@ -22,8 +19,10 @@ import {
   ChevronDown,
   CircleDot,
   Zap,
+  ArrowUpRight,
+  Clock,
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 
 import { useCan } from "@/hooks/use-can";
 import { Button } from "@/components/ui/button";
@@ -51,8 +50,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 
 /**
  * Flows list page.
@@ -79,13 +76,6 @@ const STATUS_LABELS: Record<FlowRow["status"], string> = {
   draft: "Draft",
   active: "Active",
   archived: "Archived",
-};
-
-const STATUS_COLORS: Record<FlowRow["status"], string> = {
-  draft: "border-border bg-muted text-muted-foreground",
-  active:
-    "border-emerald-600/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
-  archived: "border-border bg-muted/50 text-muted-foreground",
 };
 
 interface TemplateSummary {
@@ -196,22 +186,6 @@ export default function FlowsPage() {
       toast.error(msg);
     } finally {
       setCreating(false);
-    }
-  }
-
-  async function handleDelete(flow: FlowRow) {
-    const yes = window.confirm(
-      `Delete "${flow.name}"? Any active runs will end immediately.`,
-    );
-    if (!yes) return;
-    try {
-      const res = await fetch(`/api/flows/${flow.id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
-      setFlows((prev) => prev.filter((f) => f.id !== flow.id));
-      toast.success("Flow deleted.");
-    } catch (err) {
-      console.error(err);
-      toast.error("Couldn't delete flow.");
     }
   }
 
@@ -354,16 +328,18 @@ export default function FlowsPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
-                    <TableHead className="text-muted-foreground" icon={Bot}>Flow</TableHead>
-                    <TableHead className="text-muted-foreground" icon={CircleDot}>Status</TableHead>
-                    <TableHead className="hidden text-muted-foreground md:table-cell" icon={Zap}>
+                    <TableHead className="px-6 py-3.5 text-muted-foreground">Flow</TableHead>
+                    <TableHead className="px-6 py-3.5 text-muted-foreground" icon={CircleDot}>Status</TableHead>
+                    <TableHead className="hidden px-6 py-3.5 text-muted-foreground md:table-cell" icon={Zap}>
                       Trigger
                     </TableHead>
-                    <TableHead className="hidden text-muted-foreground lg:table-cell" icon={History}>
+                    <TableHead className="hidden px-6 py-3.5 text-muted-foreground lg:table-cell" icon={Clock}>
+                      Last modified
+                    </TableHead>
+                    <TableHead className="hidden px-6 py-3.5 text-muted-foreground lg:table-cell" icon={History}>
                       Last run
                     </TableHead>
-                    <TableHead className="text-muted-foreground" icon={PlayCircle}>Runs</TableHead>
-                    <TableHead className="w-10 text-muted-foreground" />
+                    <TableHead className="px-6 py-3.5 text-muted-foreground" icon={PlayCircle}>Runs</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -372,8 +348,7 @@ export default function FlowsPage() {
                       key={flow.id}
                       flow={flow}
                       onEdit={() => router.push(`/flows/${flow.id}`)}
-                      onRun={() => router.push(`/flows/${flow.id}/runs`)}
-                      onDelete={() => handleDelete(flow)}
+                      onRuns={() => router.push(`/flows/${flow.id}/runs`)}
                     />
                   ))}
                 </TableBody>
@@ -499,97 +474,87 @@ function EmptyState({
 function FlowTableRow({
   flow,
   onEdit,
-  onRun,
-  onDelete,
+  onRuns,
 }: {
   flow: FlowRow;
   onEdit: () => void;
-  onRun: () => void;
-  onDelete: () => void;
+  onRuns: () => void;
 }) {
   const triggerSummary = describeTrigger(flow);
-  const StatusIcon =
-    flow.status === "active"
-      ? PlayCircle
-      : flow.status === "archived"
-        ? Archive
-        : PauseCircle;
+  const lastModified = flow.updated_at
+    ? format(new Date(flow.updated_at), "MMM d, yyyy · h:mm a")
+    : "—";
   const lastRun = flow.last_executed_at
-    ? formatDistanceToNow(new Date(flow.last_executed_at), { addSuffix: true })
+    ? format(new Date(flow.last_executed_at), "MMM d, yyyy · h:mm a")
     : "Never";
 
   return (
-    <TableRow
-      className="cursor-pointer border-border hover:bg-muted/50"
-      onClick={onEdit}
-    >
-      {/* Flow — icon + name + description */}
-      <TableCell className="max-w-0">
-        <div className="flex items-center gap-2.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
-            <Bot className="h-4 w-4" />
-          </span>
-          <div className="min-w-0">
-            <div className="truncate text-sm font-medium text-foreground">
-              {flow.name}
-            </div>
-            <div className="truncate text-xs text-muted-foreground">
-              {flow.description || triggerSummary}
-            </div>
-          </div>
+    <TableRow className="border-border hover:bg-muted/50">
+      {/* Flow — name, with an arrow button that opens the flow. */}
+      <TableCell className="group/cell px-6 py-4 font-medium text-foreground">
+        <div className="flex items-center justify-between gap-3">
+          <span className="truncate">{flow.name}</span>
+          <OpenButton label="Open flow" onClick={onEdit} />
         </div>
       </TableCell>
 
       {/* Status */}
-      <TableCell>
-        <Badge
-          variant="outline"
-          className={cn("gap-1 text-[10px]", STATUS_COLORS[flow.status])}
-        >
-          <StatusIcon className="h-3 w-3" />
-          {STATUS_LABELS[flow.status]}
-        </Badge>
+      <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+        {STATUS_LABELS[flow.status]}
       </TableCell>
 
       {/* Trigger */}
-      <TableCell className="hidden max-w-48 truncate text-sm text-muted-foreground md:table-cell">
+      <TableCell className="hidden max-w-48 truncate px-6 py-4 text-sm text-muted-foreground md:table-cell">
         {triggerSummary}
       </TableCell>
 
+      {/* Last modified */}
+      <TableCell className="hidden px-6 py-4 text-sm text-muted-foreground lg:table-cell">
+        {lastModified}
+      </TableCell>
+
       {/* Last run */}
-      <TableCell className="hidden text-sm text-muted-foreground lg:table-cell">
+      <TableCell className="hidden px-6 py-4 text-sm text-muted-foreground lg:table-cell">
         {lastRun}
       </TableCell>
 
-      {/* Runs — count + run button that opens this flow's runs */}
-      <TableCell onClick={(e) => e.stopPropagation()}>
-        <button
-          type="button"
-          onClick={onRun}
-          title="View runs"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:text-primary"
-        >
-          <History className="h-3.5 w-3.5" />
-          {flow.execution_count}
-          <span className="hidden sm:inline">
-            {flow.execution_count === 1 ? "run" : "runs"}
-          </span>
-        </button>
-      </TableCell>
-
-      {/* Delete */}
-      <TableCell onClick={(e) => e.stopPropagation()}>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onDelete}
-          aria-label="Delete flow"
-          className="size-8 text-muted-foreground hover:bg-red-500/10 hover:text-red-500 dark:hover:text-red-400"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+      {/* Runs — with an arrow button that opens the run history. */}
+      <TableCell className="group/cell px-6 py-4 text-sm text-muted-foreground">
+        <div className="flex items-center justify-between gap-3">
+          <span className="tabular-nums">{flow.execution_count}</span>
+          <OpenButton label="Open runs" onClick={onRuns} />
+        </div>
       </TableCell>
     </TableRow>
+  );
+}
+
+/**
+ * A bordered arrow button that opens a destination from inside a
+ * clickable row. Hidden until its cell is hovered (or the button is
+ * focused), and stops propagation so it acts on its own target rather
+ * than firing the row's own click.
+ */
+function OpenButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground opacity-0 transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary focus-visible:opacity-100 group-hover/cell:opacity-100"
+    >
+      <ArrowUpRight className="h-4 w-4" />
+    </button>
   );
 }
 

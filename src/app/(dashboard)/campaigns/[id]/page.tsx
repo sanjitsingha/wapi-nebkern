@@ -39,8 +39,10 @@ import {
   TrendingUp,
   XCircle,
   CalendarClock,
+  FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 import {
   getBroadcastStatus,
   getRecipientStatus,
@@ -54,6 +56,15 @@ import {
   Tooltip as RechartsTooltip,
 } from 'recharts';
 
+/** A small, uppercase section label used to group the report. */
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      {children}
+    </h2>
+  );
+}
+
 interface StatCardProps {
   label: string;
   value: number;
@@ -65,14 +76,16 @@ interface StatCardProps {
 function StatCard({ label, value, total, icon, color }: StatCardProps) {
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="rounded-xl border border-border bg-card p-4 transition-colors hover:border-border/80 hover:bg-muted/20">
       <div className="flex items-center justify-between">
         <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${color}`}>
           {icon}
         </div>
-        <span className="text-xs text-muted-foreground">{pct}%</span>
+        <span className="text-xs tabular-nums text-muted-foreground">{pct}%</span>
       </div>
-      <p className="mt-3 text-2xl font-bold text-foreground">{value.toLocaleString()}</p>
+      <p className="mt-3 text-2xl font-bold tabular-nums text-foreground">
+        {value.toLocaleString()}
+      </p>
       <p className="text-xs text-muted-foreground">{label}</p>
     </div>
   );
@@ -553,6 +566,18 @@ const RECIPIENT_STATUSES: readonly RecipientStatus[] = [
   'failed',
 ];
 
+/** Dot colour per recipient status — the status column reads as a plain
+ *  label with a small coloured marker rather than a filled pill, matching
+ *  the lighter status styling used across the other tables. */
+const RECIPIENT_DOT: Record<RecipientStatus, string> = {
+  pending: '#64748b',
+  sent: '#94a3b8',
+  delivered: '#0d9488',
+  read: '#3b82f6',
+  replied: '#d97706',
+  failed: '#ef4444',
+};
+
 /**
  * CSV export helper — RFC 4180 quoting. Quote every field so
  * commas/newlines/quotes round-trip cleanly.
@@ -836,32 +861,30 @@ export default function BroadcastDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => router.push('/campaigns')}
-            className="border-border"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
+      {/* Back link — quiet, above the hero. */}
+      <button
+        type="button"
+        onClick={() => router.push('/campaigns')}
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Campaigns
+      </button>
+
+      {/* Hero — identity, status, meta, and actions in one panel. */}
+      <div className="overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="flex flex-wrap items-start justify-between gap-4 bg-gradient-to-br from-muted/40 to-transparent p-5 sm:p-6">
+          <div className="min-w-0 space-y-3">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-bold text-foreground">{broadcast.name}</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                {broadcast.name}
+              </h1>
               {broadcast.status === 'scheduled' && broadcast.scheduled_at ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300">
                   <CalendarClock className="h-3.5 w-3.5" />
                   Scheduled
                   <span className="text-blue-400 dark:text-blue-500/70">|</span>
-                  {new Date(broadcast.scheduled_at).toLocaleString(undefined, {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  {format(new Date(broadcast.scheduled_at), 'MMM d, yyyy · h:mm a')}
                 </span>
               ) : (
                 <span
@@ -871,66 +894,75 @@ export default function BroadcastDetailPage() {
                 </span>
               )}
             </div>
-            <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
-              <span>Template: {broadcast.template_name}</span>
-              <span>-</span>
-              <span>
-                Created {new Date(broadcast.created_at).toLocaleDateString()}
+
+            {/* Meta chips — template, recipients, created. */}
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background/60 px-2 py-1">
+                <FileText className="h-3.5 w-3.5" />
+                {broadcast.template_name}
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background/60 px-2 py-1 tabular-nums">
+                <Users className="h-3.5 w-3.5" />
+                {broadcast.total_recipients.toLocaleString()} recipients
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background/60 px-2 py-1">
+                <CalendarClock className="h-3.5 w-3.5" />
+                {format(new Date(broadcast.created_at), 'MMM d, yyyy · h:mm a')}
               </span>
             </div>
           </div>
-        </div>
 
-        {/* `flex-wrap`: a draft shows three buttons here and "Download
-            report" is a wide one — without it they overflow the viewport
-            on a phone instead of stacking. */}
-        <div className="flex flex-wrap items-center gap-2">
-          {broadcast.status === 'draft' && (
+          {/* `flex-wrap`: a draft shows three buttons here and "Download
+              report" is a wide one — without it they overflow the viewport
+              on a phone instead of stacking. */}
+          <div className="flex flex-wrap items-center gap-2">
+            {broadcast.status === 'draft' && (
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/campaigns/new?draft=${broadcastId}`)}
+                className="h-10 border-border px-4 text-foreground"
+              >
+                <Pencil className="h-4 w-4" />
+                Edit
+              </Button>
+            )}
+
+            {/* Report — built server-side and streamed back as .xlsx, so the
+                spreadsheet library never reaches the browser bundle and the
+                recipient sheet isn't capped at one PostgREST page. */}
             <Button
               variant="outline"
-              size="sm"
-              onClick={() => router.push(`/campaigns/new?draft=${broadcastId}`)}
-              className="border-border text-foreground"
+              onClick={handleDownloadReport}
+              disabled={downloading}
+              title="Download this campaign's report as an Excel file"
+              className="h-10 border-border px-4 text-foreground"
             >
-              <Pencil className="h-3.5 w-3.5" />
-              Edit Campaign
+              {downloading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              {downloading ? 'Preparing...' : 'Download report'}
             </Button>
-          )}
 
-        {/* Report — built server-side and streamed back as .xlsx, so the
-            spreadsheet library never reaches the browser bundle and the
-            recipient sheet isn't capped at one PostgREST page. */}
-        <Button
-          variant="outline"
-          onClick={handleDownloadReport}
-          disabled={downloading}
-          title="Download this campaign's report as an Excel file"
-          className="h-10 border-border px-4 text-foreground"
-        >
-          {downloading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Download className="h-4 w-4" />
-          )}
-          {downloading ? 'Preparing...' : 'Download report'}
-        </Button>
-
-        {/* Delete — type-to-confirm modal. Mid-send broadcasts can't be
-            deleted because orphaning in-flight Meta messages would leave the
-            counts inconsistent. */}
-        <Button
-          disabled={broadcast.status === 'sending'}
-          onClick={() => setConfirmDelete(true)}
-          title={
-            broadcast.status === 'sending'
-              ? 'Cannot delete while a campaign is actively sending'
-              : 'Delete this campaign'
-          }
-          className="h-10 bg-red-600 px-4 text-white hover:bg-red-700 disabled:opacity-40 dark:bg-red-600 dark:hover:bg-red-700"
-        >
-          <Trash2 className="h-4 w-4" />
-          Delete
-        </Button>
+            {/* Delete — type-to-confirm modal. Mid-send broadcasts can't be
+                deleted because orphaning in-flight Meta messages would leave
+                the counts inconsistent. */}
+            <Button
+              variant="outline"
+              disabled={broadcast.status === 'sending'}
+              onClick={() => setConfirmDelete(true)}
+              title={
+                broadcast.status === 'sending'
+                  ? 'Cannot delete while a campaign is actively sending'
+                  : 'Delete this campaign'
+              }
+              className="h-10 border-border px-4 text-red-600 hover:bg-red-50 hover:text-red-600 disabled:opacity-40 dark:text-red-400 dark:hover:bg-red-500/10"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -943,8 +975,16 @@ export default function BroadcastDetailPage() {
         deleting={deleting}
       />
 
-      {/* Stats — 6 cards: Total / Sent / Delivered / Read / Replied / Failed */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      {/* Performance — the headline conversion rates. */}
+      <section className="space-y-3">
+        <SectionHeading>Performance</SectionHeading>
+        <RateTiles tiles={rateTiles} />
+      </section>
+
+      {/* Delivery funnel — 6 counts: Total / Sent / Delivered / Read / Replied / Failed */}
+      <section className="space-y-3">
+        <SectionHeading>Delivery funnel</SectionHeading>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <StatCard
           label="Total Recipients"
           value={broadcast.total_recipients}
@@ -987,35 +1027,36 @@ export default function BroadcastDetailPage() {
           icon={<AlertCircle className="h-4 w-4" />}
           color="bg-red-500/10 text-red-600 dark:text-red-400"
         />
-      </div>
+        </div>
+      </section>
 
-      {/* Conversion rates */}
-      <RateTiles tiles={rateTiles} />
+      {/* Insights — outcome breakdown + engagement over time */}
+      <section className="space-y-3">
+        <SectionHeading>Insights</SectionHeading>
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          <OutcomeDonut
+            slices={outcomeSlices}
+            total={broadcast.total_recipients}
+          />
+          {timeline ? (
+            <EngagementTimeline data={timeline} />
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card p-4 text-center">
+              <TrendingUp className="h-6 w-6 text-muted-foreground/60" />
+              <p className="mt-2 text-sm text-muted-foreground">
+                Not enough delivery timing yet
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                The engagement timeline appears once messages start being
+                delivered and read.
+              </p>
+            </div>
+          )}
+        </div>
 
-      {/* Funnel + engagement timeline */}
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <OutcomeDonut
-          slices={outcomeSlices}
-          total={broadcast.total_recipients}
-        />
-        {timeline ? (
-          <EngagementTimeline data={timeline} />
-        ) : (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card p-4 text-center">
-            <TrendingUp className="h-6 w-6 text-muted-foreground/60" />
-            <p className="mt-2 text-sm text-muted-foreground">
-              Not enough delivery timing yet
-            </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              The engagement timeline appears once messages start being
-              delivered and read.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Failure reasons — only when there are failures to explain */}
-      {errorGroups.length > 0 && <ErrorBreakdown groups={errorGroups} />}
+        {/* Failure reasons — only when there are failures to explain */}
+        {errorGroups.length > 0 && <ErrorBreakdown groups={errorGroups} />}
+      </section>
 
       {/* Recipients Table */}
       <div className="rounded-xl border border-border bg-card">
@@ -1091,51 +1132,50 @@ export default function BroadcastDetailPage() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-muted-foreground" icon={User}>Contact</TableHead>
-                  <TableHead className="text-muted-foreground" icon={Phone}>Phone</TableHead>
-                  <TableHead className="text-muted-foreground" icon={CircleDot}>Status</TableHead>
-                  <TableHead className="text-muted-foreground" icon={Send}>Sent</TableHead>
-                  <TableHead className="text-muted-foreground" icon={CheckCheck}>Delivered</TableHead>
-                  <TableHead className="text-muted-foreground" icon={Eye}>Read</TableHead>
-                  <TableHead className="text-muted-foreground" icon={AlertCircle}>Error</TableHead>
+                <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
+                  <TableHead className="px-6 py-3.5 text-muted-foreground" icon={User}>Contact</TableHead>
+                  <TableHead className="px-6 py-3.5 text-muted-foreground" icon={Phone}>Phone</TableHead>
+                  <TableHead className="px-6 py-3.5 text-muted-foreground" icon={CircleDot}>Status</TableHead>
+                  <TableHead className="px-6 py-3.5 text-muted-foreground" icon={Send}>Sent</TableHead>
+                  <TableHead className="px-6 py-3.5 text-muted-foreground" icon={CheckCheck}>Delivered</TableHead>
+                  <TableHead className="px-6 py-3.5 text-muted-foreground" icon={Eye}>Read</TableHead>
+                  <TableHead className="px-6 py-3.5 text-muted-foreground" icon={AlertCircle}>Error</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredRecipients.map((recipient) => {
                   const rStatus = getRecipientStatus(recipient.status);
+                  const fmt = (s?: string | null) =>
+                    s ? format(new Date(s), 'MMM d, yyyy · h:mm a') : '—';
                   return (
-                    <TableRow key={recipient.id} className="border-border">
-                      <TableCell className="font-medium text-foreground">
+                    <TableRow key={recipient.id} className="border-border hover:bg-muted/40">
+                      <TableCell className="px-6 py-4 font-medium text-foreground">
                         {recipient.contact?.name ?? 'Unknown'}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {recipient.contact?.phone ?? '-'}
+                      <TableCell className="px-6 py-4 text-sm text-muted-foreground tabular-nums">
+                        {recipient.contact?.phone ?? '—'}
                       </TableCell>
-                      <TableCell>
-                        <span
-                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${rStatus.classes}`}
-                        >
+                      <TableCell className="px-6 py-4">
+                        <span className="inline-flex items-center gap-2 text-sm text-foreground">
+                          <span
+                            aria-hidden
+                            className="size-2 shrink-0 rounded-full"
+                            style={{ backgroundColor: RECIPIENT_DOT[recipient.status] }}
+                          />
                           {rStatus.label}
                         </span>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {recipient.sent_at
-                          ? new Date(recipient.sent_at).toLocaleString()
-                          : '-'}
+                      <TableCell className="px-6 py-4 text-sm text-muted-foreground whitespace-nowrap">
+                        {fmt(recipient.sent_at)}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {recipient.delivered_at
-                          ? new Date(recipient.delivered_at).toLocaleString()
-                          : '-'}
+                      <TableCell className="px-6 py-4 text-sm text-muted-foreground whitespace-nowrap">
+                        {fmt(recipient.delivered_at)}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {recipient.read_at
-                          ? new Date(recipient.read_at).toLocaleString()
-                          : '-'}
+                      <TableCell className="px-6 py-4 text-sm text-muted-foreground whitespace-nowrap">
+                        {fmt(recipient.read_at)}
                       </TableCell>
-                      <TableCell className="max-w-xs truncate text-xs text-red-600 dark:text-red-400">
-                        {recipient.error_message ?? '-'}
+                      <TableCell className="max-w-xs truncate px-6 py-4 text-xs text-red-600 dark:text-red-400">
+                        {recipient.error_message ?? '—'}
                       </TableCell>
                     </TableRow>
                   );

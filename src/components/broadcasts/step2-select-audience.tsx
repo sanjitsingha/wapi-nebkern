@@ -6,6 +6,19 @@ import { useAuth } from '@/hooks/use-auth';
 import { CustomField, Tag, SegmentGroup } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+} from '@/components/ui/dropdown-menu';
+import {
   Users,
   Tags,
   Filter,
@@ -15,14 +28,22 @@ import {
   ArrowRight,
   ArrowLeft,
   X,
+  ListChecks,
+  ChevronDown,
 } from 'lucide-react';
 
-type AudienceType = 'all' | 'tags' | 'custom_field' | 'segment' | 'csv';
+type AudienceType = 'all' | 'tags' | 'custom_field' | 'segment' | 'csv' | 'list';
 
 interface SegmentOption {
   id: string;
   name: string;
   rules: SegmentGroup;
+}
+
+interface ListOption {
+  id: string;
+  name: string;
+  total_contacts: number;
 }
 type CustomFieldOperator = 'is' | 'is_not' | 'contains';
 
@@ -37,6 +58,7 @@ interface AudienceConfig {
   tagIds?: string[];
   customField?: CustomFieldFilter;
   segmentId?: string;
+  listId?: string;
   csvContacts?: { phone: string; name?: string }[];
   excludeTagIds?: string[];
 }
@@ -80,6 +102,12 @@ const audienceOptions: {
     icon: Target,
   },
   {
+    type: 'list',
+    label: 'List',
+    description: 'Send to a saved contact list',
+    icon: ListChecks,
+  },
+  {
     type: 'csv',
     label: 'Upload CSV',
     description: 'Upload a list of phone numbers',
@@ -104,6 +132,7 @@ export function Step2SelectAudience({
   const [tags, setTags] = useState<Tag[]>([]);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [segments, setSegments] = useState<SegmentOption[]>([]);
+  const [lists, setLists] = useState<ListOption[]>([]);
   const [loadingTags, setLoadingTags] = useState(false);
   const [loadingFields, setLoadingFields] = useState(false);
   const [estimatedCount, setEstimatedCount] = useState<number | null>(null);
@@ -138,6 +167,21 @@ export function Step2SelectAudience({
       setSegments((data as SegmentOption[]) ?? []);
     }
     fetchSegments();
+  }, [audience.type]);
+
+  // Lazy-load active lists only when that audience type is active.
+  useEffect(() => {
+    if (audience.type !== 'list') return;
+    async function fetchLists() {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('lists')
+        .select('id, name, total_contacts')
+        .eq('status', 'active')
+        .order('name');
+      setLists((data as ListOption[]) ?? []);
+    }
+    fetchLists();
   }, [audience.type]);
 
   // Lazy-load custom fields only when that audience type is active.
@@ -191,6 +235,12 @@ export function Step2SelectAudience({
           .from('contact_tags')
           .select('contact_id')
           .in('tag_id', audience.tagIds);
+        baseIds = new Set((data ?? []).map((r) => r.contact_id));
+      } else if (audience.type === 'list' && audience.listId) {
+        const { data } = await supabase
+          .from('contact_lists')
+          .select('contact_id')
+          .eq('list_id', audience.listId);
         baseIds = new Set((data ?? []).map((r) => r.contact_id));
       } else if (
         audience.type === 'custom_field' &&
@@ -251,6 +301,7 @@ export function Step2SelectAudience({
     audience.tagIds,
     audience.customField,
     audience.segmentId,
+    audience.listId,
     audience.csvContacts,
     audience.excludeTagIds,
     segments,
@@ -293,6 +344,7 @@ export function Step2SelectAudience({
       !!audience.customField?.fieldId &&
       audience.customField.value.length > 0) ||
     (audience.type === 'segment' && !!audience.segmentId) ||
+    (audience.type === 'list' && !!audience.listId) ||
     (audience.type === 'csv' &&
       audience.csvContacts &&
       audience.csvContacts.length > 0);
@@ -308,54 +360,57 @@ export function Step2SelectAudience({
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {audienceOptions.map((option) => {
-          const isSelected = audience.type === option.type;
-          const Icon = option.icon;
-          return (
-            <button
-              key={option.type}
-              onClick={() =>
-                onUpdate({
-                  ...audience,
-                  type: option.type,
-                  // Wipe shape fields from other types to avoid stale
-                  // config leaking across selections.
-                  tagIds: option.type === 'tags' ? audience.tagIds : undefined,
-                  customField:
-                    option.type === 'custom_field'
-                      ? audience.customField
-                      : undefined,
-                  segmentId:
-                    option.type === 'segment' ? audience.segmentId : undefined,
-                  csvContacts:
-                    option.type === 'csv' ? audience.csvContacts : undefined,
-                })
-              }
-              className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all ${
-                isSelected
-                  ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
-                  : 'border-border bg-card/50 hover:border-border'
-              }`}
-            >
-              <div
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                  isSelected
-                    ? 'bg-primary/10 text-primary'
-                    : 'bg-muted text-muted-foreground'
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-foreground">{option.label}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {option.description}
-                </p>
-              </div>
-            </button>
-          );
-        })}
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-foreground">Audience type</label>
+        <Select
+          value={audience.type}
+          onValueChange={(value) => {
+            const type = (value ?? 'all') as AudienceType;
+            onUpdate({
+              ...audience,
+              type,
+              // Wipe shape fields from other types to avoid stale
+              // config leaking across selections.
+              tagIds: type === 'tags' ? audience.tagIds : undefined,
+              customField: type === 'custom_field' ? audience.customField : undefined,
+              segmentId: type === 'segment' ? audience.segmentId : undefined,
+              listId: type === 'list' ? audience.listId : undefined,
+              csvContacts: type === 'csv' ? audience.csvContacts : undefined,
+            });
+          }}
+        >
+          <SelectTrigger className="w-full data-[size=default]:h-11">
+            <SelectValue>
+              {() => {
+                const opt = audienceOptions.find((o) => o.type === audience.type);
+                if (!opt) return null;
+                const Icon = opt.icon;
+                return (
+                  <span className="flex items-center gap-2.5">
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    {opt.label}
+                  </span>
+                );
+              }}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {audienceOptions.map((option) => {
+              const Icon = option.icon;
+              return (
+                <SelectItem key={option.type} value={option.type}>
+                  <span className="flex items-center gap-2.5">
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    {option.label}
+                  </span>
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          {audienceOptions.find((o) => o.type === audience.type)?.description}
+        </p>
       </div>
 
       {audience.type === 'tags' && (
@@ -471,6 +526,33 @@ export function Step2SelectAudience({
         </div>
       )}
 
+      {audience.type === 'list' && (
+        <div className="space-y-3 rounded-xl border border-border bg-card/50 p-4">
+          <p className="text-sm font-medium text-foreground">Select List</p>
+          {lists.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              No active lists. Create one under Contacts → Lists.
+            </p>
+          ) : (
+            <select
+              value={audience.listId ?? ''}
+              onChange={(e) => onUpdate({ ...audience, listId: e.target.value })}
+              className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            >
+              <option value="">Select list…</option>
+              {lists.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name} ({l.total_contacts})
+                </option>
+              ))}
+            </select>
+          )}
+          <p className="text-xs text-muted-foreground">
+            The list&apos;s current members are used at send time.
+          </p>
+        </div>
+      )}
+
       {/* Exclude list — applies regardless of audience type */}
       <div className="rounded-xl border border-border bg-card/50 p-4">
         <div className="mb-3 flex items-center gap-2">
@@ -483,27 +565,64 @@ export function Step2SelectAudience({
         {tags.length === 0 ? (
           <p className="text-xs text-muted-foreground">No tags available.</p>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => {
-              const isExcluded = audience.excludeTagIds?.includes(tag.id);
-              return (
-                <button
-                  key={tag.id}
-                  onClick={() => toggleExcludeTag(tag.id)}
-                  className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-all ${
-                    isExcluded
-                      ? 'border-red-500/30 bg-red-500/10 text-red-300'
-                      : 'border-border bg-muted text-muted-foreground hover:border-border'
-                  }`}
-                >
-                  <span
-                    className="mr-1.5 h-2 w-2 rounded-full"
-                    style={{ backgroundColor: tag.color }}
+          <div className="space-y-2.5">
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    className="h-10 w-full justify-between gap-2 border-border sm:w-64"
                   />
-                  {tag.name}
-                </button>
-              );
-            })}
+                }
+              >
+                <span className="flex items-center gap-2 text-muted-foreground">
+                  <Tags className="h-4 w-4" />
+                  {(audience.excludeTagIds?.length ?? 0) > 0
+                    ? `${audience.excludeTagIds?.length} tag${audience.excludeTagIds?.length === 1 ? '' : 's'} excluded`
+                    : 'Select tags to exclude'}
+                </span>
+                <ChevronDown className="h-4 w-4 opacity-60" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="max-h-72 w-64 overflow-y-auto">
+                {tags.map((tag) => (
+                  <DropdownMenuCheckboxItem
+                    key={tag.id}
+                    checked={audience.excludeTagIds?.includes(tag.id) ?? false}
+                    onCheckedChange={() => toggleExcludeTag(tag.id)}
+                    className="gap-2"
+                  >
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: tag.color }}
+                    />
+                    {tag.name}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Selected exclusions, as removable chips. */}
+            {(audience.excludeTagIds?.length ?? 0) > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {tags
+                  .filter((tag) => audience.excludeTagIds?.includes(tag.id))
+                  .map((tag) => (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => toggleExcludeTag(tag.id)}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-xs font-medium text-red-500 transition-colors hover:bg-red-500/15 dark:text-red-300"
+                    >
+                      <span
+                        className="h-2 w-2 rounded-full"
+                        style={{ backgroundColor: tag.color }}
+                      />
+                      {tag.name}
+                      <X className="h-3 w-3" />
+                    </button>
+                  ))}
+              </div>
+            )}
           </div>
         )}
       </div>

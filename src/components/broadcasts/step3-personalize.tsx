@@ -263,7 +263,7 @@ export function Step3Personalize({
                       />
                     ) : mapping.type === 'field' ? (
                       <Select
-                        value={mapping.value || undefined}
+                        value={mapping.value || null}
                         onValueChange={(val) =>
                           updateVariable(key, { value: val || '' })
                         }
@@ -281,7 +281,7 @@ export function Step3Personalize({
                       </Select>
                     ) : (
                       <Select
-                        value={mapping.value || undefined}
+                        value={mapping.value || null}
                         onValueChange={(val) =>
                           updateVariable(key, { value: val || '' })
                         }

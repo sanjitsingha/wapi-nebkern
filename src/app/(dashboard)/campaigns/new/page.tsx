@@ -26,7 +26,7 @@ import { Button } from '@/components/ui/button';
 const SECTIONS = ['template', 'audience', 'personalize', 'send'] as const;
 
 function audienceSummary(audience: {
-  type: 'all' | 'tags' | 'custom_field' | 'segment' | 'csv';
+  type: 'all' | 'tags' | 'custom_field' | 'segment' | 'csv' | 'list';
   tagIds?: string[];
   csvContacts?: { phone: string; name?: string }[];
 }): string {
@@ -39,6 +39,8 @@ function audienceSummary(audience: {
       return 'Custom field filter';
     case 'segment':
       return 'Segment';
+    case 'list':
+      return 'List';
     case 'csv':
       return `${audience.csvContacts?.length ?? 0} CSV contact${(audience.csvContacts?.length ?? 0) === 1 ? '' : 's'}`;
   }
@@ -58,7 +60,7 @@ export default function NewBroadcastPage() {
   const [template, setTemplate] = useState<MessageTemplate | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [audience, setAudience] = useState<{
-    type: 'all' | 'tags' | 'custom_field' | 'segment' | 'csv';
+    type: 'all' | 'tags' | 'custom_field' | 'segment' | 'csv' | 'list';
     tagIds?: string[];
     customField?: {
       fieldId: string;
@@ -66,6 +68,7 @@ export default function NewBroadcastPage() {
       value: string;
     };
     segmentId?: string;
+    listId?: string;
     csvContacts?: { phone: string; name?: string }[];
     excludeTagIds?: string[];
   }>({ type: 'all' });
@@ -100,10 +103,16 @@ export default function NewBroadcastPage() {
       if (af) {
         setAudience({
           type:
-            (af.type as 'all' | 'tags' | 'custom_field' | 'segment' | 'csv') ??
-            'all',
+            (af.type as
+              | 'all'
+              | 'tags'
+              | 'custom_field'
+              | 'segment'
+              | 'csv'
+              | 'list') ?? 'all',
           tagIds: af.tagIds as string[] | undefined,
           segmentId: af.segmentId as string | undefined,
+          listId: af.listId as string | undefined,
         });
       }
 
@@ -162,6 +171,7 @@ export default function NewBroadcastPage() {
           tagIds: audience.tagIds,
           customField: audience.customField,
           segmentId: audience.segmentId,
+          listId: audience.listId,
           csvContacts: audience.csvContacts,
           excludeTagIds: audience.excludeTagIds,
         },
@@ -195,6 +205,7 @@ export default function NewBroadcastPage() {
           tagIds: audience.tagIds,
           customField: audience.customField,
           segmentId: audience.segmentId,
+          listId: audience.listId,
           csvContacts: audience.csvContacts,
           excludeTagIds: audience.excludeTagIds,
         },
@@ -224,6 +235,8 @@ export default function NewBroadcastPage() {
       audience_filter: {
         type: audience.type,
         tagIds: audience.tagIds,
+        segmentId: audience.segmentId,
+        listId: audience.listId,
       },
       status: 'draft' as const,
     };
@@ -451,6 +464,7 @@ export default function NewBroadcastPage() {
                       onNameChange={setName}
                       template={template}
                       audience={audience}
+                      variables={variables}
                       onSend={handleSend}
                       onSaveDraft={handleSaveDraft}
                       onSchedule={handleSchedule}

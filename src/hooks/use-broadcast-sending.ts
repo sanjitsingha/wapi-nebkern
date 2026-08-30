@@ -21,11 +21,13 @@ export interface CustomFieldFilter {
 }
 
 export interface AudienceConfig {
-  type: 'all' | 'tags' | 'custom_field' | 'segment' | 'csv';
+  type: 'all' | 'tags' | 'custom_field' | 'segment' | 'csv' | 'list';
   tagIds?: string[];
   customField?: CustomFieldFilter;
   /** Saved dynamic segment; recipients are evaluated from its rules. */
   segmentId?: string;
+  /** Saved manual contact list; its current members are used. */
+  listId?: string;
   csvContacts?: { phone: string; name?: string }[];
   /** Contacts carrying any of these tags are subtracted from the result. */
   excludeTagIds?: string[];
@@ -140,6 +142,24 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
       if (contactTags && contactTags.length > 0) {
         const uniqueContactIds = [
           ...new Set(contactTags.map((ct) => ct.contact_id)),
+        ];
+        const { data, error } = await supabase
+          .from('contacts')
+          .select('*')
+          .in('id', uniqueContactIds);
+        if (error) throw new Error(`Failed to fetch contacts: ${error.message}`);
+        contacts = data ?? [];
+      }
+    } else if (audience.type === 'list' && audience.listId) {
+      const { data: listRows, error: listError } = await supabase
+        .from('contact_lists')
+        .select('contact_id')
+        .eq('list_id', audience.listId);
+      if (listError)
+        throw new Error(`Failed to fetch list members: ${listError.message}`);
+      if (listRows && listRows.length > 0) {
+        const uniqueContactIds = [
+          ...new Set(listRows.map((r) => r.contact_id)),
         ];
         const { data, error } = await supabase
           .from('contacts')
@@ -369,6 +389,7 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
             tagIds: payload.audience.tagIds,
             customField: payload.audience.customField,
             segmentId: payload.audience.segmentId,
+            listId: payload.audience.listId,
             excludeTagIds: payload.audience.excludeTagIds,
           },
           status: 'sending',
@@ -621,6 +642,7 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
             tagIds: payload.audience.tagIds,
             customField: payload.audience.customField,
             segmentId: payload.audience.segmentId,
+            listId: payload.audience.listId,
             excludeTagIds: payload.audience.excludeTagIds,
           },
           scheduled_at: scheduledAtIso,

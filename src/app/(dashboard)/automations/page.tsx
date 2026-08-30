@@ -1,22 +1,19 @@
 "use client"
 
 import { InfoHint } from "@/components/ui/info-hint";
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { toast } from "sonner"
 import {
   Zap,
   Plus,
-  MoreVertical,
-  Copy,
-  Pencil,
-  Trash2,
-  FileText,
-  MessageCircle,
-  Clock,
-  Users,
-  PhoneCall,
   Loader2,
+  History,
+  PlayCircle,
+  CircleDot,
+  Search,
+  Filter,
+  ChevronDown,
+  ArrowUpRight,
 } from "lucide-react"
 
 import { createClient } from "@/lib/supabase/client"
@@ -24,38 +21,35 @@ import { useCan } from "@/hooks/use-can"
 import type { Automation } from "@/types"
 import { Button } from "@/components/ui/button"
 import { GatedButton } from "@/components/ui/gated-button"
-import { Switch } from "@/components/ui/switch"
+import { Input } from "@/components/ui/input"
 import {
   DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { AUTOMATION_TEMPLATES, type TemplateSlug } from "@/lib/automations/templates"
-import { triggerMeta, formatRelative } from "@/lib/automations/trigger-meta"
-import { cn } from "@/lib/utils"
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { triggerMeta } from "@/lib/automations/trigger-meta"
+import { format } from "date-fns"
 
-const TEMPLATE_ORDER: TemplateSlug[] = [
-  "welcome_message",
-  "out_of_office",
-  "lead_qualifier",
-  "follow_up_reminder",
-]
+// Automations have a single boolean, is_active — surfaced here as a
+// two-value status so it reads (and filters) like Flows' status column.
+type AutomationStatus = "active" | "draft"
 
-const TEMPLATE_ICON: Record<TemplateSlug, typeof Zap> = {
-  welcome_message: MessageCircle,
-  out_of_office: Clock,
-  lead_qualifier: Users,
-  follow_up_reminder: PhoneCall,
+const STATUS_LABELS: Record<AutomationStatus, string> = {
+  active: "Active",
+  draft: "Draft",
+}
+
+function statusOf(a: Automation): AutomationStatus {
+  return a.is_active ? "active" : "draft"
 }
 
 export default function AutomationsPage() {
@@ -63,8 +57,8 @@ export default function AutomationsPage() {
   const canCreate = useCan("send-messages")
   const [automations, setAutomations] = useState<Automation[] | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [pendingDelete, setPendingDelete] = useState<Automation | null>(null)
-  const [deleting, setDeleting] = useState(false)
+  const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState<AutomationStatus[]>([])
 
   async function load() {
     try {
@@ -84,57 +78,24 @@ export default function AutomationsPage() {
     load()
   }, [])
 
-  async function toggleActive(a: Automation, next: boolean) {
-    // Optimistic flip so the switch feels instant.
-    setAutomations((prev) =>
-      prev?.map((x) => (x.id === a.id ? { ...x, is_active: next } : x)) ?? prev,
-    )
-    const res = await fetch(`/api/automations/${a.id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ is_active: next }),
+  const filteredAutomations = useMemo(() => {
+    const list = automations ?? []
+    const q = search.trim().toLowerCase()
+    return list.filter((a) => {
+      if (statusFilter.length > 0 && !statusFilter.includes(statusOf(a))) {
+        return false
+      }
+      if (!q) return true
+      const haystack = [
+        a.name,
+        a.description ?? "",
+        triggerMeta(a.trigger_type).label,
+      ]
+        .join(" ")
+        .toLowerCase()
+      return haystack.includes(q)
     })
-    if (!res.ok) {
-      // Roll back on error.
-      setAutomations((prev) =>
-        prev?.map((x) => (x.id === a.id ? { ...x, is_active: !next } : x)) ?? prev,
-      )
-      const body = await res.json().catch(() => ({}))
-      toast.error(body?.error ?? "Failed to update")
-      return
-    }
-    toast.success(next ? "Automation activated" : "Automation paused")
-  }
-
-  async function duplicate(a: Automation) {
-    const res = await fetch(`/api/automations/${a.id}/duplicate`, { method: "POST" })
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}))
-      toast.error(body?.error ?? "Failed to duplicate")
-      return
-    }
-    toast.success("Automation duplicated")
-    load()
-  }
-
-  async function confirmDelete() {
-    if (!pendingDelete) return
-    setDeleting(true)
-    const res = await fetch(`/api/automations/${pendingDelete.id}`, { method: "DELETE" })
-    setDeleting(false)
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}))
-      toast.error(body?.error ?? "Failed to delete")
-      return
-    }
-    toast.success("Automation deleted")
-    setPendingDelete(null)
-    load()
-  }
-
-  async function startFromTemplate(slug: TemplateSlug) {
-    router.push(`/automations/new?template=${slug}`)
-  }
+  }, [automations, search, statusFilter])
 
   if (error) {
     return (
@@ -149,17 +110,15 @@ export default function AutomationsPage() {
 
   if (automations === null) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
 
-  const showTemplates = automations.length < 3
-
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold text-foreground">Automations</h1>
@@ -177,195 +136,233 @@ export default function AutomationsPage() {
           canAct={canCreate}
           gateReason="create automations"
           onClick={() => router.push("/automations/new")}
-          className="h-11 bg-primary text-primary-foreground hover:bg-primary/90"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 gap-2"
         >
           <Plus className="h-4 w-4" />
           Create Automation
         </GatedButton>
-      </div>
-
-      {showTemplates && (
-        <section>
-          <h2 className="mb-3 text-sm font-semibold text-muted-foreground">Quick-start templates</h2>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {TEMPLATE_ORDER.map((slug) => {
-              const t = AUTOMATION_TEMPLATES[slug]
-              const Icon = TEMPLATE_ICON[slug]
-              return (
-                <button
-                  key={slug}
-                  onClick={() => startFromTemplate(slug)}
-                  className="group flex flex-col items-start rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/50 hover:bg-card/80"
-                >
-                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary/15">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div className="text-sm font-semibold text-foreground">{t.name}</div>
-                  <p className="mt-1 text-xs text-muted-foreground">{t.description}</p>
-                </button>
-              )
-            })}
-          </div>
-        </section>
-      )}
+      </header>
 
       {automations.length === 0 ? (
-        <div className="flex h-48 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/40">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-            <Zap className="h-6 w-6 text-primary" />
-          </div>
-          <p className="mt-3 text-sm font-medium text-foreground">No automations yet</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Pick a template above or create one from scratch.
-          </p>
-        </div>
+        <EmptyState
+          onCreate={() => router.push("/automations/new")}
+          canCreate={canCreate}
+        />
       ) : (
-        <ul className="space-y-3">
-          {automations.map((a) => (
-            <AutomationCard
-              key={a.id}
-              automation={a}
-              onToggle={(next) => toggleActive(a, next)}
-              onEdit={() => router.push(`/automations/${a.id}/edit`)}
-              onDuplicate={() => duplicate(a)}
-              onLogs={() => router.push(`/automations/${a.id}/logs`)}
-              onDelete={() => setPendingDelete(a)}
-            />
-          ))}
-        </ul>
-      )}
+        <div className="space-y-4">
+          {/* Search + status filter */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative max-w-xl flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search automations by name, description, or trigger"
+                className="h-11 pl-9"
+              />
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={<Button variant="outline" className="h-11 gap-2" />}
+              >
+                <Filter className="h-4 w-4" />
+                Status
+                {statusFilter.length > 0 && (
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                    {statusFilter.length}
+                  </span>
+                )}
+                <ChevronDown className="h-4 w-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                {(Object.keys(STATUS_LABELS) as AutomationStatus[]).map(
+                  (status) => (
+                    <DropdownMenuCheckboxItem
+                      key={status}
+                      checked={statusFilter.includes(status)}
+                      className="gap-2"
+                      onCheckedChange={() =>
+                        setStatusFilter((prev) =>
+                          prev.includes(status)
+                            ? prev.filter((s) => s !== status)
+                            : [...prev, status],
+                        )
+                      }
+                    >
+                      {STATUS_LABELS[status]}
+                    </DropdownMenuCheckboxItem>
+                  ),
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
-      <Dialog open={!!pendingDelete} onOpenChange={(v) => !v && setPendingDelete(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete automation</DialogTitle>
-            <DialogDescription>
-              This permanently removes{" "}
-              <span className="text-foreground">{pendingDelete?.name}</span> and its execution
-              history. This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => setPendingDelete(null)}
-              disabled={deleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDelete}
-              disabled={deleting}
-            >
-              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          {filteredAutomations.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/50 px-6 py-14 text-center">
+              <Search className="h-6 w-6 text-muted-foreground" />
+              <p className="mt-3 text-sm font-medium text-foreground">
+                No automations match your filters
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Try a different search term or clear the status filter.
+              </p>
+              {(search || statusFilter.length > 0) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
+                  onClick={() => {
+                    setSearch("")
+                    setStatusFilter([])
+                  }}
+                >
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-border bg-card">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
+                    <TableHead className="px-6 py-3.5 text-muted-foreground">Name</TableHead>
+                    <TableHead className="px-6 py-3.5 text-muted-foreground" icon={CircleDot}>Status</TableHead>
+                    <TableHead className="hidden px-6 py-3.5 text-muted-foreground md:table-cell" icon={Zap}>
+                      Trigger
+                    </TableHead>
+                    <TableHead className="hidden px-6 py-3.5 text-muted-foreground lg:table-cell" icon={History}>
+                      Last modified
+                    </TableHead>
+                    <TableHead className="px-6 py-3.5 text-muted-foreground" icon={PlayCircle}>Runs</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredAutomations.map((a) => (
+                    <AutomationTableRow
+                      key={a.id}
+                      automation={a}
+                      onEdit={() => router.push(`/automations/${a.id}/edit`)}
+                      onRuns={() => router.push(`/automations/${a.id}/logs`)}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
 
-function AutomationCard({
+function EmptyState({
+  onCreate,
+  canCreate,
+}: {
+  onCreate: () => void
+  canCreate: boolean
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card/50 px-6 py-16 text-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+        <Zap className="h-6 w-6 text-muted-foreground" />
+      </div>
+      <h2 className="mt-4 text-base font-medium text-foreground">
+        No automations yet
+      </h2>
+      <p className="mt-1 max-w-md text-sm text-muted-foreground">
+        Build your first if-this-then-that rule — a welcome message, an
+        out-of-office reply, a lead qualifier. A trigger fires and the action
+        runs without anyone watching.
+      </p>
+      <GatedButton
+        canAct={canCreate}
+        gateReason="create automations"
+        onClick={onCreate}
+        className="mt-5"
+      >
+        <Plus className="h-4 w-4" />
+        Create your first automation
+      </GatedButton>
+    </div>
+  )
+}
+
+function AutomationTableRow({
   automation,
-  onToggle,
   onEdit,
-  onDuplicate,
-  onLogs,
-  onDelete,
+  onRuns,
 }: {
   automation: Automation
-  onToggle: (next: boolean) => void
   onEdit: () => void
-  onDuplicate: () => void
-  onLogs: () => void
-  onDelete: () => void
+  onRuns: () => void
 }) {
-  const meta = triggerMeta(automation.trigger_type)
+  const triggerSummary = triggerMeta(automation.trigger_type).label
+  const lastModified = format(
+    new Date(automation.updated_at),
+    "MMM d, yyyy · h:mm a",
+  )
+
   return (
-    <li className="rounded-xl border border-border bg-card transition-colors hover:border-border">
-      <div className="flex items-center gap-4 p-4">
-        <div
-          className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10"
-          aria-hidden
-        >
-          <Zap className="h-5 w-5 text-primary" />
+    <TableRow className="border-border hover:bg-muted/50">
+      {/* Name — with an arrow button that opens the workflow. */}
+      <TableCell className="group/cell px-6 py-4 font-medium text-foreground">
+        <div className="flex items-center justify-between gap-3">
+          <span className="truncate">{automation.name}</span>
+          <OpenButton label="Open workflow" onClick={onEdit} />
         </div>
+      </TableCell>
 
-        <button
-          type="button"
-          onClick={onEdit}
-          className="min-w-0 flex-1 text-left"
-        >
-          <div className="flex items-center gap-2">
-            <span className="truncate text-sm font-semibold text-foreground">
-              {automation.name}
-            </span>
-            {automation.is_active && (
-              <span className="relative flex h-2 w-2" aria-label="active">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-              </span>
-            )}
-          </div>
-          {automation.description && (
-            <p className="mt-0.5 truncate text-xs text-muted-foreground">{automation.description}</p>
-          )}
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span
-              className={cn(
-                "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
-                meta.pillClass,
-              )}
-            >
-              {meta.label}
-            </span>
-            <span className="tabular-nums">
-              {automation.execution_count} run{automation.execution_count === 1 ? "" : "s"}
-            </span>
-            <span aria-hidden>·</span>
-            <span>last {formatRelative(automation.last_executed_at)}</span>
-          </div>
-        </button>
+      {/* Status */}
+      <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+        {STATUS_LABELS[statusOf(automation)]}
+      </TableCell>
 
-        <div className="flex items-center gap-3">
-          <Switch
-            checked={automation.is_active}
-            onCheckedChange={(v) => onToggle(!!v)}
-            aria-label={automation.is_active ? "Deactivate" : "Activate"}
-          />
+      {/* Trigger */}
+      <TableCell className="hidden max-w-48 truncate px-6 py-4 text-sm text-muted-foreground md:table-cell">
+        {triggerSummary}
+      </TableCell>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              aria-label="Open menu"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-[popup-open]:bg-muted"
-            >
-              <MoreVertical className="h-4 w-4" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onEdit}>
-                <Pencil className="h-4 w-4" />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onDuplicate}>
-                <Copy className="h-4 w-4" />
-                Duplicate
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onLogs}>
-                <FileText className="h-4 w-4" />
-                View Logs
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" onClick={onDelete}>
-                <Trash2 className="h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+      {/* Last modified */}
+      <TableCell className="hidden px-6 py-4 text-sm text-muted-foreground lg:table-cell">
+        {lastModified}
+      </TableCell>
+
+      {/* Runs — with an arrow button that opens the run history. */}
+      <TableCell className="group/cell px-6 py-4 text-sm text-muted-foreground">
+        <div className="flex items-center justify-between gap-3">
+          <span className="tabular-nums">{automation.execution_count}</span>
+          <OpenButton label="Open runs" onClick={onRuns} />
         </div>
-      </div>
-    </li>
+      </TableCell>
+    </TableRow>
+  )
+}
+
+/**
+ * A bordered arrow button that opens a destination from inside a
+ * clickable row. Stops propagation so it acts on its own target rather
+ * than firing the row's own click.
+ */
+function OpenButton({
+  label,
+  onClick,
+}: {
+  label: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={(e) => {
+        e.stopPropagation()
+        onClick()
+      }}
+      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground opacity-0 transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary focus-visible:opacity-100 group-hover/cell:opacity-100"
+    >
+      <ArrowUpRight className="h-4 w-4" />
+    </button>
   )
 }

@@ -32,7 +32,6 @@ import type {
   PipelineDonutData,
   ResponseTimeSummary,
 } from '@/lib/dashboard/types'
-import type { Profile } from '@/types'
 
 import { MetricCard } from '@/components/dashboard/metric-card'
 import { SkeletonCard } from '@/components/dashboard/skeleton'
@@ -42,20 +41,10 @@ import { PipelineDonut } from '@/components/dashboard/pipeline-donut'
 import { ResponseTimeChart } from '@/components/dashboard/response-time-chart'
 import { ActivityFeed } from '@/components/dashboard/activity-feed'
 import { DateRangeSelector } from '@/components/dashboard/date-range-selector'
-import { TeamMemberSelector } from '@/components/dashboard/team-member-selector'
 
 // Default window: the last 30 local days (inclusive of today).
 function defaultRange(): DashboardDateRange {
   return { from: subDays(startOfDay(new Date()), 29), to: startOfDay(new Date()) }
-}
-
-function toMemberFilter(p: Profile | null): DashboardMemberFilter | null {
-  if (!p) return null
-  return {
-    profileId: p.id,
-    userId: p.user_id,
-    name: p.full_name || p.email,
-  }
 }
 
 export default function DashboardPage() {
@@ -64,7 +53,6 @@ export default function DashboardPage() {
   const [metricsLoading, setMetricsLoading] = useState(true)
 
   const [range, setRange] = useState<DashboardDateRange>(defaultRange)
-  const [member, setMember] = useState<Profile | null>(null)
 
   const [series, setSeries] = useState<ConversationsSeriesPoint[] | null>(null)
   const [seriesLoading, setSeriesLoading] = useState(true)
@@ -152,20 +140,9 @@ export default function DashboardPage() {
   const handleRangeChange = useCallback(
     (r: DashboardDateRange) => {
       setRange(r)
-      loadRangeScoped(r, toMemberFilter(member))
+      loadRangeScoped(r, null)
     },
-    [loadRangeScoped, member],
-  )
-
-  // Team member switch handler
-  const handleMemberChange = useCallback(
-    (m: Profile | null) => {
-      setMember(m)
-      const mFilter = toMemberFilter(m)
-      loadRangeScoped(range, mFilter)
-      loadRangeIndependent(mFilter)
-    },
-    [loadRangeScoped, loadRangeIndependent, range],
+    [loadRangeScoped],
   )
 
   // Delta comparison copy, e.g. "vs previous 30 days".
@@ -185,11 +162,6 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
-          <TeamMemberSelector
-            value={member}
-            onChange={handleMemberChange}
-            disabled={metricsLoading || seriesLoading}
-          />
           <DateRangeSelector
             value={range}
             onChange={handleRangeChange}

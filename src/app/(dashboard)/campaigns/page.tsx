@@ -28,7 +28,6 @@ import {
   Shapes,
   ChevronDown,
   Filter,
-  ArrowUpDown,
   ArrowUp,
   ArrowDown,
   CalendarDays,
@@ -36,13 +35,20 @@ import {
   Send,
   Eye,
   CircleDot,
+  ArrowUpRight,
+  Info,
 } from 'lucide-react';
+import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import {
-  CategoryCell,
   TEMPLATE_CATEGORY_STYLES,
   type TemplateCategory,
 } from '@/components/templates/category-badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useCan } from '@/hooks/use-can';
 import { GatedButton } from '@/components/ui/gated-button';
 import { TemplatePickerDialog } from '@/components/broadcasts/template-picker-dialog';
@@ -90,14 +96,10 @@ function RateCell({
   );
 }
 
-type BroadcastTab = 'all' | 'ongoing' | 'draft';
+type BroadcastTab = 'all' | 'ongoing';
 
 function isOngoingBroadcast(broadcast: Broadcast) {
   return broadcast.status === 'sending' || broadcast.status === 'scheduled';
-}
-
-function isDraftBroadcast(broadcast: Broadcast) {
-  return broadcast.status === 'draft';
 }
 
 export default function BroadcastsPage() {
@@ -153,9 +155,7 @@ export default function BroadcastsPage() {
     const byTab =
       activeTab === 'ongoing'
         ? broadcasts.filter(isOngoingBroadcast)
-        : activeTab === 'draft'
-          ? broadcasts.filter(isDraftBroadcast)
-          : broadcasts;
+        : broadcasts;
 
     const byCategory =
       selectedCategories.length > 0
@@ -462,7 +462,6 @@ export default function BroadcastsPage() {
               >
                 <TabsTrigger value="all">All Campaigns</TabsTrigger>
                 <TabsTrigger value="ongoing">Ongoing Campaigns</TabsTrigger>
-                <TabsTrigger value="draft">Draft Campaigns</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -500,7 +499,7 @@ export default function BroadcastsPage() {
           <Table>
             <TableHeader>
               <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
-                <TableHead className="text-muted-foreground">
+                <TableHead className="px-6 py-3.5 text-muted-foreground">
                   <button
                     type="button"
                     className="hover:text-foreground inline-flex items-center gap-1.5"
@@ -519,80 +518,99 @@ export default function BroadcastsPage() {
                     )}
                   </button>
                 </TableHead>
-                <TableHead className="text-muted-foreground" icon={Radio}>Name</TableHead>
-                <TableHead className="text-muted-foreground hidden md:table-cell" icon={FileText}>
+                <TableHead className="px-6 py-3.5 text-muted-foreground" icon={Radio}>Name</TableHead>
+                <TableHead className="px-6 py-3.5 text-muted-foreground hidden md:table-cell" icon={FileText}>
                   Template
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden md:table-cell" icon={Shapes}>
+                <TableHead className="px-6 py-3.5 text-muted-foreground hidden md:table-cell" icon={Shapes}>
                   Category
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden text-right sm:table-cell">
+                <TableHead className="px-6 py-3.5 text-muted-foreground hidden text-right sm:table-cell">
                   Recipients
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden lg:table-cell" icon={Send}>
+                <TableHead className="px-6 py-3.5 text-muted-foreground hidden lg:table-cell" icon={Send}>
                   Delivery
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden lg:table-cell" icon={Eye}>
+                <TableHead className="px-6 py-3.5 text-muted-foreground hidden lg:table-cell" icon={Eye}>
                   Read
                 </TableHead>
-                <TableHead className="text-muted-foreground" icon={CircleDot}>Status</TableHead>
+                <TableHead className="px-6 py-3.5 text-muted-foreground" icon={CircleDot}>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredBroadcasts.map((broadcast) => {
                 const status = getBroadcastStatus(broadcast.status);
+                const categoryInfo = getBroadcastCategoryInfo(broadcast);
+                const reclassified =
+                  !!categoryInfo?.category &&
+                  !!categoryInfo?.originalCategory &&
+                  categoryInfo.category !== categoryInfo.originalCategory;
                 return (
-                  <TableRow
-                    key={broadcast.id}
-                    className="border-border hover:bg-muted/50 cursor-pointer"
-                    onClick={() => router.push(`/campaigns/${broadcast.id}`)}
-                  >
-                    <TableCell className="text-muted-foreground whitespace-nowrap">
-                      {new Date(broadcast.created_at).toLocaleDateString()}
+                  <TableRow key={broadcast.id} className="border-border hover:bg-muted/50">
+                    <TableCell className="px-6 py-4 text-sm text-muted-foreground whitespace-nowrap">
+                      {format(new Date(broadcast.created_at), 'MMM d, yyyy · h:mm a')}
                     </TableCell>
-                    <TableCell className="text-foreground font-medium">
-                      {broadcast.name}
+                    <TableCell className="group/cell px-6 py-4 font-medium text-foreground">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="truncate">{broadcast.name}</span>
+                        <OpenButton
+                          label="Open campaign"
+                          onClick={() => router.push(`/campaigns/${broadcast.id}`)}
+                        />
+                      </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground hidden md:table-cell">
+                    <TableCell className="px-6 py-4 text-sm text-muted-foreground hidden md:table-cell">
                       {broadcast.template_name}
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <CategoryCell
-                        category={getBroadcastCategoryInfo(broadcast)?.category}
-                        originalCategory={
-                          getBroadcastCategoryInfo(broadcast)?.originalCategory
-                        }
-                      />
+                    <TableCell className="px-6 py-4 text-sm text-muted-foreground hidden md:table-cell">
+                      <span className="inline-flex items-center gap-1.5">
+                        {categoryInfo?.category ?? '—'}
+                        {reclassified && (
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <span
+                                  className="cursor-help"
+                                  aria-label="Category changed by Meta"
+                                >
+                                  <Info className="size-3.5 shrink-0 text-amber-500" />
+                                </span>
+                              }
+                            />
+                            <TooltipContent>
+                              Meta reclassified this template from{' '}
+                              {categoryInfo?.originalCategory} to{' '}
+                              {categoryInfo?.category}.
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </span>
                     </TableCell>
-                    <TableCell className="text-muted-foreground hidden text-right tabular-nums sm:table-cell">
+                    <TableCell className="px-6 py-4 text-sm text-muted-foreground hidden text-right tabular-nums sm:table-cell">
                       {broadcast.total_recipients}
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell">
+                    <TableCell className="px-6 py-4 hidden lg:table-cell">
                       <RateCell
                         value={broadcast.delivered_count}
                         total={broadcast.total_recipients}
                         color="bg-primary"
                       />
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell">
+                    <TableCell className="px-6 py-4 hidden lg:table-cell">
                       <RateCell
                         value={broadcast.read_count}
                         total={broadcast.total_recipients}
                         color="bg-blue-500"
                       />
                     </TableCell>
-                    <TableCell>
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${status.classes}`}
-                      >
-                        {status.pulse && (
-                          <span className="relative flex h-1.5 w-1.5">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-yellow-400 opacity-75" />
-                            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-yellow-400" />
-                          </span>
-                        )}
-                        {status.label}
-                      </span>
+                    <TableCell
+                      className={`px-6 py-4 text-sm ${
+                        broadcast.status === 'failed'
+                          ? 'text-red-500'
+                          : 'text-muted-foreground'
+                      }`}
+                    >
+                      {status.label}
                     </TableCell>
                   </TableRow>
                 );
@@ -611,5 +629,30 @@ export default function BroadcastsPage() {
         }}
       />
     </div>
+  );
+}
+
+/**
+ * A bordered arrow button that opens a destination from inside a table
+ * row. Hidden until its cell is hovered (or the button is focused).
+ * Mirrors the Flows, Automations, Templates, and Forms tables.
+ */
+function OpenButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground opacity-0 transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary focus-visible:opacity-100 group-hover/cell:opacity-100"
+    >
+      <ArrowUpRight className="h-4 w-4" />
+    </button>
   );
 }
