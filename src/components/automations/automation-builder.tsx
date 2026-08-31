@@ -12,9 +12,9 @@ import { toast } from "sonner"
 import {
   ArrowLeft,
   ChevronDown,
+  ChevronRight,
   Plus,
   Trash2,
-  GripVertical,
   MessageSquare,
   FileText,
   Tag,
@@ -33,8 +33,8 @@ import {
   MousePointerClick,
   MessageSquareReply,
   Terminal,
-  Pencil,
   X,
+  Search,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -91,31 +91,104 @@ export interface BuilderInitial {
 // Step metadata — one source of truth for icon + label + border color
 // ------------------------------------------------------------
 
+/**
+ * One accent per node, expressed as complete static class strings (so
+ * Tailwind's JIT sees them). `tile` colors the icon square; `hover` and
+ * `on` color the card's outline so it matches the icon on hover and when
+ * its settings are open in the panel.
+ */
+type NodeColor =
+  | "green"
+  | "blue"
+  | "violet"
+  | "emerald"
+  | "rose"
+  | "amber"
+  | "cyan"
+  | "indigo"
+  | "slate"
+  | "orange"
+  | "teal"
+
+const NODE_COLORS: Record<NodeColor, { tile: string; hover: string; on: string }> = {
+  green: {
+    tile: "bg-primary/10 text-primary",
+    hover: "hover:border-primary/60",
+    on: "border-primary ring-1 ring-primary/30",
+  },
+  blue: {
+    tile: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+    hover: "hover:border-blue-500/60",
+    on: "border-blue-500 ring-1 ring-blue-500/30",
+  },
+  violet: {
+    tile: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+    hover: "hover:border-violet-500/60",
+    on: "border-violet-500 ring-1 ring-violet-500/30",
+  },
+  emerald: {
+    tile: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    hover: "hover:border-emerald-500/60",
+    on: "border-emerald-500 ring-1 ring-emerald-500/30",
+  },
+  rose: {
+    tile: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+    hover: "hover:border-rose-500/60",
+    on: "border-rose-500 ring-1 ring-rose-500/30",
+  },
+  amber: {
+    tile: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    hover: "hover:border-amber-500/60",
+    on: "border-amber-500 ring-1 ring-amber-500/30",
+  },
+  cyan: {
+    tile: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400",
+    hover: "hover:border-cyan-500/60",
+    on: "border-cyan-500 ring-1 ring-cyan-500/30",
+  },
+  indigo: {
+    tile: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
+    hover: "hover:border-indigo-500/60",
+    on: "border-indigo-500 ring-1 ring-indigo-500/30",
+  },
+  slate: {
+    tile: "bg-slate-500/10 text-slate-600 dark:text-slate-400",
+    hover: "hover:border-slate-500/60",
+    on: "border-slate-500 ring-1 ring-slate-500/30",
+  },
+  orange: {
+    tile: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
+    hover: "hover:border-orange-500/60",
+    on: "border-orange-500 ring-1 ring-orange-500/30",
+  },
+  teal: {
+    tile: "bg-teal-500/10 text-teal-600 dark:text-teal-400",
+    hover: "hover:border-teal-500/60",
+    on: "border-teal-500 ring-1 ring-teal-500/30",
+  },
+}
+
 interface StepMeta {
   label: string
   icon: typeof Zap
-  /** Left-border accent color per spec. */
-  border: string
+  /** Accent color key — drives the icon tile and the matching outline. */
+  color: NodeColor
 }
 
 const STEP_META: Record<AutomationStepType, StepMeta> = {
-  send_message: { label: "Send Message", icon: MessageSquare, border: "border-l-primary" },
-  send_template: { label: "Send Template", icon: FileText, border: "border-l-primary" },
-  send_buttons: { label: "Send Buttons", icon: MousePointerClick, border: "border-l-primary" },
-  add_tag: { label: "Add Tag", icon: Tag, border: "border-l-primary" },
-  remove_tag: { label: "Remove Tag", icon: TagIcon, border: "border-l-primary" },
-  assign_conversation: { label: "Assign Conversation", icon: UserCheck, border: "border-l-primary" },
-  update_contact_field: { label: "Update Contact Field", icon: PencilLine, border: "border-l-primary" },
-  create_deal: { label: "Create Deal", icon: Briefcase, border: "border-l-primary" },
-  wait: { label: "Wait", icon: Hourglass, border: "border-l-border" },
-  wait_for_reply: {
-    label: "Wait for Reply",
-    icon: MessageSquareReply,
-    border: "border-l-amber-500",
-  },
-  condition: { label: "Condition (If/Else)", icon: GitBranch, border: "border-l-amber-500" },
-  send_webhook: { label: "Send Webhook", icon: Webhook, border: "border-l-primary" },
-  close_conversation: { label: "Close Conversation", icon: CircleSlash, border: "border-l-primary" },
+  send_message: { label: "Send Message", icon: MessageSquare, color: "green" },
+  send_template: { label: "Send Template", icon: FileText, color: "blue" },
+  send_buttons: { label: "Send Buttons", icon: MousePointerClick, color: "violet" },
+  add_tag: { label: "Add Tag", icon: Tag, color: "emerald" },
+  remove_tag: { label: "Remove Tag", icon: TagIcon, color: "rose" },
+  assign_conversation: { label: "Assign Conversation", icon: UserCheck, color: "amber" },
+  update_contact_field: { label: "Update Contact Field", icon: PencilLine, color: "cyan" },
+  create_deal: { label: "Create Deal", icon: Briefcase, color: "indigo" },
+  wait: { label: "Wait", icon: Hourglass, color: "slate" },
+  wait_for_reply: { label: "Wait for Reply", icon: MessageSquareReply, color: "amber" },
+  condition: { label: "Condition (If/Else)", icon: GitBranch, color: "orange" },
+  send_webhook: { label: "Send Webhook", icon: Webhook, color: "teal" },
+  close_conversation: { label: "Close Conversation", icon: CircleSlash, color: "rose" },
 }
 
 const ADDABLE_STEPS: AutomationStepType[] = [
@@ -599,6 +672,115 @@ function previewValue(raw: string): string {
   )
 }
 
+/**
+ * Searchable template dropdown. A native <select> can't filter, and an
+ * account can have a long approved-template list — so this is a custom
+ * popover with a search box over the fetched templates.
+ */
+function TemplatePicker({
+  templates,
+  valueName,
+  valueLang,
+  selected,
+  onSelect,
+}: {
+  templates: MessageTemplate[]
+  valueName: string
+  valueLang: string
+  selected: MessageTemplate | null
+  onSelect: (t: MessageTemplate | null) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState("")
+  const q = query.trim().toLowerCase()
+  const filtered = templates.filter(
+    (t) =>
+      t.name.toLowerCase().includes(q) ||
+      (t.language ?? "en_US").toLowerCase().includes(q),
+  )
+
+  const label = selected
+    ? `${selected.name} (${selected.language ?? "en_US"})`
+    : valueName
+      ? `${valueName} (${valueLang || "unknown"}) — not in approved list`
+      : "Select a template…"
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={cn(SELECT_CLASS, "flex items-center justify-between gap-2 text-left")}
+      >
+        <span className={cn("truncate", !selected && !valueName && "text-muted-foreground")}>
+          {label}
+        </span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+      </button>
+
+      {open && (
+        <>
+          {/* Click-away catcher. */}
+          <button
+            type="button"
+            aria-hidden
+            tabIndex={-1}
+            onClick={() => {
+              setOpen(false)
+              setQuery("")
+            }}
+            className="fixed inset-0 z-40 cursor-default"
+          />
+          <div className="absolute inset-x-0 top-full z-50 mt-1 overflow-hidden rounded-md border border-border bg-popover shadow-lg">
+            <div className="border-b border-border p-2">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  autoFocus
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search templates"
+                  className="w-full rounded-md bg-muted py-1.5 pr-2 pl-8 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+                />
+              </div>
+            </div>
+            <div className="max-h-56 overflow-y-auto p-1">
+              {filtered.length === 0 ? (
+                <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+                  No templates found.
+                </p>
+              ) : (
+                filtered.map((t) => {
+                  const lang = t.language ?? "en_US"
+                  const isSel = selected?.id === t.id
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => {
+                        onSelect(t)
+                        setOpen(false)
+                        setQuery("")
+                      }}
+                      className={cn(
+                        "flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted",
+                        isSel && "bg-muted",
+                      )}
+                    >
+                      <span className="truncate text-foreground">{t.name}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">{lang}</span>
+                    </button>
+                  )
+                })
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 function SendTemplateFields({
   templateName,
   language,
@@ -655,51 +837,41 @@ function SendTemplateFields({
   const setBtn = (index: number, val: string) =>
     onChange({ button_params: { ...buttonParams, [String(index)]: val } })
 
+  // Selecting a template prunes stale variable/button keys so a template
+  // with fewer placeholders can't ship extra params (Meta rejects a
+  // param-count mismatch).
+  const applyTemplate = (tpl: MessageTemplate | null) => {
+    if (!tpl) {
+      onChange({ template_name: "", language: "", variables: {}, button_params: {} })
+      return
+    }
+    const ph = extractTemplateVars(tpl.body_text)
+    const pruned: Record<string, string> = {}
+    for (const k of ph) if (variables[k] != null) pruned[k] = variables[k]
+    const needy = buttonsNeedingParams(tpl)
+    const prunedBtn: Record<string, string> = {}
+    for (const { index } of needy) {
+      const key = String(index)
+      if (buttonParams[key] != null) prunedBtn[key] = buttonParams[key]
+    }
+    onChange({
+      template_name: tpl.name,
+      language: tpl.language ?? "en_US",
+      variables: pruned,
+      button_params: prunedBtn,
+    })
+  }
+
   return (
     <>
       <FieldBlock label="Template">
-        <select
-          value={current}
-          onChange={(e) => {
-            const [name, lang] = e.target.value.split("::")
-            const tpl = templates.find(
-              (t) => toValue(t.name, t.language ?? "en_US") === e.target.value,
-            )
-            // Prune stale keys so a template with fewer variables can't send
-            // extra params (Meta rejects a param-count mismatch).
-            const ph = tpl ? extractTemplateVars(tpl.body_text) : []
-            const pruned: Record<string, string> = {}
-            for (const k of ph) if (variables[k] != null) pruned[k] = variables[k]
-            const needy = tpl ? buttonsNeedingParams(tpl) : []
-            const prunedBtn: Record<string, string> = {}
-            for (const { index } of needy) {
-              const key = String(index)
-              if (buttonParams[key] != null) prunedBtn[key] = buttonParams[key]
-            }
-            onChange({
-              template_name: name ?? "",
-              language: lang ?? "",
-              variables: pruned,
-              button_params: prunedBtn,
-            })
-          }}
-          className={SELECT_CLASS}
-        >
-          <option value="">Select a template…</option>
-          {templates.map((t) => {
-            const lang = t.language ?? "en_US"
-            return (
-              <option key={t.id} value={toValue(t.name, lang)}>
-                {t.name} ({lang})
-              </option>
-            )
-          })}
-          {current && !selected && (
-            <option value={current}>
-              {templateName} ({language || "unknown"}) — not in approved list
-            </option>
-          )}
-        </select>
+        <TemplatePicker
+          templates={templates}
+          valueName={templateName}
+          valueLang={language}
+          selected={selected ?? null}
+          onSelect={applyTemplate}
+        />
       </FieldBlock>
 
       {selected && placeholders.length > 0 && (
@@ -888,16 +1060,34 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
   const [state, setState] = useState<BuilderInitial>(initial)
   const [saving, setSaving] = useState(false)
   const [editingName, setEditingName] = useState(false)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  // The right slide-in panel: either the node-type picker (with the
+  // insertion target) or a specific node's settings (by client id).
+  const [panel, setPanel] = useState<
+    | { mode: "picker"; parent: ParentScope; index: number }
+    | { mode: "edit"; cid: string }
+    | null
+  >(null)
 
   function patchTop<K extends keyof BuilderInitial>(key: K, value: BuilderInitial[K]) {
     setState((s) => ({ ...s, [key]: value }))
   }
 
+  // --- Panel controls ---
+
+  function openPicker(parent: ParentScope, index: number) {
+    setPanel({ mode: "picker", parent, index })
+  }
+  function openEdit(id: string) {
+    setPanel({ mode: "edit", cid: id })
+  }
+  function closePanel() {
+    setPanel(null)
+  }
+
   // --- Step tree mutations (immutable) ---
 
-  function updateStep(path: StepPath, updater: (s: BuilderStep) => BuilderStep) {
-    setState((s) => ({ ...s, steps: mapAtPath(s.steps, path, updater) }))
+  function updateStepByCid(id: string, updater: (s: BuilderStep) => BuilderStep) {
+    setState((s) => ({ ...s, steps: mapStepsByCid(s.steps, id, updater) }))
   }
 
   function addStepAt(parent: ParentScope, index: number, type: AutomationStepType) {
@@ -910,15 +1100,17 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
         : undefined,
     }
     setState((s) => ({ ...s, steps: insertAt(s.steps, parent, index, node) }))
-    setExpandedId(node.cid)
+    // Jump the panel straight to the new node's settings.
+    setPanel({ mode: "edit", cid: node.cid })
   }
 
-  function deleteStepAt(path: StepPath) {
-    setState((s) => ({ ...s, steps: removeAt(s.steps, path) }))
+  function deleteStepByCid(id: string) {
+    setState((s) => ({ ...s, steps: removeStepsByCid(s.steps, id) }))
+    setPanel(null)
   }
 
-  function moveStepAt(path: StepPath, direction: -1 | 1) {
-    setState((s) => ({ ...s, steps: moveAt(s.steps, path, direction) }))
+  function moveStepByCid(id: string, direction: -1 | 1) {
+    setState((s) => ({ ...s, steps: moveStepsByCid(s.steps, id, direction) }))
   }
 
   async function save(activeOverride?: boolean) {
@@ -1012,19 +1204,18 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
                   (e.target as HTMLInputElement).blur()
               }}
               placeholder="Untitled automation"
-              className="min-w-0 flex-1 rounded-md bg-muted px-2 py-1 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:outline-none sm:text-base"
+              className="min-w-0 flex-1 px-2 py-1 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:outline-none sm:text-base"
             />
           ) : (
             <button
               type="button"
               onClick={() => setEditingName(true)}
               title="Rename"
-              className="group flex min-w-0 items-center gap-1.5 rounded-md px-2 py-1 transition-colors hover:bg-muted"
+              className="flex min-w-0 items-center px-2 py-1"
             >
               <span className="truncate text-sm font-semibold text-foreground sm:text-base">
                 {state.name || "Untitled automation"}
               </span>
-              <Pencil className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70 transition-colors group-hover:text-foreground" />
             </button>
           )}
 
@@ -1055,54 +1246,44 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
           </button>
         )}
 
-        {/* Save/Publish split-button. Draft → primary is "Publish" (Save
-            moves into the menu); Live → primary is "Save" (menu offers
-            Unpublish). */}
+        {/* Single "Save" button that opens a menu — Publish (go live) or
+            Save as draft (persist without publishing / take it offline). */}
         <div className="flex flex-shrink-0">
-          <Button
-            onClick={() => save(state.is_active ? undefined : true)}
-            disabled={saving}
-            className="h-11 rounded-r-none bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {state.is_active ? "Save" : "Publish"}
-          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger
               disabled={saving}
-              aria-label="More options"
-              className="flex h-11 items-center rounded-md rounded-l-none border-l border-primary-foreground/15 bg-primary px-2.5 text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none disabled:opacity-50"
+              className="inline-flex h-11 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none disabled:opacity-50 data-[popup-open]:bg-primary/90"
             >
-              <ChevronDown className="h-4 w-4" />
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+              Save
+              <ChevronDown className="h-4 w-4 opacity-80" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {state.is_active ? (
-                <>
-                  <DropdownMenuItem onClick={() => save()}>Save</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => save(false)}>
-                    Unpublish
-                  </DropdownMenuItem>
-                </>
-              ) : (
-                <>
-                  <DropdownMenuItem onClick={() => save()}>
-                    Save draft
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => save(true)}>
-                    Publish
-                  </DropdownMenuItem>
-                </>
-              )}
+            <DropdownMenuContent align="end" className="min-w-48 p-1.5">
+              <DropdownMenuItem
+                onClick={() => save(true)}
+                className="px-3 py-2.5"
+              >
+                Publish
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => save(false)}
+                className="px-3 py-2.5"
+              >
+                Save as draft
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </header>
 
-      {/* Canvas */}
-      <div className="relative flex-1 overflow-y-auto">
-        <div className="absolute inset-0 bg-[radial-gradient(circle,var(--border)_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
-        <div className="relative mx-auto flex max-w-2xl flex-col items-center gap-0 px-4 py-10">
-          <ResourcesProvider>
+      {/* Resources (templates / tags / members / fields) are shared by
+          both the canvas nodes and the right settings panel, so the
+          provider wraps both — the panel renders outside the canvas. */}
+      <ResourcesProvider>
+        {/* Canvas */}
+        <div className="relative flex-1 overflow-y-auto">
+          <div className="absolute inset-0 bg-[radial-gradient(circle,var(--border)_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
+          <div className="relative mx-auto flex max-w-2xl flex-col items-center gap-0 px-4 py-10">
             <TriggerCard
               type={state.trigger_type}
               config={state.trigger_config}
@@ -1112,16 +1293,26 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
             <StepList
               steps={state.steps}
               parentPath={[]}
-              expandedId={expandedId}
-              setExpandedId={setExpandedId}
-              updateStep={updateStep}
-              addStepAt={addStepAt}
-              deleteStepAt={deleteStepAt}
-              moveStepAt={moveStepAt}
+              selectedCid={panel?.mode === "edit" ? panel.cid : null}
+              openPicker={openPicker}
+              openEdit={openEdit}
             />
-          </ResourcesProvider>
+          </div>
         </div>
-      </div>
+
+        {/* Right slide-in panel: node picker + per-node settings. */}
+        <NodePanel
+          panel={panel}
+          steps={state.steps}
+          onClose={closePanel}
+          onPick={(t) => {
+            if (panel?.mode === "picker") addStepAt(panel.parent, panel.index, t)
+          }}
+          onChange={(id, next) => updateStepByCid(id, () => next)}
+          onMove={moveStepByCid}
+          onDelete={deleteStepByCid}
+        />
+      </ResourcesProvider>
     </div>
   )
 }
@@ -1146,7 +1337,7 @@ function TriggerCard({
     // Card width: full on mobile, fixed 320px on sm+. The canvas wrapper
     // (max-w-2xl + px-4) keeps this tidy on tablet/desktop.
     <div className="z-10 w-full max-w-[320px] sm:w-80">
-      <div className="rounded-lg border border-border border-l-4 border-l-blue-500 bg-card shadow-lg">
+      <div className="rounded-lg border border-border bg-card shadow-lg">
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -1318,12 +1509,12 @@ type StepPath = (
 interface StepListProps {
   steps: BuilderStep[]
   parentPath: StepPath
-  expandedId: string | null
-  setExpandedId: (id: string | null) => void
-  updateStep: (path: StepPath, updater: (s: BuilderStep) => BuilderStep) => void
-  addStepAt: (parent: ParentScope, index: number, type: AutomationStepType) => void
-  deleteStepAt: (path: StepPath) => void
-  moveStepAt: (path: StepPath, direction: -1 | 1) => void
+  /** cid of the node whose settings are open in the panel (for highlight). */
+  selectedCid: string | null
+  /** Open the right panel's node picker, targeting this insertion point. */
+  openPicker: (parent: ParentScope, index: number) => void
+  /** Open the right panel on an existing node's settings. */
+  openEdit: (cid: string) => void
 }
 
 function StepList(props: StepListProps) {
@@ -1339,13 +1530,12 @@ function StepList(props: StepListProps) {
 
   return (
     <div className="flex flex-col items-center">
-      <AddButton onPick={(t) => props.addStepAt(parentScope, 0, t)} />
+      <AddButton onOpen={() => props.openPicker(parentScope, 0)} />
       {steps.map((step, idx) => (
         <StepRenderer
           key={step.cid}
           step={step}
           index={idx}
-          total={steps.length}
           parentScope={parentScope}
           parentPath={parentPath}
           {...rest}
@@ -1358,14 +1548,12 @@ function StepList(props: StepListProps) {
 function StepRenderer({
   step,
   index,
-  total,
   parentScope,
   parentPath,
   ...props
 }: {
   step: BuilderStep
   index: number
-  total: number
   parentScope: ParentScope
   parentPath: StepPath
 } & Omit<StepListProps, "steps" | "parentPath">) {
@@ -1377,7 +1565,7 @@ function StepRenderer({
   ]
   const meta = STEP_META[step.step_type]
   const Icon = meta.icon
-  const expanded = props.expandedId === step.cid
+  const selected = props.selectedCid === step.cid
   const isBranching = BRANCHING_STEPS.includes(step.step_type)
   const branchCount = (BRANCH_COLUMNS[step.step_type] ?? []).length
   // Card widths on mobile fill the full canvas column (max-w-2xl px-4
@@ -1393,77 +1581,39 @@ function StepRenderer({
   return (
     <>
       <div className={cn("z-10 flex flex-col", width)}>
-        <div
+        <button
+          type="button"
+          onClick={() => props.openEdit(step.cid)}
           className={cn(
-            "rounded-lg border border-border border-l-4 bg-card shadow-lg",
-            meta.border,
+            "flex w-full items-center gap-3 rounded-lg border bg-card px-4 py-3 text-left shadow-lg transition-colors",
+            selected
+              ? NODE_COLORS[meta.color].on
+              : cn("border-border", NODE_COLORS[meta.color].hover),
           )}
         >
-          <button
-            type="button"
-            onClick={() => props.setExpandedId(expanded ? null : step.cid)}
-            className="flex w-full items-center gap-3 px-4 py-3 text-left"
+          <div
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-md",
+              NODE_COLORS[meta.color].tile,
+            )}
           >
-            <GripVertical className="h-4 w-4 flex-shrink-0 text-muted-foreground" aria-hidden />
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
-              <Icon className="h-4 w-4" />
+            <Icon className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              {step.step_type === "condition"
+                ? "Condition"
+                : step.step_type === "wait_for_reply"
+                  ? "Wait for reply"
+                  : step.step_type === "wait"
+                    ? "Wait"
+                    : "Action"}
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                {step.step_type === "condition"
-                  ? "Condition"
-                  : step.step_type === "wait_for_reply"
-                    ? "Wait for reply"
-                    : step.step_type === "wait"
-                      ? "Wait"
-                      : "Action"}
-              </div>
-              <div className="truncate text-sm font-medium text-foreground">{meta.label}</div>
-              <div className="truncate text-[11px] text-muted-foreground">{previewFor(step)}</div>
-            </div>
-            <ChevronDown
-              className={cn("h-4 w-4 text-muted-foreground transition-transform", expanded && "rotate-180")}
-            />
-          </button>
-          {expanded && (
-            <div className="border-t border-border px-4 py-3">
-              <StepEditor
-                step={step}
-                onChange={(next) => props.updateStep(path, () => next)}
-              />
-              <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    disabled={index === 0}
-                    aria-label="Move up"
-                    onClick={() => props.moveStepAt(path, -1)}
-                  >
-                    <ArrowUp className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    disabled={index === total - 1}
-                    aria-label="Move down"
-                    onClick={() => props.moveStepAt(path, 1)}
-                  >
-                    <ArrowDown className="h-4 w-4" />
-                  </Button>
-                </div>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => props.deleteStepAt(path)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Delete
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
+            <div className="truncate text-sm font-medium text-foreground">{meta.label}</div>
+            <div className="truncate text-[11px] text-muted-foreground">{previewFor(step)}</div>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </button>
 
         {isBranching && (
           <ConditionBranches step={step} parentPath={path} {...props} />
@@ -1475,9 +1625,7 @@ function StepRenderer({
           the trailing connector here would produce a spurious extra
           output that could never be reached. */}
       {!isBranching && (
-        <AddButton
-          onPick={(t) => props.addStepAt(parentScope, index + 1, t)}
-        />
+        <AddButton onOpen={() => props.openPicker(parentScope, index + 1)} />
       )}
     </>
   )
@@ -1542,34 +1690,199 @@ function BranchColumn({
   )
 }
 
-function AddButton({ onPick }: { onPick: (t: AutomationStepType) => void }) {
+function AddButton({ onOpen }: { onOpen: () => void }) {
   return (
     <div className="relative flex flex-col items-center">
       <div className="h-4 w-[2px] bg-border" aria-hidden />
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-dashed border-border bg-background text-muted-foreground transition-colors hover:border-primary hover:bg-primary/10 hover:text-primary data-[popup-open]:border-primary data-[popup-open]:bg-primary/20 data-[popup-open]:text-primary"
-          aria-label="Add step"
-        >
-          <Plus className="h-4 w-4" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="start"
-          className="max-h-80 min-w-56 overflow-y-auto border-border bg-popover"
-        >
-          {ADDABLE_STEPS.map((t) => {
-            const Icon = STEP_META[t].icon
-            return (
-              <DropdownMenuItem key={t} onClick={() => onPick(t)}>
-                <Icon className="h-4 w-4" />
-                {STEP_META[t].label}
-              </DropdownMenuItem>
-            )
-          })}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-dashed border-border bg-background text-muted-foreground transition-colors hover:border-primary hover:bg-primary/10 hover:text-primary"
+        aria-label="Add step"
+      >
+        <Plus className="h-4 w-4" />
+      </button>
       <div className="h-4 w-[2px] bg-border" aria-hidden />
     </div>
+  )
+}
+
+// ------------------------------------------------------------
+// Right slide-in panel — node picker + per-node settings
+// ------------------------------------------------------------
+
+function NodePanel({
+  panel,
+  steps,
+  onClose,
+  onPick,
+  onChange,
+  onMove,
+  onDelete,
+}: {
+  panel:
+    | { mode: "picker"; parent: ParentScope; index: number }
+    | { mode: "edit"; cid: string }
+    | null
+  steps: BuilderStep[]
+  onClose: () => void
+  onPick: (t: AutomationStepType) => void
+  onChange: (cid: string, next: BuilderStep) => void
+  onMove: (cid: string, direction: -1 | 1) => void
+  onDelete: (cid: string) => void
+}) {
+  const open = panel !== null
+  const editing =
+    panel?.mode === "edit" ? findStepByCid(steps, panel.cid) : null
+  const info =
+    panel?.mode === "edit" ? siblingInfoByCid(steps, panel.cid) : null
+
+  const title =
+    panel?.mode === "edit" && editing
+      ? STEP_META[editing.step_type].label
+      : "Add a step"
+
+  // Node-picker search. Cleared whenever the panel leaves picker mode so
+  // it never opens pre-filtered from a previous visit.
+  const [query, setQuery] = useState("")
+  useEffect(() => {
+    if (panel?.mode !== "picker") setQuery("")
+  }, [panel?.mode])
+  const q = query.trim().toLowerCase()
+  const pickerSteps = ADDABLE_STEPS.filter((t) =>
+    STEP_META[t].label.toLowerCase().includes(q),
+  )
+
+  return (
+    <>
+      {/* Backdrop — click to dismiss. */}
+      <button
+        type="button"
+        aria-label="Close panel"
+        onClick={onClose}
+        className={cn(
+          "fixed inset-0 z-30 bg-black/30 transition-opacity duration-200",
+          open ? "opacity-100" : "pointer-events-none opacity-0",
+        )}
+      />
+
+      <aside
+        className={cn(
+          "fixed right-0 top-0 bottom-0 z-40 flex w-full max-w-[380px] flex-col border-l border-border bg-card shadow-2xl transition-transform duration-200 ease-out",
+          open ? "translate-x-0" : "translate-x-full",
+        )}
+        aria-hidden={!open}
+      >
+        <header className="flex flex-shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-3">
+          <h2 className="truncate text-sm font-semibold text-foreground">{title}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </header>
+
+        {/* Search — picker mode only, pinned above the scrolling list. */}
+        {panel?.mode === "picker" && (
+          <div className="flex-shrink-0 border-b border-border p-3">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                autoFocus
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search nodes"
+                className="h-10 bg-muted pl-9 text-foreground"
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto p-4">
+          {panel?.mode === "picker" ? (
+            pickerSteps.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                No nodes match &quot;{query.trim()}&quot;.
+              </p>
+            ) : (
+            <div className="grid gap-1.5">
+              {pickerSteps.map((t) => {
+                const Icon = STEP_META[t].icon
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => onPick(t)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-colors hover:bg-muted/50",
+                      NODE_COLORS[STEP_META[t].color].hover,
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md",
+                        NODE_COLORS[STEP_META[t].color].tile,
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span className="text-sm font-medium text-foreground">
+                      {STEP_META[t].label}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+            )
+          ) : editing ? (
+            <StepEditor
+              step={editing}
+              onChange={(next) => onChange(editing.cid, next)}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              This step no longer exists.
+            </p>
+          )}
+        </div>
+
+        {panel?.mode === "edit" && editing && (
+          <footer className="flex flex-shrink-0 items-center justify-between gap-2 border-t border-border p-3">
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={!info || info.index === 0}
+                aria-label="Move up"
+                onClick={() => onMove(editing.cid, -1)}
+              >
+                <ArrowUp className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={!info || info.index === info.total - 1}
+                aria-label="Move down"
+                onClick={() => onMove(editing.cid, 1)}
+              >
+                <ArrowDown className="h-4 w-4" />
+              </Button>
+            </div>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => onDelete(editing.cid)}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete
+            </Button>
+          </footer>
+        )}
+      </aside>
+    </>
   )
 }
 
@@ -1922,148 +2235,103 @@ function insertAt(
   })
 }
 
-function mapAtPath(
+// ------------------------------------------------------------
+// cid-addressed tree ops — used by the slide-in node panel, which
+// holds a step's client id rather than a positional path.
+// ------------------------------------------------------------
+
+function findStepByCid(steps: BuilderStep[], target: string): BuilderStep | null {
+  for (const s of steps) {
+    if (s.cid === target) return s
+    if (s.branches) {
+      for (const bucket of [s.branches.yes, s.branches.no, s.branches.timeout]) {
+        const found = findStepByCid(bucket, target)
+        if (found) return found
+      }
+    }
+  }
+  return null
+}
+
+/** The step's position within its own sibling list — drives the
+ *  move-up/down disabled states in the panel. */
+function siblingInfoByCid(
   steps: BuilderStep[],
-  path: StepPath,
+  target: string,
+): { index: number; total: number } | null {
+  const idx = steps.findIndex((s) => s.cid === target)
+  if (idx !== -1) return { index: idx, total: steps.length }
+  for (const s of steps) {
+    if (!s.branches) continue
+    for (const bucket of [s.branches.yes, s.branches.no, s.branches.timeout]) {
+      const info = siblingInfoByCid(bucket, target)
+      if (info) return info
+    }
+  }
+  return null
+}
+
+function mapStepsByCid(
+  steps: BuilderStep[],
+  target: string,
   updater: (s: BuilderStep) => BuilderStep,
 ): BuilderStep[] {
-  if (path.length === 0) return steps
-  const head = path[0]
-  const rest = path.slice(1)
-
-  if (head.kind === "root") {
-    return steps.map((s, i) => {
-      if (i !== head.index) return s
-      return rest.length === 0
-        ? updater(s)
-        : { ...s, branches: walkBranches(s.branches, rest, updater) }
-    })
-  }
   return steps.map((s) => {
-    if (s.cid !== head.parentCid || !s.branches) return s
-    const bucket = s.branches[head.branch]
-    const updated = bucket.map((child, i) => {
-      if (i !== head.index) return child
-      return rest.length === 0
-        ? updater(child)
-        : { ...child, branches: walkBranches(child.branches, rest, updater) }
-    })
-    return { ...s, branches: { ...s.branches, [head.branch]: updated } }
+    if (s.cid === target) return updater(s)
+    if (!s.branches) return s
+    return {
+      ...s,
+      branches: {
+        yes: mapStepsByCid(s.branches.yes, target, updater),
+        no: mapStepsByCid(s.branches.no, target, updater),
+        timeout: mapStepsByCid(s.branches.timeout, target, updater),
+      },
+    }
   })
 }
 
-function walkBranches(
-  branches: BuilderStep["branches"],
-  path: StepPath,
-  updater: (s: BuilderStep) => BuilderStep,
-): BuilderStep["branches"] {
-  if (!branches) return branches
-  const head = path[0]
-  if (head.kind !== "branch") return branches
-  const bucket = branches[head.branch]
-  const rest = path.slice(1)
-  const updated = bucket.map((child, i) => {
-    if (i !== head.index) return child
-    return rest.length === 0
-      ? updater(child)
-      : { ...child, branches: walkBranches(child.branches, rest, updater) }
-  })
-  return { ...branches, [head.branch]: updated }
-}
-
-function removeAt(steps: BuilderStep[], path: StepPath): BuilderStep[] {
-  if (path.length === 0) return steps
-  const head = path[0]
-  const rest = path.slice(1)
-  if (head.kind === "root") {
-    if (rest.length === 0) return steps.filter((_, i) => i !== head.index)
-    return steps.map((s, i) =>
-      i !== head.index ? s : { ...s, branches: removeFromBranches(s.branches, rest) },
+function removeStepsByCid(steps: BuilderStep[], target: string): BuilderStep[] {
+  return steps
+    .filter((s) => s.cid !== target)
+    .map((s) =>
+      s.branches
+        ? {
+            ...s,
+            branches: {
+              yes: removeStepsByCid(s.branches.yes, target),
+              no: removeStepsByCid(s.branches.no, target),
+              timeout: removeStepsByCid(s.branches.timeout, target),
+            },
+          }
+        : s,
     )
-  }
-  return steps.map((s) => {
-    if (s.cid !== head.parentCid || !s.branches) return s
-    const bucket = s.branches[head.branch]
-    const next =
-      rest.length === 0
-        ? bucket.filter((_, i) => i !== head.index)
-        : bucket.map((child, i) =>
-            i !== head.index
-              ? child
-              : { ...child, branches: removeFromBranches(child.branches, rest) },
-          )
-    return { ...s, branches: { ...s.branches, [head.branch]: next } }
-  })
 }
 
-function removeFromBranches(
-  branches: BuilderStep["branches"],
-  path: StepPath,
-): BuilderStep["branches"] {
-  if (!branches) return branches
-  const head = path[0]
-  if (head.kind !== "branch") return branches
-  const rest = path.slice(1)
-  const bucket = branches[head.branch]
-  const next =
-    rest.length === 0
-      ? bucket.filter((_, i) => i !== head.index)
-      : bucket.map((child, i) =>
-          i !== head.index
-            ? child
-            : { ...child, branches: removeFromBranches(child.branches, rest) },
-        )
-  return { ...branches, [head.branch]: next }
-}
-
-function moveAt(
+function moveStepsByCid(
   steps: BuilderStep[],
-  path: StepPath,
+  target: string,
   direction: -1 | 1,
 ): BuilderStep[] {
-  if (path.length === 0) return steps
-  const head = path[0]
-  const rest = path.slice(1)
-  const swap = <T,>(arr: T[], i: number) => {
-    const j = i + direction
-    if (j < 0 || j >= arr.length) return arr
-    const copy = [...arr]
-    ;[copy[i], copy[j]] = [copy[j], copy[i]]
+  const idx = steps.findIndex((s) => s.cid === target)
+  if (idx !== -1) {
+    const j = idx + direction
+    if (j < 0 || j >= steps.length) return steps
+    const copy = [...steps]
+    ;[copy[idx], copy[j]] = [copy[j], copy[idx]]
     return copy
   }
-  if (head.kind === "root") {
-    if (rest.length === 0) return swap(steps, head.index)
-    return steps.map((s, i) =>
-      i !== head.index ? s : { ...s, branches: moveInBranches(s.branches, rest, direction) },
-    )
-  }
-  return steps.map((s) => {
-    if (s.cid !== head.parentCid || !s.branches) return s
-    const bucket = s.branches[head.branch]
-    const next = rest.length === 0 ? swap(bucket, head.index) : bucket
-    return { ...s, branches: { ...s.branches, [head.branch]: next } }
-  })
-}
-
-function moveInBranches(
-  branches: BuilderStep["branches"],
-  path: StepPath,
-  direction: -1 | 1,
-): BuilderStep["branches"] {
-  if (!branches) return branches
-  const head = path[0]
-  if (head.kind !== "branch") return branches
-  const rest = path.slice(1)
-  const bucket = branches[head.branch]
-  const swap = <T,>(arr: T[], i: number) => {
-    const j = i + direction
-    if (j < 0 || j >= arr.length) return arr
-    const copy = [...arr]
-    ;[copy[i], copy[j]] = [copy[j], copy[i]]
-    return copy
-  }
-  const next = rest.length === 0 ? swap(bucket, head.index) : bucket
-  return { ...branches, [head.branch]: next }
+  return steps.map((s) =>
+    s.branches
+      ? {
+          ...s,
+          branches: {
+            yes: moveStepsByCid(s.branches.yes, target, direction),
+            no: moveStepsByCid(s.branches.no, target, direction),
+            timeout: moveStepsByCid(s.branches.timeout, target, direction),
+          },
+        }
+      : s,
+  )
 }
 
 // ------------------------------------------------------------

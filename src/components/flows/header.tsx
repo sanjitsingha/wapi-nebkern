@@ -19,8 +19,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
-  CircleAlert,
-  CircleCheck,
   History,
   Loader2,
   MoreVertical,
@@ -50,7 +48,6 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useFlowEditor, type BuilderState } from './flow-editor-state';
-import { IssueLine } from './validation-panel';
 import { TriggerConfigForm, triggerSummary } from './trigger-config';
 
 // Single-row editor top bar: back · name/description · status · primary
@@ -70,14 +67,9 @@ export function EditorHeader() {
     save,
     setStatus,
     deleteFlow,
-    issues,
-    requestFlash,
   } = useFlowEditor();
 
-  const [issuesOpen, setIssuesOpen] = useState(false);
   const [triggerOpen, setTriggerOpen] = useState(false);
-  const errorCount = issues.filter((i) => i.severity === 'error').length;
-  const warningCount = issues.length - errorCount;
 
   return (
     <div className="flex items-center gap-2">
@@ -149,44 +141,6 @@ export function EditorHeader() {
           <Zap className="h-4.5 w-4.5" />
         </button>
 
-        {/* Validation — icon + count; opens the issues modal. */}
-        <button
-          type="button"
-          onClick={() => setIssuesOpen(true)}
-          title={
-            issues.length === 0
-              ? 'No issues'
-              : `${errorCount} error${errorCount === 1 ? '' : 's'}, ${warningCount} warning${warningCount === 1 ? '' : 's'}`
-          }
-          aria-label="Validation issues"
-          className={cn(
-            'relative flex size-9 items-center justify-center rounded-lg transition-colors hover:bg-muted',
-            errorCount > 0
-              ? 'text-red-500'
-              : warningCount > 0
-                ? 'text-amber-500'
-                : 'text-emerald-500',
-          )}
-        >
-          {issues.length === 0 ? (
-            <CircleCheck className="h-4.5 w-4.5" />
-          ) : (
-            <CircleAlert className="h-4.5 w-4.5" />
-          )}
-          {issues.length > 0 && (
-            <span
-              className={cn(
-                'absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold text-white',
-                errorCount > 0 ? 'bg-red-500' : 'bg-amber-500',
-              )}
-            >
-              {issues.length > 99 ? '99+' : issues.length}
-            </span>
-          )}
-        </button>
-
-        <span aria-hidden className="mx-0.5 h-6 w-px bg-border" />
-
         {state.status === 'active' ? (
           <Button
             variant="outline"
@@ -209,7 +163,7 @@ export function EditorHeader() {
             onClick={() => void setStatus('active')}
             disabled={activating || !canActivate}
             title={
-              !canActivate ? 'Fix the issues below before activating' : undefined
+              !canActivate ? 'Fix the validation issues before activating' : undefined
             }
             className="h-9 px-3"
           >
@@ -272,39 +226,6 @@ export function EditorHeader() {
         </DialogContent>
       </Dialog>
 
-      {/* Validation issues modal */}
-      <Dialog open={issuesOpen} onOpenChange={setIssuesOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Validation</DialogTitle>
-            <DialogDescription>
-              {issues.length === 0
-                ? 'No issues — this flow is ready to activate.'
-                : `${errorCount} error${errorCount === 1 ? '' : 's'} · ${warningCount} warning${warningCount === 1 ? '' : 's'}. Fix errors before activating.`}
-            </DialogDescription>
-          </DialogHeader>
-
-          {issues.length === 0 ? (
-            <div className="flex items-center gap-2 rounded-lg border border-emerald-600/40 bg-emerald-500/10 p-3 text-sm font-medium text-emerald-600 dark:text-emerald-300">
-              <CircleCheck className="h-4 w-4 shrink-0" />
-              Ready to activate.
-            </div>
-          ) : (
-            <div className="flex max-h-80 flex-col gap-1 overflow-y-auto">
-              {issues.map((issue, ix) => (
-                <IssueLine
-                  key={ix}
-                  issue={issue}
-                  onJump={(key) => {
-                    requestFlash(key);
-                    setIssuesOpen(false);
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

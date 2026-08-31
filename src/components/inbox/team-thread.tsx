@@ -369,15 +369,26 @@ function ThreadBubble({
       )}
 
       <div className={cn('flex gap-2', isMine && 'flex-row-reverse')}>
-        {/* Inline style, not classes: avatarColor returns hex pairs so
-            a contact keeps the same colour everywhere it appears. */}
-        <span
-          className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold"
-          style={{ backgroundColor: colors.bg, color: colors.fg }}
-          title={name}
-        >
-          {name.slice(0, 1).toUpperCase()}
-        </span>
+        {/* Real profile picture when the member has one; otherwise a
+            colour-keyed initial. Inline style, not classes: avatarColor
+            returns hex pairs so a member keeps the same colour everywhere. */}
+        {author?.avatar_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={author.avatar_url}
+            alt={name}
+            title={name}
+            className="size-6 shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <span
+            className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold"
+            style={{ backgroundColor: colors.bg, color: colors.fg }}
+            title={name}
+          >
+            {name.slice(0, 1).toUpperCase()}
+          </span>
+        )}
 
         <div className={cn('min-w-0 max-w-[80%]', isMine && 'text-right')}>
           <div
@@ -459,12 +470,21 @@ function MentionPicker({
                   i === highlight ? 'bg-muted' : 'hover:bg-muted/60',
                 )}
               >
-                <span
-                  className="flex size-5 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold"
-                  style={{ backgroundColor: colors.bg, color: colors.fg }}
-                >
-                  {m.full_name.slice(0, 1).toUpperCase()}
-                </span>
+                {m.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={m.avatar_url}
+                    alt={m.full_name}
+                    className="size-5 shrink-0 rounded-full object-cover"
+                  />
+                ) : (
+                  <span
+                    className="flex size-5 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold"
+                    style={{ backgroundColor: colors.bg, color: colors.fg }}
+                  >
+                    {m.full_name.slice(0, 1).toUpperCase()}
+                  </span>
+                )}
                 <span className="truncate">{m.full_name}</span>
               </button>
             </li>

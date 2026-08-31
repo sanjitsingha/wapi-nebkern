@@ -358,14 +358,20 @@ async function sendButtonsAndSuspend(
   node: FlowNodeRow,
 ): Promise<{ outcome: "advanced"; node_key: string }> {
   const cfg = node.config as unknown as SendButtonsNodeConfig;
+  // Interpolate {{vars.*}} the same way send_message does — otherwise a
+  // greeting like "Hi {{vars.name}}" would go out literally. Optional
+  // header/footer keep their undefined when absent so an empty section
+  // isn't sent.
+  const interp = (t: string | undefined) =>
+    t ? interpolateVars(t, run.vars) : t;
   const { whatsapp_message_id } = await engineSendInteractiveButtons({
     accountId: run.account_id,
     userId: run.user_id,
     conversationId: run.conversation_id!,
     contactId: run.contact_id!,
-    bodyText: cfg.text,
-    headerText: cfg.header_text,
-    footerText: cfg.footer_text,
+    bodyText: interpolateVars(cfg.text, run.vars),
+    headerText: interp(cfg.header_text),
+    footerText: interp(cfg.footer_text),
     buttons: cfg.buttons.map((b) => ({ id: b.reply_id, title: b.title })),
   });
   await logEvent(db, run.id, "message_sent", node.node_key, {
@@ -394,15 +400,17 @@ async function sendListAndSuspend(
   node: FlowNodeRow,
 ): Promise<{ outcome: "advanced"; node_key: string }> {
   const cfg = node.config as unknown as SendListNodeConfig;
+  const interp = (t: string | undefined) =>
+    t ? interpolateVars(t, run.vars) : t;
   const { whatsapp_message_id } = await engineSendInteractiveList({
     accountId: run.account_id,
     userId: run.user_id,
     conversationId: run.conversation_id!,
     contactId: run.contact_id!,
-    bodyText: cfg.text,
+    bodyText: interpolateVars(cfg.text, run.vars),
     buttonLabel: cfg.button_label,
-    headerText: cfg.header_text,
-    footerText: cfg.footer_text,
+    headerText: interp(cfg.header_text),
+    footerText: interp(cfg.footer_text),
     sections: cfg.sections.map((s) => ({
       title: s.title,
       rows: s.rows.map((r) => ({
@@ -1048,12 +1056,47 @@ async function handleReplyForActiveRun(
   return { consumed: true, flow_run_id: run.id, outcome: "completed" };
 }
 
+/**
+ * Seed a new run's variable bag with the contact's own fields so a flow
+ * can greet by name on the very first message — `{{vars.name}}`,
+ * `{{vars.phone}}`, `{{vars.email}}`, `{{vars.company}}`. A later
+ * collect_input writing the same key overrides these (it runs after
+ * start and its write wins). Only present fields are seeded, so a
+ * missing name renders as empty rather than a stray "null".
+ */
+async function seedVarsFromContact(
+  db: AdminClient,
+  contactId: string,
+): Promise<Record<string, unknown>> {
+  const { data } = await db
+    .from("contacts")
+    .select("name, phone, email, company")
+    .eq("id", contactId)
+    .maybeSingle();
+  const seed: Record<string, unknown> = {};
+  if (data) {
+    const c = data as {
+      name: string | null;
+      phone: string | null;
+      email: string | null;
+      company: string | null;
+    };
+    if (c.name) seed.name = c.name;
+    if (c.phone) seed.phone = c.phone;
+    if (c.email) seed.email = c.email;
+    if (c.company) seed.company = c.company;
+  }
+  return seed;
+}
+
 async function startNewRun(
   db: AdminClient,
   flow: FlowRow,
   input: DispatchInboundInput,
   nodes: Map<string, FlowNodeRow>,
 ): Promise<DispatchInboundResult> {
+  const seedVars = await seedVarsFromContact(db, input.contactId);
+
   // INSERT — partial unique index `idx_one_active_run_per_contact`
   // catches concurrent inserts with 23505. We catch and return as
   // consumed:true (the parallel webhook handles it).
@@ -1073,6 +1116,7 @@ async function startNewRun(
       conversation_id: input.conversationId,
       status: "active",
       current_node_key: flow.entry_node_id,
+      vars: seedVars,
     })
     .select("*")
     .maybeSingle();
@@ -1164,6 +1208,7 @@ export async function startFlowForConversation(args: {
     }
 
     const nodes = await loadAllNodes(db, f.id);
+    const seedVars = await seedVarsFromContact(db, args.contactId);
     const { data: inserted, error: insErr } = await db
       .from("flow_runs")
       .insert({
@@ -1174,6 +1219,7 @@ export async function startFlowForConversation(args: {
         conversation_id: args.conversationId,
         status: "active",
         current_node_key: entryNodeKey,
+        vars: seedVars,
       })
       .select("*")
       .maybeSingle();

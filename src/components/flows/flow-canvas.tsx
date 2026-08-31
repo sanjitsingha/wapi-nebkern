@@ -44,7 +44,6 @@ import {
   Controls,
   Handle,
   MiniMap,
-  Panel,
   Position,
   ReactFlow,
   ReactFlowProvider,
@@ -57,7 +56,7 @@ import {
   type OnNodeDrag,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Plus, Trash2 } from "lucide-react";
+import { Trash2, Search, CircleAlert, CircleCheck } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -81,14 +80,10 @@ import {
   type BuilderNode,
   type NodeType,
 } from "./shared";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useFlowEditor } from "./flow-editor-state";
 import { NodeConfigForm } from "./forms/node-config-form";
+import { IssueLine } from "./validation-panel";
+import { InfoHint } from "@/components/ui/info-hint";
 
 // React-Flow node `data` payload — the bits our custom renderer needs.
 interface NodeData extends Record<string, unknown> {
@@ -104,6 +99,35 @@ const NODE_WIDTH = 240;
 // dagre needs SOMETHING to compute rank spacing. Underestimating is
 // safer than over (tighter layout that still doesn't overlap).
 const NODE_HEIGHT = 90;
+
+// Per-node border color, matching each node's icon accent (NODE_META
+// `color`). Static class strings so Tailwind's JIT emits them — a
+// runtime `text-` → `border-` swap would produce classes it never sees.
+// Short "what does this node do" help, shown as an ⓘ tooltip in the
+// settings-panel header (with a Learn more link). Add entries as more
+// node types get explainers.
+const NODE_HELP: Partial<
+  Record<NodeType, { label: string; docs: string; text: string }>
+> = {
+  collect_input: {
+    label: "Collect input",
+    docs: "/docs/flows",
+    text: "Asks the customer a question, then waits for their reply and saves the answer to a variable you can reuse later in the flow (for example, to fill a template or update the contact). Set the prompt, the variable name, and an optional validation type (text, email, number…).",
+  },
+};
+
+const NODE_BORDER: Record<NodeType, string> = {
+  start: "border-emerald-400",
+  send_message: "border-sky-400",
+  send_buttons: "border-primary",
+  send_list: "border-indigo-400",
+  send_media: "border-cyan-400",
+  collect_input: "border-teal-400",
+  condition: "border-fuchsia-400",
+  set_tag: "border-pink-400",
+  handoff: "border-amber-400",
+  end: "border-muted-foreground",
+};
 
 // ============================================================
 // Custom node — one card per flow node, styled to match the list
@@ -129,13 +153,14 @@ function FlowNodeCard({ data, selected }: NodeProps) {
   return (
     <div
       className={cn(
-        "relative min-w-[220px] max-w-[260px] rounded-lg border bg-card/95 px-3 py-2 text-left shadow-lg backdrop-blur transition-colors",
-        selected
-          ? "border-primary ring-1 ring-primary/40"
-          : "border-border hover:border-border",
-        // Flash overrides hover/selected colors briefly. Tailwind's
-        // built-in `animate-pulse` is too gentle; a ring with the
-        // amber accent matches the list view's flash semantics.
+        "relative min-w-[220px] max-w-[260px] rounded-lg bg-card/95 px-3 py-2 text-left shadow-lg backdrop-blur transition-all",
+        // Keep the node's own accent colour whether idle or grabbed —
+        // selection just thickens the border rather than recolouring it.
+        NODE_BORDER[node.node_type],
+        selected ? "border-2" : "border",
+        // Flash overrides the colour briefly. Tailwind's built-in
+        // `animate-pulse` is too gentle; a ring with the amber accent
+        // matches the list view's flash semantics.
         isFlashed && "!border-amber-400 ring-2 ring-amber-400/60",
       )}
     >
@@ -456,25 +481,22 @@ function FlowCanvasInner() {
     setState((s) => ({ ...s, entry_node_id: selectedNodeKey }));
   }, [selectedNodeKey, setState]);
 
-  if (rfNodes.length === 0) {
-    return (
-      <div
-        className="flex h-full w-full flex-col items-center justify-center gap-3 bg-background text-sm text-muted-foreground"
-        style={{
-          backgroundImage:
-            'radial-gradient(color-mix(in oklch, var(--border) 90%, transparent) 1.4px, transparent 1.4px)',
-          backgroundSize: '22px 22px',
-        }}
-      >
-        <p>No nodes yet.</p>
-        <CanvasAddNodeButton />
-      </div>
-    );
-  }
-
   return (
-    <>
-      <div className="h-full w-full overflow-hidden bg-background">
+    <div className="flex h-full w-full">
+      <div className="relative min-h-0 flex-1 overflow-hidden bg-background">
+        {rfNodes.length === 0 ? (
+          <div
+            className="flex h-full w-full flex-col items-center justify-center gap-1.5 bg-background text-sm text-muted-foreground"
+            style={{
+              backgroundImage:
+                'radial-gradient(color-mix(in oklch, var(--border) 90%, transparent) 1.4px, transparent 1.4px)',
+              backgroundSize: '22px 22px',
+            }}
+          >
+            <p>No nodes yet.</p>
+            <p className="text-xs">Add a node from the panel on the right.</p>
+          </div>
+        ) : (
         <ReactFlow
           nodes={rfNodes}
           edges={rfEdges}
@@ -522,11 +544,19 @@ function FlowCanvasInner() {
             className="!border !border-border !bg-card"
             style={{ left: 56, bottom: 12, width: 150, height: 96 }}
           />
-          <Panel position="bottom-right" className="!bottom-4 !right-4">
-            <CanvasAddNodeButton />
-          </Panel>
         </ReactFlow>
+        )}
+
+        {/* Validation status — floating at the canvas bottom-right. */}
+        <CanvasValidationBadge />
       </div>
+
+      {/* Fixed node palette docked on the right — always visible, with a
+          search box. Clicking a node drops it on the canvas and opens its
+          settings (the sheet slides over this panel). */}
+      <aside className="hidden w-96 shrink-0 flex-col border-l border-border bg-card md:flex">
+        <NodePalette onAdded={(key) => setSelectedNodeKey(key)} />
+      </aside>
 
       <NodeEditSheet
         node={selectedNode}
@@ -537,7 +567,7 @@ function FlowCanvasInner() {
         onDelete={handleDeleteSelected}
         onSetEntry={handleSetEntry}
       />
-    </>
+    </div>
   );
 }
 
@@ -586,6 +616,14 @@ function NodeEditSheet({
           <SheetTitle className="flex items-center gap-2 text-popover-foreground">
             <Icon className={cn("h-4 w-4 shrink-0", meta.color)} />
             <span>{meta.label}</span>
+            {NODE_HELP[node.node_type] && (
+              <InfoHint
+                label={NODE_HELP[node.node_type]!.label}
+                docs={NODE_HELP[node.node_type]!.docs}
+              >
+                {NODE_HELP[node.node_type]!.text}
+              </InfoHint>
+            )}
             {isEntry && (
               <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-300">
                 Entry
@@ -630,10 +668,10 @@ function NodeEditSheet({
 }
 
 // ============================================================
-// Floating add-node button — bottom-right of the canvas. Mirrors
-// the list view's AddNodeButton (same dropdown menu, same NodeType
-// list, same icons via NODE_META) but drops the new node into the
-// center of the visible viewport rather than appending to a list.
+// Node palette — a fixed panel docked on the right of the canvas.
+// Always visible, with a search box; clicking a node drops it at the
+// center of the visible viewport (mirrors the list view's NodeType
+// list + icons via NODE_META).
 // ============================================================
 
 const ADD_NODE_TYPES: NodeType[] = [
@@ -649,58 +687,178 @@ const ADD_NODE_TYPES: NodeType[] = [
   "end",
 ];
 
-function CanvasAddNodeButton() {
+function NodePalette({ onAdded }: { onAdded: (key: string) => void }) {
   const reactFlow = useReactFlow();
   const { addNode, updateNodePosition } = useFlowEditor();
+  const [query, setQuery] = useState("");
 
-  const handleAdd = (type: NodeType) => {
+  const handleAdd = (type: NodeType): string => {
     const key = addNode(type);
-    // Place the new node at the visible canvas center. The Panel's
-    // own DOM lives inside ReactFlow so we can climb up to find the
-    // .react-flow root and read its bounding rect. If we can't find
-    // it (test envs, etc.), addNode's default (0, 0) is the fallback
-    // and the user can drag the node into view.
+    // Place the new node at the visible canvas center. If we can't find
+    // the .react-flow root (test envs, etc.), addNode's default (0, 0)
+    // is the fallback and the user can drag the node into view.
     const root = document.querySelector(".react-flow") as HTMLElement | null;
-    if (!root) return;
-    const rect = root.getBoundingClientRect();
-    const center = reactFlow.screenToFlowPosition({
-      x: rect.left + rect.width / 2,
-      y: rect.top + rect.height / 2,
-    });
-    // NODE_WIDTH / NODE_HEIGHT are the dagre layout defaults; offset
-    // so the card sits visually centered rather than top-left at the
-    // viewport center.
-    updateNodePosition(key, center.x - NODE_WIDTH / 2, center.y - NODE_HEIGHT / 2);
+    if (root) {
+      const rect = root.getBoundingClientRect();
+      const center = reactFlow.screenToFlowPosition({
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      });
+      // NODE_WIDTH / NODE_HEIGHT are the dagre layout defaults; offset
+      // so the card sits visually centered rather than top-left at the
+      // viewport center.
+      updateNodePosition(key, center.x - NODE_WIDTH / 2, center.y - NODE_HEIGHT / 2);
+    }
+    return key;
   };
 
+  const q = query.trim().toLowerCase();
+  const filtered = ADD_NODE_TYPES.filter((t) =>
+    NODE_META[t].label.toLowerCase().includes(q),
+  );
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-colors hover:bg-primary-hover"
-        aria-label="Add node"
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="shrink-0 border-b border-border px-4 py-3">
+        <h2 className="text-sm font-semibold text-foreground">Nodes</h2>
+        <p className="mt-0.5 text-[11px] text-muted-foreground">
+          Click a node to add it to the canvas.
+        </p>
+      </div>
+
+      <div className="shrink-0 border-b border-border p-3">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search nodes"
+            className="w-full rounded-md border border-border bg-muted py-2 pr-3 pl-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+          />
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-3">
+        {filtered.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            No nodes match &quot;{query.trim()}&quot;.
+          </p>
+        ) : (
+          <div className="grid gap-1.5">
+            {filtered.map((t) => {
+              const meta = NODE_META[t];
+              const Icon = meta.icon;
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => {
+                    const key = handleAdd(t);
+                    setQuery("");
+                    onAdded(key);
+                  }}
+                  className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-colors hover:border-primary/40 hover:bg-muted/50"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted">
+                    <Icon className={cn("h-4 w-4", meta.color)} />
+                  </span>
+                  <span className="text-sm font-medium text-foreground">
+                    {meta.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Validation badge — floats at the canvas bottom-right. Shows the
+// flow's health at a glance (red = errors, amber = warnings, green =
+// clean) and, on click, opens the same clickable issue list the
+// header modal uses so a jump flashes the offending node.
+// ============================================================
+
+function CanvasValidationBadge() {
+  const { issues, requestFlash } = useFlowEditor();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close the popover when clicking anywhere outside it.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const errorCount = issues.filter((i) => i.severity === "error").length;
+  const warningCount = issues.length - errorCount;
+  const tone =
+    errorCount > 0 ? "error" : warningCount > 0 ? "warning" : "ok";
+
+  return (
+    <div ref={ref} className="absolute bottom-4 right-4 z-10">
+      {open && issues.length > 0 && (
+        <div className="absolute bottom-full right-0 mb-2 max-h-80 w-80 overflow-y-auto rounded-lg border border-border bg-background p-2 shadow-xl">
+          <div className="flex flex-col gap-1">
+            {issues.map((i, ix) => (
+              <IssueLine
+                key={ix}
+                issue={i}
+                onJump={(k) => {
+                  requestFlash(k);
+                  setOpen(false);
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Bare icon — no bg / outline, matching the old top-bar indicator.
+          Count sits in a coloured circle at the corner. */}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Validation issues"
+        title={
+          tone === "ok"
+            ? "No issues"
+            : `${errorCount} error${errorCount === 1 ? "" : "s"}, ${warningCount} warning${warningCount === 1 ? "" : "s"}`
+        }
+        className={cn(
+          "relative flex size-8 items-center justify-center transition-colors",
+          tone === "error"
+            ? "text-red-500"
+            : tone === "warning"
+              ? "text-amber-500"
+              : "text-emerald-500",
+        )}
       >
-        <Plus className="h-5 w-5" />
-        Add node
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        className="flex w-56 flex-col gap-1 border-border bg-popover"
-      >
-        {ADD_NODE_TYPES.map((t) => {
-          const meta = NODE_META[t];
-          const Icon = meta.icon;
-          return (
-            <DropdownMenuItem
-              key={t}
-              onClick={() => handleAdd(t)}
-              className="gap-2.5 px-2.5 py-2.5 text-sm"
-            >
-              <Icon className={cn("h-4 w-4", meta.color)} />
-              {meta.label}
-            </DropdownMenuItem>
-          );
-        })}
-      </DropdownMenuContent>
-    </DropdownMenu>
+        {tone === "ok" ? (
+          <CircleCheck className="h-5 w-5 drop-shadow-sm" />
+        ) : (
+          <CircleAlert className="h-5 w-5 drop-shadow-sm" />
+        )}
+        {issues.length > 0 && (
+          <span
+            className={cn(
+              "absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold text-white",
+              tone === "error" ? "bg-red-500" : "bg-amber-500",
+            )}
+          >
+            {issues.length > 99 ? "99+" : issues.length}
+          </span>
+        )}
+      </button>
+    </div>
   );
 }
