@@ -28,19 +28,25 @@ const ACCOUNTS_BY_LOCATION: Record<string, string> = {
 /**
  * Scopes requested at connect.
  *
- * Read-only on the CRM modules, because this integration does not write
- * to Zoho — events come out, messages go out from here. Asking for
- * write access we never use is the kind of thing that makes an admin
- * refuse the install, and rightly.
+ * ONE scope, and the narrowest one that works.
  *
- * `ZohoCRM.org.READ` is what lets us name the org in Settings, so the
- * user can see WHICH Zoho is connected.
+ * This integration never reads a CRM record: a Workflow Rule webhook
+ * arrives carrying its own payload, which is the whole point of the
+ * design. The only Zoho API call in the codebase is `/crm/v5/org`, once
+ * at connect time, to name the organisation in Settings — and
+ * `ZohoCRM.org.READ` is exactly that.
+ *
+ * An earlier version asked for `ZohoCRM.modules.ALL` as well. That
+ * would have granted read AND write on every record in the CRM to
+ * satisfy no call at all, which is the kind of consent screen an admin
+ * is right to refuse.
+ *
+ * Note the grammar if this ever needs extending:
+ * `Service.Resource.Operation`. `ZohoCRM.modules.ALL.READ` is a fourth
+ * segment that does not parse — Zoho answers "Invalid OAuth Scope —
+ * Scope does not exist", with no hint as to which one.
  */
-export const ZOHO_SCOPES = [
-  'ZohoCRM.modules.ALL.READ',
-  'ZohoCRM.org.READ',
-  'ZohoCRM.settings.READ',
-] as const;
+export const ZOHO_SCOPES = ['ZohoCRM.org.READ'] as const;
 
 export interface ZohoTokens {
   accessToken: string;
