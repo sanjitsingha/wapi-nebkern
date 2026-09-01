@@ -132,43 +132,60 @@ export default function ApiAndIntegrationsDocsPage() {
             { cells: ['Authorization Type', 'General'] },
             {
               cells: [
-                'Module Parameters',
-                'Add the record fields to send. Include the phone (Phone and/or Mobile) — plus Full Name / Last Name, Email, and any field you want to use in the message.',
+                'Body → Type',
+                'Raw → JSON. This is where the record fields must go — see below.',
               ],
             },
-            {
-              cells: [
-                'Custom Parameters',
-                'Optional static values, e.g. event = lead_created (becomes {{vars.event}}).',
-              ],
-            },
-            { cells: ['Body → Type', 'None — the parameters travel in the URL.'] },
           ]}
         />
+        <DocsCallout type="warning">
+          Send the fields in the <strong>Body</strong>, not as Module or Custom
+          Parameters. With Body set to <em>None</em>, a POST webhook delivers an
+          empty request and nothing reaches Instant — the event arrives with no
+          phone and no message goes out.
+        </DocsCallout>
         <p>
-          Save the webhook, associate it with the Workflow Rule, and save the
-          rule. Zoho now calls Instant every time the rule fires.
+          Set <strong>Body → Type</strong> to <strong>Raw</strong>, choose{' '}
+          <strong>JSON</strong>, and build this — the field values must be
+          inserted with Zoho&rsquo;s <strong>merge-field picker</strong> (the
+          insert-field button in the body editor), not typed by hand:
+        </p>
+        <DocsCode label="Body (Raw · JSON)">{`{
+  "name": "\${Leads.First_Name}",
+  "phone": "\${Leads.Phone}",
+  "email": "\${Leads.Email}"
+}`}</DocsCode>
+        <p>
+          <code>phone</code> is the only required field — Instant matches the
+          contact on it. <code>name</code> and <code>email</code> are optional.
+          Use whichever module you chose (e.g. <code>{'${Deals.…}'}</code> for a
+          Deals rule) and add any other fields you want to reference in the
+          message. Save the webhook, associate it with the Workflow Rule, and
+          save the rule.
         </p>
 
         <DocsCallout type="info">
-          A phone number is required to reach anyone. If the fields you add
-          carry no phone (Phone or Mobile), Instant records the event so you
-          can inspect it, but no message goes out — add the phone field to the
-          Module Parameters and the number needs its country code (Indian
-          10-digit numbers are auto-prefixed with 91).
+          Insert fields from the picker rather than typing them — a field that
+          doesn&rsquo;t exist on the module (for example <code>Full_Name</code>{' '}
+          on Leads, which only has First/Last name) is rejected as
+          &ldquo;unsupported&rdquo; and the webhook won&rsquo;t save. The phone
+          needs its country code — a bare 10-digit Indian number is
+          auto-prefixed with 91.
         </DocsCallout>
 
         <h3>3. Build the automation in Instant</h3>
         <p>
           Create an <Link href="/docs/automations">Automation</Link> with the
-          trigger <strong>Zoho event</strong>. Every field you added in the
-          Workflow Rule is available as{' '}
-          <code>{'{{vars.field_name}}'}</code> — lowercased with spaces turned
-          into underscores, so Zoho&rsquo;s <code>Deal Name</code> becomes{' '}
-          <code>{'{{vars.deal_name}}'}</code>. Three are always present
-          whatever the rule sent: <code>{'{{vars.zoho_module}}'}</code>,{' '}
+          trigger <strong>Zoho CRM Event</strong>. Every field you put in the
+          JSON body is available as <code>{'{{vars.field_name}}'}</code>{' '}
+          (lowercased, spaces → underscores) — so the body above gives you{' '}
+          <code>{'{{vars.name}}'}</code>, <code>{'{{vars.phone}}'}</code> and{' '}
+          <code>{'{{vars.email}}'}</code>. Three are always present whatever the
+          rule sent: <code>{'{{vars.zoho_module}}'}</code>,{' '}
           <code>{'{{vars.zoho_record_id}}'}</code> and{' '}
-          <code>{'{{vars.zoho_event}}'}</code>.
+          <code>{'{{vars.zoho_event}}'}</code>. Because a new lead has never
+          messaged you, use a <strong>Send Template</strong> action (an approved
+          template) — free-form text can&rsquo;t open a fresh conversation.
         </p>
 
         <h2>Zapier, Make, n8n</h2>

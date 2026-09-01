@@ -253,12 +253,22 @@ export function ZohoConnect() {
             the connected view carries a long webhook URL, a five-step
             Workflow Rule guide and the recent-events list, all of which
             were being squeezed at max-w-lg. */}
-        <DialogContent className="sm:max-w-2xl">
+        {/* `*:min-w-0` — DialogContent is a CSS grid; without this a wide
+            child (the long webhook URL) keeps its min-content width and
+            spills outside the modal's background. */}
+        <DialogContent className="sm:max-w-4xl *:min-w-0">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2.5">
+            {/* Logo-only — the SVG already spells out "Zoho CRM", so a
+                text title beside it would just repeat the wordmark. alt
+                carries the accessible name for the dialog title. */}
+            <DialogTitle className="flex items-center gap-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={ZOHO_LOGO} alt="" className="h-5 w-auto object-contain" />
-              {connected ? 'Zoho CRM' : 'Connect Zoho CRM'}
+              <img src={ZOHO_LOGO} alt="Zoho CRM" className="h-10 w-auto object-contain" />
+              <InfoHint label="Zoho CRM setup" docs="/docs/api-and-integrations">
+                Read the step-by-step guide: connect Zoho, add the Workflow
+                Rule webhook, and build the automation that sends the WhatsApp
+                message.
+              </InfoHint>
             </DialogTitle>
             <DialogDescription>
               {connected
@@ -329,10 +339,13 @@ export function ZohoConnect() {
                     → paste this URL, method POST.
                   </li>
                   <li>
-                    Include the contact&apos;s{' '}
-                    <code className="text-foreground">Mobile</code> or{' '}
-                    <code className="text-foreground">Phone</code> in the
-                    parameters — without it we cannot tell who to message.
+                    Set <span className="text-foreground font-medium">Body</span>{' '}
+                    → Raw (JSON) and include at least the phone — e.g.{' '}
+                    <code className="text-foreground">
+                      {'{ "phone": "${Leads.Phone}" }'}
+                    </code>{' '}
+                    — inserting fields with Zoho&apos;s picker. Without a phone
+                    we cannot tell who to message.
                   </li>
                   <li>
                     Then build an automation here with the{' '}
