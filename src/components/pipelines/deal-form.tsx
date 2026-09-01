@@ -24,6 +24,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Check,
   X,
   Trash2,
@@ -283,18 +290,22 @@ export function DealForm({
 
             <div className="grid gap-2">
               <Label className="text-muted-foreground">Contact</Label>
-              <select
-                value={contactId}
-                onChange={(e) => setContactId(e.target.value)}
-                className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              <Select
+                items={contacts.map((c) => ({ value: c.id, label: c.name || c.phone || c.id }))}
+                value={contactId || null}
+                onValueChange={(v) => setContactId(v ?? "")}
               >
-                <option value="">Select a contact</option>
-                {contacts.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name || c.phone}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="bg-muted w-full data-[size=default]:h-9">
+                  <SelectValue placeholder="Select a contact" />
+                </SelectTrigger>
+                <SelectContent>
+                  {contacts.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name || c.phone}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
               {linkedConversation && (
                 <Link
@@ -323,17 +334,21 @@ export function DealForm({
               </div>
               <div className="grid gap-2">
                 <Label className="text-muted-foreground">Currency</Label>
-                <select
+                <Select
                   value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
+                  onValueChange={(v) => setCurrency(v ?? currency)}
                 >
-                  {CURRENCIES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.code}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="bg-muted w-full data-[size=default]:h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map((c) => (
+                      <SelectItem key={c.code} value={c.code}>
+                        {c.code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -349,33 +364,51 @@ export function DealForm({
 
             <div className="grid gap-2">
               <Label className="text-muted-foreground">Stage</Label>
-              <select
-                value={stageId}
-                onChange={(e) => setStageId(e.target.value)}
-                className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
+              <Select
+                items={stages.map((s) => ({ value: s.id, label: s.name }))}
+                value={stageId || null}
+                onValueChange={(v) => setStageId(v ?? "")}
               >
-                {stages.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="bg-muted w-full data-[size=default]:h-9">
+                  <SelectValue placeholder="Select a stage" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stages.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid gap-2">
               <Label className="text-muted-foreground">Assigned To</Label>
-              <select
-                value={assignedTo}
-                onChange={(e) => setAssignedTo(e.target.value)}
-                className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
+              <Select
+                items={[
+                  { value: "__unassigned__", label: "Unassigned" },
+                  ...profiles.map((p) => ({
+                    value: p.id,
+                    label: p.full_name || p.email,
+                  })),
+                ]}
+                value={assignedTo || "__unassigned__"}
+                onValueChange={(v) =>
+                  setAssignedTo(v === "__unassigned__" ? "" : (v ?? ""))
+                }
               >
-                <option value="">Unassigned</option>
-                {profiles.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.full_name || p.email}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="bg-muted w-full data-[size=default]:h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__unassigned__">Unassigned</SelectItem>
+                  {profiles.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.full_name || p.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid gap-2">

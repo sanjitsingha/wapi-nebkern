@@ -11,6 +11,13 @@ import { InfoHint } from '@/components/ui/info-hint';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -414,18 +421,23 @@ export function ZohoConnect() {
                       address bar when you are signed in to Zoho.
                     </InfoHint>
                   </Label>
-                  <select
+                  <Select
+                    items={ZOHO_REGIONS.map((r) => ({ value: r.value, label: r.label }))}
                     value={region}
-                    onChange={(e) => setRegion(e.target.value)}
+                    onValueChange={(v) => setRegion(v ?? region)}
                     disabled={busy}
-                    className="border-border bg-muted text-foreground focus:border-primary h-10 w-full rounded-lg border px-3 text-sm outline-none"
                   >
-                    {ZOHO_REGIONS.map((r) => (
-                      <option key={r.value} value={r.value}>
-                        {r.label}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="bg-muted w-full data-[size=default]:h-10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ZOHO_REGIONS.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>
+                          {r.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-1.5">

@@ -40,6 +40,13 @@ import {
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ImageDialog, LinkDialog } from './editor-dialogs';
 
 // ============================================================
@@ -216,21 +223,36 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
       <div className="flex flex-wrap items-center gap-0.5 px-8 py-2 sm:px-12">
         {/* Block type — a select rather than a menu so every level is
             one click away and the current one is always visible. */}
-        <select
+        <Select
+          items={{
+            p: 'Paragraph',
+            h1: 'Heading 1',
+            h2: 'Heading 2',
+            h3: 'Heading 3',
+            h4: 'Heading 4',
+            h5: 'Heading 5',
+            h6: 'Heading 6',
+          }}
           value={state.block}
-          onChange={(e) => setBlock(e.target.value)}
-          onMouseDown={(e) => e.stopPropagation()}
-          aria-label="Text style"
-          className="mr-1 h-8 rounded-md border border-neutral-200 bg-white px-2 text-xs font-medium text-neutral-700 outline-none hover:bg-neutral-50"
+          onValueChange={(v) => setBlock(v ?? state.block)}
         >
-          <option value="p">Paragraph</option>
-          <option value="h1">Heading 1</option>
-          <option value="h2">Heading 2</option>
-          <option value="h3">Heading 3</option>
-          <option value="h4">Heading 4</option>
-          <option value="h5">Heading 5</option>
-          <option value="h6">Heading 6</option>
-        </select>
+          <SelectTrigger
+            onMouseDown={(e) => e.stopPropagation()}
+            aria-label="Text style"
+            className="mr-1 h-8 gap-1 rounded-md border-neutral-200 bg-white px-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50 data-[size=default]:h-8"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="p">Paragraph</SelectItem>
+            <SelectItem value="h1">Heading 1</SelectItem>
+            <SelectItem value="h2">Heading 2</SelectItem>
+            <SelectItem value="h3">Heading 3</SelectItem>
+            <SelectItem value="h4">Heading 4</SelectItem>
+            <SelectItem value="h5">Heading 5</SelectItem>
+            <SelectItem value="h6">Heading 6</SelectItem>
+          </SelectContent>
+        </Select>
 
         <Divider />
 

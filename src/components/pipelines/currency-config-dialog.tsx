@@ -10,6 +10,13 @@ import { CURRENCIES } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -93,18 +100,26 @@ export function CurrencyConfigDialog({
 
         <div className="grid gap-2 py-2">
           <Label className="text-muted-foreground">Currency</Label>
-          <select
+          <Select
+            items={CURRENCIES.map((c) => ({
+              value: c.code,
+              label: `${c.code} — ${c.label}`,
+            }))}
             value={selected}
-            onChange={(e) => setSelected(e.target.value)}
+            onValueChange={(v) => setSelected(v ?? selected)}
             disabled={!canEditSettings || profileLoading}
-            className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {CURRENCIES.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.code} — {c.label}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="bg-muted w-full data-[size=default]:h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CURRENCIES.map((c) => (
+                <SelectItem key={c.code} value={c.code}>
+                  {c.code} — {c.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {!canEditSettings && (
             <p className="text-xs text-muted-foreground">
               Only account admins can change the default currency.

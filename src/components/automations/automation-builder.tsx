@@ -42,6 +42,15 @@ import { InfoHint } from "@/components/ui/info-hint"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -418,23 +427,27 @@ function TagSelect({
         style={{ backgroundColor: selected?.color ?? "transparent" }}
         aria-hidden
       />
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={SELECT_CLASS}
+      <Select
+        items={tags.map((t) => ({ value: t.id, label: t.name }))}
+        value={value || null}
+        onValueChange={(v) => onChange(v ?? "")}
       >
-        <option value="">Select a tag…</option>
-        {tags.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.name}
-          </option>
-        ))}
-        {/* Preserve a saved tag that's since been deleted so editing an
-            existing automation doesn't silently drop it. */}
-        {value && !selected && (
-          <option value={value}>{value} (unknown tag)</option>
-        )}
-      </select>
+        <SelectTrigger className="w-full bg-muted data-[size=default]:h-9">
+          <SelectValue placeholder="Select a tag…" />
+        </SelectTrigger>
+        <SelectContent>
+          {tags.map((t) => (
+            <SelectItem key={t.id} value={t.id}>
+              {t.name}
+            </SelectItem>
+          ))}
+          {/* Preserve a saved tag that's since been deleted so editing an
+              existing automation doesn't silently drop it. */}
+          {value && !selected && (
+            <SelectItem value={value}>{value} (unknown tag)</SelectItem>
+          )}
+        </SelectContent>
+      </Select>
     </div>
   )
 }
@@ -455,28 +468,45 @@ function ContactFieldSelect({
   const knownCustom =
     customValue && customFields.some((f) => `custom:${f.id}` === customValue)
   return (
-    <select
+    <Select
+      items={[
+        { value: "name", label: "Name" },
+        { value: "email", label: "Email" },
+        { value: "company", label: "Company" },
+        { value: "marketing_opt_out", label: "Marketing Opt-Out" },
+        ...customFields.map((f) => ({
+          value: `custom:${f.id}`,
+          label: f.field_name,
+        })),
+      ]}
       value={value || "name"}
-      onChange={(e) => onChange(e.target.value)}
-      className={SELECT_CLASS}
+      onValueChange={(v) => onChange(v ?? "name")}
     >
-      <option value="name">Name</option>
-      <option value="email">Email</option>
-      <option value="company">Company</option>
-      <option value="marketing_opt_out">Marketing Opt-Out</option>
-      {customFields.length > 0 && (
-        <optgroup label="Custom fields">
-          {customFields.map((f) => (
-            <option key={f.id} value={`custom:${f.id}`}>
-              {f.field_name}
-            </option>
-          ))}
-        </optgroup>
-      )}
-      {customValue && !knownCustom && (
-        <option value={customValue}>{customValue} (unknown field)</option>
-      )}
-    </select>
+      <SelectTrigger className="w-full bg-muted data-[size=default]:h-9">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="name">Name</SelectItem>
+        <SelectItem value="email">Email</SelectItem>
+        <SelectItem value="company">Company</SelectItem>
+        <SelectItem value="marketing_opt_out">Marketing Opt-Out</SelectItem>
+        {customFields.length > 0 && (
+          <SelectGroup>
+            <SelectLabel>Custom fields</SelectLabel>
+            {customFields.map((f) => (
+              <SelectItem key={f.id} value={`custom:${f.id}`}>
+                {f.field_name}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        )}
+        {customValue && !knownCustom && (
+          <SelectItem value={customValue}>
+            {customValue} (unknown field)
+          </SelectItem>
+        )}
+      </SelectContent>
+    </Select>
   )
 }
 
@@ -502,21 +532,28 @@ function AgentSelect({
   }
   const selected = members.find((m) => m.user_id === value)
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={SELECT_CLASS}
+    <Select
+      items={members.map((m) => ({
+        value: m.user_id,
+        label: m.full_name || m.email || m.user_id,
+      }))}
+      value={value || null}
+      onValueChange={(v) => onChange(v ?? "")}
     >
-      <option value="">Select an agent…</option>
-      {members.map((m) => (
-        <option key={m.user_id} value={m.user_id}>
-          {m.full_name || m.email || m.user_id}
-        </option>
-      ))}
-      {value && !selected && (
-        <option value={value}>{value} (unknown agent)</option>
-      )}
-    </select>
+      <SelectTrigger className="w-full bg-muted data-[size=default]:h-9">
+        <SelectValue placeholder="Select an agent…" />
+      </SelectTrigger>
+      <SelectContent>
+        {members.map((m) => (
+          <SelectItem key={m.user_id} value={m.user_id}>
+            {m.full_name || m.email || m.user_id}
+          </SelectItem>
+        ))}
+        {value && !selected && (
+          <SelectItem value={value}>{value} (unknown agent)</SelectItem>
+        )}
+      </SelectContent>
+    </Select>
   )
 }
 
@@ -1367,17 +1404,27 @@ function TriggerCard({
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 Trigger type
               </label>
-              <select
+              <Select
+                items={TRIGGER_OPTIONS.map((o) => ({
+                  value: o.value,
+                  label: o.label,
+                }))}
                 value={type}
-                onChange={(e) => onTypeChange(e.target.value as AutomationTriggerType)}
-                className="w-full rounded-md border border-border bg-muted px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
+                onValueChange={(v) =>
+                  onTypeChange((v ?? type) as AutomationTriggerType)
+                }
               >
-                {TRIGGER_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full bg-muted data-[size=default]:h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TRIGGER_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {/* The trigger is what publishes the variables, so this is
                   where they are documented — one "i" beside the hint,
                   only for the trigger that has any. Steps further down
@@ -1485,14 +1532,21 @@ function KeywordMatchConfig({
         <label className="mb-1 block text-xs font-medium text-muted-foreground">
           Match type
         </label>
-        <select
+        <Select
+          items={{ contains: "Contains", exact: "Exact" }}
           value={config?.match_type ?? "contains"}
-          onChange={(e) => onChange({ ...config, match_type: e.target.value as "exact" | "contains" })}
-          className="w-full rounded-md border border-border bg-muted px-2 py-1.5 text-sm text-foreground focus:outline-none"
+          onValueChange={(v) =>
+            onChange({ ...config, match_type: (v ?? "contains") as "exact" | "contains" })
+          }
         >
-          <option value="contains">Contains</option>
-          <option value="exact">Exact</option>
-        </select>
+          <SelectTrigger className="w-full bg-muted data-[size=default]:h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="contains">Contains</SelectItem>
+            <SelectItem value="exact">Exact</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
     </div>
   )
@@ -1952,14 +2006,19 @@ function StepEditor({
       return (
         <>
           <FieldBlock label="Mode">
-            <select
+            <Select
+              items={{ round_robin: "Round-robin", specific: "Specific agent" }}
               value={(cfg.mode as string) ?? "round_robin"}
-              onChange={(e) => set({ mode: e.target.value })}
-              className="w-full rounded-md border border-border bg-muted px-2 py-1.5 text-sm text-foreground"
+              onValueChange={(v) => set({ mode: v ?? "round_robin" })}
             >
-              <option value="round_robin">Round-robin</option>
-              <option value="specific">Specific agent</option>
-            </select>
+              <SelectTrigger className="w-full bg-muted data-[size=default]:h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="round_robin">Round-robin</SelectItem>
+                <SelectItem value="specific">Specific agent</SelectItem>
+              </SelectContent>
+            </Select>
           </FieldBlock>
           {cfg.mode === "specific" && (
             <FieldBlock label="Agent">
@@ -1982,14 +2041,22 @@ function StepEditor({
           </FieldBlock>
           <FieldBlock label="Value">
             {cfg.field === "marketing_opt_out" ? (
-              <select
+              <Select
+                items={{
+                  true: "Opted out (stop sending)",
+                  false: "Opted in (resume sending)",
+                }}
                 value={(cfg.value as string) === "true" ? "true" : "false"}
-                onChange={(e) => set({ value: e.target.value })}
-                className={SELECT_CLASS}
+                onValueChange={(v) => set({ value: v ?? "false" })}
               >
-                <option value="true">Opted out (stop sending)</option>
-                <option value="false">Opted in (resume sending)</option>
-              </select>
+                <SelectTrigger className="w-full bg-muted data-[size=default]:h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">Opted out (stop sending)</SelectItem>
+                  <SelectItem value="false">Opted in (resume sending)</SelectItem>
+                </SelectContent>
+              </Select>
             ) : (
               <Input
                 value={(cfg.value as string) ?? ""}
@@ -2048,15 +2115,20 @@ function StepEditor({
             />
           </FieldBlock>
           <FieldBlock label="Unit">
-            <select
+            <Select
+              items={{ minutes: "Minutes", hours: "Hours", days: "Days" }}
               value={(cfg.unit as string) ?? "hours"}
-              onChange={(e) => set({ unit: e.target.value })}
-              className="w-full rounded-md border border-border bg-muted px-2 py-1.5 text-sm text-foreground"
+              onValueChange={(v) => set({ unit: v ?? "hours" })}
             >
-              <option value="minutes">Minutes</option>
-              <option value="hours">Hours</option>
-              <option value="days">Days</option>
-            </select>
+              <SelectTrigger className="w-full bg-muted data-[size=default]:h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="minutes">Minutes</SelectItem>
+                <SelectItem value="hours">Hours</SelectItem>
+                <SelectItem value="days">Days</SelectItem>
+              </SelectContent>
+            </Select>
           </FieldBlock>
         </div>
       )
@@ -2088,15 +2160,20 @@ function StepEditor({
               />
             </FieldBlock>
             <FieldBlock label="Unit">
-              <select
+              <Select
+                items={{ minutes: "Minutes", hours: "Hours", days: "Days" }}
                 value={(cfg.timeout_unit as string) ?? "days"}
-                onChange={(e) => set({ timeout_unit: e.target.value })}
-                className="w-full rounded-md border border-border bg-muted px-2 py-1.5 text-sm text-foreground"
+                onValueChange={(v) => set({ timeout_unit: v ?? "days" })}
               >
-                <option value="minutes">Minutes</option>
-                <option value="hours">Hours</option>
-                <option value="days">Days</option>
-              </select>
+                <SelectTrigger className="w-full bg-muted data-[size=default]:h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="minutes">Minutes</SelectItem>
+                  <SelectItem value="hours">Hours</SelectItem>
+                  <SelectItem value="days">Days</SelectItem>
+                </SelectContent>
+              </Select>
             </FieldBlock>
           </div>
         </>
@@ -2105,16 +2182,26 @@ function StepEditor({
       return (
         <>
           <FieldBlock label="Subject">
-            <select
+            <Select
+              items={{
+                tag_presence: "Tag presence",
+                contact_field: "Contact field",
+                message_content: "Message content",
+                time_of_day: "Time of day",
+              }}
               value={(cfg.subject as string) ?? "tag_presence"}
-              onChange={(e) => set({ subject: e.target.value })}
-              className="w-full rounded-md border border-border bg-muted px-2 py-1.5 text-sm text-foreground"
+              onValueChange={(v) => set({ subject: v ?? "tag_presence" })}
             >
-              <option value="tag_presence">Tag presence</option>
-              <option value="contact_field">Contact field</option>
-              <option value="message_content">Message content</option>
-              <option value="time_of_day">Time of day</option>
-            </select>
+              <SelectTrigger className="w-full bg-muted data-[size=default]:h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tag_presence">Tag presence</SelectItem>
+                <SelectItem value="contact_field">Contact field</SelectItem>
+                <SelectItem value="message_content">Message content</SelectItem>
+                <SelectItem value="time_of_day">Time of day</SelectItem>
+              </SelectContent>
+            </Select>
           </FieldBlock>
           <FieldBlock label="Operand">
             <Input

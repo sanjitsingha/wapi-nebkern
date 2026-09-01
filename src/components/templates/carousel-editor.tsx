@@ -16,6 +16,13 @@ import { TEMPLATE_LIMITS } from '@/lib/whatsapp/template-validators';
 import { MediaLibraryPicker } from '@/components/media/media-library-picker';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 type Format = 'image' | 'video';
 type ButtonType = 'QUICK_REPLY' | 'URL';
@@ -171,17 +178,24 @@ export function CarouselEditor({
             key={slot}
             className="inline-flex items-center gap-1 rounded-full border border-border bg-card py-1 pl-2.5 pr-1 text-xs font-medium text-foreground"
           >
-            <select
+            <Select
+              items={{ QUICK_REPLY: "Quick reply", URL: "Visit URL" }}
               value={t}
-              onChange={(e) =>
-                changeButtonType(slot, e.target.value as ButtonType)
+              onValueChange={(v) =>
+                changeButtonType(slot, (v ?? t) as ButtonType)
               }
-              className="bg-transparent outline-none"
-              aria-label={`Button ${slot + 1} type`}
             >
-              <option value="QUICK_REPLY">Quick reply</option>
-              <option value="URL">Visit URL</option>
-            </select>
+              <SelectTrigger
+                aria-label={`Button ${slot + 1} type`}
+                className="h-auto gap-1 border-0 bg-transparent p-0 text-xs shadow-none focus-visible:ring-0 data-[size=default]:h-auto"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="QUICK_REPLY">Quick reply</SelectItem>
+                <SelectItem value="URL">Visit URL</SelectItem>
+              </SelectContent>
+            </Select>
             <button
               type="button"
               onClick={() => removeButtonSlot(slot)}

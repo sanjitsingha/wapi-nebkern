@@ -6,10 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { softBadge } from '@/lib/badge-colors';
 import { useTotalUnread } from '@/hooks/use-total-unread';
-import { useSupportUnread } from '@/hooks/use-support-unread';
 import { useEntitlements } from '@/hooks/use-entitlements';
-import { SupportDialog } from '@/components/support/support-dialog';
-import { useWalkthrough } from '@/components/walkthrough/walkthrough-provider';
 import {
   resolveSection,
   type SettingsSection,
@@ -22,7 +19,6 @@ import {
   CaretDown,
   ChatCircleDots,
   ClipboardText,
-  Compass,
   FileText,
   // Flows gets its own glyph rather than borrowing a neighbour's — in
   // the collapsed rail the icon is the only thing left, so two
@@ -30,7 +26,6 @@ import {
   FlowArrow,
   FunnelSimple,
   GitBranch,
-  Headset,
   House,
   Image as ImageIcon,
   Lightning,
@@ -188,10 +183,7 @@ export function Sidebar({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const totalUnread = useTotalUnread();
-  const supportUnread = useSupportUnread();
   const activeTab = resolveSection(searchParams.get('tab'));
-  const [supportOpen, setSupportOpen] = useState(false);
-  const { start: startWalkthrough } = useWalkthrough();
 
   // Which expandable groups are open. The group containing the active
   // route is auto-opened; collapsing the sidebar does NOT change this —
@@ -542,72 +534,7 @@ export function Sidebar({
           </ul>
         </nav>
 
-        {/* Footer — pinned below the scrolling nav. Walkthrough replays
-            the guided tour; Support opens the ticketing modal, whose
-            icon carries an alert dot (kept visible even on the
-            collapsed rail) when the team has replied. */}
-        <div className={cn('border-border border-t p-3', CONTENT_W)}>
-          <button
-            type="button"
-            onClick={() => {
-              onClose?.();
-              startWalkthrough();
-            }}
-            data-walkthrough="walkthrough"
-            title="Walkthrough"
-            className="text-muted-foreground hover:bg-muted hover:text-foreground relative flex w-full items-center gap-3.5 rounded-lg px-3 py-3.5 text-sm font-medium transition-colors"
-          >
-            <Compass className="h-5.5 w-5.5 shrink-0" />
-            <span
-              className={cn(
-                'flex-1 truncate text-left transition-opacity duration-200',
-                isCollapsed && 'lg:opacity-0'
-              )}
-            >
-              Walkthrough
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setSupportOpen(true)}
-            data-walkthrough="support"
-            title="Support"
-            className="text-muted-foreground hover:bg-muted hover:text-foreground relative flex w-full items-center gap-3.5 rounded-lg px-3 py-3.5 text-sm font-medium transition-colors"
-          >
-            <span className="relative shrink-0">
-              <Headset className="h-5.5 w-5.5" />
-              {supportUnread > 0 && (
-                <span
-                  aria-hidden
-                  className="bg-primary ring-card absolute -top-0.5 -right-0.5 size-2 rounded-full ring-2"
-                />
-              )}
-            </span>
-            <span
-              className={cn(
-                'flex-1 truncate text-left transition-opacity duration-200',
-                isCollapsed && 'lg:opacity-0'
-              )}
-            >
-              Support
-            </span>
-            {supportUnread > 0 && (
-              <span
-                aria-label={`${supportUnread} unread support ${supportUnread === 1 ? 'reply' : 'replies'}`}
-                className={cn(
-                  'bg-primary-soft text-primary flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold tabular-nums transition-opacity duration-200',
-                  isCollapsed && 'lg:opacity-0'
-                )}
-              >
-                {supportUnread > 99 ? '99+' : supportUnread}
-              </span>
-            )}
-          </button>
-        </div>
       </aside>
-
-      <SupportDialog open={supportOpen} onOpenChange={setSupportOpen} />
     </>
   );
 }

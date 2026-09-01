@@ -460,33 +460,42 @@ export function Step2SelectAudience({
             </p>
           ) : (
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_140px_minmax(0,1fr)]">
-              <select
-                value={audience.customField?.fieldId ?? ''}
-                onChange={(e) => updateCustomField({ fieldId: e.target.value })}
-                className="h-9 rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              <Select
+                items={customFields.map((f) => ({ value: f.id, label: f.field_name }))}
+                value={audience.customField?.fieldId || null}
+                onValueChange={(v) => updateCustomField({ fieldId: v ?? '' })}
               >
-                <option value="">Select field…</option>
-                {customFields.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.field_name}
-                  </option>
-                ))}
-              </select>
-              <select
+                <SelectTrigger className="bg-muted w-full data-[size=default]:h-9">
+                  <SelectValue placeholder="Select field…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {customFields.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.field_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                items={OPERATOR_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
                 value={audience.customField?.operator ?? 'is'}
-                onChange={(e) =>
+                onValueChange={(v) =>
                   updateCustomField({
-                    operator: e.target.value as CustomFieldOperator,
+                    operator: (v ?? 'is') as CustomFieldOperator,
                   })
                 }
-                className="h-9 rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               >
-                {OPERATOR_OPTIONS.map((op) => (
-                  <option key={op.value} value={op.value}>
-                    {op.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="bg-muted w-full data-[size=default]:h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {OPERATOR_OPTIONS.map((op) => (
+                    <SelectItem key={op.value} value={op.value}>
+                      {op.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <input
                 type="text"
                 value={audience.customField?.value ?? ''}
@@ -507,18 +516,22 @@ export function Step2SelectAudience({
               No active segments. Create one under Contacts → Segments.
             </p>
           ) : (
-            <select
-              value={audience.segmentId ?? ''}
-              onChange={(e) => onUpdate({ ...audience, segmentId: e.target.value })}
-              className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            <Select
+              items={segments.map((s) => ({ value: s.id, label: s.name }))}
+              value={audience.segmentId || null}
+              onValueChange={(v) => onUpdate({ ...audience, segmentId: v ?? '' })}
             >
-              <option value="">Select segment…</option>
-              {segments.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="bg-muted w-full data-[size=default]:h-9">
+                <SelectValue placeholder="Select segment…" />
+              </SelectTrigger>
+              <SelectContent>
+                {segments.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
           <p className="text-xs text-muted-foreground">
             Recipients are re-evaluated from the segment&apos;s rules at send time.
@@ -534,18 +547,25 @@ export function Step2SelectAudience({
               No active lists. Create one under Contacts → Lists.
             </p>
           ) : (
-            <select
-              value={audience.listId ?? ''}
-              onChange={(e) => onUpdate({ ...audience, listId: e.target.value })}
-              className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            <Select
+              items={lists.map((l) => ({
+                value: l.id,
+                label: `${l.name} (${l.total_contacts})`,
+              }))}
+              value={audience.listId || null}
+              onValueChange={(v) => onUpdate({ ...audience, listId: v ?? '' })}
             >
-              <option value="">Select list…</option>
-              {lists.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name} ({l.total_contacts})
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="bg-muted w-full data-[size=default]:h-9">
+                <SelectValue placeholder="Select list…" />
+              </SelectTrigger>
+              <SelectContent>
+                {lists.map((l) => (
+                  <SelectItem key={l.id} value={l.id}>
+                    {l.name} ({l.total_contacts})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
           <p className="text-xs text-muted-foreground">
             The list&apos;s current members are used at send time.
