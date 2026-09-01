@@ -52,15 +52,33 @@ export async function POST(
     return NextResponse.json({ ok: true, skipped: 'too_large' });
   }
 
-  let payload: unknown;
+  // A Zoho Workflow Rule webhook puts its Module/Custom Parameters in
+  // the URL query string when "Body" is set to None (the default most
+  // admins leave it on) — the params are appended to the Notify URL, not
+  // sent as a body. Read those too so that common setup just works.
+  let queryParams: Record<string, string> = {};
   try {
-    payload = JSON.parse(rawBody);
+    queryParams = Object.fromEntries(new URL(request.url).searchParams);
   } catch {
-    // Zoho can be configured to POST form-encoded instead of JSON.
-    // Accept it rather than dropping the event on a setting most people
-    // do not know they chose.
-    payload = Object.fromEntries(new URLSearchParams(rawBody));
+    /* malformed URL — fall through with body only */
   }
+
+  // Parse the body when there is one: JSON first, then form-encoded
+  // (Zoho can POST either). Whatever it holds is merged over the query
+  // params so a real body wins on a key both carried.
+  let bodyPayload: Record<string, unknown> = {};
+  if (rawBody) {
+    try {
+      const parsed = JSON.parse(rawBody);
+      if (parsed && typeof parsed === 'object') {
+        bodyPayload = parsed as Record<string, unknown>;
+      }
+    } catch {
+      bodyPayload = Object.fromEntries(new URLSearchParams(rawBody));
+    }
+  }
+
+  const payload: Record<string, unknown> = { ...queryParams, ...bodyPayload };
 
   const record = normalizeZohoPayload(payload);
   const accountId = conn.account_id as string;

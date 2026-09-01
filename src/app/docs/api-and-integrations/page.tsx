@@ -90,6 +90,87 @@ export default function ApiAndIntegrationsDocsPage() {
           delay before it&rsquo;s given up on.
         </p>
 
+        <h2>Zoho CRM</h2>
+        <p>
+          Let Zoho events — a new lead, a deal stage change, an overdue
+          invoice — send WhatsApp messages through Instant. It works in two
+          halves: connect the account once, then point a Zoho{' '}
+          <strong>Workflow Rule</strong> at Instant so it delivers the event.
+        </p>
+
+        <h3>1. Connect Zoho in Instant</h3>
+        <p>
+          Go to <strong>Settings → Integrations → Zoho CRM → Connect</strong>{' '}
+          and approve read access. After connecting, open{' '}
+          <strong>Manage</strong> on the same card — it shows a{' '}
+          <strong>webhook URL</strong> ending in{' '}
+          <code>/api/integrations/zoho/webhook/…</code>. Copy it; you&rsquo;ll
+          paste it into Zoho in the next step.
+        </p>
+
+        <h3>2. Create the Workflow Rule in Zoho</h3>
+        <p>
+          In Zoho CRM, go to{' '}
+          <strong>
+            Setup → Automation → Workflow Rules → Create Rule
+          </strong>
+          . Pick the module (Leads, Contacts, Deals…) and when it should
+          fire (record created, edited, a field changes). Then, under{' '}
+          <strong>Instant Actions → Webhooks</strong>, create a new webhook and
+          fill it in:
+        </p>
+        <DocsFieldTable
+          columns={['Field', 'What to enter']}
+          rows={[
+            { cells: ['Method', 'POST'] },
+            {
+              cells: [
+                'URL to Notify',
+                'The webhook URL copied from Instant (the Manage view).',
+              ],
+            },
+            { cells: ['Authorization Type', 'General'] },
+            {
+              cells: [
+                'Module Parameters',
+                'Add the record fields to send. Include the phone (Phone and/or Mobile) — plus Full Name / Last Name, Email, and any field you want to use in the message.',
+              ],
+            },
+            {
+              cells: [
+                'Custom Parameters',
+                'Optional static values, e.g. event = lead_created (becomes {{vars.event}}).',
+              ],
+            },
+            { cells: ['Body → Type', 'None — the parameters travel in the URL.'] },
+          ]}
+        />
+        <p>
+          Save the webhook, associate it with the Workflow Rule, and save the
+          rule. Zoho now calls Instant every time the rule fires.
+        </p>
+
+        <DocsCallout type="info">
+          A phone number is required to reach anyone. If the fields you add
+          carry no phone (Phone or Mobile), Instant records the event so you
+          can inspect it, but no message goes out — add the phone field to the
+          Module Parameters and the number needs its country code (Indian
+          10-digit numbers are auto-prefixed with 91).
+        </DocsCallout>
+
+        <h3>3. Build the automation in Instant</h3>
+        <p>
+          Create an <Link href="/docs/automations">Automation</Link> with the
+          trigger <strong>Zoho event</strong>. Every field you added in the
+          Workflow Rule is available as{' '}
+          <code>{'{{vars.field_name}}'}</code> — lowercased with spaces turned
+          into underscores, so Zoho&rsquo;s <code>Deal Name</code> becomes{' '}
+          <code>{'{{vars.deal_name}}'}</code>. Three are always present
+          whatever the rule sent: <code>{'{{vars.zoho_module}}'}</code>,{' '}
+          <code>{'{{vars.zoho_record_id}}'}</code> and{' '}
+          <code>{'{{vars.zoho_event}}'}</code>.
+        </p>
+
         <h2>Zapier, Make, n8n</h2>
         <p>
           There&rsquo;s no dedicated app in any of these marketplaces yet —

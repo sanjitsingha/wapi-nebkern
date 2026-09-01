@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Building2, Check, CheckCircle2, Copy, Loader2 } from 'lucide-react';
+import { Check, CheckCircle2, Copy, Loader2 } from 'lucide-react';
 
 import { openOAuthTab } from '@/lib/oauth/tab';
 import { ZOHO_REGIONS } from '@/lib/zoho/client';
@@ -18,6 +18,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+
+const ZOHO_LOGO = 'https://media.instant.nebkern.com/assets/zoho-crm-logo.svg';
 
 // ============================================================
 // Settings → Integrations → Zoho CRM.
@@ -209,9 +211,12 @@ export function ZohoConnect() {
     <>
       <div className="border-border bg-card hover:border-foreground/20 flex flex-col rounded-xl border p-4 transition-colors">
         <div className="flex items-start justify-between">
-          <span className="flex size-11 items-center justify-center rounded-lg bg-red-500/10 text-red-600 dark:text-red-400">
-            <Building2 className="size-5" />
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={ZOHO_LOGO}
+            alt="Zoho CRM"
+            className="h-11 w-auto max-w-[150px] object-contain object-left"
+          />
           {connected && (
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="size-3" />
@@ -251,9 +256,8 @@ export function ZohoConnect() {
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2.5">
-              <span className="flex size-6 items-center justify-center rounded bg-red-500/10 text-red-600 dark:text-red-400">
-                <Building2 className="size-3.5" />
-              </span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={ZOHO_LOGO} alt="" className="h-5 w-auto object-contain" />
               {connected ? 'Zoho CRM' : 'Connect Zoho CRM'}
             </DialogTitle>
             <DialogDescription>
