@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
 import { WooCommerceConnect } from './woocommerce-connect';
 import { ShopifyConnect } from './shopify-connect';
+import { ZohoConnect } from './zoho-connect';
 
 // ============================================================
 // Integrations "app store" — a grid of everything Instant can wire into,
@@ -126,14 +127,19 @@ const INTEGRATIONS: Integration[] = [
     cta: 'Connect via Zapier',
   },
   {
+    // Native connect flow (rendered by <ZohoConnect>). Moved out of the
+    // "via Zapier" group when it got one — and into `builtin` with the
+    // other real connections, since a card that says "Connect" beside
+    // cards that say "Connect via Zapier" would otherwise be lost in
+    // the wrong section.
     id: 'zoho-crm',
     name: 'Zoho CRM',
-    description: 'Sync WhatsApp leads and conversations into your Zoho CRM records.',
+    description: 'Let Zoho events — a deal stage change, a new lead — send WhatsApp messages.',
     icon: Building2,
     tone: 'bg-red-500/10 text-red-600 dark:text-red-400',
-    group: 'app',
-    href: '/docs/api-and-integrations',
-    cta: 'Connect via Zapier',
+    group: 'builtin',
+    href: '#',
+    cta: 'Connect',
   },
   {
     id: 'hubspot',
@@ -298,12 +304,14 @@ export function IntegrationsGrid() {
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {items.map((item) =>
-                // WooCommerce & Shopify are native connect flows, not
-                // "via Zapier" links.
+                // WooCommerce, Shopify & Zoho are native connect flows,
+                // not "via Zapier" links.
                 item.id === 'woocommerce' ? (
                   <WooCommerceConnect key={item.id} />
                 ) : item.id === 'shopify' ? (
                   <ShopifyConnect key={item.id} />
+                ) : item.id === 'zoho-crm' ? (
+                  <ZohoConnect key={item.id} />
                 ) : (
                   <IntegrationCard key={item.id} item={item} />
                 ),

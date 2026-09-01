@@ -28,6 +28,10 @@ export const TRIGGER_META: Record<AutomationTriggerType, TriggerMeta> = {
     label: 'Shopify Order',
     pillClass: softBadge.green,
   },
+  zoho_event: {
+    label: 'Zoho CRM Event',
+    pillClass: softBadge.red,
+  },
   time_based: { label: 'Time-Based', pillClass: softBadge.neutral },
 }
 

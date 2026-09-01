@@ -838,6 +838,9 @@ export type AutomationTriggerType =
   | 'tag_added'
   | 'woocommerce_order'
   | 'shopify_order'
+  /** A Zoho CRM Workflow Rule fired at our webhook (migration 097).
+   *  Which CRM events these are is configured in Zoho, not here. */
+  | 'zoho_event'
   | 'time_based';
 
 export type AutomationStepType =

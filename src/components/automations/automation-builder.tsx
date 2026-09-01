@@ -251,6 +251,11 @@ const TRIGGER_OPTIONS: { value: AutomationTriggerType; label: string; hint: stri
     label: "Shopify Order",
     hint: "When a new order comes in from your connected Shopify store",
   },
+  {
+    value: "zoho_event",
+    label: "Zoho CRM Event",
+    hint: "When a Zoho workflow rule fires — a deal stage change, a new lead, an overdue invoice. You choose which events in Zoho.",
+  },
   { value: "time_based", label: "Time-Based", hint: "On a recurring schedule" },
 ]
 
