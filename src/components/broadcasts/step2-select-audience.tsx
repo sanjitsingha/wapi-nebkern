@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
+import { parseContactCsv } from '@/lib/contacts/parse-contact-csv';
+import { toIndianE164, isValidE164 } from '@/lib/whatsapp/phone-utils';
 import { CustomField, Tag, SegmentGroup } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,6 +26,7 @@ import {
   Filter,
   Target,
   Upload,
+  Download,
   Loader2,
   ArrowRight,
   ArrowLeft,
@@ -137,6 +140,117 @@ export function Step2SelectAudience({
   const [loadingFields, setLoadingFields] = useState(false);
   const [estimatedCount, setEstimatedCount] = useState<number | null>(null);
   const [loadingCount, setLoadingCount] = useState(false);
+
+  // CSV upload. The parsed rows live on `audience.csvContacts` (the
+  // caller owns the audience), so these hold only what the panel needs
+  // to describe the file — the name, how many rows were unusable, and
+  // any parse failure.
+  const [csvFileName, setCsvFileName] = useState('');
+  const [csvSkipped, setCsvSkipped] = useState(0);
+  const [csvBusy, setCsvBusy] = useState(false);
+  const [csvError, setCsvError] = useState<string | null>(null);
+
+  const csvRows = audience.csvContacts ?? [];
+
+  /**
+   * Hand back a CSV in exactly the shape the parser wants.
+   *
+   * Only `phone` and `name`: the parser also understands email, company
+   * and tags, but a campaign audience uses neither — offering them here
+   * would invite someone to fill in four columns and wonder why three
+   * had no effect.
+   *
+   * The sample numbers are deliberately in two different formats. The
+   * upload canonicalises both to E.164, and showing that is quicker
+   * than a sentence explaining it.
+   */
+  const downloadTemplate = useCallback(() => {
+    const csv = [
+      'phone,name',
+      '919876543210,Priya Raman',
+      '08123456789,Arjun Nair',
+      '+91 99887 76655,"Raman, Kavya"',
+    ].join('\n');
+
+    // A BOM, so Excel opens it as UTF-8 rather than mangling any
+    // non-ASCII name into mojibake — the single most common complaint
+    // about a downloaded CSV.
+    const blob = new Blob([`﻿${csv}`], {
+      type: 'text/csv;charset=utf-8',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'campaign-contacts-template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, []);
+
+  const clearCsv = useCallback(() => {
+    setCsvFileName('');
+    setCsvSkipped(0);
+    setCsvError(null);
+    onUpdate({ ...audience, csvContacts: undefined });
+  }, [audience, onUpdate]);
+
+  const handleCsvFile = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      // Reset the input so re-picking the same file fires onChange again
+      // — otherwise a corrected re-upload of `contacts.csv` does nothing.
+      e.target.value = '';
+      if (!file) return;
+
+      setCsvBusy(true);
+      setCsvError(null);
+      try {
+        const text = await file.text();
+        const { rows } = parseContactCsv(text);
+
+        if (rows.length === 0) {
+          setCsvError(
+            'No usable rows. The file needs a header with a `phone` column.',
+          );
+          return;
+        }
+
+        // Canonicalise here rather than at send time. The send path
+        // matches CSV rows against contacts.phone directly, so an
+        // upload of "9876543210" for someone already stored as
+        // "919876543210" would create a second contact and message
+        // them twice. Also de-duplicates within the file itself.
+        const seen = new Set<string>();
+        const parsed: { phone: string; name?: string }[] = [];
+        let skipped = 0;
+
+        for (const row of rows) {
+          const phone = toIndianE164(row.phone);
+          if (!phone || !isValidE164(phone) || seen.has(phone)) {
+            skipped += 1;
+            continue;
+          }
+          seen.add(phone);
+          parsed.push({ phone, name: row.name || undefined });
+        }
+
+        if (parsed.length === 0) {
+          setCsvError(
+            'None of the phone numbers could be read. Check the phone column.',
+          );
+          return;
+        }
+
+        setCsvFileName(file.name);
+        setCsvSkipped(skipped);
+        onUpdate({ ...audience, csvContacts: parsed });
+      } catch {
+        setCsvError('Could not read that file.');
+      } finally {
+        setCsvBusy(false);
+      }
+    },
+    [audience, onUpdate],
+  );
 
   // Tags are used both by the primary "Filter by Tags" audience type
   // AND by the exclude-list below — so always load once on mount.
@@ -377,6 +491,15 @@ export function Step2SelectAudience({
               listId: type === 'list' ? audience.listId : undefined,
               csvContacts: type === 'csv' ? audience.csvContacts : undefined,
             });
+            // The CSV panel's own state is not part of `audience`, so
+            // clearing csvContacts above is not enough — without this
+            // the old filename and skip count reappear on switching
+            // back, describing a file that is no longer loaded.
+            if (type !== 'csv') {
+              setCsvFileName('');
+              setCsvSkipped(0);
+              setCsvError(null);
+            }
           }}
         >
           <SelectTrigger className="w-full data-[size=default]:h-11">
@@ -569,6 +692,124 @@ export function Step2SelectAudience({
           )}
           <p className="text-xs text-muted-foreground">
             The list&apos;s current members are used at send time.
+          </p>
+        </div>
+      )}
+
+      {audience.type === 'csv' && (
+        <div className="space-y-3 rounded-xl border border-border bg-card/50 p-4">
+          {/* The template sits in the header, not under the drop zone:
+              it is useful BEFORE choosing a file, and anyone who needs
+              it needs it first. */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-medium text-foreground">Upload CSV</p>
+            <button
+              type="button"
+              onClick={downloadTemplate}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-primary transition-colors hover:text-primary/80"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Download template
+            </button>
+          </div>
+
+          {csvRows.length === 0 ? (
+            <>
+              <label
+                className={`flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border bg-muted/40 px-4 py-6 text-center transition-colors hover:border-primary/40 ${
+                  csvBusy ? 'pointer-events-none opacity-60' : ''
+                }`}
+              >
+                {csvBusy ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                ) : (
+                  <Upload className="h-5 w-5 text-muted-foreground" />
+                )}
+                <span className="text-sm font-medium text-foreground">
+                  {csvBusy ? 'Reading…' : 'Choose a CSV file'}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Needs a <code className="text-foreground">phone</code> column.
+                  A <code className="text-foreground">name</code> column is used
+                  for personalisation.
+                </span>
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  className="hidden"
+                  disabled={csvBusy}
+                  onChange={handleCsvFile}
+                />
+              </label>
+              {csvError && <p className="text-xs text-red-400">{csvError}</p>}
+            </>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {csvFileName}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {csvRows.length.toLocaleString()} contact
+                    {csvRows.length === 1 ? '' : 's'}
+                    {csvSkipped > 0 &&
+                      ` · ${csvSkipped.toLocaleString()} row${csvSkipped === 1 ? '' : 's'} skipped`}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearCsv}
+                  className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  Remove
+                </button>
+              </div>
+
+              {/* A first look at what will actually be sent. A CSV whose
+                  phone column is really an id produces rows that all
+                  look wrong here, before 4,000 messages fail. */}
+              <div className="overflow-hidden rounded-lg border border-border">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/60 text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-1.5 text-left font-medium">Phone</th>
+                      <th className="px-3 py-1.5 text-left font-medium">Name</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {csvRows.slice(0, 3).map((r, i) => (
+                      <tr key={`${r.phone}-${i}`}>
+                        <td className="px-3 py-1.5 font-mono text-foreground">
+                          {r.phone}
+                        </td>
+                        <td className="px-3 py-1.5 text-muted-foreground">
+                          {r.name || '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {csvRows.length > 3 && (
+                  <p className="border-t border-border px-3 py-1.5 text-xs text-muted-foreground">
+                    + {(csvRows.length - 3).toLocaleString()} more
+                  </p>
+                )}
+              </div>
+
+              {csvSkipped > 0 && (
+                <p className="text-xs text-amber-500">
+                  {csvSkipped.toLocaleString()} row
+                  {csvSkipped === 1 ? ' was' : 's were'} skipped — no usable
+                  phone number.
+                </p>
+              )}
+            </>
+          )}
+
+          <p className="text-xs text-muted-foreground">
+            Contacts are created or matched on the phone number at send time, so
+            uploading someone you already have will not duplicate them.
           </p>
         </div>
       )}
