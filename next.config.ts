@@ -79,6 +79,22 @@ const SECURITY_HEADERS = [
 
 const nextConfig: NextConfig = {
   /**
+   * Where the build output goes. `.next` unless NEXT_DIST_DIR says
+   * otherwise.
+   *
+   * The escape hatch exists because `next dev` and `next build` share
+   * `.next` by default, and a production build run while a dev server
+   * is up rewrites the directory that server is reading from — the dev
+   * server then serves "Internal Server Error" until it is restarted.
+   * Setting NEXT_DIST_DIR=.next-verify for a one-off build keeps the
+   * two apart.
+   *
+   * Vercel and any normal `npm run build` are unaffected: the variable
+   * is unset there, so this is `.next` exactly as before.
+   */
+  distDir: process.env.NEXT_DIST_DIR || '.next',
+
+  /**
    * Phosphor's root entry is a barrel over ~9,000 icon modules, so a
    * bare `import { House } from '@phosphor-icons/react'` would pull the
    * whole set into the nav chunk. Next auto-optimizes a built-in list of

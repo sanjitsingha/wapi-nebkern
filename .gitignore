@@ -15,6 +15,9 @@
 
 # next.js
 /.next/
+# Throwaway output for a verification build run while `next dev` holds
+# .next — see distDir in next.config.ts.
+/.next-verify/
 /out/
 
 # production
