@@ -19,7 +19,6 @@ import {
   ChevronDown,
   CircleDot,
   Zap,
-  ArrowUpRight,
   Clock,
 } from "lucide-react";
 import { format } from "date-fns";
@@ -50,6 +49,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { OpenRowButton } from "@/components/ui/open-row-button";
 
 /**
  * Flows list page.
@@ -494,7 +494,7 @@ function FlowTableRow({
       <TableCell className="group/cell px-6 py-4 font-medium text-foreground">
         <div className="flex items-center justify-between gap-3">
           <span className="truncate">{flow.name}</span>
-          <OpenButton label="Open flow" onClick={onEdit} />
+          <OpenRowButton label="Open flow" onClick={onEdit} />
         </div>
       </TableCell>
 
@@ -522,41 +522,13 @@ function FlowTableRow({
       <TableCell className="group/cell px-6 py-4 text-sm text-muted-foreground">
         <div className="flex items-center justify-between gap-3">
           <span className="tabular-nums">{flow.execution_count}</span>
-          <OpenButton label="Open runs" onClick={onRuns} />
+          <OpenRowButton label="Open runs" onClick={onRuns} />
         </div>
       </TableCell>
     </TableRow>
   );
 }
 
-/**
- * A bordered arrow button that opens a destination from inside a
- * clickable row. Hidden until its cell is hovered (or the button is
- * focused), and stops propagation so it acts on its own target rather
- * than firing the row's own click.
- */
-function OpenButton({
-  label,
-  onClick,
-}: {
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
-      }}
-      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground opacity-0 transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary focus-visible:opacity-100 group-hover/cell:opacity-100"
-    >
-      <ArrowUpRight className="h-4 w-4" />
-    </button>
-  );
-}
 
 function describeTrigger(flow: FlowRow): string {
   if (flow.trigger_type === "keyword") {

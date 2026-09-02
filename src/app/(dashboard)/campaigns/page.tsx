@@ -35,7 +35,6 @@ import {
   Send,
   Eye,
   CircleDot,
-  ArrowUpRight,
   Info,
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -52,6 +51,7 @@ import {
 import { useCan } from '@/hooks/use-can';
 import { GatedButton } from '@/components/ui/gated-button';
 import { TemplatePickerDialog } from '@/components/broadcasts/template-picker-dialog';
+import { OpenRowButton } from '@/components/ui/open-row-button';
 import { getBroadcastStatus } from '@/lib/broadcast-status';
 import {
   sortBroadcastsByDate,
@@ -553,7 +553,7 @@ export default function BroadcastsPage() {
                     <TableCell className="group/cell px-6 py-4 font-medium text-foreground">
                       <div className="flex items-center justify-between gap-3">
                         <span className="truncate">{broadcast.name}</span>
-                        <OpenButton
+                        <OpenRowButton
                           label="Open campaign"
                           onClick={() => router.push(`/campaigns/${broadcast.id}`)}
                         />
@@ -637,22 +637,3 @@ export default function BroadcastsPage() {
  * row. Hidden until its cell is hovered (or the button is focused).
  * Mirrors the Flows, Automations, Templates, and Forms tables.
  */
-function OpenButton({
-  label,
-  onClick,
-}: {
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground opacity-0 transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary focus-visible:opacity-100 group-hover/cell:opacity-100"
-    >
-      <ArrowUpRight className="h-4 w-4" />
-    </button>
-  );
-}

@@ -13,7 +13,6 @@ import {
   Search,
   Filter,
   ChevronDown,
-  ArrowUpRight,
 } from "lucide-react"
 
 import { createClient } from "@/lib/supabase/client"
@@ -38,6 +37,7 @@ import {
 } from "@/components/ui/table"
 import { triggerMeta } from "@/lib/automations/trigger-meta"
 import { format } from "date-fns"
+import { OpenRowButton } from "@/components/ui/open-row-button"
 
 // Automations have a single boolean, is_active — surfaced here as a
 // two-value status so it reads (and filters) like Flows' status column.
@@ -309,7 +309,7 @@ function AutomationTableRow({
       <TableCell className="group/cell px-6 py-4 font-medium text-foreground">
         <div className="flex items-center justify-between gap-3">
           <span className="truncate">{automation.name}</span>
-          <OpenButton label="Open workflow" onClick={onEdit} />
+          <OpenRowButton label="Open workflow" onClick={onEdit} />
         </div>
       </TableCell>
 
@@ -332,37 +332,10 @@ function AutomationTableRow({
       <TableCell className="group/cell px-6 py-4 text-sm text-muted-foreground">
         <div className="flex items-center justify-between gap-3">
           <span className="tabular-nums">{automation.execution_count}</span>
-          <OpenButton label="Open runs" onClick={onRuns} />
+          <OpenRowButton label="Open runs" onClick={onRuns} />
         </div>
       </TableCell>
     </TableRow>
   )
 }
 
-/**
- * A bordered arrow button that opens a destination from inside a
- * clickable row. Stops propagation so it acts on its own target rather
- * than firing the row's own click.
- */
-function OpenButton({
-  label,
-  onClick,
-}: {
-  label: string
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={(e) => {
-        e.stopPropagation()
-        onClick()
-      }}
-      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground opacity-0 transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary focus-visible:opacity-100 group-hover/cell:opacity-100"
-    >
-      <ArrowUpRight className="h-4 w-4" />
-    </button>
-  )
-}

@@ -13,7 +13,6 @@ import {
   CircleDot,
   ListChecks,
   CalendarDays,
-  ArrowUpRight,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -31,6 +30,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { WhatsAppForm } from '@/types';
+import { OpenRowButton } from '@/components/ui/open-row-button';
 
 /**
  * List for WhatsApp Forms (native WhatsApp Flows — see
@@ -173,7 +173,7 @@ export function FormsManager() {
                               </span>
                             )}
                           </div>
-                          <OpenButton
+                          <OpenRowButton
                             label="Open form"
                             onClick={() => router.push(`/forms/${form.id}/edit`)}
                           />
@@ -203,30 +203,5 @@ export function FormsManager() {
         </>
       )}
     </section>
-  );
-}
-
-/**
- * A bordered arrow button that opens a destination from inside a table
- * row. Hidden until its cell is hovered (or the button is focused).
- * Mirrors the Flows, Automations, and Templates tables.
- */
-function OpenButton({
-  label,
-  onClick,
-}: {
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground opacity-0 transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary focus-visible:opacity-100 group-hover/cell:opacity-100"
-    >
-      <ArrowUpRight className="h-4 w-4" />
-    </button>
   );
 }
