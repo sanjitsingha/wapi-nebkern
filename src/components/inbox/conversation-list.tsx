@@ -194,7 +194,7 @@ export function ConversationList({
       ? channelChoice
       : (channelTabs[0]?.value ?? "all");
   const [filter, setFilter] = useState<InboxFilter>("all");
-  // Multi-select: any mix of AI Agent / Bot / Team member. Empty = anyone.
+  // Multi-select: any mix of Maya / Bot / Team member. Empty = anyone.
   const [assignees, setAssignees] = useState<AssigneeFilter[]>([]);
   // When "user" is among the assignees, optionally narrow to one agent.
   const [assignedUserId, setAssignedUserId] = useState<string | null>(null);
@@ -365,7 +365,7 @@ export function ConversationList({
       result = result.filter((c) => c.status === filter);
     }
 
-    // Assignee (who's handling the chat): any mix of AI Agent / Bot / User,
+    // Assignee (who's handling the chat): any mix of Maya / Bot / User,
     // OR-ed together. The "user" bucket can be "any assigned agent" or
     // narrowed to a specific one. Empty selection means anyone.
     if (assignees.length > 0) {
@@ -584,7 +584,7 @@ export function ConversationList({
             )
           )}
 
-          {/* Secondary filters — assignee (AI Agent / Bot / team member) and
+          {/* Secondary filters — assignee (Maya / Bot / team member) and
               conversation date range — live in a modal rather than more
               inline chips, which is where they used to crowd this row. */}
           <button

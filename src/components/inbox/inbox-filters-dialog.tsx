@@ -25,7 +25,9 @@ const ASSIGNEE_OPTIONS: {
   value: AssigneeFilter;
   icon: LucideIcon;
 }[] = [
-  { label: 'AI Agent', description: 'Handled by the AI agent', value: 'ai', icon: Sparkles },
+  // `value: 'ai'` is the stored assignment and stays as it is — only
+  // the name the reader sees changed.
+  { label: 'Maya', description: 'Handled by Maya', value: 'ai', icon: Sparkles },
   { label: 'Bot', description: 'Running an automated flow', value: 'bot', icon: Bot },
   { label: 'Team member', description: 'Assigned to a teammate', value: 'user', icon: User },
 ];
@@ -52,7 +54,7 @@ interface InboxFiltersDialogProps {
 
 /**
  * Secondary inbox filters — who's handling the conversation (any
- * combination of AI Agent / Bot / a teammate) and when it started. Pulled
+ * combination of Maya / Bot / a teammate) and when it started. Pulled
  * out of the chip row into a modal (staged local state, single Apply)
  * because the row was getting crowded with 5+ controls; "All" (status) and
  * "Tag" stay inline since those are the two most-used filters.

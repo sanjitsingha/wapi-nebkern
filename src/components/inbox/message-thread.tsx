@@ -27,7 +27,6 @@ import {
   Check,
   Clock,
   ArrowLeft,
-  RefreshCw,
   PanelRightOpen,
   X,
   Bot,
@@ -111,14 +110,6 @@ interface MessageThreadProps {
    */
   resyncToken?: number;
   /**
-   * Fired by the manual-refresh button in the thread header. The parent
-   * typically bumps the same `resyncToken` it controls — this gives the
-   * user a way to force a refetch when they suspect realtime missed an
-   * event (or they're impatient). Optional so existing callers keep
-   * working; the button is only rendered when this is provided.
-   */
-  onRefresh?: () => void;
-  /**
    * When the contact panel is collapsed, the thread shows a reopen button.
    * Both props are optional; the button only renders when `onOpenContactPanel`
    * is provided and `contactPanelOpen` is false.
@@ -200,7 +191,6 @@ export function MessageThread({
   onAssignChange,
   onBack,
   resyncToken = 0,
-  onRefresh,
   contactPanelOpen,
   onOpenContactPanel,
   onDeleted,
@@ -217,28 +207,6 @@ export function MessageThread({
   // Active flows (bots) that a conversation can be assigned to.
   const [flows, setFlows] = useState<{ id: string; name: string }[]>([]);
   const [reactions, setReactions] = useState<MessageReaction[]>([]);
-  // Purely visual spin state for the manual-refresh button. The actual
-  // refetch is fire-and-forget through `onRefresh` (which bumps the
-  // parent's resyncToken); the 700ms spin is just feedback so the click
-  // doesn't feel like a no-op. Cleared via the timer ref on unmount.
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    return () => {
-      if (refreshTimerRef.current !== null) {
-        clearTimeout(refreshTimerRef.current);
-      }
-    };
-  }, []);
-  const handleRefreshClick = useCallback(() => {
-    if (isRefreshing || !onRefresh) return;
-    setIsRefreshing(true);
-    onRefresh();
-    refreshTimerRef.current = setTimeout(() => {
-      setIsRefreshing(false);
-      refreshTimerRef.current = null;
-    }, 700);
-  }, [isRefreshing, onRefresh]);
   const [replyTo, setReplyTo] = useState<ReplyDraft | null>(null);
 
   // Profiles are bounded by RLS to rows the current user is allowed to
@@ -949,7 +917,7 @@ export function MessageThread({
           body.type === "flow"
             ? "Assigned to bot"
             : body.type === "ai"
-              ? "AI Agent will handle this chat"
+              ? "Maya will handle this chat"
               : body.type === "agent"
                 ? "Conversation assigned"
                 : "Conversation unassigned",
@@ -1101,21 +1069,11 @@ export function MessageThread({
             </button>
           )}
 
-          {/* Manual refresh */}
-          {onRefresh && (
-            <button
-              type="button"
-              onClick={handleRefreshClick}
-              disabled={isRefreshing}
-              aria-label="Refresh conversation"
-              title="Refresh"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-60"
-            >
-              <RefreshCw
-                className={cn("h-4 w-4", isRefreshing && "animate-spin")}
-              />
-            </button>
-          )}
+          {/* The manual refresh button lived here. Realtime already
+              catches the thread up on reconnect and on tab-visible, so
+              it was a control for a problem the app fixes on its own —
+              and one that invited a click whenever a message felt slow.
+              `resyncToken` still drives those automatic paths. */}
 
           {/* Status dropdown */}
           <DropdownMenu>
@@ -1139,18 +1097,23 @@ export function MessageThread({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* AI Agent toggle + Bot dropdown — neither does anything for
+          {/* Maya toggle + Bot dropdown — neither does anything for
               Instagram yet (the webhook never dispatches to the AI reply
               engine or the Flows engine for that channel in this MVP), so
               hide both rather than offer a control that silently no-ops. */}
           {!isMetaDm && (
             <>
-              {/* AI Agent toggle — the BYO-key assistant handles this chat
+              {/* Maya toggle — the BYO-key assistant handles this chat
                   on its own (KB-grounded replies to every inbound, no cap,
                   even with the account-wide auto-reply toggle off). Kept as
                   a stand-alone switch since it's a distinct mode, not a
                   person or a bot to pick from a list. Turning it on takes
-                  over the chat; turning it off unassigns. */}
+                  over the chat; turning it off unassigns.
+
+                  The underlying assignment is still `type: "ai"` — that
+                  value is stored on conversations and read by the reply
+                  engine, so it is the product's name that changed here,
+                  not the data. */}
               <label
                 className={cn(
                   "inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-md border px-2.5 transition-colors",
@@ -1158,14 +1121,14 @@ export function MessageThread({
                     ? "border-primary/30 bg-primary-soft text-primary"
                     : "border-border text-muted-foreground hover:bg-muted"
                 )}
-                title="Let the AI Agent handle this conversation"
+                title="Let Maya handle this conversation"
               >
                 <Sparkles className="h-4 w-4" />
-                <span className="hidden text-sm font-medium sm:inline">AI Agent</span>
+                <span className="hidden text-sm font-medium sm:inline">Maya</span>
                 <Switch
                   checked={aiAssigned}
                   onCheckedChange={(on) => assign({ type: on ? "ai" : "none" })}
-                  aria-label="Toggle AI Agent for this conversation"
+                  aria-label="Toggle Maya for this conversation"
                 />
               </label>
 
