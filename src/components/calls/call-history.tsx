@@ -10,7 +10,11 @@ import {
   Clock,
   Delete,
   Loader2,
+  Mic,
+  MicOff,
   Phone,
+  PhoneIncoming,
+  PhoneOff,
   Search,
   User,
 } from 'lucide-react';
@@ -30,12 +34,17 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { useCallCenter } from './call-center';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import {
+  STATE_LABEL,
+  useCallCenter,
+  useElapsed,
+  type ActiveCall,
+} from './call-center';
 // Outcome icons and duration formatting are shared with the inbox side
 // panel — two places showing the same call must not describe it two ways.
 import { callOutcome, formatCallDuration } from './contact-call-history';
@@ -93,6 +102,7 @@ export function CallHistory() {
   const [search, setSearch] = useState('');
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(0);
+  const [dialerOpen, setDialerOpen] = useState(false);
 
   const load = useCallback(
     async (pageIndex: number, append: boolean) => {
@@ -192,7 +202,16 @@ export function CallHistory() {
         {/* No Refresh button: the realtime subscription below already
             puts new and updated calls on the page as they happen, so it
             re-fetched what was almost always current. */}
-        <Dialer />
+        {callCenter && (
+          <Button
+            onClick={() => setDialerOpen(true)}
+            disabled={callCenter.busy}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-6"
+          >
+            <Phone className="size-4" />
+            New call
+          </Button>
+        )}
       </div>
 
       {/* Totals are over what's loaded, not the whole table — labelled as
@@ -376,6 +395,8 @@ export function CallHistory() {
           </Button>
         </div>
       )}
+
+      <CallDock open={dialerOpen} onOpenChange={setDialerOpen} />
     </div>
   );
 }
@@ -399,27 +420,50 @@ const KEYPAD: { digit: string; letters?: string }[] = [
 ];
 
 /**
- * Dial a number that isn't in the list yet.
+ * The New-call surface: a right-side overlay drawer that floats over the
+ * list, and — once a call is placed — turns into the in-call screen in the
+ * same panel instead of closing.
  *
- * Raw international number, no country-code picker: WhatsApp identifies
- * people by full E.164, and a picker that guesses the wrong default is
- * how calls go to the wrong country. The field stays typeable — the
- * keypad is for the phone-shaped half of the audience, the keyboard for
- * everyone pasting a number from somewhere else.
+ * `visible` is `open` OR a live call: dialling never closes it, and an
+ * active call keeps it on screen even if the user never opened the dialer
+ * (a call-back from the list, say). Closing is blocked while a call is up
+ * — End call is the way out then.
+ *
+ * While it shows the call it tells the provider to hold back the floating
+ * panel (`setDockedInCall`), so the same call is never drawn twice.
  */
-function Dialer() {
+function CallDock({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const callCenter = useCallCenter();
-  const [open, setOpen] = useState(false);
   const [number, setNumber] = useState('');
+
+  const activeCall = callCenter?.activeCall ?? null;
+  const visible = open || activeCall !== null;
+  const setDocked = callCenter?.setDockedInCall;
+
+  // Own the call visually only while this panel is actually showing it,
+  // and hand it back on unmount so leaving /calls restores the floating
+  // panel mid-call.
+  useEffect(() => {
+    const owning = visible && activeCall !== null;
+    setDocked?.(owning);
+    return () => setDocked?.(false);
+  }, [visible, activeCall, setDocked]);
 
   if (!callCenter) return null;
 
   const dial = () => {
     const trimmed = number.trim();
     if (!trimmed) return;
+    // No close: the panel stays and the in-call view takes over as soon
+    // as `activeCall` lands.
     void callCenter.placeCall(trimmed);
     setNumber('');
-    setOpen(false);
   };
 
   const press = (digit: string) => {
@@ -429,97 +473,237 @@ function Dialer() {
   };
 
   return (
-    <>
-      {/* The page's only action now that Refresh is gone, so it carries
-          the primary treatment at the same h-11 the other dashboard
-          pages use for their lead button. The explicit hover matters:
-          the `default` variant's own hover is scoped to `[a]:`, so a
-          real <button> gets none of it.
-
-          `px-6` overrides the `px-2.5` the default size ships with —
-          that value is tuned for the h-8 button it was written for and
-          leaves the label crowded against the edges at this height. */}
-      <Button
-        onClick={() => setOpen(true)}
-        disabled={callCenter.busy}
-        className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-6"
+    <Sheet
+      open={visible}
+      onOpenChange={(next) => {
+        // A live call owns the panel: the backdrop and Esc can't dismiss
+        // it out from under an in-progress call — End call does that.
+        if (!next && activeCall) return;
+        onOpenChange(next);
+      }}
+    >
+      <SheetContent
+        side="right"
+        showCloseButton={!activeCall}
+        className="flex w-full flex-col gap-0 border-l border-border bg-background p-0 sm:max-w-sm"
       >
-        <Phone className="size-4" />
-        New call
-      </Button>
+        {activeCall ? (
+          <>
+            <SheetHeader className="sr-only">
+              <SheetTitle>Call in progress</SheetTitle>
+            </SheetHeader>
+            <InCallView
+              call={activeCall}
+              ringing={callCenter.ringing}
+              muted={callCenter.muted}
+              working={callCenter.working}
+              onAnswer={callCenter.answer}
+              onDecline={callCenter.decline}
+              onHangUp={callCenter.hangUp}
+              onToggleMute={callCenter.toggleMute}
+            />
+          </>
+        ) : (
+          <>
+            <SheetHeader className="border-b border-border px-5 py-4">
+              <SheetTitle className="flex items-center gap-2 text-foreground">
+                <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Phone className="size-4" />
+                </span>
+                New call
+              </SheetTitle>
+            </SheetHeader>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-xs">
-          <DialogHeader>
-            <DialogTitle>New call</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="relative">
-              <Input
-                autoFocus
-                value={number}
-                onChange={(e) => setNumber(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') dial();
-                }}
-                placeholder="+91 98765 43210"
-                // Tabular figures so digits don't jiggle as they land.
-                className="h-12 pr-10 text-center font-mono text-lg tracking-wider tabular-nums"
-                aria-label="Number to call"
-              />
-              {number && (
-                <button
-                  type="button"
-                  onClick={() => setNumber((p) => p.slice(0, -1))}
-                  aria-label="Delete last digit"
-                  className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                >
-                  <Delete className="size-4" />
-                </button>
-              )}
-            </div>
-
-            <div className="grid grid-cols-3 gap-2">
-              {KEYPAD.map((key) => (
-                <button
-                  key={key.digit}
-                  type="button"
-                  onClick={() => press(key.digit === '0' ? '0' : key.digit)}
-                  // The 0 key doubles as "+" on a long press everywhere
-                  // else; here the secondary label is a second target
-                  // rather than a hidden gesture nobody discovers.
-                  onContextMenu={(e) => {
-                    if (key.digit !== '0') return;
-                    e.preventDefault();
-                    press('+');
+            <div className="flex flex-1 flex-col overflow-y-auto px-5 pt-6 pb-5">
+              {/* Borderless number line — a display that happens to be
+                  typeable, not a boxed field, so the keypad below reads
+                  as the primary input. */}
+              <div className="relative">
+                <input
+                  autoFocus
+                  value={number}
+                  onChange={(e) => setNumber(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') dial();
                   }}
-                  className="flex h-14 flex-col items-center justify-center rounded-xl border border-border bg-card transition-colors hover:bg-muted active:bg-primary-soft"
-                >
-                  <span className="text-lg leading-none font-semibold text-foreground">
-                    {key.digit}
-                  </span>
-                  {key.letters && (
-                    <span className="mt-0.5 text-[9px] leading-none font-medium tracking-widest text-muted-foreground">
-                      {key.letters}
+                  placeholder="+91 98765 43210"
+                  aria-label="Number to call"
+                  className="w-full border-0 bg-transparent px-8 text-center font-mono text-2xl tracking-wider tabular-nums text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
+                />
+                {number && (
+                  <button
+                    type="button"
+                    onClick={() => setNumber((p) => p.slice(0, -1))}
+                    aria-label="Delete last digit"
+                    className="absolute top-1/2 right-0 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    <Delete className="size-4" />
+                  </button>
+                )}
+              </div>
+
+              <p className="mt-2 text-center text-xs text-muted-foreground">
+                Full international number, with country code.
+              </p>
+
+              {/* mt-auto drops the pad to the bottom of the panel. */}
+              <div className="mx-auto mt-auto grid w-full max-w-xs grid-cols-3 gap-2.5 pt-8">
+                {KEYPAD.map((key) => (
+                  <button
+                    key={key.digit}
+                    type="button"
+                    onClick={() => press(key.digit === '0' ? '0' : key.digit)}
+                    // The 0 key doubles as "+" on a long press everywhere
+                    // else; here the secondary label is a second target
+                    // rather than a hidden gesture nobody discovers.
+                    onContextMenu={(e) => {
+                      if (key.digit !== '0') return;
+                      e.preventDefault();
+                      press('+');
+                    }}
+                    className="flex h-16 flex-col items-center justify-center rounded-2xl border border-border bg-card transition-colors hover:bg-muted active:bg-primary-soft"
+                  >
+                    <span className="text-xl leading-none font-semibold text-foreground">
+                      {key.digit}
                     </span>
-                  )}
-                </button>
-              ))}
+                    {key.letters && (
+                      <span className="mt-1 text-[9px] leading-none font-medium tracking-widest text-muted-foreground">
+                        {key.letters}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <Button
-              onClick={dial}
-              disabled={!number.trim() || callCenter.busy}
-              className="h-12 w-full bg-primary text-base"
+            <div className="border-t border-border px-5 py-4">
+              <Button
+                onClick={dial}
+                disabled={!number.trim() || callCenter.busy}
+                className="h-13 w-full bg-primary text-base"
+              >
+                {callCenter.busy ? (
+                  <Loader2 className="size-5 animate-spin" />
+                ) : (
+                  <Phone className="size-5" />
+                )}
+                Call
+              </Button>
+            </div>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+/**
+ * The in-call screen, WhatsApp-shaped: a big avatar, who you're on with,
+ * a status line that becomes the running duration once connected, and the
+ * two controls that matter — mute and end. Answer/Decline replace them
+ * while an inbound call is still ringing.
+ */
+function InCallView({
+  call,
+  ringing,
+  muted,
+  working,
+  onAnswer,
+  onDecline,
+  onHangUp,
+  onToggleMute,
+}: {
+  call: ActiveCall;
+  ringing: boolean;
+  muted: boolean;
+  working: boolean;
+  onAnswer: () => void;
+  onDecline: () => void;
+  onHangUp: () => void;
+  onToggleMute: () => void;
+}) {
+  const elapsed = useElapsed(call.connectedAt);
+  const avatar = avatarColor(call.peer);
+  const status =
+    call.state === 'in-call' && elapsed ? elapsed : STATE_LABEL[call.state];
+
+  return (
+    <div className="flex flex-1 flex-col items-center px-6 py-10 text-center">
+      <span
+        className={cn(
+          'flex size-24 items-center justify-center rounded-full text-3xl font-semibold',
+          ringing && 'animate-pulse',
+        )}
+        style={{ backgroundColor: avatar.bg, color: avatar.fg }}
+      >
+        {call.peer.charAt(0).toUpperCase()}
+      </span>
+
+      <p className="mt-5 text-lg font-semibold text-foreground">{call.peer}</p>
+      <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground tabular-nums">
+        {ringing && <PhoneIncoming className="size-4 text-primary" />}
+        {status}
+      </p>
+
+      <div className="mt-auto flex w-full items-center justify-center gap-4 pt-10">
+        {ringing ? (
+          <>
+            <button
+              type="button"
+              onClick={onDecline}
+              disabled={working}
+              aria-label="Decline"
+              className="flex size-14 items-center justify-center rounded-full bg-red-600 text-white transition-colors hover:bg-red-600/90 disabled:opacity-60"
             >
-              <Phone className="size-4" />
-              Call
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+              <PhoneOff className="size-6" />
+            </button>
+            <button
+              type="button"
+              onClick={onAnswer}
+              disabled={working}
+              aria-label="Answer"
+              className="flex size-14 items-center justify-center rounded-full bg-emerald-600 text-white transition-colors hover:bg-emerald-600/90 disabled:opacity-60"
+            >
+              {working ? (
+                <Loader2 className="size-6 animate-spin" />
+              ) : (
+                <Phone className="size-6" />
+              )}
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={onToggleMute}
+              aria-label={muted ? 'Unmute' : 'Mute'}
+              aria-pressed={muted}
+              className={cn(
+                'flex size-14 items-center justify-center rounded-full border transition-colors',
+                muted
+                  ? 'border-transparent bg-foreground text-background'
+                  : 'border-border bg-background text-foreground hover:bg-muted',
+              )}
+            >
+              {muted ? <MicOff className="size-6" /> : <Mic className="size-6" />}
+            </button>
+            <button
+              type="button"
+              onClick={onHangUp}
+              disabled={working}
+              aria-label="End call"
+              className="flex size-14 items-center justify-center rounded-full bg-red-600 text-white transition-colors hover:bg-red-600/90 disabled:opacity-60"
+            >
+              {working ? (
+                <Loader2 className="size-6 animate-spin" />
+              ) : (
+                <PhoneOff className="size-6" />
+              )}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 

@@ -26,9 +26,12 @@ const CATEGORIES = new Set([
   'billing',
   'conversations',
   'contacts',
+  'fields',
+  'calls',
   'deals',
   'broadcast',
   'channel',
+  'system',
 ]);
 
 export async function GET(request: Request) {

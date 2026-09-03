@@ -29,14 +29,29 @@ export const AUDIT = {
 
   // Operational
   CONTACT_CREATED: 'contact.created',
+  CONTACT_UPDATED: 'contact.updated',
   CONTACT_DELETED: 'contact.deleted',
   CONTACT_TAG_ADDED: 'contact.tag_added',
   CONTACT_TAG_REMOVED: 'contact.tag_removed',
+  TAG_CREATED: 'tag.created',
+  TAG_DELETED: 'tag.deleted',
+  FIELD_CREATED: 'field.created',
+  FIELD_DELETED: 'field.deleted',
   DEAL_CREATED: 'deal.created',
   DEAL_DELETED: 'deal.deleted',
   BROADCAST_SENT: 'broadcast.sent',
   CHANNEL_CONNECTED: 'channel.connected',
   CHANNEL_DISCONNECTED: 'channel.disconnected',
+
+  // Calls
+  CALL_COMPLETED: 'call.completed',
+  CALL_MISSED: 'call.missed',
+  CALL_DECLINED: 'call.declined',
+  CALL_FAILED: 'call.failed',
+
+  // System & errors
+  MESSAGE_FAILED: 'message.failed',
+  SYSTEM_ERROR: 'system.error',
 } as const;
 
 export type AuditAction = (typeof AUDIT)[keyof typeof AUDIT];
@@ -47,9 +62,12 @@ export type AuditCategory =
   | 'billing'
   | 'conversations'
   | 'contacts'
+  | 'fields'
+  | 'calls'
   | 'deals'
   | 'broadcast'
   | 'channel'
+  | 'system'
   | 'other';
 
 interface ActionMeta {
@@ -91,17 +109,30 @@ export const ACTION_META: Record<string, ActionMeta> = {
   },
 
   [AUDIT.CONTACT_CREATED]: { label: 'Created a contact', category: 'contacts' },
+  [AUDIT.CONTACT_UPDATED]: { label: 'Updated a contact', category: 'contacts' },
   [AUDIT.CONTACT_DELETED]: { label: 'Deleted a contact', category: 'contacts' },
   [AUDIT.CONTACT_TAG_ADDED]: { label: 'Tagged a contact', category: 'contacts' },
   [AUDIT.CONTACT_TAG_REMOVED]: {
     label: 'Removed a tag from a contact',
     category: 'contacts',
   },
+  [AUDIT.TAG_CREATED]: { label: 'Created a tag', category: 'contacts' },
+  [AUDIT.TAG_DELETED]: { label: 'Deleted a tag', category: 'contacts' },
+  [AUDIT.FIELD_CREATED]: { label: 'Created a custom field', category: 'fields' },
+  [AUDIT.FIELD_DELETED]: { label: 'Deleted a custom field', category: 'fields' },
   [AUDIT.DEAL_CREATED]: { label: 'Created a deal', category: 'deals' },
   [AUDIT.DEAL_DELETED]: { label: 'Deleted a deal', category: 'deals' },
   [AUDIT.BROADCAST_SENT]: { label: 'Sent a broadcast', category: 'broadcast' },
   [AUDIT.CHANNEL_CONNECTED]: { label: 'Connected a channel', category: 'channel' },
   [AUDIT.CHANNEL_DISCONNECTED]: { label: 'Disconnected a channel', category: 'channel' },
+
+  [AUDIT.CALL_COMPLETED]: { label: 'Completed a call', category: 'calls' },
+  [AUDIT.CALL_MISSED]: { label: 'Missed a call', category: 'calls' },
+  [AUDIT.CALL_DECLINED]: { label: 'Declined a call', category: 'calls' },
+  [AUDIT.CALL_FAILED]: { label: 'Call failed', category: 'calls' },
+
+  [AUDIT.MESSAGE_FAILED]: { label: 'A message failed to send', category: 'system' },
+  [AUDIT.SYSTEM_ERROR]: { label: 'System error', category: 'system' },
 };
 
 /** Label for an action, falling back to the raw key for anything unknown. */
@@ -125,10 +156,13 @@ export const AUDIT_CATEGORIES: { value: AuditCategory; label: string }[] = [
   { value: 'team', label: 'Team & access' },
   { value: 'billing', label: 'Billing' },
   { value: 'conversations', label: 'Conversations' },
-  { value: 'contacts', label: 'Contacts' },
+  { value: 'contacts', label: 'Contacts & tags' },
+  { value: 'fields', label: 'Custom fields' },
+  { value: 'calls', label: 'Calls' },
   { value: 'deals', label: 'Deals' },
   { value: 'broadcast', label: 'Broadcasts' },
   { value: 'channel', label: 'Channels' },
+  { value: 'system', label: 'Errors & system' },
 ];
 
 /** A single audit row as returned by the API / consumed by the viewer. */

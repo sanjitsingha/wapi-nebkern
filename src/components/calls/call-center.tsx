@@ -35,7 +35,7 @@ import { Button } from '@/components/ui/button';
 // rather than an error.
 // ============================================================
 
-interface ActiveCall {
+export interface ActiveCall {
   waCallId: string;
   direction: 'inbound' | 'outbound';
   /** Display name or number. */
@@ -50,6 +50,20 @@ interface CallCenterValue {
   placeCall: (phone: string, displayName?: string) => Promise<void>;
   /** True while any call is ringing or connected. */
   busy: boolean;
+  /** The live call, or null. Exposed so a page can render its own
+   *  in-call surface instead of the floating panel. */
+  activeCall: ActiveCall | null;
+  /** True while an inbound call is still ringing (offer un-answered). */
+  ringing: boolean;
+  muted: boolean;
+  working: boolean;
+  answer: () => void;
+  decline: () => void;
+  hangUp: () => void;
+  toggleMute: () => void;
+  /** A page showing its own in-call UI calls this to hide the floating
+   *  panel while it owns the call — set false when it stops. */
+  setDockedInCall: (docked: boolean) => void;
 }
 
 const CallCenterContext = createContext<CallCenterValue | null>(null);
@@ -82,6 +96,9 @@ export function CallCenterProvider({ children }: { children: React.ReactNode }) 
   const [incomingOffer, setIncomingOffer] = useState<string | null>(null);
   const [muted, setMuted] = useState(false);
   const [working, setWorking] = useState(false);
+  // Set by a page (the Calls dock) that renders its own in-call surface,
+  // so the floating panel steps aside rather than doubling it up.
+  const [dockedInCall, setDockedInCall] = useState(false);
 
   const phoneRef = useRef<Softphone | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -386,8 +403,20 @@ export function CallCenterProvider({ children }: { children: React.ReactNode }) 
   }, [muted]);
 
   const value = useMemo<CallCenterValue>(
-    () => ({ placeCall, busy: call !== null }),
-    [placeCall, call],
+    () => ({
+      placeCall,
+      busy: call !== null,
+      activeCall: call,
+      ringing: incomingOffer !== null,
+      muted,
+      working,
+      answer,
+      decline,
+      hangUp,
+      toggleMute,
+      setDockedInCall,
+    }),
+    [placeCall, call, incomingOffer, muted, working, answer, decline, hangUp, toggleMute],
   );
 
   return (
@@ -396,7 +425,9 @@ export function CallCenterProvider({ children }: { children: React.ReactNode }) 
       {/* Always mounted: attaching the remote stream to an element that
           only exists while a call is up is a race the call loses. */}
       <audio ref={audioRef} autoPlay className="hidden" />
-      {allowed && call && (
+      {/* Held back while a page (the Calls dock) owns the in-call UI, so
+          the two never render the same call at once. */}
+      {allowed && call && !dockedInCall && (
         <CallPanel
           call={call}
           ringing={incomingOffer !== null}
@@ -414,7 +445,7 @@ export function CallCenterProvider({ children }: { children: React.ReactNode }) 
 
 /* ─── Panel ───────────────────────────────────────────────────── */
 
-const STATE_LABEL: Record<SoftphoneState, string> = {
+export const STATE_LABEL: Record<SoftphoneState, string> = {
   idle: 'Incoming call',
   'requesting-mic': 'Waiting for microphone…',
   negotiating: 'Connecting…',
@@ -519,7 +550,7 @@ function CallPanel({
  * chooses to do for its own reasons. `Math.max(0, …)` covers the tick
  * left over from a previous call whose start time was later.
  */
-function useElapsed(since: number | null): string | null {
+export function useElapsed(since: number | null): string | null {
   const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {

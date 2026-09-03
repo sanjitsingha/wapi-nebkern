@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { SettingsRail } from '@/components/settings/settings-rail';
+import { SettingsContent } from '@/components/settings/settings-content';
 
 // Settings nav lives inside a single bordered, rounded panel — sitting
 // in the normal page padding like any other page content — so it
@@ -32,10 +33,10 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
         <SettingsRail />
       </aside>
 
-      {/* Content — the only region that scrolls */}
-      <div className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:px-10 lg:py-8">
-        <div className="w-full max-w-4xl">{children}</div>
-      </div>
+      {/* Content — the only region that scrolls. Width is capped for the
+          form panels but opened up for data-table pages (activity log);
+          see SettingsContent. */}
+      <SettingsContent>{children}</SettingsContent>
     </div>
   );
 }

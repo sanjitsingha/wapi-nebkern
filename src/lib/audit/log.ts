@@ -11,7 +11,7 @@
 // ============================================================
 
 import { supabaseAdmin } from '@/lib/billing/admin-client';
-import type { AuditAction } from './events';
+import { AUDIT, type AuditAction } from './events';
 
 export interface AuditInput {
   accountId: string;
@@ -67,4 +67,39 @@ export async function logAudit(input: AuditInput): Promise<void> {
   } catch (err) {
     console.error('[audit] failed to log', input.action, err);
   }
+}
+
+/**
+ * Record a server-side error onto the activity log as a `system.error`
+ * row, so operational failures an admin should know about surface in the
+ * same feed as everything else. Best-effort, like logAudit — a call whose
+ * only job is to report a failure must never throw one of its own.
+ *
+ * `where` is a short human location ("WhatsApp webhook", "Broadcast send")
+ * used as the target label; the message + any extras land in metadata.
+ */
+export async function logError(input: {
+  accountId: string;
+  where: string;
+  error: unknown;
+  actorUserId?: string | null;
+  metadata?: Record<string, unknown> | null;
+  request?: Request;
+}): Promise<void> {
+  const message =
+    input.error instanceof Error
+      ? input.error.message
+      : typeof input.error === 'string'
+        ? input.error
+        : 'Unknown error';
+
+  await logAudit({
+    accountId: input.accountId,
+    actorUserId: input.actorUserId ?? null,
+    action: AUDIT.SYSTEM_ERROR,
+    targetType: 'system',
+    targetLabel: input.where,
+    metadata: { message: message.slice(0, 500), ...(input.metadata ?? {}) },
+    request: input.request,
+  });
 }
