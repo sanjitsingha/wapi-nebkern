@@ -1,9 +1,8 @@
 'use client';
 
 /**
- * Editor header — flow name / description, status badge, dirty
- * indicator, and the action buttons (Save, Activate/Pause, Delete,
- * View runs, Back).
+ * Editor header — flow name, status badge, dirty indicator, and the
+ * action buttons (Save, Activate/Pause, Delete, View runs, Back).
  *
  * Lifted out of flow-builder.tsx so the same header renders above
  * both views in FlowEditorShell. Without this, canvas users had no
@@ -26,7 +25,6 @@ import {
   PlayCircle,
   Save,
   Trash2,
-  Bot,
   Zap,
 } from 'lucide-react';
 
@@ -50,8 +48,8 @@ import { cn } from '@/lib/utils';
 import { useFlowEditor, type BuilderState } from './flow-editor-state';
 import { TriggerConfigForm, triggerSummary } from './trigger-config';
 
-// Single-row editor top bar: back · name/description · status · primary
-// actions (Activate/Pause, Save) · overflow menu (Runs, Delete). The
+// Single-row editor top bar: back · name · status · primary actions
+// (Activate/Pause, Save) · overflow menu (Runs, Delete). The
 // full-screen shell provides the border + padding, so this stays a
 // borderless, compact bar.
 export function EditorHeader() {
@@ -84,39 +82,34 @@ export function EditorHeader() {
 
       <span aria-hidden className="hidden h-6 w-px shrink-0 bg-border sm:block" />
 
-      <div className="hidden size-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary sm:flex">
-        <Bot className="h-4.5 w-4.5" />
-      </div>
-
-      {/* Name + description stack */}
-      <div className="ml-0.5 flex min-w-0 flex-1 flex-col justify-center">
-        <div className="flex min-w-0 items-center gap-2">
-          <input
-            value={state.name}
-            onChange={(e) => setState((s) => ({ ...s, name: e.target.value }))}
-            placeholder="Flow name"
-            className="min-w-0 flex-1 rounded-md bg-transparent px-1 py-0.5 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:bg-muted focus:outline-none sm:text-base"
-          />
-          <StatusBadge status={state.status} />
-          {dirty && (
-            <span
-              className="inline-flex shrink-0 items-center gap-1 text-[10px] font-medium tracking-wide text-amber-500 uppercase"
-              title="Unsaved changes — hit Save to persist"
-              aria-live="polite"
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-              <span className="hidden sm:inline">Edited</span>
-            </span>
-          )}
-        </div>
+      {/* Name only.
+          The description input lived under this and is gone — a second
+          field nobody filled in, taking a row of the header on every
+          flow. `flows.description` still exists on the row and anything
+          already written is preserved; it is simply no longer offered
+          for editing here. */}
+      <div className="ml-0.5 flex min-w-0 flex-1 items-center gap-2">
         <input
-          value={state.description}
-          onChange={(e) =>
-            setState((s) => ({ ...s, description: e.target.value }))
-          }
-          placeholder="Add a description (internal)"
-          className="min-w-0 truncate rounded-md bg-transparent px-1 text-xs text-muted-foreground placeholder:text-muted-foreground/70 focus:bg-muted focus:outline-none"
+          value={state.name}
+          onChange={(e) => setState((s) => ({ ...s, name: e.target.value }))}
+          placeholder="Flow name"
+          // No focus background. `focus:bg-muted` painted a grey slab
+          // behind the title the moment it was clicked, which read as
+          // something having gone wrong rather than as a field being
+          // ready. The caret is enough to show it is editable.
+          className="min-w-0 flex-1 rounded-md bg-transparent px-1 py-0.5 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:outline-none sm:text-base"
         />
+        <StatusBadge status={state.status} />
+        {dirty && (
+          <span
+            className="inline-flex shrink-0 items-center gap-1 text-[10px] font-medium tracking-wide text-amber-500 uppercase"
+            title="Unsaved changes — hit Save to persist"
+            aria-live="polite"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+            <span className="hidden sm:inline">Edited</span>
+          </span>
+        )}
       </div>
 
       {/* Right toolbar */}
