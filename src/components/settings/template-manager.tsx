@@ -52,6 +52,7 @@ import {
 import type { MessageTemplate, MessageTemplateStatus } from '@/types';
 import { templateStatusConfig } from '@/lib/template-status';
 import { OpenRowButton } from '@/components/ui/open-row-button';
+import { TablePagination } from '@/components/ui/table-pagination';
 
 const CATEGORIES = ['Marketing', 'Utility', 'Authentication'] as const;
 
@@ -141,6 +142,20 @@ export function TemplateManager() {
       return matchesStatus && matchesCategory && matchesSearch;
     });
   }, [templates, searchQuery, statusFilter, categoryFilter]);
+
+  // Only a page of rows is rendered at a time — a Meta sync can pull
+  // thousands of templates and putting them all in the DOM janks the tab.
+  const PAGE_SIZE = 25;
+  const [page, setPage] = useState(1);
+  // Any filter/search change collapses the result set, so jump back to
+  // the first page rather than stranding the user on an empty page 8.
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter, categoryFilter]);
+  const pagedTemplates = filteredTemplates.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE,
+  );
 
   function toggleStatusFilter(status: MessageTemplate['status']) {
     setStatusFilter((prev) =>
@@ -389,7 +404,7 @@ export function TemplateManager() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredTemplates.map((template) => {
+                  pagedTemplates.map((template) => {
                     const statusKey = template.status || 'DRAFT';
                     const status = templateStatusConfig[statusKey];
                     const error =
@@ -484,6 +499,13 @@ export function TemplateManager() {
               </TableBody>
             </Table>
           </div>
+
+          <TablePagination
+            page={page}
+            pageSize={PAGE_SIZE}
+            total={filteredTemplates.length}
+            onPageChange={setPage}
+          />
         </>
       )}
     </section>

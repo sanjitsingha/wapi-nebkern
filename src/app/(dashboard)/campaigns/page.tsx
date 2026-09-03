@@ -52,6 +52,7 @@ import { useCan } from '@/hooks/use-can';
 import { GatedButton } from '@/components/ui/gated-button';
 import { TemplatePickerDialog } from '@/components/broadcasts/template-picker-dialog';
 import { OpenRowButton } from '@/components/ui/open-row-button';
+import { TablePagination } from '@/components/ui/table-pagination';
 import { getBroadcastStatus } from '@/lib/broadcast-status';
 import {
   sortBroadcastsByDate,
@@ -190,6 +191,18 @@ export default function BroadcastsPage() {
     selectedStatuses,
     dateSortDirection,
   ]);
+
+  // Page the rendered rows so a long campaign history never floods the
+  // DOM at once.
+  const PAGE_SIZE = 25;
+  const [page, setPage] = useState(1);
+  useEffect(() => {
+    setPage(1);
+  }, [activeTab, searchQuery, selectedCategories, selectedStatuses]);
+  const pagedBroadcasts = filteredBroadcasts.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE,
+  );
 
   // Used to kick off polling only while something is actively sending.
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -538,7 +551,7 @@ export default function BroadcastsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredBroadcasts.map((broadcast) => {
+              {pagedBroadcasts.map((broadcast) => {
                 const status = getBroadcastStatus(broadcast.status);
                 const categoryInfo = getBroadcastCategoryInfo(broadcast);
                 const reclassified =
@@ -617,6 +630,14 @@ export default function BroadcastsPage() {
               })}
             </TableBody>
           </Table>
+          <div className="px-1 pb-1">
+            <TablePagination
+              page={page}
+              pageSize={PAGE_SIZE}
+              total={filteredBroadcasts.length}
+              onPageChange={setPage}
+            />
+          </div>
         </div>
       )}
 

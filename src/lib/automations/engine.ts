@@ -841,12 +841,23 @@ export function matchesKeywordTrigger(
 }
 
 function triggerMatches(automation: Automation, ctx: AutomationContext | undefined): boolean {
-  if (automation.trigger_type !== 'keyword_match') return true
-  const text = (ctx?.message_text ?? '').toString()
-  return matchesKeywordTrigger(
-    automation.trigger_config as KeywordMatchTriggerConfig,
-    text,
-  )
+  if (automation.trigger_type === 'keyword_match') {
+    const text = (ctx?.message_text ?? '').toString()
+    return matchesKeywordTrigger(
+      automation.trigger_config as KeywordMatchTriggerConfig,
+      text,
+    )
+  }
+  // A Tag Added automation targets one specific tag — only fire when the
+  // tag that was added is that tag. (An automation left without a tag_id
+  // fails activation validation, but guard anyway: no tag_id → fire on
+  // any tag rather than never.)
+  if (automation.trigger_type === 'tag_added') {
+    const cfg = automation.trigger_config as { tag_id?: string }
+    if (!cfg?.tag_id) return true
+    return ctx?.tag_id === cfg.tag_id
+  }
+  return true
 }
 
 async function evaluateCondition(cfg: ConditionStepConfig, args: ExecuteArgs): Promise<boolean> {

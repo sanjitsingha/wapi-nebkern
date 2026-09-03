@@ -2,14 +2,33 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { formatDistanceToNow, format } from 'date-fns';
-import { Delete, Loader2, Phone, Search } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { format } from 'date-fns';
+import {
+  CalendarDays,
+  CircleDot,
+  Clock,
+  Delete,
+  Loader2,
+  Phone,
+  Search,
+  User,
+} from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
 import { avatarColor } from '@/lib/avatar-color';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { OpenRowButton } from '@/components/ui/open-row-button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
@@ -62,6 +81,7 @@ const FILTERS: { label: string; value: StatusFilter }[] = [
 ];
 
 export function CallHistory() {
+  const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const callCenter = useCallCenter();
 
@@ -214,7 +234,7 @@ export function CallHistory() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="overflow-x-auto rounded-xl border border-border bg-card">
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="size-6 animate-spin text-primary" />
@@ -224,92 +244,119 @@ export function CallHistory() {
         ) : visible.length === 0 ? (
           <EmptyState hasAny={calls.length > 0} />
         ) : (
-          <ul className="divide-y divide-border">
-            {visible.map((call) => {
-              const { Icon, tone, label } = callOutcome(call.status, call.direction);
-              const when = call.started_at ?? call.created_at;
-              const name =
-                call.contact?.name?.trim() || call.contact?.phone || 'Unknown number';
-              // Same seed as the conversation list, thread header and
-              // contact panel (`contact.id || displayName`), so a person
-              // wears one colour everywhere in the app.
-              const avatar = avatarColor(call.contact?.id || name);
-              return (
-                <li key={call.id} className="flex items-center gap-3 px-4 py-3">
-                  <span className="relative shrink-0">
-                    <span
-                      className="flex size-9 items-center justify-center rounded-full text-sm font-semibold"
-                      style={{ backgroundColor: avatar.bg, color: avatar.fg }}
-                    >
-                      {name.charAt(0).toUpperCase()}
-                    </span>
-                    {/* The outcome rides as a badge on the avatar rather
-                        than replacing it — the colour is the identity,
-                        the icon is what happened. */}
-                    <span
-                      className={cn(
-                        'absolute -right-0.5 -bottom-0.5 flex size-4 items-center justify-center rounded-full bg-card',
-                        tone,
-                      )}
-                    >
-                      <Icon className="size-3" />
-                    </span>
-                  </span>
-
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground">
-                      {name}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {label}
-                      {call.contact?.phone && call.contact?.name
-                        ? ` · ${call.contact.phone}`
-                        : ''}
-                    </p>
-                  </div>
-
-                  <div className="shrink-0 text-right">
-                    <p className="text-sm font-medium text-foreground">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
+                <TableHead className="px-6 py-3.5 text-muted-foreground" icon={User}>
+                  Contact
+                </TableHead>
+                <TableHead
+                  className="hidden px-6 py-3.5 text-muted-foreground md:table-cell"
+                  icon={Phone}
+                >
+                  Phone
+                </TableHead>
+                <TableHead className="px-6 py-3.5 text-muted-foreground" icon={CircleDot}>
+                  Outcome
+                </TableHead>
+                <TableHead
+                  className="hidden px-6 py-3.5 text-muted-foreground sm:table-cell"
+                  icon={Clock}
+                >
+                  Duration
+                </TableHead>
+                <TableHead
+                  className="hidden px-6 py-3.5 text-muted-foreground lg:table-cell"
+                  icon={CalendarDays}
+                >
+                  When
+                </TableHead>
+                <TableHead className="px-6 py-3.5 text-right text-muted-foreground">
+                  Actions
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {visible.map((call) => {
+                const { Icon, tone, label } = callOutcome(call.status, call.direction);
+                const when = call.started_at ?? call.created_at;
+                const name =
+                  call.contact?.name?.trim() ||
+                  call.contact?.phone ||
+                  'Unknown number';
+                // Same seed as the conversation list, thread header and
+                // contact panel (`contact.id || displayName`), so a person
+                // wears one colour everywhere in the app.
+                const avatar = avatarColor(call.contact?.id || name);
+                return (
+                  <TableRow key={call.id} className="border-border hover:bg-muted/40">
+                    <TableCell className="group/cell px-6 py-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span
+                            className="flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
+                            style={{ backgroundColor: avatar.bg, color: avatar.fg }}
+                          >
+                            {name.charAt(0).toUpperCase()}
+                          </span>
+                          <span className="truncate font-medium text-foreground">
+                            {name}
+                          </span>
+                        </div>
+                        {call.conversation_id && (
+                          <OpenRowButton
+                            label="Open chat"
+                            stopPropagation={false}
+                            onClick={() =>
+                              router.push(
+                                `/inbox?conversation=${call.conversation_id}`,
+                              )
+                            }
+                          />
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden px-6 py-4 text-sm text-muted-foreground tabular-nums md:table-cell">
+                      {call.contact?.phone ?? '—'}
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <span className="inline-flex items-center gap-2 text-sm text-foreground">
+                        <Icon className={cn('size-4 shrink-0', tone)} />
+                        {label}
+                      </span>
+                    </TableCell>
+                    <TableCell className="hidden px-6 py-4 text-sm text-muted-foreground tabular-nums sm:table-cell">
                       {formatCallDuration(call.duration_seconds)}
-                    </p>
-                    {/* Absolute time in the title: "3 days ago" is easier
-                        to scan but useless when someone needs the actual
-                        timestamp for a dispute. */}
-                    <p
-                      className="text-xs text-muted-foreground"
+                    </TableCell>
+                    <TableCell
+                      className="hidden px-6 py-4 text-sm text-muted-foreground whitespace-nowrap lg:table-cell"
                       title={format(new Date(when), 'PPpp')}
                     >
-                      {formatDistanceToNow(new Date(when), { addSuffix: true })}
-                    </p>
-                  </div>
-
-                  {call.contact?.phone && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Call ${name} back`}
-                      disabled={callCenter?.busy}
-                      onClick={() =>
-                        callCenter?.placeCall(call.contact!.phone!, name)
-                      }
-                      className="shrink-0 text-muted-foreground hover:text-primary"
-                    >
-                      <Phone className="size-4" />
-                    </Button>
-                  )}
-
-                  {call.conversation_id && (
-                    <Link
-                      href={`/inbox?conversation=${call.conversation_id}`}
-                      className="shrink-0 text-xs font-medium text-primary underline-offset-2 hover:underline"
-                    >
-                      Open chat
-                    </Link>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+                      {format(new Date(when), 'MMM d, yyyy · h:mm a')}
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-right">
+                      {call.contact?.phone ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Call ${name} back`}
+                          disabled={callCenter?.busy}
+                          onClick={() =>
+                            callCenter?.placeCall(call.contact!.phone!, name)
+                          }
+                          className="shrink-0 text-muted-foreground hover:text-primary"
+                        >
+                          <Phone className="size-4" />
+                        </Button>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         )}
       </div>
 

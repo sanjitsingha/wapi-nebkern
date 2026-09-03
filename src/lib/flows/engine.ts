@@ -33,6 +33,7 @@
  */
 
 import { supabaseAdmin } from "./admin-client";
+import { runAutomationsForTrigger } from "@/lib/automations/engine";
 import {
   engineSendInteractiveButtons,
   engineSendInteractiveList,
@@ -798,6 +799,22 @@ async function advanceFromNodeKey(
               { contact_id: run.contact_id!, tag_id: cfg.tag_id },
               { onConflict: "contact_id,tag_id" },
             );
+          // Adding a tag here must be able to kick off a "Tag Added"
+          // automation — otherwise a flow that tags a contact and an
+          // automation that reacts to that tag never connect. Fire-and-
+          // forget: a downstream automation failure must not stall the
+          // flow, and the tag write already landed.
+          void runAutomationsForTrigger({
+            accountId: run.account_id,
+            triggerType: "tag_added",
+            contactId: run.contact_id!,
+            context: {
+              tag_id: cfg.tag_id,
+              conversation_id: run.conversation_id ?? undefined,
+            },
+          }).catch((err) =>
+            console.error("[flows] tag_added dispatch failed:", err),
+          );
         } else {
           await db
             .from("contact_tags")

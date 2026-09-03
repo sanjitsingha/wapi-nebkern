@@ -57,6 +57,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { TablePagination } from '@/components/ui/table-pagination';
 
 type KindFilter = 'all' | MediaKind;
 
@@ -153,6 +154,15 @@ export default function MediaPage() {
         (q === '' || i.name.toLowerCase().includes(q)),
     );
   }, [items, search, kindFilter]);
+
+  // Render one page at a time — a big library shouldn't put every row
+  // (each with a thumbnail) in the DOM at once.
+  const PAGE_SIZE = 24;
+  const [page, setPage] = useState(1);
+  useEffect(() => {
+    setPage(1);
+  }, [search, kindFilter]);
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // "Filter" while nothing is narrowed down, the kind's own name once it
   // is — so the button reads as the control and then as the state.
@@ -307,7 +317,7 @@ export default function MediaPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((item) => {
+              {paged.map((item) => {
                 return (
                   <TableRow key={item.id} className="border-border hover:bg-muted/40">
                     {/* Thumbnail */}
@@ -387,6 +397,15 @@ export default function MediaPage() {
             </TableBody>
           </Table>
         </div>
+      )}
+
+      {!loading && filtered.length > 0 && (
+        <TablePagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={filtered.length}
+          onPageChange={setPage}
+        />
       )}
 
       {/* Delete confirmation */}

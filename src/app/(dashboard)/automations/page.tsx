@@ -38,6 +38,7 @@ import {
 import { triggerMeta } from "@/lib/automations/trigger-meta"
 import { format } from "date-fns"
 import { OpenRowButton } from "@/components/ui/open-row-button"
+import { TablePagination } from "@/components/ui/table-pagination"
 
 // Automations have a single boolean, is_active — surfaced here as a
 // two-value status so it reads (and filters) like Flows' status column.
@@ -96,6 +97,16 @@ export default function AutomationsPage() {
       return haystack.includes(q)
     })
   }, [automations, search, statusFilter])
+
+  const PAGE_SIZE = 25
+  const [page, setPage] = useState(1)
+  useEffect(() => {
+    setPage(1)
+  }, [search, statusFilter])
+  const pagedAutomations = filteredAutomations.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE,
+  )
 
   if (error) {
     return (
@@ -237,7 +248,7 @@ export default function AutomationsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredAutomations.map((a) => (
+                  {pagedAutomations.map((a) => (
                     <AutomationTableRow
                       key={a.id}
                       automation={a}
@@ -249,6 +260,13 @@ export default function AutomationsPage() {
               </Table>
             </div>
           )}
+
+          <TablePagination
+            page={page}
+            pageSize={PAGE_SIZE}
+            total={filteredAutomations.length}
+            onPageChange={setPage}
+          />
         </div>
       )}
     </div>

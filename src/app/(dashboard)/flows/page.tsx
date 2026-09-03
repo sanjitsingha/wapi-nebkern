@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { OpenRowButton } from "@/components/ui/open-row-button";
+import { TablePagination } from "@/components/ui/table-pagination";
 
 /**
  * Flows list page.
@@ -207,6 +208,13 @@ export default function FlowsPage() {
     });
   }, [flows, search, statusFilter]);
 
+  const PAGE_SIZE = 25;
+  const [page, setPage] = useState(1);
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter]);
+  const pagedFlows = filteredFlows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -343,7 +351,7 @@ export default function FlowsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredFlows.map((flow) => (
+                  {pagedFlows.map((flow) => (
                     <FlowTableRow
                       key={flow.id}
                       flow={flow}
@@ -355,6 +363,13 @@ export default function FlowsPage() {
               </Table>
             </div>
           )}
+
+          <TablePagination
+            page={page}
+            pageSize={PAGE_SIZE}
+            total={filteredFlows.length}
+            onPageChange={setPage}
+          />
         </div>
       )}
 

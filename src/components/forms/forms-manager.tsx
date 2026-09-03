@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/table';
 import type { WhatsAppForm } from '@/types';
 import { OpenRowButton } from '@/components/ui/open-row-button';
+import { TablePagination } from '@/components/ui/table-pagination';
 
 /**
  * List for WhatsApp Forms (native WhatsApp Flows — see
@@ -74,6 +75,13 @@ export function FormsManager() {
     if (!q) return forms;
     return forms.filter((f) => f.name.toLowerCase().includes(q));
   }, [forms, searchQuery]);
+
+  const PAGE_SIZE = 25;
+  const [page, setPage] = useState(1);
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
+  const pagedForms = filteredForms.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   if (loading) {
     return (
@@ -155,7 +163,7 @@ export function FormsManager() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredForms.map((form) => {
+                {pagedForms.map((form) => {
                   const status = formStatusConfig[form.status];
                   const hasErrors = form.validation_errors?.length > 0;
                   return (
@@ -200,6 +208,13 @@ export function FormsManager() {
               </TableBody>
             </Table>
           </div>
+
+          <TablePagination
+            page={page}
+            pageSize={PAGE_SIZE}
+            total={filteredForms.length}
+            onPageChange={setPage}
+          />
         </>
       )}
     </section>
