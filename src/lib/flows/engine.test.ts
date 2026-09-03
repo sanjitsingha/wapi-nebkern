@@ -297,3 +297,70 @@ describe("evaluateConditionPredicate", () => {
     ).toBe(false);
   });
 });
+
+describe("evaluateConditionPredicate — the operators added for richer branching", () => {
+  const run = (
+    operator: Parameters<typeof evaluateConditionPredicate>[0]["operator"],
+    subjectValue: string | undefined,
+    configValue?: string,
+  ) => evaluateConditionPredicate({ operator, subjectValue, configValue });
+
+  it("negatives are false on an absent subject, not true", () => {
+    // A variable that was never captured is a question about nothing.
+    // Answering true would send every contact down the negative branch
+    // on a typo in the variable name.
+    expect(run("not_equals", undefined, "vip")).toBe(false);
+    expect(run("not_contains", undefined, "vip")).toBe(false);
+    expect(run("not_in", undefined, "a,b")).toBe(false);
+  });
+
+  it("not_equals / not_contains", () => {
+    expect(run("not_equals", "gold", "vip")).toBe(true);
+    expect(run("not_equals", "vip", "vip")).toBe(false);
+    expect(run("not_contains", "gold member", "vip")).toBe(true);
+    expect(run("not_contains", "vip member", "vip")).toBe(false);
+  });
+
+  it("starts_with / ends_with, case-insensitively", () => {
+    expect(run("starts_with", "Order 1042", "order")).toBe(true);
+    expect(run("ends_with", "ORD-1042", "1042")).toBe(true);
+    expect(run("starts_with", "Order 1042", "1042")).toBe(false);
+  });
+
+  it("compares numbers as numbers, not as text", () => {
+    // The bug this exists to prevent: "9" > "10" is true as strings.
+    expect(run("gt", "9", "10")).toBe(false);
+    expect(run("lt", "9", "10")).toBe(true);
+    expect(run("gte", "10", "10")).toBe(true);
+    expect(run("lte", "10", "10")).toBe(true);
+  });
+
+  it("reads a number out of the shapes a real value arrives in", () => {
+    expect(run("gt", "₹2,499", "1000")).toBe(true);
+    expect(run("gte", " 2499.00 ", "2499")).toBe(true);
+  });
+
+  it("a non-numeric side is false, never a string fallback", () => {
+    expect(run("gt", "abc", "10")).toBe(false);
+    expect(run("lt", "10", "abc")).toBe(false);
+    expect(run("gt", "", "10")).toBe(false);
+  });
+
+  it("in / not_in over a comma or semicolon list", () => {
+    expect(run("in", "Kochi", "Kochi, Kollam, Alappuzha")).toBe(true);
+    expect(run("in", "kochi", "Kochi; Kollam")).toBe(true);
+    expect(run("in", "Delhi", "Kochi, Kollam")).toBe(false);
+    expect(run("not_in", "Delhi", "Kochi, Kollam")).toBe(true);
+  });
+
+  it("ignores blank entries in a list", () => {
+    // "a,,b" is a trailing comma, not a rule that matches empty string.
+    expect(run("in", "", "a,,b")).toBe(false);
+  });
+
+  it("still treats present/absent as before", () => {
+    expect(run("present", "x")).toBe(true);
+    expect(run("present", "")).toBe(false);
+    expect(run("absent", undefined)).toBe(true);
+  });
+});

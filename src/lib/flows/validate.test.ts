@@ -547,3 +547,84 @@ describe("reachableFromEntry", () => {
     expect(set).toEqual(new Set(["a", "b"]));
   });
 });
+
+describe("validateFlowForActivation — condition operators", () => {
+  /** A minimal flow whose only interesting node is the condition. */
+  const withCondition = (config: Record<string, unknown>) => [
+    { node_key: "start", node_type: "start", config: { next_node_key: "c" } },
+    { node_key: "c", node_type: "condition", config },
+    { node_key: "ho", node_type: "handoff", config: {} },
+  ];
+
+  const base = {
+    subject: "var",
+    subject_key: "email",
+    true_next: "ho",
+    false_next: "ho",
+  };
+
+  const issuesFor = (config: Record<string, unknown>) =>
+    validateFlowForActivation(validFlow, withCondition(config));
+
+  it("accepts every operator the engine understands", () => {
+    // The regression this guards: the validator used to hardcode four
+    // operators, so a flow using any of the others could not publish.
+    for (const operator of [
+      "equals",
+      "not_equals",
+      "contains",
+      "not_contains",
+      "starts_with",
+      "ends_with",
+      "gt",
+      "gte",
+      "lt",
+      "lte",
+      "in",
+      "not_in",
+    ]) {
+      const issues = issuesFor({ ...base, operator, value: "1" });
+      expect(
+        issues.filter((i) => i.field === "operator"),
+        `operator ${operator} was rejected`,
+      ).toEqual([]);
+    }
+  });
+
+  it("still rejects an unknown operator", () => {
+    expect(issuesFor({ ...base, operator: "sideways" })).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: "operator", severity: "error" }),
+      ]),
+    );
+  });
+
+  it("does not ask for a value on present / absent", () => {
+    for (const operator of ["present", "absent"]) {
+      const issues = issuesFor({ ...base, operator });
+      expect(issues.filter((i) => i.field === "value")).toEqual([]);
+    }
+  });
+
+  it("warns when a comparison operator has no value", () => {
+    expect(issuesFor({ ...base, operator: "starts_with", value: "" })).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: "value", severity: "warning" }),
+      ]),
+    );
+  });
+
+  it("warns when a numeric operator is given a non-number", () => {
+    // Silently false forever otherwise — worth catching at build time.
+    expect(issuesFor({ ...base, operator: "gt", value: "lots" })).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: "value", severity: "warning" }),
+      ]),
+    );
+  });
+
+  it("accepts a numeric operator with a number", () => {
+    const issues = issuesFor({ ...base, operator: "gte", value: "1000" });
+    expect(issues.filter((i) => i.field === "value")).toEqual([]);
+  });
+});

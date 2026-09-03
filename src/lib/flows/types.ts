@@ -138,7 +138,22 @@ export interface CollectInputNodeConfig {
 
 export type ConditionOperator =
   | "equals"
+  | "not_equals"
   | "contains"
+  | "not_contains"
+  | "starts_with"
+  | "ends_with"
+  // Numeric. The subject is parsed as a number and the comparison is
+  // skipped (false) when either side is not one — string comparison
+  // would put "9" above "10", which is the kind of bug that only
+  // surfaces once a real order value crosses a boundary.
+  | "gt"
+  | "gte"
+  | "lt"
+  | "lte"
+  // Comma-separated list membership: "Kochi, Kollam, Alappuzha".
+  | "in"
+  | "not_in"
   | "present"
   | "absent";
 

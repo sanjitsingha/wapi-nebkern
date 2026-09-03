@@ -24,6 +24,42 @@
  */
 
 import { INTERACTIVE_LIMITS } from "@/lib/whatsapp/meta-api";
+import type { ConditionOperator, ConditionSubject } from "./types";
+
+/**
+ * Every operator the engine understands.
+ *
+ * A Set built from one literal list, rather than the union repeated as
+ * a string array at each check — the previous shape meant the engine
+ * and the validator could disagree, and did.
+ */
+const CONDITION_OPERATORS = new Set<ConditionOperator>([
+  "equals",
+  "not_equals",
+  "contains",
+  "not_contains",
+  "starts_with",
+  "ends_with",
+  "gt",
+  "gte",
+  "lt",
+  "lte",
+  "in",
+  "not_in",
+  "present",
+  "absent",
+]);
+
+/** Operators that compare against nothing, so an empty value is fine. */
+const VALUELESS_OPERATORS = new Set<ConditionOperator>(["present", "absent"]);
+
+/** Operators that parse both sides as numbers. */
+const NUMERIC_OPERATORS = new Set<ConditionOperator>([
+  "gt",
+  "gte",
+  "lt",
+  "lte",
+]);
 
 export interface ValidationIssue {
   severity: "error" | "warning";
@@ -586,9 +622,12 @@ function validateNode(
 
     case "condition": {
       const cfg = node.config as {
-        subject?: "var" | "tag" | "contact_field";
+        subject?: ConditionSubject;
         subject_key?: string;
-        operator?: "equals" | "contains" | "present" | "absent";
+        // Imported, not re-listed. Spelled out here it silently
+        // rejected every operator the engine gained, so a valid flow
+        // failed to publish with "Condition needs an operator."
+        operator?: ConditionOperator;
         value?: string;
         true_next?: string;
         false_next?: string;
@@ -611,10 +650,7 @@ function validateNode(
           message: "Condition needs a subject_key (var name, tag id, or field name).",
         });
       }
-      if (
-        !cfg.operator ||
-        !["equals", "contains", "present", "absent"].includes(cfg.operator)
-      ) {
+      if (!cfg.operator || !CONDITION_OPERATORS.has(cfg.operator)) {
         issues.push({
           severity: "error",
           scope: "node",
@@ -623,7 +659,7 @@ function validateNode(
           message: "Condition needs an operator.",
         });
       } else if (
-        (cfg.operator === "equals" || cfg.operator === "contains") &&
+        !VALUELESS_OPERATORS.has(cfg.operator) &&
         (cfg.value === undefined || cfg.value === "")
       ) {
         issues.push({
@@ -631,7 +667,22 @@ function validateNode(
           scope: "node",
           node_key: node.node_key,
           field: "value",
-          message: `Operator "${cfg.operator}" usually expects a comparison value — empty value will only match empty subjects.`,
+          message: `Operator "${cfg.operator}" expects a comparison value — with it empty this branch will almost never be true.`,
+        });
+      } else if (
+        NUMERIC_OPERATORS.has(cfg.operator) &&
+        cfg.value !== undefined &&
+        !/\d/.test(cfg.value)
+      ) {
+        // A numeric operator against a non-numeric value evaluates to
+        // false every time, by design (see the engine). Silently, and
+        // for the whole life of the flow — worth saying at build time.
+        issues.push({
+          severity: "warning",
+          scope: "node",
+          node_key: node.node_key,
+          field: "value",
+          message: `Operator "${cfg.operator}" compares numbers, but "${cfg.value}" is not one — this branch will always be false.`,
         });
       }
       for (const branch of ["true_next", "false_next"] as const) {

@@ -24,7 +24,7 @@
  * renders the advanced rows.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Loader2,
   Paperclip,
@@ -40,12 +40,19 @@ import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { uploadAccountMedia, MEDIA_MAX_BYTES } from "@/lib/storage/upload-media";
+import type {
+  ConditionOperator,
+  ConditionSubject,
+} from "@/lib/flows/types";
 import { slugify, type BuilderNode } from "../shared";
 import { NextNodeRow, NodeKeySelect, TextRow } from "./fields";
 
@@ -156,6 +163,20 @@ export function NodeConfigForm({
                 {"}}"}
               </code>
               .
+            </p>
+            {/* Said here because this is where someone decides to ask.
+                A flow that opens by asking for a name the CRM already
+                holds is the most common way one of these reads badly. */}
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              No need to ask for{" "}
+              <code className="rounded bg-muted px-1">name</code>,{" "}
+              <code className="rounded bg-muted px-1">phone</code>,{" "}
+              <code className="rounded bg-muted px-1">email</code>,{" "}
+              <code className="rounded bg-muted px-1">city</code> or{" "}
+              <code className="rounded bg-muted px-1">tags</code> — those are
+              already filled in from the contact, along with{" "}
+              <code className="rounded bg-muted px-1">message</code>, what they
+              just sent.
             </p>
           </div>
           <NextNodeRow
@@ -579,9 +600,13 @@ function SendListForm({
 // ============================================================
 
 interface ConditionCfg {
-  subject?: "var" | "tag" | "contact_field";
+  subject?: ConditionSubject;
   subject_key?: string;
-  operator?: "equals" | "contains" | "present" | "absent";
+  // Imported rather than re-declared. This union used to be spelled out
+  // here as well, so adding an operator to the engine left the form
+  // silently unable to offer it — the two drifted apart with nothing to
+  // catch it.
+  operator?: ConditionOperator;
   value?: string;
   true_next?: string;
   false_next?: string;
@@ -593,6 +618,93 @@ interface UserTag {
   color?: string;
 }
 
+/** Operators, grouped so the list reads as kinds of comparison rather
+ *  than one flat run of fourteen. */
+const CONDITION_OPERATORS: {
+  group: string;
+  items: { value: NonNullable<ConditionCfg["operator"]>; label: string }[];
+}[] = [
+  {
+    group: "Text",
+    items: [
+      { value: "equals", label: "is exactly" },
+      { value: "not_equals", label: "is not" },
+      { value: "contains", label: "contains" },
+      { value: "not_contains", label: "does not contain" },
+      { value: "starts_with", label: "starts with" },
+      { value: "ends_with", label: "ends with" },
+    ],
+  },
+  {
+    group: "Number",
+    items: [
+      { value: "gt", label: "is greater than" },
+      { value: "gte", label: "is at least" },
+      { value: "lt", label: "is less than" },
+      { value: "lte", label: "is at most" },
+    ],
+  },
+  {
+    group: "List",
+    items: [
+      { value: "in", label: "is one of" },
+      { value: "not_in", label: "is not one of" },
+    ],
+  },
+  {
+    group: "Presence",
+    items: [
+      { value: "present", label: "has any value" },
+      { value: "absent", label: "is empty" },
+    ],
+  },
+];
+
+/** Operators that compare against nothing — the value box is hidden. */
+const VALUELESS_OPERATORS = new Set(["present", "absent"]);
+
+/** Contact columns worth branching on. Deliberately the same four the
+ *  engine resolves — offering a field it cannot read would produce a
+ *  branch that silently never fires. */
+const CONTACT_FIELDS = ["name", "email", "phone", "company"] as const;
+
+/**
+ * Variables every run starts with, seeded by the engine before the
+ * first node executes — see `seedVarsFromContact`.
+ *
+ * They existed before this list did, and were invisible: the picker
+ * only offered keys from collect_input nodes, so a flow author had no
+ * way to learn that `{{vars.name}}` already held the contact's name
+ * and would ask for it with a question instead.
+ */
+const SEEDED_VARS: { key: string; note: string }[] = [
+  { key: "message", note: "what they just sent" },
+  { key: "name", note: "from the contact" },
+  { key: "phone", note: "from the contact" },
+  { key: "email", note: "from the contact" },
+  { key: "company", note: "from the contact" },
+  { key: "city", note: "from the contact" },
+  { key: "state", note: "from the contact" },
+  { key: "country", note: "from the contact" },
+  { key: "pin_code", note: "from the contact" },
+  { key: "tags", note: "comma-separated tag names" },
+];
+
+/**
+ * The if/else node's configuration.
+ *
+ * Laid out as a sentence — "If <subject> <operator> <value>" — rather
+ * than a labelled grid of If / var name / Operator / Value. The old
+ * layout read as a database form and gave no hint of what the node
+ * actually did at a glance.
+ *
+ * The variable picker lists the keys this flow ACTUALLY captures,
+ * gathered from every collect_input node. It used to be a bare text box
+ * with the placeholder "e.g. email", so getting a branch working
+ * depended on remembering a key exactly — and a typo produced a
+ * condition that was simply always false, with nothing on screen to
+ * say so.
+ */
 function ConditionForm({
   cfg,
   allNodes,
@@ -608,44 +720,61 @@ function ConditionForm({
 
   const subject = cfg.subject ?? "var";
   const operator = cfg.operator ?? "equals";
-  const showValue = operator === "equals" || operator === "contains";
+  const showValue = !VALUELESS_OPERATORS.has(operator);
+  const isList = operator === "in" || operator === "not_in";
+  const isNumeric = ["gt", "gte", "lt", "lte"].includes(operator);
+
+  // Variables this flow captures, from every collect_input node. Not
+  // filtered to upstream nodes: the builder does not enforce ordering,
+  // and hiding a key because of where it sits on the canvas would be
+  // more confusing than listing one that has not run yet.
+  const capturedVars = useMemo(() => {
+    const keys = new Set<string>();
+    for (const n of allNodes) {
+      if (n.node_type !== "collect_input") continue;
+      const key = (n.config as { var_key?: string })?.var_key?.trim();
+      if (key) keys.add(key);
+    }
+    return [...keys].sort();
+  }, [allNodes]);
+
+  const selectedTag = tags.find((t) => t.id === cfg.subject_key);
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <div>
-          <label className="mb-1 block text-xs text-muted-foreground">If</label>
+      {/* The rule, as one sentence. */}
+      <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium text-foreground">If</span>
+
           <Select
             value={subject}
             onValueChange={(v) =>
-              onUpdateConfig({ subject: v as ConditionCfg["subject"] })
+              // Changing the subject invalidates the key that went with
+              // it — a tag UUID is meaningless as a variable name.
+              onUpdateConfig({
+                subject: v as ConditionCfg["subject"],
+                subject_key: "",
+              })
             }
           >
-            <SelectTrigger className="bg-muted">
+            <SelectTrigger className="h-8 w-auto min-w-36 bg-background">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="var">Captured variable</SelectItem>
-              <SelectItem value="tag">Contact has tag</SelectItem>
-              <SelectItem value="contact_field">Contact field</SelectItem>
+              <SelectItem value="var">a captured answer</SelectItem>
+              <SelectItem value="tag">a contact tag</SelectItem>
+              <SelectItem value="contact_field">a contact field</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-        <div className="md:col-span-2">
-          <label className="mb-1 block text-xs text-muted-foreground">
-            {subject === "var"
-              ? "var name"
-              : subject === "tag"
-                ? "Tag"
-                : "Field"}
-          </label>
-          {subject === "tag" && tags.length > 0 ? (
+
+          {subject === "tag" ? (
             <Select
-              value={cfg.subject_key ?? ""}
+              value={cfg.subject_key || ""}
               onValueChange={(v) => onUpdateConfig({ subject_key: v })}
             >
-              <SelectTrigger className="bg-muted">
-                <SelectValue placeholder="Pick a tag…" />
+              <SelectTrigger className="h-8 w-auto min-w-36 bg-background">
+                <SelectValue placeholder="pick a tag…" />
               </SelectTrigger>
               <SelectContent>
                 {tags.map((t) => (
@@ -657,66 +786,125 @@ function ConditionForm({
             </Select>
           ) : subject === "contact_field" ? (
             <Select
-              value={cfg.subject_key ?? ""}
+              value={cfg.subject_key || ""}
               onValueChange={(v) => onUpdateConfig({ subject_key: v })}
             >
-              <SelectTrigger className="bg-muted">
-                <SelectValue placeholder="Pick a field…" />
+              <SelectTrigger className="h-8 w-auto min-w-32 bg-background">
+                <SelectValue placeholder="pick a field…" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="name">name</SelectItem>
-                <SelectItem value="email">email</SelectItem>
-                <SelectItem value="phone">phone</SelectItem>
-                <SelectItem value="company">company</SelectItem>
+                {CONTACT_FIELDS.map((f) => (
+                  <SelectItem key={f} value={f}>
+                    {f}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           ) : (
-            <Input
-              value={cfg.subject_key ?? ""}
-              onChange={(e) =>
-                onUpdateConfig({ subject_key: e.target.value })
-              }
-              placeholder={subject === "var" ? "e.g. email" : "tag UUID"}
-              className="bg-muted font-mono text-xs"
-            />
+            // Two groups: what the run already knows before it starts,
+            // and what this flow asks for. The seeded group is the
+            // point — without it an author asks a question for
+            // something the CRM already holds.
+            <Select
+              value={cfg.subject_key || ""}
+              onValueChange={(v) => onUpdateConfig({ subject_key: v })}
+            >
+              <SelectTrigger className="h-8 w-auto min-w-40 bg-background">
+                <SelectValue placeholder="pick a value…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Already known</SelectLabel>
+                  {SEEDED_VARS.map((v) => (
+                    <SelectItem key={v.key} value={v.key}>
+                      {v.key}
+                      <span className="ml-1.5 text-muted-foreground">
+                        {v.note}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+                {capturedVars.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel>Asked in this flow</SelectLabel>
+                    {capturedVars.map((k) => (
+                      <SelectItem key={k} value={k}>
+                        {k}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+              </SelectContent>
+            </Select>
           )}
-        </div>
-      </div>
 
-      <div
-        className={cn(
-          "grid grid-cols-1 gap-3",
-          showValue ? "md:grid-cols-2" : "",
-        )}
-      >
-        <div>
-          <label className="mb-1 block text-xs text-muted-foreground">Operator</label>
           <Select
             value={operator}
             onValueChange={(v) =>
               onUpdateConfig({ operator: v as ConditionCfg["operator"] })
             }
           >
-            <SelectTrigger className="bg-muted">
+            <SelectTrigger className="h-8 w-auto min-w-36 bg-background">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="present">is present</SelectItem>
-              <SelectItem value="absent">is absent</SelectItem>
-              <SelectItem value="equals">equals</SelectItem>
-              <SelectItem value="contains">contains</SelectItem>
+              {CONDITION_OPERATORS.map((g) => (
+                <SelectGroup key={g.group}>
+                  <SelectLabel>{g.group}</SelectLabel>
+                  {g.items.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              ))}
             </SelectContent>
           </Select>
-        </div>
-        {showValue && (
-          <div>
-            <label className="mb-1 block text-xs text-muted-foreground">Value</label>
+
+          {showValue && (
             <Input
               value={cfg.value ?? ""}
               onChange={(e) => onUpdateConfig({ value: e.target.value })}
-              className="bg-muted"
+              inputMode={isNumeric ? "decimal" : "text"}
+              placeholder={
+                isList ? "Kochi, Kollam, Delhi" : isNumeric ? "1000" : "value"
+              }
+              className="h-8 w-auto min-w-32 flex-1 bg-background"
             />
-          </div>
+          )}
+        </div>
+
+        {/* Say what an operator means where the label alone does not. */}
+        {isList && (
+          <p className="text-[11px] text-muted-foreground">
+            Separate the options with commas. Matching ignores upper and lower
+            case.
+          </p>
+        )}
+        {isNumeric && (
+          <p className="text-[11px] text-muted-foreground">
+            Compared as a number. If either side is not a number the condition
+            is false — it never falls back to comparing text.
+          </p>
+        )}
+        {subject === "var" && capturedVars.length === 0 && (
+          <p className="text-[11px] text-muted-foreground">
+            The values under &ldquo;Already known&rdquo; need no question —
+            they are filled in before the flow starts. Add an &ldquo;Ask a
+            question&rdquo; step to collect anything else.
+          </p>
+        )}
+        {subject === "tag" && tags.length === 0 && (
+          <p className="text-[11px] text-amber-500">
+            No tags on this account yet. Create one under Contacts → a
+            contact → Tags, and it will appear here.
+          </p>
+        )}
+        {subject === "tag" && tags.length > 0 && !selectedTag && cfg.subject_key && (
+          <p className="text-[11px] text-amber-500">
+            That tag no longer exists. Pick another, or this branch is always
+            false.
+          </p>
         )}
       </div>
 
@@ -832,14 +1020,23 @@ function useUserTags(): UserTag[] {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const res = await fetch("/api/tags").catch(() => null);
-        if (!res || !res.ok) return;
-        const json = (await res.json()) as { tags?: UserTag[] };
-        if (!cancelled) setTags(json.tags ?? []);
-      } catch {
-        // Tags endpoint absent — caller falls back to raw input.
+      // Straight to Supabase, the way every other tag picker in the app
+      // reads them (contacts, campaigns, automations). This used to
+      // fetch "/api/tags", a route that does not exist — the 404 was
+      // swallowed by the catch and the dropdown just stayed empty, with
+      // nothing anywhere to say why.
+      //
+      // RLS scopes `tags` to the caller's account, so no filter here.
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("tags")
+        .select("id, name, color")
+        .order("name");
+      if (error) {
+        console.error("[flows] tag load failed:", error.message);
+        return;
       }
+      if (!cancelled) setTags((data as UserTag[] | null) ?? []);
     })();
     return () => {
       cancelled = true;

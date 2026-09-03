@@ -150,18 +150,94 @@ export function evaluateConditionPredicate(args: {
   /** The configured comparison value, when applicable. */
   configValue: string | undefined;
 }): boolean {
+  const subject = args.subjectValue;
+  const config = args.configValue ?? "";
+
   switch (args.operator) {
     case "present":
-      return args.subjectValue !== undefined && args.subjectValue !== "";
+      return subject !== undefined && subject !== "";
     case "absent":
-      return args.subjectValue === undefined || args.subjectValue === "";
-    case "equals":
-      if (args.subjectValue === undefined) return false;
-      return args.subjectValue === (args.configValue ?? "");
-    case "contains":
-      if (args.subjectValue === undefined) return false;
-      return args.subjectValue.includes(args.configValue ?? "");
+      return subject === undefined || subject === "";
   }
+
+  // Every operator below compares two values, so an absent subject is
+  // false for all of them — including the negative ones. "not equals"
+  // on a variable that was never captured is a question about nothing,
+  // and answering true would send every such contact down the negative
+  // branch on a typo in the variable name.
+  if (subject === undefined) return false;
+
+  switch (args.operator) {
+    // `equals` and `contains` stay case-SENSITIVE. They shipped that
+    // way and live flows are matching against it; quietly folding case
+    // now would change what an already-working flow does, which is not
+    // a change to make as a side effect of adding operators. The new
+    // operators below are case-insensitive, because that is the right
+    // default for text a customer typed — and being new, they break
+    // nothing.
+    case "equals":
+      return subject === config;
+    case "not_equals":
+      return subject !== config;
+    case "contains":
+      return subject.includes(config);
+    case "not_contains":
+      return !subject.includes(config);
+    case "starts_with":
+      return caseFold(subject).startsWith(caseFold(config));
+    case "ends_with":
+      return caseFold(subject).endsWith(caseFold(config));
+
+    case "gt":
+    case "gte":
+    case "lt":
+    case "lte": {
+      const a = toNumber(subject);
+      const b = toNumber(config);
+      // Either side unparseable → false, rather than falling back to
+      // string comparison. A silent "9 > 10" is worse than a branch
+      // that visibly never fires.
+      if (a === null || b === null) return false;
+      if (args.operator === "gt") return a > b;
+      if (args.operator === "gte") return a >= b;
+      if (args.operator === "lt") return a < b;
+      return a <= b;
+    }
+
+    case "in":
+      return splitList(config).includes(caseFold(subject));
+    case "not_in":
+      return !splitList(config).includes(caseFold(subject));
+  }
+}
+
+/**
+ * Comparisons are case-insensitive.
+ *
+ * A customer replying "YES" and a rule written as "yes" are the same
+ * intent, and every flow that got this wrong looked broken to the
+ * person who built it rather than to the person who typed it.
+ */
+function caseFold(v: string): string {
+  return v.trim().toLowerCase();
+}
+
+/** Parse a number, tolerating the shapes a real value arrives in —
+ *  "₹2,499", "2499.00", " 2499 ". Returns null when there is no number
+ *  in there at all. */
+function toNumber(v: string): number | null {
+  const cleaned = v.replace(/[^0-9.-]/g, "");
+  if (cleaned === "" || cleaned === "-" || cleaned === ".") return null;
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** "Kochi, Kollam; Alappuzha" → ["kochi", "kollam", "alappuzha"]. */
+function splitList(v: string): string[] {
+  return v
+    .split(/[,;]/)
+    .map((s) => caseFold(s))
+    .filter((s) => s !== "");
 }
 
 // ============================================================
@@ -1057,35 +1133,74 @@ async function handleReplyForActiveRun(
 }
 
 /**
- * Seed a new run's variable bag with the contact's own fields so a flow
- * can greet by name on the very first message — `{{vars.name}}`,
- * `{{vars.phone}}`, `{{vars.email}}`, `{{vars.company}}`. A later
- * collect_input writing the same key overrides these (it runs after
- * start and its write wins). Only present fields are seeded, so a
- * missing name renders as empty rather than a stray "null".
+ * Seed a new run's variable bag with what is already known about the
+ * contact, so a flow can use it without a collect_input step asking for
+ * something the CRM already holds.
+ *
+ * This is what an automation gets for free from its trigger. A flow had
+ * only four contact columns, which meant "greet them by city" or
+ * "branch on their message" needed a question first — and asking a
+ * customer for their own phone number, which we are literally
+ * messaging, is the kind of thing that makes a bot feel stupid.
+ *
+ * A later collect_input writing the same key overrides these: it runs
+ * after start, and its write wins. Only present values are seeded, so a
+ * missing field renders as empty rather than a stray "null".
  */
 async function seedVarsFromContact(
   db: AdminClient,
   contactId: string,
+  /** The inbound text that started the run. Mirrors `{{message.text}}`
+   *  in automations, which flows had no equivalent of at all. */
+  messageText?: string,
 ): Promise<Record<string, unknown>> {
-  const { data } = await db
-    .from("contacts")
-    .select("name, phone, email, company")
-    .eq("id", contactId)
-    .maybeSingle();
   const seed: Record<string, unknown> = {};
+
+  if (messageText) seed.message = messageText;
+
+  const [{ data }, { data: tagRows }] = await Promise.all([
+    db
+      .from("contacts")
+      .select(
+        "name, phone, email, company, city, state, country, pin_code, street, locality",
+      )
+      .eq("id", contactId)
+      .maybeSingle(),
+    // Tag NAMES, not ids. A flow author writing a condition wants
+    // "vip", not a UUID they would have to look up.
+    db
+      .from("contact_tags")
+      .select("tags(name)")
+      .eq("contact_id", contactId),
+  ]);
+
   if (data) {
-    const c = data as {
-      name: string | null;
-      phone: string | null;
-      email: string | null;
-      company: string | null;
-    };
-    if (c.name) seed.name = c.name;
-    if (c.phone) seed.phone = c.phone;
-    if (c.email) seed.email = c.email;
-    if (c.company) seed.company = c.company;
+    const c = data as Record<string, string | null>;
+    for (const key of [
+      "name",
+      "phone",
+      "email",
+      "company",
+      "city",
+      "state",
+      "country",
+      "pin_code",
+      "street",
+      "locality",
+    ]) {
+      const v = c[key];
+      if (v) seed[key] = v;
+    }
   }
+
+  // Comma-separated so the `is one of` / `contains` operators work on
+  // it directly — an array would stringify as "[object Object]" through
+  // interpolation and compare as nothing useful.
+  const tagNames = (tagRows ?? [])
+    .map((r) => (r as { tags?: { name?: string } | null }).tags?.name)
+    .filter((n): n is string => !!n);
+  if (tagNames.length > 0) seed.tags = tagNames.join(", ");
+
   return seed;
 }
 
@@ -1095,7 +1210,17 @@ async function startNewRun(
   input: DispatchInboundInput,
   nodes: Map<string, FlowNodeRow>,
 ): Promise<DispatchInboundResult> {
-  const seedVars = await seedVarsFromContact(db, input.contactId);
+  // The text that triggered the run, as `{{vars.message}}`. An
+  // interactive reply seeds its title rather than the reply_id — the
+  // id is an internal handle, and a flow branching on what the customer
+  // saw themselves tap is the useful reading.
+  const seedVars = await seedVarsFromContact(
+    db,
+    input.contactId,
+    input.message.kind === "text"
+      ? input.message.text
+      : input.message.reply_title,
+  );
 
   // INSERT — partial unique index `idx_one_active_run_per_contact`
   // catches concurrent inserts with 23505. We catch and return as
