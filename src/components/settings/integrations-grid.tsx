@@ -23,6 +23,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { WooCommerceConnect } from './woocommerce-connect';
 import { ShopifyConnect } from './shopify-connect';
 import { ZohoConnect } from './zoho-connect';
+import { ZapierConnect } from './zapier-guide';
 
 // ============================================================
 // Integrations "app store" — a grid of everything Instant can wire into,
@@ -83,6 +84,10 @@ const INTEGRATIONS: Integration[] = [
   },
   // ── Automation platforms ──────────────────────────────────────────
   {
+    // Rendered by <ZapierConnect>, which opens the setup guide in a
+    // dialog — so `icon`, `tone`, `href` and `cta` below go unused for
+    // this one. The entry stays because the grid builds its groups
+    // from this catalog.
     id: 'zapier',
     name: 'Zapier',
     description:
@@ -305,13 +310,16 @@ export function IntegrationsGrid() {
             <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {items.map((item) =>
                 // WooCommerce, Shopify & Zoho are native connect flows,
-                // not "via Zapier" links.
+                // not "via Zapier" links. Zapier itself opens an
+                // in-app setup guide instead of the docs page.
                 item.id === 'woocommerce' ? (
                   <WooCommerceConnect key={item.id} />
                 ) : item.id === 'shopify' ? (
                   <ShopifyConnect key={item.id} />
                 ) : item.id === 'zoho-crm' ? (
                   <ZohoConnect key={item.id} />
+                ) : item.id === 'zapier' ? (
+                  <ZapierConnect key={item.id} />
                 ) : (
                   <IntegrationCard key={item.id} item={item} />
                 ),
