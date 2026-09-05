@@ -98,6 +98,15 @@ const quickLinks: NavLink[] = [
     icon: Megaphone,
     href: '/campaigns',
   },
+  // Promoted out of the grouped nav below. It was already a plain link
+  // rather than a group, so it gained nothing from sitting there, and a
+  // pipeline is checked as often as the inbox — it belongs with the
+  // things you open every day, not behind a scroll.
+  {
+    label: 'Pipelines',
+    icon: GitBranch,
+    href: '/pipelines',
+  },
 ];
 
 // The main nav below Quick links. Mostly expandable groups, but an
@@ -129,11 +138,6 @@ const groups: (NavGroup | NavLink)[] = [
       // tool anyone can land on than as a page behind the login.
     ],
   },
-  // Pipelines sits here as a plain link, not a group. It was "Sales CRM"
-  // with exactly one child, so the chevron cost a click to reach the
-  // only thing behind it and hid the destination's real name behind a
-  // category. Give it a group again if a second page ever joins it.
-  { label: 'Pipelines', icon: GitBranch, href: '/pipelines' },
   {
     label: 'Automation',
     icon: Lightning,
