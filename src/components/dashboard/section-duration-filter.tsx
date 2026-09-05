@@ -1,17 +1,13 @@
 "use client"
 
-import { Filter } from 'lucide-react'
+import { Check, Filter } from 'lucide-react'
 import { startOfDay, subDays } from 'date-fns'
 
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
+  DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { DashboardDateRange } from '@/lib/dashboard/types'
@@ -19,44 +15,34 @@ import type { DashboardDateRange } from '@/lib/dashboard/types'
 /**
  * A per-section duration override.
  *
- * `inherit` is the default and means "whatever the page's date-range
- * selector says". The rest pin this one section to a fixed window
- * regardless of the global range — the section header shows which,
- * because two range controls with no visible difference between them is
- * how people end up reading one chart and believing another.
+ * `inherit` is the unfiltered state — the section follows the page's
+ * date-range selector. It is deliberately NOT offered in the menu:
+ * picking the option that is already active clears it instead, so
+ * "remove this filter" is the same gesture as "set it", and the menu
+ * stays four real choices rather than five with one of them meaning
+ * "never mind".
  */
 export type SectionDuration = 'inherit' | 'today' | '7d' | '30d' | '90d'
 
-const OPTIONS: { value: SectionDuration; label: string }[] = [
-  { value: 'inherit', label: 'Match dashboard range' },
-  { value: 'today', label: 'Today' },
-  { value: '7d', label: 'Last 7 days' },
-  { value: '30d', label: 'Last 30 days' },
-  { value: '90d', label: 'Last 90 days' },
-]
+const OPTIONS: { value: Exclude<SectionDuration, 'inherit'>; label: string }[] =
+  [
+    { value: 'today', label: 'Today' },
+    { value: '7d', label: 'Last 7 days' },
+    { value: '30d', label: 'Last 30 days' },
+    { value: '90d', label: 'Last 90 days' },
+  ]
 
-/** Short form for the header chip. `inherit` renders nothing. */
+/** Short form for a header chip or tooltip. `inherit` renders nothing. */
 export function durationLabel(value: SectionDuration): string | null {
-  switch (value) {
-    case 'today':
-      return 'Today'
-    case '7d':
-      return '7d'
-    case '30d':
-      return '30d'
-    case '90d':
-      return '90d'
-    default:
-      return null
-  }
+  return OPTIONS.find((o) => o.value === value)?.label ?? null
 }
 
 /**
  * Resolve a section's duration against the page range.
  *
- * Returns `fallback` untouched for `inherit`, so a section that has not
- * been overridden keeps following the global selector — including when
- * that selector changes underneath it.
+ * Returns `fallback` untouched for `inherit`, so an unfiltered section
+ * keeps following the global selector — including when that selector
+ * changes underneath it.
  */
 export function resolveDuration(
   value: SectionDuration,
@@ -90,6 +76,7 @@ export function SectionDurationFilter({
   label,
 }: SectionDurationFilterProps) {
   const active = value !== 'inherit'
+  const activeLabel = durationLabel(value)
 
   return (
     <DropdownMenu>
@@ -99,37 +86,44 @@ export function SectionDurationFilter({
             variant="ghost"
             size="icon-sm"
             type="button"
-            title={active ? `${label}: ${durationLabel(value)}` : 'Filter'}
-            aria-label={`Filter ${label} by duration`}
-            className={cn(
-              'text-muted-foreground hover:text-foreground',
-              // An overridden section has to look different from an
-              // inheriting one at a glance, or the only way to find out
-              // what a chart covers is to open every menu in turn.
-              active && 'text-primary hover:text-primary',
-            )}
+            title={active ? `Filtered: ${activeLabel}` : 'Filter'}
+            aria-label={
+              active
+                ? `Filter ${label} by duration, currently ${activeLabel}`
+                : `Filter ${label} by duration`
+            }
+            className="text-muted-foreground hover:text-foreground"
           />
         }
       >
-        <Filter className="h-4 w-4" />
+        {/* Dot rather than a tinted icon: a filtered card has to be
+            obvious from across the dashboard, and a colour shift on a
+            16px glyph is not. Same markup as the header's unread dot. */}
+        <span className="relative flex">
+          <Filter className="h-4 w-4" />
+          {active && (
+            <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-emerald-500 ring-2 ring-card" />
+          )}
+        </span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
-        {/* Label and separator live INSIDE the radio group.
-            DropdownMenuLabel is Base UI's Menu.GroupLabel, which reads a
-            group context and throws "MenuGroupContext is missing" if it
-            is rendered as a bare child of the content. */}
-        <DropdownMenuRadioGroup
-          value={value}
-          onValueChange={(v) => onChange(v as SectionDuration)}
-        >
-          <DropdownMenuLabel>Duration</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {OPTIONS.map((option) => (
-            <DropdownMenuRadioItem key={option.value} value={option.value}>
-              {option.label}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
+
+      <DropdownMenuContent align="end" className="w-44">
+        {OPTIONS.map((option) => {
+          const selected = value === option.value
+          return (
+            <DropdownMenuItem
+              key={option.value}
+              // Plain items, not a radio group: a radio never fires for
+              // the option already chosen, which is exactly the click
+              // that has to clear the filter here.
+              onClick={() => onChange(selected ? 'inherit' : option.value)}
+              className="justify-between"
+            >
+              <span>{option.label}</span>
+              {selected && <Check className="h-4 w-4 text-emerald-500" />}
+            </DropdownMenuItem>
+          )
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   )
