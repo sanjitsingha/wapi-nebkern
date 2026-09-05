@@ -114,12 +114,16 @@ export function SectionDurationFilter({
         <Filter className="h-4 w-4" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuLabel>Duration</DropdownMenuLabel>
-        <DropdownMenuSeparator />
+        {/* Label and separator live INSIDE the radio group.
+            DropdownMenuLabel is Base UI's Menu.GroupLabel, which reads a
+            group context and throws "MenuGroupContext is missing" if it
+            is rendered as a bare child of the content. */}
         <DropdownMenuRadioGroup
           value={value}
           onValueChange={(v) => onChange(v as SectionDuration)}
         >
+          <DropdownMenuLabel>Duration</DropdownMenuLabel>
+          <DropdownMenuSeparator />
           {OPTIONS.map((option) => (
             <DropdownMenuRadioItem key={option.value} value={option.value}>
               {option.label}
