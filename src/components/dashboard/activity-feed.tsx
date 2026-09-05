@@ -9,18 +9,22 @@ import {
   Radio,
   Zap,
   Inbox,
-  Filter,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import type { ComponentType } from 'react'
 import type { ActivityItem, ActivityKind } from '@/lib/dashboard/types'
 import { cn } from '@/lib/utils'
 import { EmptyState } from './empty-state'
 import { Skeleton } from './skeleton'
+import {
+  SectionDurationFilter,
+  type SectionDuration,
+} from './section-duration-filter'
 
 interface ActivityFeedProps {
   items: ActivityItem[] | null
   loading: boolean
+  duration: SectionDuration
+  onDurationChange: (value: SectionDuration) => void
 }
 
 const PAGE_SIZES = [5, 10, 20, 50] as const
@@ -40,7 +44,12 @@ const KIND_THEME: Record<ActivityKind, KindTheme> = {
   automation: { icon: Zap, badge: 'bg-rose-500/10 text-rose-600 dark:text-rose-400' },
 }
 
-export function ActivityFeed({ items, loading }: ActivityFeedProps) {
+export function ActivityFeed({
+  items,
+  loading,
+  duration,
+  onDurationChange,
+}: ActivityFeedProps) {
   // Start at 5 — a quick scan of the most recent events without
   // dominating vertical real estate. User expands explicitly via the
   // footer control when they want deeper history.
@@ -66,16 +75,11 @@ export function ActivityFeed({ items, loading }: ActivityFeedProps) {
           >
             View all →
           </Link>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            type="button"
-            className="text-muted-foreground hover:text-foreground"
-            title="Filter"
-            aria-label="Filter"
-          >
-            <Filter className="h-4 w-4" />
-          </Button>
+          <SectionDurationFilter
+            value={duration}
+            onChange={onDurationChange}
+            label="Recent Activity"
+          />
         </div>
       </header>
 

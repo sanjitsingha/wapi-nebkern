@@ -257,7 +257,14 @@ export async function loadConversationsSeries(
 
 export async function loadPipelineDonut(
   db: DB,
-  member?: DashboardMemberFilter | null
+  member?: DashboardMemberFilter | null,
+  // Optional, and it does NOT mean the same thing as the range on the
+  // metric cards. A donut of open deals is a snapshot of where the
+  // pipeline stands right now, not a count of events in a window, so
+  // the only honest reading of a date range here is "deals CREATED in
+  // it". Left undefined (the default) the donut covers every open deal,
+  // which is what the card claims when no filter is set.
+  range?: DashboardDateRange | null
 ): Promise<PipelineDonutData> {
   let dealsQ = db
     .from('deals')
@@ -266,6 +273,14 @@ export async function loadPipelineDonut(
 
   if (member?.profileId) {
     dealsQ = dealsQ.eq('assigned_to', member.profileId);
+  }
+
+  if (range) {
+    // Half-open [from, to+1day) like every other range query here, so
+    // the last day is included whole rather than cut off at midnight.
+    dealsQ = dealsQ
+      .gte('created_at', startOfLocalDay(range.from).toISOString())
+      .lt('created_at', addLocalDays(range.to, 1).toISOString());
   }
 
   const [stagesRes, dealsRes] = await Promise.all([

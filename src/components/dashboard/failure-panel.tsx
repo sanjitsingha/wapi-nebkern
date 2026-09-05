@@ -1,13 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { AlertTriangle, CheckCircle2, Filter, Radio } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { AlertTriangle, CheckCircle2, Radio } from 'lucide-react';
 
 import type { FailureReport } from '@/lib/dashboard/types';
 import { cn } from '@/lib/utils';
 import { EmptyState } from './empty-state';
 import { Skeleton } from './skeleton';
+import {
+  SectionDurationFilter,
+  type SectionDuration,
+} from './section-duration-filter';
 
 // ============================================================
 // Delivery problems.
@@ -25,9 +28,13 @@ const CONCERNING_RATE = 5;
 export function FailurePanel({
   report,
   loading,
+  duration,
+  onDurationChange,
 }: {
   report: FailureReport | null;
   loading: boolean;
+  duration: SectionDuration;
+  onDurationChange: (value: SectionDuration) => void;
 }) {
   return (
     <section className="border-border bg-card rounded-xl border">
@@ -44,16 +51,11 @@ export function FailurePanel({
               View broadcasts →
             </Link>
           )}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            type="button"
-            className="text-muted-foreground hover:text-foreground"
-            title="Filter"
-            aria-label="Filter"
-          >
-            <Filter className="h-4 w-4" />
-          </Button>
+          <SectionDurationFilter
+            value={duration}
+            onChange={onDurationChange}
+            label="Delivery problems"
+          />
         </div>
       </header>
 

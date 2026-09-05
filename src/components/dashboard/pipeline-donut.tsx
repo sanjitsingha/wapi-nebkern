@@ -1,20 +1,31 @@
 "use client"
 
-import { Filter, GitBranch } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { GitBranch } from 'lucide-react'
 import type { PipelineDonutData } from '@/lib/dashboard/types'
 import { formatCurrencyShort } from '@/lib/currency'
 import { EmptyState } from './empty-state'
 import { Skeleton } from './skeleton'
+import {
+  SectionDurationFilter,
+  type SectionDuration,
+} from './section-duration-filter'
 
 interface PipelineDonutProps {
   data: PipelineDonutData | null
   loading: boolean
   /** Account default currency for the totals. */
   currency: string
+  duration: SectionDuration
+  onDurationChange: (value: SectionDuration) => void
 }
 
-export function PipelineDonut({ data, loading, currency }: PipelineDonutProps) {
+export function PipelineDonut({
+  data,
+  loading,
+  currency,
+  duration,
+  onDurationChange,
+}: PipelineDonutProps) {
   return (
     <section className="flex h-full flex-col rounded-xl border border-border bg-card">
       <header className="flex items-center justify-between border-b border-border px-5 py-4">
@@ -24,16 +35,11 @@ export function PipelineDonut({ data, loading, currency }: PipelineDonutProps) {
             Open deals by stage
           </p>
         </div>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          type="button"
-          className="text-muted-foreground hover:text-foreground"
-          title="Filter"
-          aria-label="Filter"
-        >
-          <Filter className="h-4 w-4" />
-        </Button>
+        <SectionDurationFilter
+          value={duration}
+          onChange={onDurationChange}
+          label="Pipeline Value"
+        />
       </header>
 
       <div className="flex flex-1 flex-col p-5">

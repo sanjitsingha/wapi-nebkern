@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { subDays, startOfDay } from 'date-fns'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
@@ -21,7 +21,11 @@ import {
   loadPipelineDonut,
   loadResponseTime,
 } from '@/lib/dashboard/queries'
-import { daysInRangeInclusive } from '@/lib/dashboard/date-utils'
+import {
+  addLocalDays,
+  daysInRangeInclusive,
+  startOfLocalDay,
+} from '@/lib/dashboard/date-utils'
 import type {
   ActivityItem,
   ConversationsSeriesPoint,
@@ -41,6 +45,10 @@ import { PipelineDonut } from '@/components/dashboard/pipeline-donut'
 import { ResponseTimeChart } from '@/components/dashboard/response-time-chart'
 import { ActivityFeed } from '@/components/dashboard/activity-feed'
 import { DateRangeSelector } from '@/components/dashboard/date-range-selector'
+import {
+  resolveDuration,
+  type SectionDuration,
+} from '@/components/dashboard/section-duration-filter'
 
 // Default window: the last 30 local days (inclusive of today).
 function defaultRange(): DashboardDateRange {
@@ -69,9 +77,59 @@ export default function DashboardPage() {
   const [failures, setFailures] = useState<FailureReport | null>(null)
   const [failuresLoading, setFailuresLoading] = useState(true)
 
-  // Load everything that depends on the selected date range: the metric
-  // cards and the conversations series. Each block owns its skeleton so a
-  // slow query never blocks a faster one.
+  // Per-section duration overrides. 'inherit' follows the page range.
+  const [seriesDuration, setSeriesDuration] =
+    useState<SectionDuration>('inherit')
+  const [failuresDuration, setFailuresDuration] =
+    useState<SectionDuration>('inherit')
+  const [pipelineDuration, setPipelineDuration] =
+    useState<SectionDuration>('inherit')
+  const [activityDuration, setActivityDuration] =
+    useState<SectionDuration>('inherit')
+
+  // Everything that depends on a date range, one loader per section so
+  // each owns its own skeleton (a slow query never blocks a faster one)
+  // and — since sections can now be pinned to their own duration — so
+  // refetching one never drags the others back to the page range.
+  const loadSeries = useCallback(
+    (r: DashboardDateRange, mFilter: DashboardMemberFilter | null) => {
+      const db = createClient()
+      setSeriesLoading(true)
+      void loadConversationsSeries(db, r, mFilter)
+        .then((s) => setSeries(s))
+        .catch((err) => console.error('[dashboard] series failed:', err))
+        .finally(() => setSeriesLoading(false))
+    },
+    [],
+  )
+
+  const loadFailureReport = useCallback(
+    (r: DashboardDateRange, mFilter: DashboardMemberFilter | null) => {
+      const db = createClient()
+      setFailuresLoading(true)
+      void loadFailures(db, r, mFilter)
+        .then((f) => setFailures(f))
+        .catch((err) => console.error('[dashboard] failures failed:', err))
+        .finally(() => setFailuresLoading(false))
+    },
+    [],
+  )
+
+  const loadPipeline = useCallback(
+    (
+      r: DashboardDateRange | null,
+      mFilter: DashboardMemberFilter | null,
+    ) => {
+      const db = createClient()
+      setPipelineLoading(true)
+      void loadPipelineDonut(db, mFilter, r)
+        .then((p) => setPipeline(p))
+        .catch((err) => console.error('[dashboard] pipeline failed:', err))
+        .finally(() => setPipelineLoading(false))
+    },
+    [],
+  )
+
   const loadRangeScoped = useCallback(
     (r: DashboardDateRange, mFilter: DashboardMemberFilter | null) => {
       const db = createClient()
@@ -81,18 +139,6 @@ export default function DashboardPage() {
         .then((m) => setMetrics(m))
         .catch((err) => console.error('[dashboard] metrics failed:', err))
         .finally(() => setMetricsLoading(false))
-
-      setSeriesLoading(true)
-      void loadConversationsSeries(db, r, mFilter)
-        .then((s) => setSeries(s))
-        .catch((err) => console.error('[dashboard] series failed:', err))
-        .finally(() => setSeriesLoading(false))
-
-      setFailuresLoading(true)
-      void loadFailures(db, r, mFilter)
-        .then((f) => setFailures(f))
-        .catch((err) => console.error('[dashboard] failures failed:', err))
-        .finally(() => setFailuresLoading(false))
     },
     [],
   )
@@ -107,12 +153,6 @@ export default function DashboardPage() {
         .catch((err) => console.error('[dashboard] response time failed:', err))
         .finally(() => setResponseTimeLoading(false))
 
-      setPipelineLoading(true)
-      void loadPipelineDonut(db, mFilter)
-        .then((p) => setPipeline(p))
-        .catch((err) => console.error('[dashboard] pipeline failed:', err))
-        .finally(() => setPipelineLoading(false))
-
       // Fetch up to 50 so the biggest page-size option in the feed
       // (50 rows) is already in memory — switching sizes then becomes
       // a pure client-side slice with no extra round trip.
@@ -126,8 +166,12 @@ export default function DashboardPage() {
   )
 
   useEffect(() => {
-    // Initial load uses the default range and all team members.
+    // Initial load uses the default range and all team members. Every
+    // section starts on 'inherit', so they all take the page range.
     loadRangeScoped(range, null)
+    loadSeries(range, null)
+    loadFailureReport(range, null)
+    loadPipeline(null, null)
     loadRangeIndependent(null)
     // Mount-only: the selector onChange handles subsequent range/member
     // switches so the setState calls stay out of the
@@ -137,19 +181,89 @@ export default function DashboardPage() {
 
   // Range switch handler — kept in an event callback (not an effect) so
   // the setState calls stay clear of react-hooks/set-state-in-effect.
+  //
+  // Sections still on 'inherit' have to be reloaded against the new
+  // range; sections the user has pinned must not be, or the override
+  // they set would silently evaporate the next time the global range
+  // moves.
   const handleRangeChange = useCallback(
     (r: DashboardDateRange) => {
       setRange(r)
       loadRangeScoped(r, null)
+      if (seriesDuration === 'inherit') loadSeries(r, null)
+      if (failuresDuration === 'inherit') loadFailureReport(r, null)
+      if (pipelineDuration === 'inherit') loadPipeline(null, null)
     },
-    [loadRangeScoped],
+    [
+      loadRangeScoped,
+      loadSeries,
+      loadFailureReport,
+      loadPipeline,
+      seriesDuration,
+      failuresDuration,
+      pipelineDuration,
+    ],
   )
+
+  // Per-section duration overrides. Each defaults to 'inherit', which
+  // means "follow the page selector"; picking anything else pins that
+  // one card and re-fetches only it.
+  const handleSeriesDuration = useCallback(
+    (d: SectionDuration) => {
+      setSeriesDuration(d)
+      loadSeries(resolveDuration(d, range), null)
+    },
+    [loadSeries, range],
+  )
+
+  const handleFailuresDuration = useCallback(
+    (d: SectionDuration) => {
+      setFailuresDuration(d)
+      loadFailureReport(resolveDuration(d, range), null)
+    },
+    [loadFailureReport, range],
+  )
+
+  // The donut is the odd one out: undefined range means "every open
+  // deal", which is what it shows by default. Only a pinned duration
+  // narrows it, and then to deals CREATED in that window.
+  const handlePipelineDuration = useCallback(
+    (d: SectionDuration) => {
+      setPipelineDuration(d)
+      loadPipeline(d === 'inherit' ? null : resolveDuration(d, range), null)
+    },
+    [loadPipeline, range],
+  )
+
+  // Activity needs no refetch: the page already holds 50 rows so the
+  // page-size control can slice client-side, and this filter rides on
+  // the same data.
+  const visibleActivity = useMemo(() => {
+    if (activity === null) return null
+    if (activityDuration === 'inherit') return activity
+    const { from, to } = resolveDuration(activityDuration, range)
+    const start = startOfLocalDay(from).getTime()
+    const end = addLocalDays(to, 1).getTime()
+    return activity.filter((item) => {
+      const at = new Date(item.at).getTime()
+      return at >= start && at < end
+    })
+  }, [activity, activityDuration, range])
 
   // Delta comparison copy, e.g. "vs previous 30 days".
   const rangeDayCount = daysInRangeInclusive(range.from, range.to)
   const prevPeriodSuffix = `vs previous ${rangeDayCount} days`
-  const rangeLabel =
-    rangeDayCount === 1 ? '1 day' : `${rangeDayCount} days`
+  // The chart's header chip has to describe the data actually plotted.
+  // Once the section is pinned it no longer follows the page range, and
+  // a chip still reading "Last 30 days" over a 7-day chart is a lie the
+  // reader has no way to catch.
+  const seriesRange = resolveDuration(seriesDuration, range)
+  const seriesDayCount = daysInRangeInclusive(
+    seriesRange.from,
+    seriesRange.to,
+  )
+  const seriesRangeLabel =
+    seriesDayCount === 1 ? 'Today' : `Last ${seriesDayCount} days`
 
   return (
     <div className="space-y-5">
@@ -261,7 +375,9 @@ export default function DashboardPage() {
           <ConversationsChart
             data={series}
             loading={seriesLoading}
-            rangeLabel={`Last ${rangeLabel}`}
+            rangeLabel={seriesRangeLabel}
+            duration={seriesDuration}
+            onDurationChange={handleSeriesDuration}
           />
         </div>
         <div className="h-full lg:col-span-2">
@@ -269,6 +385,8 @@ export default function DashboardPage() {
             data={pipeline}
             loading={pipelineLoading}
             currency={defaultCurrency}
+            duration={pipelineDuration}
+            onDurationChange={handlePipelineDuration}
           />
         </div>
       </div>
@@ -276,13 +394,24 @@ export default function DashboardPage() {
       {/* Delivery problems. Above the response-time chart and the
           activity feed: those describe how the team is doing, this one
           is something to go and fix. */}
-      <FailurePanel report={failures} loading={failuresLoading} />
+      <FailurePanel
+        report={failures}
+        loading={failuresLoading}
+        duration={failuresDuration}
+        onDurationChange={handleFailuresDuration}
+      />
 
-      {/* Response time */}
+      {/* Response time. No duration filter — it is a fixed this-week vs
+          last-week comparison by weekday, so a range has nowhere to go. */}
       <ResponseTimeChart data={responseTime} loading={responseTimeLoading} />
 
       {/* Activity feed */}
-      <ActivityFeed items={activity} loading={activityLoading} />
+      <ActivityFeed
+        items={visibleActivity}
+        loading={activityLoading}
+        duration={activityDuration}
+        onDurationChange={setActivityDuration}
+      />
     </div>
   )
 }

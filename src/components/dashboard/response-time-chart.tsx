@@ -1,7 +1,6 @@
 "use client"
 
-import { Clock, Filter } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Clock } from 'lucide-react'
 import { DOW_SHORT_MON_FIRST } from '@/lib/dashboard/date-utils'
 import type { ResponseTimeSummary } from '@/lib/dashboard/types'
 import { BarChart } from '@/components/tremor/bar-chart'
@@ -76,16 +75,12 @@ export function ResponseTimeChart({
               </div>
             </div>
           )}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            type="button"
-            className="text-muted-foreground hover:text-foreground"
-            title="Filter"
-            aria-label="Filter"
-          >
-            <Filter className="h-4 w-4" />
-          </Button>
+          {/* No duration filter here on purpose. This chart is a fixed
+              "this week vs last week" comparison plotted by day of the
+              week (see loadResponseTime), so a 30- or 90-day option has
+              nowhere to go — it would need a different chart, not a
+              different range. A filter icon that silently does nothing
+              useful is worse than no icon. */}
         </div>
       </header>
 

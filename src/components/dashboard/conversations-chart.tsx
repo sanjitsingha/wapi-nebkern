@@ -1,11 +1,14 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Filter, MessageSquare } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { MessageSquare } from 'lucide-react'
 import type { ConversationsSeriesPoint } from '@/lib/dashboard/types'
 import { EmptyState } from './empty-state'
 import { Skeleton } from './skeleton'
+import {
+  SectionDurationFilter,
+  type SectionDuration,
+} from './section-duration-filter'
 
 interface ConversationsChartProps {
   /** Daily points for the currently-selected date range. */
@@ -13,6 +16,8 @@ interface ConversationsChartProps {
   loading: boolean
   /** Human-readable range, shown in the card header (e.g. "Last 30 days"). */
   rangeLabel: string
+  duration: SectionDuration
+  onDurationChange: (value: SectionDuration) => void
 }
 
 // ------------------------------------------------------------
@@ -25,7 +30,13 @@ const VB_W = 760
 const VB_H = 240
 const PADDING = { top: 16, right: 16, bottom: 28, left: 40 }
 
-export function ConversationsChart({ data, loading, rangeLabel }: ConversationsChartProps) {
+export function ConversationsChart({
+  data,
+  loading,
+  rangeLabel,
+  duration,
+  onDurationChange,
+}: ConversationsChartProps) {
   // Memoise the max so per-day hover math doesn't recompute it.
   const { maxY, niceTicks } = useMemo(() => {
     const arr = data ?? []
@@ -52,16 +63,11 @@ export function ConversationsChart({ data, loading, rangeLabel }: ConversationsC
           <span className="rounded-md bg-muted/60 px-2.5 py-1 text-xs font-medium text-muted-foreground">
             {rangeLabel}
           </span>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            type="button"
-            className="text-muted-foreground hover:text-foreground"
-            title="Filter"
-            aria-label="Filter"
-          >
-            <Filter className="h-4 w-4" />
-          </Button>
+          <SectionDurationFilter
+            value={duration}
+            onChange={onDurationChange}
+            label="Conversations Over Time"
+          />
         </div>
       </header>
 
