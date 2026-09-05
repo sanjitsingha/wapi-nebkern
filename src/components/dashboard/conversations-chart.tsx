@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { MessageSquare } from 'lucide-react'
+import { Filter, MessageSquare } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import type { ConversationsSeriesPoint } from '@/lib/dashboard/types'
 import { EmptyState } from './empty-state'
 import { Skeleton } from './skeleton'
@@ -47,9 +48,21 @@ export function ConversationsChart({ data, loading, rangeLabel }: ConversationsC
           <h2 className="text-sm font-semibold text-foreground">Conversations Over Time</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">Daily message volume by direction</p>
         </div>
-        <span className="rounded-md bg-muted/60 px-2.5 py-1 text-xs font-medium text-muted-foreground">
-          {rangeLabel}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="rounded-md bg-muted/60 px-2.5 py-1 text-xs font-medium text-muted-foreground">
+            {rangeLabel}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            type="button"
+            className="text-muted-foreground hover:text-foreground"
+            title="Filter"
+            aria-label="Filter"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
+        </div>
       </header>
 
       <div className="p-5">

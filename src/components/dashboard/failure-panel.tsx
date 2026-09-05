@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { AlertTriangle, CheckCircle2, Radio } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Filter, Radio } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 import type { FailureReport } from '@/lib/dashboard/types';
 import { cn } from '@/lib/utils';
@@ -34,14 +35,26 @@ export function FailurePanel({
         <h2 className="text-foreground text-sm font-semibold">
           Delivery problems
         </h2>
-        {report && report.total > 0 && (
-          <Link
-            href="/broadcasts"
-            className="text-primary hover:text-primary/80 text-xs font-medium"
+        <div className="flex items-center gap-2">
+          {report && report.total > 0 && (
+            <Link
+              href="/broadcasts"
+              className="text-primary hover:text-primary/80 text-xs font-medium"
+            >
+              View broadcasts →
+            </Link>
+          )}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            type="button"
+            className="text-muted-foreground hover:text-foreground"
+            title="Filter"
+            aria-label="Filter"
           >
-            View broadcasts →
-          </Link>
-        )}
+            <Filter className="h-4 w-4" />
+          </Button>
+        </div>
       </header>
 
       {loading || !report ? (

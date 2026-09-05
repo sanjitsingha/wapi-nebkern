@@ -104,6 +104,24 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['@phosphor-icons/react'],
   },
+
+  /**
+   * The two R2 packages from src/lib/storage/r2.ts, kept as real Node
+   * `require`s rather than bundled. `@aws-sdk/client-s3` is on Next's
+   * automatic external list already; `s3-request-presigner` is not, so
+   * it is named here.
+   *
+   * This does NOT fix vercel/next.js#87737 — see the `build` script in
+   * package.json, which is what actually does. Listing packages here
+   * under Turbopack made that bug worse, not better: it hashed the
+   * presigner too. Kept only because the declaration is correct on its
+   * own terms under Webpack.
+   */
+  serverExternalPackages: [
+    '@aws-sdk/client-s3',
+    '@aws-sdk/s3-request-presigner',
+  ],
+
   /**
    * Hosts `next/image` is allowed to optimise from.
    *

@@ -1,6 +1,7 @@
 "use client"
 
-import { GitBranch } from 'lucide-react'
+import { Filter, GitBranch } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import type { PipelineDonutData } from '@/lib/dashboard/types'
 import { formatCurrencyShort } from '@/lib/currency'
 import { EmptyState } from './empty-state'
@@ -16,11 +17,23 @@ interface PipelineDonutProps {
 export function PipelineDonut({ data, loading, currency }: PipelineDonutProps) {
   return (
     <section className="flex h-full flex-col rounded-xl border border-border bg-card">
-      <header className="border-b border-border px-5 py-4">
-        <h2 className="text-sm font-semibold text-foreground">Pipeline Value</h2>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          Open deals by stage
-        </p>
+      <header className="flex items-center justify-between border-b border-border px-5 py-4">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Pipeline Value</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Open deals by stage
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          type="button"
+          className="text-muted-foreground hover:text-foreground"
+          title="Filter"
+          aria-label="Filter"
+        >
+          <Filter className="h-4 w-4" />
+        </Button>
       </header>
 
       <div className="flex flex-1 flex-col p-5">

@@ -1,6 +1,7 @@
 "use client"
 
-import { Clock } from 'lucide-react'
+import { Clock, Filter } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { DOW_SHORT_MON_FIRST } from '@/lib/dashboard/date-utils'
 import type { ResponseTimeSummary } from '@/lib/dashboard/types'
 import { BarChart } from '@/components/tremor/bar-chart'
@@ -75,6 +76,16 @@ export function ResponseTimeChart({
               </div>
             </div>
           )}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            type="button"
+            className="text-muted-foreground hover:text-foreground"
+            title="Filter"
+            aria-label="Filter"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
         </div>
       </header>
 

@@ -32,7 +32,7 @@
     "cron": "node --env-file=.env.local scripts/run-crons.mjs",
     "verify:r2": "node --env-file=.env.local scripts/verify-r2.mjs",
     "webhooks:cron": "node --env-file=.env.local scripts/dispatch-webhooks.mjs",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",

@@ -9,7 +9,9 @@ import {
   Radio,
   Zap,
   Inbox,
+  Filter,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import type { ComponentType } from 'react'
 import type { ActivityItem, ActivityKind } from '@/lib/dashboard/types'
 import { cn } from '@/lib/utils'
@@ -57,12 +59,24 @@ export function ActivityFeed({ items, loading }: ActivityFeedProps) {
     <section className="rounded-xl border border-border bg-card">
       <header className="flex items-center justify-between border-b border-border px-5 py-4">
         <h2 className="text-sm font-semibold text-foreground">Recent Activity</h2>
-        <Link
-          href="/inbox"
-          className="text-xs font-medium text-primary hover:text-primary/80"
-        >
-          View all →
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/inbox"
+            className="text-xs font-medium text-primary hover:text-primary/80"
+          >
+            View all →
+          </Link>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            type="button"
+            className="text-muted-foreground hover:text-foreground"
+            title="Filter"
+            aria-label="Filter"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
+        </div>
       </header>
 
       {loading || !items ? (
