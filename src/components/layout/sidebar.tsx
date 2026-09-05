@@ -58,10 +58,6 @@ interface NavLink {
   /** Plan-gated: shown faded with an "Upgrade" badge; the target route
    *  renders the upgrade screen (server-side gate). */
   locked?: boolean;
-  /** Anchor id for the guided walkthrough (lib/walkthrough/steps.ts).
-   *  Emitted as `data-walkthrough` — the tour's contract with the DOM,
-   *  so restyling this row can't break the spotlight. */
-  walkthrough?: string;
 }
 
 // An expandable section with a chevron toggle.
@@ -69,9 +65,6 @@ interface NavGroup {
   label: string;
   icon: PhosphorIcon;
   children: NavLink[];
-  /** See NavLink.walkthrough. Anchored on the group toggle, which is
-   *  always mounted — the children only exist while expanded. */
-  walkthrough?: string;
 }
 
 // Standalone items above the grouped nav (the reference's "Home").
@@ -92,7 +85,6 @@ const quickLinks: NavLink[] = [
     icon: ChatCircleDots,
     href: '/inbox',
     unread: true,
-    walkthrough: 'inbox',
   },
   // Next to Inbox, not buried in a group: a missed call is the same kind
   // of "someone is waiting on you" as an unread message.
@@ -105,7 +97,6 @@ const quickLinks: NavLink[] = [
     label: 'Campaigns',
     icon: Megaphone,
     href: '/campaigns',
-    walkthrough: 'campaigns',
   },
 ];
 
@@ -117,7 +108,6 @@ const groups: (NavGroup | NavLink)[] = [
   {
     label: 'Contacts',
     icon: UsersThree,
-    walkthrough: 'contacts',
     children: [
       { label: 'All Contacts', icon: UsersThree, href: '/contacts' },
       { label: 'Lists', icon: ListBullets, href: '/lists' },
@@ -147,7 +137,6 @@ const groups: (NavGroup | NavLink)[] = [
   {
     label: 'Automation',
     icon: Lightning,
-    walkthrough: 'automation',
     children: [
       { label: 'Automations', icon: Lightning, href: '/automations' },
       { label: 'Flows', icon: FlowArrow, href: '/flows' },
@@ -298,7 +287,6 @@ export function Sidebar({
       <Link
         href={link.href}
         onClick={onClose}
-        data-walkthrough={link.walkthrough}
         title={
           link.locked
             ? `${link.label} — upgrade your plan to unlock`
@@ -369,7 +357,6 @@ export function Sidebar({
             setOpenGroups((p) => ({ ...p, [group.label]: !p[group.label] }))
           }
           aria-expanded={open}
-          data-walkthrough={group.walkthrough}
           title={group.label}
           className={cn(
             'flex w-full items-center gap-3.5 rounded-lg px-3 py-3.5 text-sm font-medium transition-colors',

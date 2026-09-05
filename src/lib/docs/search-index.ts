@@ -59,7 +59,7 @@ const TERMS: Record<string, string> = {
     '14-day trial plan tiers team size contacts storage calling automations flows integrations razorpay checkout activation code invoices subscription',
   'api-and-integrations':
     'API key wak header REST contacts messages template webhook message received contact created conversation assigned deal stage changed signature secret zapier make n8n',
-  support: 'support ticket category priority status walkthrough guided tour',
+  support: 'support ticket category priority status help contact team',
 };
 
 const CATEGORY_BY_SLUG: Record<string, string> = Object.fromEntries(
