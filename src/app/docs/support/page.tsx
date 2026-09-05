@@ -6,15 +6,15 @@ import {
   DocsPager,
 } from '@/components/docs/docs-components';
 
-export const metadata: Metadata = { title: 'Support & walkthrough' };
+export const metadata: Metadata = { title: 'Support' };
 
 export default function SupportDocsPage() {
   return (
     <>
       <DocsHero
         eyebrow="Help"
-        title="Support & walkthrough"
-        description="Reach our team directly, and revisit the guided tour whenever you need a refresher."
+        title="Support"
+        description="Reach our team directly whenever you need a hand."
       />
 
       <DocsArticle>
@@ -27,16 +27,6 @@ export default function SupportDocsPage() {
           gets a short reference code so it&rsquo;s easy to refer back to. A
           small dot appears on the Support icon whenever there&rsquo;s an
           unread reply waiting for you.
-        </p>
-
-        <h2>The guided walkthrough</h2>
-        <p>
-          New accounts get a short guided tour the first time they land in
-          the app, pointing out the inbox, contacts, campaigns, automation,
-          AI agents, connecting WhatsApp, and support — the handful of
-          places worth knowing on day one. Skip it anytime, and replay it
-          whenever you like from the <strong>Walkthrough</strong> button in
-          the sidebar footer, right above Support.
         </p>
       </DocsArticle>
 

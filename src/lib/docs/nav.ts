@@ -182,8 +182,8 @@ export const DOCS_NAV: DocsCategory[] = [
     pages: [
       {
         slug: 'support',
-        title: 'Support & walkthrough',
-        description: 'Getting help from the team and replaying the guided tour.',
+        title: 'Support',
+        description: 'Getting help from the team.',
         icon: Headset,
       },
     ],

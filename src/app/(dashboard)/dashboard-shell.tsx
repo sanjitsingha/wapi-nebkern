@@ -11,7 +11,6 @@ import { PresenceHeartbeat } from '@/components/presence/presence-heartbeat';
 import { AppPopup } from '@/components/layout/app-popup';
 import { AnnouncementBar } from '@/components/layout/announcement-bar';
 import { WhatsAppConnectBanner } from '@/components/layout/whatsapp-connect-banner';
-import { WalkthroughProvider } from '@/components/walkthrough/walkthrough-provider';
 import { CallCenterProvider } from '@/components/calls/call-center';
 import { CookieConsentModal } from '@/components/consent/cookie-consent-modal';
 
@@ -114,18 +113,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     <QueryProvider>
       <AuthProvider>
         <AvailabilityProvider>
-          {/* Inside AuthProvider (it reads the session to decide whether
-              this user has seen the tour) and outside the shell, so the
-              sidebar's Walkthrough button can reach it via context. */}
-          <WalkthroughProvider>
-            {/* Wraps the whole shell so a call can be answered from any
-                page — a ringing panel that only exists on /calls is a
-                missed call everywhere else. It renders nothing until a
-                call is actually in flight. */}
-            <CallCenterProvider>
-              <DashboardShellInner>{children}</DashboardShellInner>
-            </CallCenterProvider>
-          </WalkthroughProvider>
+          {/* Wraps the whole shell so a call can be answered from any
+              page — a ringing panel that only exists on /calls is a
+              missed call everywhere else. It renders nothing until a
+              call is actually in flight. */}
+          <CallCenterProvider>
+            <DashboardShellInner>{children}</DashboardShellInner>
+          </CallCenterProvider>
         </AvailabilityProvider>
       </AuthProvider>
     </QueryProvider>

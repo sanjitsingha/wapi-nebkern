@@ -232,7 +232,6 @@ export function Header({ onOpenSidebar }: HeaderProps) {
             <DropdownMenuSeparator className="my-2" />
             <DropdownMenuItem
               render={<Link href="/settings" />}
-              data-walkthrough="settings"
               className="gap-2.5 rounded-lg px-3 py-2.5 text-[15px] font-medium cursor-pointer text-foreground hover:bg-muted"
             >
               <Gear className="h-4.5 w-4.5 text-muted-foreground" />
