@@ -351,6 +351,22 @@ export const config = {
     //     `askmaya` (the signed-in surface, in protectedPaths above).
     //     The hyphen is load-bearing: it is what stops this exclusion
     //     from also un-protecting the in-app page.
-    '/((?!_next/static|_next/image|favicon\\.ico|widget\\.js|api/|docs|blog|pricing|contact|ask-maya|features|privacy|terms|cookies|refunds|acceptable-use|whatsapp-messaging-policy|whatsapp-marketing-policy|dpa|security|subprocessors|data-retention|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    //
+    //     `contact` carries `(?:/|$)` for the same reason the hyphen
+    //     matters above: these alternatives are prefix matches, so a
+    //     bare `contact` also swallowed `/contacts` — a protectedPaths
+    //     route — and silently skipped its auth redirect. Anchoring to a
+    //     slash or end-of-path keeps the marketing page excluded while
+    //     letting the in-app contacts screen run the check again.
+    //
+    // The trailing quantifier is `+`, not `*`, and that is the landing
+    // page's exclusion. Every other anonymous page above is excluded by
+    // name, but `/` has no name to list — with `*` the group matches the
+    // empty remainder and the busiest URL on the site pays a Supabase
+    // Auth round trip whose result is then thrown away, since `/` is not
+    // in protectedPaths and nothing redirects on it. `+` needs at least
+    // one character after the slash, so `/` alone no longer matches
+    // while `/login`, `/dashboard` and the rest still do.
+    '/((?!_next/static|_next/image|favicon\\.ico|widget\\.js|api/|docs|blog|pricing|contact(?:/|$)|ask-maya|features|privacy|terms|cookies|refunds|acceptable-use|whatsapp-messaging-policy|whatsapp-marketing-policy|dpa|security|subprocessors|data-retention|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).+)',
   ],
 };
