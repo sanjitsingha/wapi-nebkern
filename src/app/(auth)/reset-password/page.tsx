@@ -61,7 +61,7 @@ export default function ResetPasswordPage() {
                 Reset links are single-use and time-limited. Start again and
                 we&apos;ll send a fresh six-digit code.
               </p>
-              <Link href="/forgot-password">
+              <Link href="/forgot-password" prefetch={false}>
                 <Button className="mt-8 h-12 w-full rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90">
                   Request a new code
                 </Button>
@@ -85,6 +85,7 @@ export default function ResetPasswordPage() {
 
           <Link
             href="/login"
+            prefetch={false}
             className="mt-8 flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />

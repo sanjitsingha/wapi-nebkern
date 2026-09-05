@@ -236,6 +236,7 @@ function LoginPageInner() {
                 </Label>
                 <Link
                   href="/forgot-password"
+                  prefetch={false}
                   className="text-sm font-medium text-primary hover:text-primary/80"
                 >
                   Forgot password?
