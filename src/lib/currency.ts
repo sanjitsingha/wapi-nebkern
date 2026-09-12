@@ -1,17 +1,21 @@
 /**
- * Currency — single source of truth for deal-value formatting and
- * the currency picker options.
+ * Currency — single source of truth for deal-value formatting.
  *
  * Before this module, ~6 components each defined their own
  * `Intl.NumberFormat(..., { currency: "USD" })` helper with USD
- * baked in. The default currency is now configurable per account
- * (accounts.default_currency, migration 021), so every formatter
- * takes a currency and falls back to DEFAULT_CURRENCY only when
- * nothing is known.
+ * baked in. Formatters take a currency and fall back to
+ * DEFAULT_CURRENCY only when nothing is known.
+ *
+ * The app is INR-only (migration 099): there is no currency picker
+ * in the UI any more, and `accounts.default_currency` /
+ * `deals.currency` both default to INR. `CURRENCIES` survives
+ * because formatting still has to cope with whatever is already in
+ * the DB — legacy rows, imports, and the WhatsApp catalog API, which
+ * validates product currency against this list.
  */
 
 /** App-wide fallback when no account/deal currency is available. */
-export const DEFAULT_CURRENCY = "USD";
+export const DEFAULT_CURRENCY = "INR";
 
 export interface CurrencyOption {
   /** ISO-4217 code, e.g. "USD". Stored verbatim in the DB. */
@@ -23,15 +27,16 @@ export interface CurrencyOption {
 }
 
 /**
- * The currencies offered in pickers. Codes must be valid ISO-4217 so
- * `Intl.NumberFormat` renders the right symbol/grouping. Extend this
- * list to offer more — nothing else needs to change.
+ * Known currencies, for symbol lookup and for validating what the
+ * WhatsApp catalog API accepts. No longer offered in a picker — INR
+ * is the only currency the UI writes — but kept broad so anything
+ * already stored still formats with the right symbol.
  */
 export const CURRENCIES: CurrencyOption[] = [
+  { code: "INR", label: "Indian Rupee", symbol: "₹" },
   { code: "USD", label: "US Dollar", symbol: "$" },
   { code: "EUR", label: "Euro", symbol: "€" },
   { code: "GBP", label: "British Pound", symbol: "£" },
-  { code: "INR", label: "Indian Rupee", symbol: "₹" },
   { code: "AUD", label: "Australian Dollar", symbol: "A$" },
   { code: "CAD", label: "Canadian Dollar", symbol: "C$" },
   { code: "BRL", label: "Brazilian Real", symbol: "R$" },
@@ -46,8 +51,8 @@ export const CURRENCIES: CurrencyOption[] = [
 
 /**
  * Format a deal value as a currency string. Whole-number output
- * (no minor units) — deal values are tracked to the dollar across
- * the app. `currency` defaults to USD so callers with nothing better
+ * (no minor units) — deal values are tracked to the rupee across
+ * the app. `currency` defaults to INR so callers with nothing better
  * stay safe, but pass the account/deal currency wherever known.
  *
  * Total by design: `Intl.NumberFormat` throws a RangeError on a

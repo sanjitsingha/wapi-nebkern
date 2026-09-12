@@ -61,7 +61,7 @@ export default function AutomationsDocsPage() {
             { cells: ['Add tag / Remove tag', "Change the contact's tags."] },
             { cells: ['Assign conversation', 'Hand the thread to a teammate.'] },
             { cells: ['Update contact field', 'Write to name, email, company, marketing opt-out, or a custom field.'] },
-            { cells: ['Create deal', 'Open a new deal in your default currency.'] },
+            { cells: ['Create deal', 'Open a new deal.'] },
             { cells: ['Wait', 'Pause before continuing to the next action.'] },
             { cells: ['Condition (if / else)', 'Branch the remaining actions.'] },
             { cells: ['Send webhook', 'POST a message to a URL of your choice.'] },

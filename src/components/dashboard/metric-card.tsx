@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 
 interface MetricCardProps {
   title: string
-  /** Pre-formatted value for display (e.g. "42" or "$1,250"). */
+  /** Pre-formatted value for display (e.g. "42" or "₹1,250"). */
   value: string
   icon: ComponentType<{ className?: string }>
   /**

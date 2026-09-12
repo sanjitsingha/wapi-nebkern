@@ -38,7 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CURRENCIES, DEFAULT_CURRENCY } from '@/lib/currency';
+import { DEFAULT_CURRENCY } from '@/lib/currency';
 import { SettingsPanelHead } from './settings-panel-head';
 
 interface CatalogSummary {
@@ -670,9 +670,12 @@ function AddProductDialog({
             </div>
           </div>
 
+          {/* Price only — no currency select. The app is INR-only
+              (migration 099); `currency` is still submitted, seeded from
+              the account default, because the catalog API requires it. */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="prod-price">Price</Label>
+              <Label htmlFor="prod-price">Price (₹)</Label>
               <Input
                 id="prod-price"
                 type="number"
@@ -680,28 +683,9 @@ function AddProductDialog({
                 step="0.01"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                placeholder="9.99"
+                placeholder="499"
                 disabled={saving}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="prod-currency">Currency</Label>
-              <Select
-                value={currency}
-                onValueChange={(v) => setCurrency(v ?? defaultCurrency)}
-                disabled={saving}
-              >
-                <SelectTrigger id="prod-currency" className="h-11 w-full border-border">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CURRENCIES.map((c) => (
-                    <SelectItem key={c.code} value={c.code}>
-                      {c.code} — {c.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
 

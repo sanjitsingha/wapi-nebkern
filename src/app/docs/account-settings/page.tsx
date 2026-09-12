@@ -51,7 +51,6 @@ export default function AccountSettingsDocsPage() {
           columns={['Tab', 'What it holds']}
           rows={[
             { cells: ['Fields & tags', 'Your tag list, and any custom contact fields you’ve defined — used across contacts, segments, and automations.'] },
-            { cells: ['Deals & currency', 'Your account’s default currency for new deals.'] },
           ]}
         />
         <p>

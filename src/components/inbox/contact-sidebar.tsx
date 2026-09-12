@@ -14,7 +14,7 @@ import {
   Copy,
   Check,
   Tag as TagIcon,
-  DollarSign,
+  IndianRupee,
   Plus,
   X,
   ShieldAlert,
@@ -637,7 +637,7 @@ export function ContactSidebar({ contact, onTogglePanel }: ContactSidebarProps) 
           {/* Active Deals */}
           <div>
             <div className="flex items-center gap-2 px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              <DollarSign className="h-3 w-3" />
+              <IndianRupee className="h-3 w-3" />
               Active Deals
             </div>
             <div className="mt-2 space-y-2">

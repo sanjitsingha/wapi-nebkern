@@ -20,6 +20,7 @@ import type {
 } from '@/types'
 import { supabaseAdmin } from './admin-client'
 import { engineSendText, engineSendTemplate, engineSendInteractiveButtons } from './meta-send'
+import { DEFAULT_CURRENCY } from '@/lib/currency'
 
 // ------------------------------------------------------------
 // Public API
@@ -717,8 +718,8 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
       // Match the account's configured default currency rather than
       // the static `deals.currency` DB default — keeps automation-
       // created deals consistent with the one-currency-per-account
-      // rule (issue #218). Fall back to USD if the row is somehow
-      // missing the value (pre-021 forks).
+      // rule (issue #218). Falls back to DEFAULT_CURRENCY if the row
+      // is somehow missing the value (pre-021 forks).
       const { data: acct } = await db
         .from('accounts')
         .select('default_currency')
@@ -733,7 +734,7 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
         contact_id: args.contactId,
         title: interpolate(cfg.title, args),
         value: cfg.value ?? 0,
-        currency: acct?.default_currency ?? 'USD',
+        currency: acct?.default_currency ?? DEFAULT_CURRENCY,
         status: 'open',
       })
       return 'deal created'

@@ -54,7 +54,7 @@ import {
   Trash2,
   Save,
   ArrowLeft,
-  DollarSign,
+  IndianRupee,
   User,
   Tag as TagIcon,
   StickyNote,
@@ -1116,7 +1116,7 @@ export default function ContactDetailPage() {
                   </div>
                   <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
                     <span className="flex items-center gap-1 font-medium text-foreground">
-                      <DollarSign className="size-3.5 text-muted-foreground" />
+                      <IndianRupee className="size-3.5 text-muted-foreground" />
                       {formatCurrency(deal.value ?? 0, deal.currency || defaultCurrency)}
                     </span>
                     {deal.status && deal.status !== 'open' && (

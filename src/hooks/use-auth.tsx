@@ -39,8 +39,10 @@ interface Profile {
 interface AccountSummary {
   id: string;
   name: string;
-  /** Default deal currency (ISO-4217). NOT NULL DEFAULT 'USD' in the
-   *  DB (migration 021); narrowed to DEFAULT_CURRENCY when absent. */
+  /** Default deal currency (ISO-4217). NOT NULL DEFAULT 'INR' in the
+   *  DB (migration 021, defaulted to INR by 099); narrowed to
+   *  DEFAULT_CURRENCY when absent. No longer user-editable — the app
+   *  is INR-only and the picker is gone. */
   default_currency: string;
 }
 

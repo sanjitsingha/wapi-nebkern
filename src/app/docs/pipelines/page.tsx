@@ -3,7 +3,6 @@ import Link from 'next/link';
 
 import {
   DocsArticle,
-  DocsCallout,
   DocsFieldTable,
   DocsHero,
   DocsPager,
@@ -47,7 +46,7 @@ export default function PipelinesDocsPage() {
         <DocsFieldTable
           rows={[
             { cells: ['Title', 'Free text.'] },
-            { cells: ['Value & currency', 'A number plus a currency, defaulting to your account currency.'] },
+            { cells: ['Value', 'A number, in rupees.'] },
             { cells: ['Contact', 'The person the deal is tied to — optional, and if that contact is later deleted, the deal stays with its link cleared rather than disappearing.'] },
             { cells: ['Conversation', 'Optionally linked back to the chat it came from.'] },
             { cells: ['Assigned to', 'Which teammate owns it.'] },
@@ -58,16 +57,9 @@ export default function PipelinesDocsPage() {
 
         <h2>Currency</h2>
         <p>
-          Your account has one default currency, set under{' '}
-          <strong>Settings → Customization → Deals &amp; currency</strong>{' '}
-          (admin/owner only). New deals use that currency automatically, and
-          pipeline and dashboard totals are shown in it.
+          Deal values are in Indian rupees (₹). There is nothing to configure —
+          every deal, pipeline total, and dashboard figure is in rupees.
         </p>
-        <DocsCallout type="warning">
-          Changing the account&apos;s default currency does <strong>not</strong>{' '}
-          retroactively convert existing deals — each deal keeps whatever
-          currency it was created with.
-        </DocsCallout>
 
         <p>
           Every stage change on a deal fires a <code>deal.stage_changed</code>{' '}
