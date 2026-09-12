@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
+import { PersonAvatar } from "@/components/ui/person-avatar";
 import {
   Dialog,
   DialogContent,
@@ -1194,7 +1195,7 @@ export function MessageThread({
               assignedAgentId ? "text-primary border-primary/30" : "text-muted-foreground"
             )}>
               {currentAssignee ? (
-                <AgentAvatar
+                <PersonAvatar
                   name={currentAssignee.full_name}
                   avatarUrl={currentAssignee.avatar_url}
                   className="size-5 text-[9px]"
@@ -1229,7 +1230,7 @@ export function MessageThread({
                       )}
                     >
                       <span className="relative mr-2 shrink-0">
-                        <AgentAvatar
+                        <PersonAvatar
                           name={p.full_name}
                           avatarUrl={p.avatar_url}
                           className="size-6 text-[10px]"
@@ -1450,40 +1451,3 @@ export function MessageThread({
   );
 }
 
-/**
- * Small round avatar for a teammate in the assign control — their photo
- * if they have one, else a coloured initial (same scheme as the contact
- * avatars, stable per person).
- */
-function AgentAvatar({
-  name,
-  avatarUrl,
-  className,
-}: {
-  name: string;
-  avatarUrl?: string | null;
-  className?: string;
-}) {
-  if (avatarUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={avatarUrl}
-        alt={name}
-        className={cn("shrink-0 rounded-full object-cover", className)}
-      />
-    );
-  }
-  const c = avatarColor(name);
-  return (
-    <span
-      className={cn(
-        "flex shrink-0 items-center justify-center rounded-full font-semibold",
-        className,
-      )}
-      style={{ backgroundColor: c.bg, color: c.fg }}
-    >
-      {(name || "?").charAt(0).toUpperCase()}
-    </span>
-  );
-}

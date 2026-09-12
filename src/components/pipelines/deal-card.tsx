@@ -3,6 +3,7 @@
 import type { Deal, PipelineStage } from "@/types";
 import { Calendar, Check, X } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
+import { PersonAvatar } from "@/components/ui/person-avatar";
 
 interface DealCardProps {
   deal: Deal;
@@ -19,14 +20,9 @@ function formatDate(dateStr: string) {
   });
 }
 
-function initials(name?: string, fallback?: string) {
-  const source = (name || fallback || "?").trim();
-  if (!source) return "?";
-  return source.charAt(0).toUpperCase();
-}
-
 export function DealCard({ deal, stage, onEdit, isOverlay }: DealCardProps) {
-  const contactLabel = deal.contact?.name || deal.contact?.phone || "No contact";
+  const contactName = deal.contact?.name || deal.contact?.phone || null;
+  const contactLabel = contactName ?? "No contact";
   const assigneeLabel = deal.assignee?.full_name || null;
 
   return (
@@ -70,11 +66,14 @@ export function DealCard({ deal, stage, onEdit, isOverlay }: DealCardProps) {
         )}
       </div>
 
-      {/* Contact row */}
+      {/* Contact row — seeded by contact id so the colour matches the
+          same contact's avatar in the inbox and call history. */}
       <div className="mt-2 flex items-center gap-2">
-        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-foreground">
-          {initials(deal.contact?.name, deal.contact?.phone ?? undefined)}
-        </span>
+        <PersonAvatar
+          name={contactName}
+          avatarUrl={deal.contact?.avatar_url}
+          seed={deal.contact?.id || contactName}
+        />
         <span className="truncate text-xs text-muted-foreground">{contactLabel}</span>
       </div>
 
@@ -90,14 +89,19 @@ export function DealCard({ deal, stage, onEdit, isOverlay }: DealCardProps) {
         )}
       </div>
 
+      {/* Assignee — right-aligned, so the avatar keeps the far-right
+          corner it had before the name sat next to it. Same circle as
+          the contact row above, seeded by name to match the inbox
+          assign control. */}
       {assigneeLabel && (
-        <div className="mt-2 flex items-center justify-end">
-          <span
-            title={assigneeLabel}
-            className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/15 text-[10px] font-semibold text-primary"
-          >
-            {initials(assigneeLabel)}
+        <div className="mt-2 flex items-center justify-end gap-2">
+          <span className="truncate text-xs text-muted-foreground">
+            {assigneeLabel}
           </span>
+          <PersonAvatar
+            name={assigneeLabel}
+            avatarUrl={deal.assignee?.avatar_url}
+          />
         </div>
       )}
     </button>
