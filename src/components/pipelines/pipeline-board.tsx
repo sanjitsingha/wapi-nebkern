@@ -210,22 +210,30 @@ function StageColumn({
     // on the inner messages region below — intentionally NOT here, so
     // a drag over the column header doesn't highlight the whole column.
     <div className="flex w-[85vw] min-w-[260px] max-w-[320px] shrink-0 snap-start flex-col rounded-xl border border-border bg-card/60 p-4 lg:w-auto lg:max-w-none lg:flex-1 lg:basis-[260px] lg:shrink lg:snap-none">
-      {/* 3px colored top border — sits above the column's padding */}
+      {/* Header filled with the stage colour, replacing the 3px top
+          border this used to have. `-mx-4 -mt-4` cancels the column's
+          padding so the block bleeds to its edges, and the top corners
+          match the column's `rounded-xl`.
+
+          White text on every stage colour, deliberately. The picker's
+          lighter swatches (yellow `#eab308` most of all, then orange,
+          green, teal, cyan) give white weak contrast — if that needs
+          fixing, darken those swatches in STAGE_COLORS rather than
+          making the foreground conditional again. */}
       <div
-        className="-mx-4 -mt-4 h-[3px] rounded-t-xl"
+        className="-mx-4 -mt-4 rounded-t-xl px-4 py-3 text-white"
         style={{ backgroundColor: stage.color }}
-      />
-      <div className="flex items-center justify-between pt-3">
-        <h3 className="truncate text-sm font-semibold text-foreground">
-          {stage.name}
-        </h3>
-        <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-          {deals.length}
-        </span>
+      >
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="truncate text-sm font-semibold">{stage.name}</h3>
+          <span className="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-medium">
+            {deals.length}
+          </span>
+        </div>
+        <p className="text-xs text-white/80">
+          {formatCurrency(totalValue, currency)}
+        </p>
       </div>
-      <p className="text-xs text-muted-foreground">
-        {formatCurrency(totalValue, currency)}
-      </p>
 
       <div
         ref={setNodeRef}
