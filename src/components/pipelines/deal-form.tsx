@@ -5,7 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useTeamMembers } from "@/hooks/reference-data";
-import { CURRENCIES } from "@/lib/currency";
+
 import type {
   Contact,
   Conversation,
@@ -31,14 +31,27 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Check,
-  X,
   Trash2,
   MessageSquare,
-  DollarSign,
+  IndianRupee,
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+
+/** The three deal statuses, in the order the header dropdown lists them. */
+const DEAL_STATUSES: { value: DealStatus; label: string }[] = [
+  { value: "open", label: "Open" },
+  { value: "won", label: "Won" },
+  { value: "lost", label: "Lost" },
+];
+
+/** Trigger tint per status — carries the colour the old Won/Lost
+ *  buttons used, so the state is still readable at a glance. */
+const STATUS_STYLES: Record<DealStatus, string> = {
+  open: "text-muted-foreground",
+  won: "text-primary",
+  lost: "text-red-600 dark:text-red-400",
+};
 
 interface DealFormProps {
   open: boolean;
@@ -65,6 +78,10 @@ export function DealForm({
   const [title, setTitle] = useState("");
   const [value, setValue] = useState("");
   const [currency, setCurrency] = useState(defaultCurrency);
+  /** Mirrors `deal.status` for the header dropdown. Local, because the
+   *  dropdown applies immediately and the `deal` prop is not refetched
+   *  while the sheet stays open. */
+  const [status, setStatus] = useState<DealStatus>("open");
   const [contactId, setContactId] = useState("");
   const [stageId, setStageId] = useState("");
   const [assignedTo, setAssignedTo] = useState("");
@@ -94,6 +111,7 @@ export function DealForm({
       setTitle(deal.title);
       setValue(String(deal.value ?? ""));
       setCurrency(deal.currency || defaultCurrency);
+      setStatus(deal.status ?? "open");
       // contact_id is nullable when the contact has been deleted
       // (migration 004: ON DELETE SET NULL). "" means "no selection".
       setContactId(deal.contact_id ?? "");
@@ -105,6 +123,7 @@ export function DealForm({
       setTitle("");
       setValue("");
       setCurrency(defaultCurrency);
+      setStatus("open");
       setContactId("");
       setStageId(defaultStageId || stages[0]?.id || "");
       setAssignedTo("");
@@ -230,22 +249,33 @@ export function DealForm({
     onSaved();
   }
 
-  async function handleStatusChange(status: DealStatus) {
-    if (!deal) return;
-    setStatusAction(status);
+  /**
+   * Applies a status the moment it is picked, as the old Won/Lost
+   * buttons did — it is not part of the Save payload.
+   *
+   * Unlike those buttons it leaves the sheet open: the control now
+   * lives in the sheet's own header, and a dropdown that dismisses the
+   * panel it sits in reads as a bug. The board still refreshes behind
+   * it via `onSaved`, so the card moves even while the panel is up.
+   */
+  async function handleStatusChange(next: DealStatus) {
+    if (!deal || next === status) return;
+    const previous = status;
+    setStatus(next); // optimistic, so the dropdown tracks the pick
+    setStatusAction(next);
     const { error } = await supabase
       .from("deals")
-      .update({ status })
+      .update({ status: next })
       .eq("id", deal.id);
     setStatusAction(null);
     if (error) {
+      setStatus(previous);
       toast.error("Failed to update deal status");
       return;
     }
     toast.success(
-      status === "won" ? "Marked as won" : status === "lost" ? "Marked as lost" : "Deal reopened",
+      next === "won" ? "Marked as won" : next === "lost" ? "Marked as lost" : "Deal reopened",
     );
-    onOpenChange(false);
     onSaved();
   }
 
@@ -272,9 +302,43 @@ export function DealForm({
       >
         <div className="flex h-full flex-col">
           <SheetHeader className="border-b border-border/50 p-4">
-            <SheetTitle className="text-popover-foreground">
-              {deal ? "Edit Deal" : "New Deal"}
-            </SheetTitle>
+            {/* `pr-10` keeps the dropdown clear of the sheet's own
+                close button, which sits at top-3 right-3. */}
+            <div className="flex items-center justify-between gap-3 pr-10">
+              <SheetTitle className="text-popover-foreground">
+                {deal ? "Edit Deal" : "New Deal"}
+              </SheetTitle>
+
+              {/* Status — only on an existing deal; a new one is always
+                  created open. Applies on pick, not on Save. */}
+              {deal && (
+                <Select
+                  items={DEAL_STATUSES}
+                  value={status}
+                  onValueChange={(v) =>
+                    handleStatusChange((v as DealStatus | null) ?? status)
+                  }
+                  disabled={!!statusAction}
+                >
+                  <SelectTrigger
+                    className={`h-8 w-auto shrink-0 gap-1.5 bg-muted font-medium data-[size=default]:h-8 ${STATUS_STYLES[status]}`}
+                  >
+                    {statusAction ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <SelectValue />
+                    )}
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEAL_STATUSES.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -318,37 +382,20 @@ export function DealForm({
               )}
             </div>
 
-            <div className="grid grid-cols-[1fr_110px] gap-3">
-              <div className="grid gap-2">
-                <Label className="text-muted-foreground">Value</Label>
-                <div className="relative">
-                  <DollarSign className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    type="number"
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    placeholder="0"
-                    className="border-border bg-muted pl-7 text-foreground"
-                  />
-                </div>
-              </div>
-              <div className="grid gap-2">
-                <Label className="text-muted-foreground">Currency</Label>
-                <Select
-                  value={currency}
-                  onValueChange={(v) => setCurrency(v ?? currency)}
-                >
-                  <SelectTrigger className="bg-muted w-full data-[size=default]:h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CURRENCIES.map((c) => (
-                      <SelectItem key={c.code} value={c.code}>
-                        {c.code}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* Value only — no currency select. The app is INR-only
+                (migration 099); `currency` is still submitted, seeded
+                from the account default, so the column stays populated. */}
+            <div className="grid gap-2">
+              <Label className="text-muted-foreground">Value</Label>
+              <div className="relative">
+                <IndianRupee className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="number"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  placeholder="0"
+                  className="border-border bg-muted pl-7 text-foreground"
+                />
               </div>
             </div>
 
@@ -420,57 +467,6 @@ export function DealForm({
                 className="min-h-[100px] border-border bg-muted text-foreground"
               />
             </div>
-
-            {deal && (
-              <div className="space-y-2 rounded-lg border border-border bg-muted/50 p-3">
-                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Status
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    onClick={() => handleStatusChange("won")}
-                    disabled={!!statusAction || deal.status === "won"}
-                    className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                  >
-                    {statusAction === "won" ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        <Check className="mr-1 h-4 w-4" />
-                        Mark as Won
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => handleStatusChange("lost")}
-                    disabled={!!statusAction || deal.status === "lost"}
-                    className="flex-1 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-                  >
-                    {statusAction === "lost" ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        <X className="mr-1 h-4 w-4" />
-                        Mark as Lost
-                      </>
-                    )}
-                  </Button>
-                </div>
-                {deal.status && deal.status !== "open" && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => handleStatusChange("open")}
-                    disabled={!!statusAction}
-                    className="w-full text-muted-foreground hover:text-foreground"
-                  >
-                    Reopen deal
-                  </Button>
-                )}
-              </div>
-            )}
           </div>
 
           <div className="border-t border-border/50 bg-popover/80 p-4">
