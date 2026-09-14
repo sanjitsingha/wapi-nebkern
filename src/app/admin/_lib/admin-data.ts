@@ -88,6 +88,9 @@ export interface ProfileRow {
   user_id: string;
   email: string | null;
   full_name: string | null;
+  /** E.164, given at registration (migration 100). Null for anyone who
+   *  hasn't been through /welcome since phone became required. */
+  phone: string | null;
   account_id: string | null;
   account_role: string | null;
 }
@@ -97,7 +100,7 @@ export const getProfiles = cache(
     cachedRead(ADMIN_TAGS.profiles, ['all'], async () => {
       const { data } = await adminDb()
         .from('profiles')
-        .select('user_id, email, full_name, account_id, account_role');
+        .select('user_id, email, full_name, phone, account_id, account_role');
 
       return (data ?? []) as ProfileRow[];
     })
@@ -305,6 +308,8 @@ export interface AccountView {
   /** Same rule the tenant's own "connect your number" banner uses. */
   whatsapp: WhatsAppState;
   whatsappConnectedAt: string | null;
+  /** The owner's registration phone (migration 100), E.164. */
+  ownerPhone: string | null;
 }
 
 export const getAccountViews = cache(async (): Promise<AccountView[]> => {
@@ -315,9 +320,11 @@ export const getAccountViews = cache(async (): Promise<AccountView[]> => {
   ]);
 
   const emailByUserId = new Map<string, string | null>();
+  const phoneByUserId = new Map<string, string | null>();
   const memberCount = new Map<string, number>();
   for (const p of profiles) {
     emailByUserId.set(p.user_id, p.email);
+    phoneByUserId.set(p.user_id, p.phone);
     if (p.account_id) {
       memberCount.set(p.account_id, (memberCount.get(p.account_id) ?? 0) + 1);
     }
@@ -334,6 +341,7 @@ export const getAccountViews = cache(async (): Promise<AccountView[]> => {
       id: a.id,
       name: a.name,
       ownerEmail: emailByUserId.get(a.owner_user_id) ?? null,
+      ownerPhone: phoneByUserId.get(a.owner_user_id) ?? null,
       plan: sub.plan,
       status: sub.status as SubscriptionStatus,
       trialDaysLeft: sub.isTrial ? sub.trialDaysLeft : 0,

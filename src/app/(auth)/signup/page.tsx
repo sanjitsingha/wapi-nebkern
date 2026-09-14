@@ -18,7 +18,19 @@ import {
 } from "@/components/auth/password-requirements";
 import { rememberOAuthNext } from "@/lib/auth/oauth-next";
 import { isPasswordValid } from "@/lib/auth/password";
-import { User, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import {
+  SIGNUP_PHONE_ERROR,
+  normalizeSignupPhone,
+} from "@/lib/auth/signup-phone";
+import {
+  User,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  Building2,
+  Phone,
+} from "lucide-react";
 import { BrandLogo } from "@/components/brand/logo";
 import { SignupLegalConsent } from "@/components/auth/legal-notice";
 
@@ -48,6 +60,8 @@ function SignupPageInner() {
   const inviteToken = searchParams.get("invite");
 
   const [fullName, setFullName] = useState("");
+  const [organization, setOrganization] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -151,6 +165,24 @@ function SignupPageInner() {
     setError(null);
     setConflict(null);
 
+    // Checked in field order, top down, so the banner names the first
+    // thing to fix rather than one further down the form.
+    //
+    // Organization is not asked of someone joining through an invite:
+    // they are becoming a member of a workspace that already has a name.
+    if (!inviteToken && !organization.trim()) {
+      setError("Please enter your organization name.");
+      return;
+    }
+    // The signup trigger only marks a profile complete when a valid
+    // phone arrives (migration 100). This check is for a readable
+    // message now; skipping it would just mean being asked on /welcome.
+    const normalizedPhone = normalizeSignupPhone(phone);
+    if (!normalizedPhone) {
+      setError(SIGNUP_PHONE_ERROR);
+      return;
+    }
+
     // Reported under the field rather than in the banner at the top —
     // the rules are about that input, so that is where the answer goes.
     if (!isPasswordValid(password)) {
@@ -188,8 +220,13 @@ function SignupPageInner() {
       email,
       password,
       options: {
+        // Read by handle_new_user (migration 100): the organization names
+        // the new workspace, and the phone is what lets the trigger skip
+        // /welcome for this signup.
         data: {
           full_name: fullName,
+          phone: normalizedPhone,
+          ...(inviteToken ? {} : { organization_name: organization.trim() }),
         },
         ...(emailRedirectTo ? { emailRedirectTo } : {}),
       },
@@ -483,6 +520,58 @@ function SignupPageInner() {
                   className="h-12 rounded-xl border-border bg-muted/40 pl-11 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-background focus-visible:ring-primary/20"
                 />
               </div>
+            </div>
+
+            {!inviteToken && (
+              <div className="flex flex-col gap-1.5">
+                <Label
+                  htmlFor="organization"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Organization
+                </Label>
+                <div className="group relative">
+                  <Building2 className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+                  <Input
+                    id="organization"
+                    type="text"
+                    placeholder="Acme Inc."
+                    value={organization}
+                    onChange={(e) => setOrganization(e.target.value)}
+                    required
+                    maxLength={120}
+                    autoComplete="organization"
+                    className="h-12 rounded-xl border-border bg-muted/40 pl-11 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-background focus-visible:ring-primary/20"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-1.5">
+              <Label
+                htmlFor="phone"
+                className="text-sm font-medium text-foreground"
+              >
+                Phone number
+              </Label>
+              <div className="group relative">
+                <Phone className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+                <Input
+                  id="phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="98765 43210"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                  className="h-12 rounded-xl border-border bg-muted/40 pl-11 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-background focus-visible:ring-primary/20"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                India by default. Outside India, start with your country code,
+                e.g. +44.
+              </p>
             </div>
 
             <div className="flex flex-col gap-1.5">

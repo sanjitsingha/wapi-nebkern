@@ -1,24 +1,38 @@
 import { NextResponse } from 'next/server';
 
 import { getCurrentAccount, toErrorResponse } from '@/lib/auth/account';
-import { canEditSettings } from '@/lib/auth/roles';
+import { canEditSettings, type AccountRole } from '@/lib/auth/roles';
 import {
   OTHER_REFERRAL_VALUE,
   isReferralSource,
 } from '@/lib/auth/referral-sources';
+import {
+  SIGNUP_PHONE_ERROR,
+  normalizeSignupPhone,
+} from '@/lib/auth/signup-phone';
 
 /**
  * POST /api/account/complete-profile
  *
- * Finishes the one-time details step shown after a Google sign-up
- * (/welcome). Stamps profiles.profile_completed_at (migration 073),
- * which is what clears the middleware gate — so this is the ONLY way
- * out of /welcome, and it must succeed before the user sees the app.
+ * Finishes the one-time details step (/welcome). Stamps
+ * profiles.profile_completed_at (migration 073), which is what clears
+ * the middleware gate — so this is the ONLY way out of /welcome, and it
+ * must succeed before the user sees the app.
  *
- * Body: { full_name, organization_name?, referral_source, referral_other? }
+ * Who lands there:
+ *   - a Google signup, which brings no organization, attribution or
+ *     phone;
+ *   - since migration 100, anyone whose profile has no phone — every
+ *     account that predates phone becoming required, once;
+ *   - a password signup whose phone never reached the signup trigger.
  *
- * Password signups never reach here: they type their name on the
- * signup form, so the trigger stamps them complete at insert.
+ * Body: { full_name, phone, organization_name, referral_source,
+ *         referral_other? }
+ *
+ * `organization_name` is required only for someone who can rename the
+ * workspace (owner/admin). A teammate who joined someone else's
+ * workspace can't rename it, so asking them for a name we'd discard
+ * would be a required field that does nothing.
  */
 
 const MAX_NAME = 120;
@@ -35,13 +49,26 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => null);
     const fullName = clean(body?.full_name, MAX_NAME);
+    const phone = normalizeSignupPhone(clean(body?.phone, 40));
     const organization = clean(body?.organization_name, MAX_ORG);
     const source = clean(body?.referral_source, 40);
     const other = clean(body?.referral_other, MAX_OTHER);
+    const canNameWorkspace = canEditSettings(role as AccountRole);
 
     if (!fullName) {
       return NextResponse.json(
         { error: 'Please enter your full name.' },
+        { status: 400 },
+      );
+    }
+    // Checked here as well as in the form: the form is a convenience,
+    // this is the gate.
+    if (!phone) {
+      return NextResponse.json({ error: SIGNUP_PHONE_ERROR }, { status: 400 });
+    }
+    if (canNameWorkspace && !organization) {
+      return NextResponse.json(
+        { error: 'Please enter your organization name.' },
         { status: 400 },
       );
     }
@@ -61,6 +88,7 @@ export async function POST(request: Request) {
       .from('profiles')
       .update({
         full_name: fullName,
+        phone,
         referral_source: referral,
         profile_completed_at: new Date().toISOString(),
       })
@@ -74,13 +102,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Organization name is optional, and renaming the account is an
-    // admin-tier write (RLS accounts_update). A brand-new Google signup
-    // owns their account so this normally applies; someone who landed
-    // here after accepting an invite into someone else's account does
-    // not, and must not be able to rename it — skip rather than 403,
-    // since their own profile above is what the gate actually needs.
-    if (organization && canEditSettings(role)) {
+    // Renaming the account is an admin-tier write (RLS accounts_update),
+    // which is exactly the set `canNameWorkspace` requires it from.
+    if (organization && canNameWorkspace) {
       const { error: accountErr } = await supabase
         .from('accounts')
         .update({ name: organization })
@@ -88,7 +112,7 @@ export async function POST(request: Request) {
       if (accountErr) {
         // Non-fatal: the gate is cleared and the name is editable later
         // in Settings. Failing the whole request here would trap the
-        // user on /welcome over an optional field.
+        // user on /welcome over a rename that can be retried any time.
         console.error('[complete-profile] account rename failed:', accountErr);
       }
     }

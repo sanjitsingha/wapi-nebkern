@@ -1,13 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Building2, Loader2, MessageSquare, User } from "lucide-react";
+import {
+  Building2,
+  Loader2,
+  MessageSquare,
+  Phone,
+  User,
+} from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
 import {
   OTHER_REFERRAL_VALUE,
   REFERRAL_SOURCES,
 } from "@/lib/auth/referral-sources";
+import { canEditSettings, type AccountRole } from "@/lib/auth/roles";
+import {
+  SIGNUP_PHONE_ERROR,
+  normalizeSignupPhone,
+} from "@/lib/auth/signup-phone";
 import { AuthBrandPanel } from "@/components/auth/brand-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,42 +32,98 @@ import {
 } from "@/components/ui/select";
 
 // ============================================================
-// One-time "tell us about yourself" step, shown straight after a
-// successful Google sign-up.
+// One-time "tell us about yourself" step.
 //
-// A password signup types its name into the signup form; an OAuth one
-// hands us whatever Google chose to share and nothing else — no
-// organization, no attribution. So the middleware routes any profile
-// with a NULL profile_completed_at (migration 073) here, and only
-// POST /api/account/complete-profile clears it.
+// The middleware routes any profile with a NULL profile_completed_at
+// here, and only POST /api/account/complete-profile clears it. That
+// covers a Google sign-up (which hands us a name and nothing else), and
+// since migration 100 anyone who has no phone number on file — every
+// account from before phone became required passes through once.
 //
 // This sits BEFORE the plan-selection gate (/onboarding) so the order
 // reads: who are you -> what plan -> the app.
 // ============================================================
 
+interface ProfileSnapshot {
+  full_name: string | null;
+  phone: string | null;
+  referral_source: string | null;
+  account_role: string | null;
+  account: { name: string | null } | { name: string | null }[] | null;
+}
+
 export default function WelcomePage() {
   const supabase = createClient();
 
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [organization, setOrganization] = useState("");
   const [source, setSource] = useState("");
   const [otherSource, setOtherSource] = useState("");
+  // Until the profile loads, assume the stricter case. The server makes
+  // the real decision either way, so the worst this can do is show the
+  // organization field for a moment to someone it doesn't apply to.
+  const [canNameWorkspace, setCanNameWorkspace] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Prefill from whatever Google supplied so the common case is a
-  // single confirming click rather than retyping a known name.
+  // Prefill everything already known, so a returning user is only asked
+  // for what is actually missing — usually just the phone.
   useEffect(() => {
     let cancelled = false;
-    supabase.auth.getUser().then(({ data }) => {
-      if (cancelled) return;
-      const meta = data.user?.user_metadata ?? {};
-      const guess =
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      const user = data.user;
+      if (cancelled || !user) return;
+
+      const meta = user.user_metadata ?? {};
+      const googleName =
         (typeof meta.full_name === "string" && meta.full_name) ||
         (typeof meta.name === "string" && meta.name) ||
         "";
-      if (guess) setFullName((prev) => prev || guess);
-    });
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, phone, referral_source, account_role, account:accounts(name)")
+        .eq("user_id", user.id)
+        .maybeSingle<ProfileSnapshot>();
+      if (cancelled) return;
+
+      const name = profile?.full_name || googleName;
+      if (name) setFullName((prev) => prev || name);
+      if (profile?.phone) setPhone((prev) => prev || profile.phone || "");
+
+      if (profile?.account_role) {
+        setCanNameWorkspace(canEditSettings(profile.account_role as AccountRole));
+      }
+
+      // The signup trigger names a new workspace after its owner. Offering
+      // that back as the "organization" would let someone click straight
+      // through a required field, so only a name that is clearly something
+      // else is prefilled.
+      const account = Array.isArray(profile?.account)
+        ? profile?.account[0]
+        : profile?.account;
+      const accountName = account?.name?.trim() ?? "";
+      const isPlaceholder =
+        !accountName ||
+        accountName === "My account" ||
+        accountName === name ||
+        accountName === user.email;
+      if (!isPlaceholder) {
+        setOrganization((prev) => prev || accountName);
+      }
+
+      const referral = profile?.referral_source ?? "";
+      if (referral.startsWith(`${OTHER_REFERRAL_VALUE}:`)) {
+        setSource((prev) => prev || OTHER_REFERRAL_VALUE);
+        setOtherSource(
+          (prev) => prev || referral.slice(OTHER_REFERRAL_VALUE.length + 1),
+        );
+      } else if (REFERRAL_SOURCES.some((o) => o.value === referral)) {
+        setSource((prev) => prev || referral);
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -68,6 +135,15 @@ export default function WelcomePage() {
 
     if (!fullName.trim()) {
       setError("Please enter your full name.");
+      return;
+    }
+    const normalizedPhone = normalizeSignupPhone(phone);
+    if (!normalizedPhone) {
+      setError(SIGNUP_PHONE_ERROR);
+      return;
+    }
+    if (canNameWorkspace && !organization.trim()) {
+      setError("Please enter your organization name.");
       return;
     }
     if (!source) {
@@ -82,6 +158,7 @@ export default function WelcomePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           full_name: fullName.trim(),
+          phone: normalizedPhone,
           organization_name: organization.trim(),
           referral_source: source,
           referral_other: otherSource.trim(),
@@ -154,30 +231,57 @@ export default function WelcomePage() {
 
             <div className="flex flex-col gap-1.5">
               <Label
-                htmlFor="organization"
+                htmlFor="phone"
                 className="text-sm font-medium text-foreground"
               >
-                Organization{" "}
-                <span className="font-normal text-muted-foreground">
-                  (optional)
-                </span>
+                Phone number
               </Label>
               <div className="group relative">
-                <Building2 className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+                <Phone className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
                 <Input
-                  id="organization"
-                  type="text"
-                  placeholder="Acme Inc."
-                  value={organization}
-                  onChange={(e) => setOrganization(e.target.value)}
+                  id="phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="98765 43210"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
                   className="h-12 rounded-xl border-border bg-muted/40 pl-11 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-background focus-visible:ring-primary/20"
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                We&apos;ll name your workspace after this. You can change it
-                later in Settings.
+                India by default. Outside India, start with your country code,
+                e.g. +44.
               </p>
             </div>
+
+            {canNameWorkspace && (
+              <div className="flex flex-col gap-1.5">
+                <Label
+                  htmlFor="organization"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Organization
+                </Label>
+                <div className="group relative">
+                  <Building2 className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+                  <Input
+                    id="organization"
+                    type="text"
+                    placeholder="Acme Inc."
+                    value={organization}
+                    onChange={(e) => setOrganization(e.target.value)}
+                    required
+                    className="h-12 rounded-xl border-border bg-muted/40 pl-11 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-background focus-visible:ring-primary/20"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  We&apos;ll name your workspace after this. You can change it
+                  later in Settings.
+                </p>
+              </div>
+            )}
 
             <div className="flex flex-col gap-1.5">
               <Label className="text-sm font-medium text-foreground">

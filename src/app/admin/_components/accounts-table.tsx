@@ -73,6 +73,8 @@ export function AccountsTable({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+    // Digits only, so "98765 43210" finds "+919876543210".
+    const qDigits = q.replace(/\D/g, '');
     return rows.filter((r) => {
       if (filter === 'trial_ending') {
         if (!r.isTrial || r.trialDaysLeft > 3) return false;
@@ -86,7 +88,8 @@ export function AccountsTable({
       if (!q) return true;
       return (
         r.name.toLowerCase().includes(q) ||
-        (r.ownerEmail ?? '').toLowerCase().includes(q)
+        (r.ownerEmail ?? '').toLowerCase().includes(q) ||
+        (qDigits.length >= 4 && (r.ownerPhone ?? '').includes(qDigits))
       );
     });
   }, [rows, query, filter]);
@@ -99,7 +102,7 @@ export function AccountsTable({
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by account name or owner email"
+            placeholder="Search by account, owner email or phone"
             className="h-9 pl-9"
           />
         </div>
@@ -124,6 +127,7 @@ export function AccountsTable({
           columns={[
             { header: 'Account', value: (r) => r.name },
             { header: 'Owner email', value: (r) => r.ownerEmail },
+            { header: 'Owner phone', value: (r) => r.ownerPhone },
             { header: 'Plan', value: (r) => r.plan },
             { header: 'Status', value: (r) => r.status },
             { header: 'WhatsApp', value: (r) => r.whatsapp },
@@ -180,8 +184,13 @@ export function AccountsTable({
                   <TableCell className="text-foreground font-medium">
                     {r.name}
                   </TableCell>
-                  <TableCell className="text-muted-foreground hidden md:table-cell">
-                    {r.ownerEmail ?? '—'}
+                  <TableCell className="hidden md:table-cell">
+                    <div className="text-muted-foreground">
+                      {r.ownerEmail ?? '—'}
+                    </div>
+                    <div className="text-muted-foreground text-[11px] tabular-nums">
+                      {r.ownerPhone ?? 'no phone yet'}
+                    </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground capitalize">
                     {r.plan}

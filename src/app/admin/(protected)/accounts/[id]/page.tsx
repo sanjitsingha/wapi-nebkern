@@ -250,6 +250,18 @@ export default async function AdminAccountDetailPage({
                         {m.email}
                       </p>
                     )}
+                    <p className="text-muted-foreground truncate text-xs">
+                      {m.phone ? (
+                        <a
+                          href={`tel:${m.phone}`}
+                          className="hover:text-foreground"
+                        >
+                          {m.phone}
+                        </a>
+                      ) : (
+                        'No phone yet'
+                      )}
+                    </p>
                   </div>
                   <span className="border-border bg-muted text-muted-foreground shrink-0 rounded-full border px-2 py-0.5 text-[11px] capitalize">
                     {m.account_role ?? 'member'}
