@@ -2,6 +2,7 @@ import { softBadge } from '@/lib/badge-colors';
 import { cn } from '@/lib/utils';
 import type { SupportTicketStatus, SupportTicketPriority } from '@/types';
 import type { SubscriptionStatus } from '@/lib/billing/subscription';
+import type { WhatsAppState } from '../_lib/admin-whatsapp';
 
 // Squared off, not a pill. A rounded-full badge sitting inside the
 // panel's tighter corners reads as pasted on from another design — at
@@ -50,6 +51,20 @@ export function SubscriptionBadge({ status }: { status: SubscriptionStatus }) {
       {status.replace('_', ' ')}
     </span>
   );
+}
+
+// Primary for connected, matching `active` above: the good state reads
+// the same colour everywhere in the panel. A broken token is red, not
+// amber — the account cannot send a single message until it reconnects.
+const WHATSAPP: Record<WhatsAppState, { tone: string; label: string }> = {
+  connected: { tone: softBadge.primary, label: 'connected' },
+  not_connected: { tone: softBadge.neutral, label: 'not connected' },
+  token_broken: { tone: softBadge.red, label: 'token broken' },
+};
+
+export function WhatsAppBadge({ state }: { state: WhatsAppState }) {
+  const { tone, label } = WHATSAPP[state] ?? WHATSAPP.not_connected;
+  return <span className={cn(base, tone)}>{label}</span>;
 }
 
 export function TicketStatusBadge({ status }: { status: SupportTicketStatus }) {

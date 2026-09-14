@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { SubscriptionBadge } from './badges';
+import { SubscriptionBadge, WhatsAppBadge } from './badges';
 import { ExportCsvButton } from './export-csv';
 import { fmtDate } from '../_lib/format';
 
@@ -38,7 +38,9 @@ type Filter =
   | 'expired'
   | 'past_due'
   | 'canceled'
-  | 'trial_ending';
+  | 'trial_ending'
+  | 'wa_connected'
+  | 'wa_not_connected';
 
 const FILTERS: { value: Filter; label: string }[] = [
   { value: 'all', label: 'All statuses' },
@@ -48,6 +50,10 @@ const FILTERS: { value: Filter; label: string }[] = [
   { value: 'past_due', label: 'Past due' },
   { value: 'canceled', label: 'Canceled' },
   { value: 'trial_ending', label: 'Trial ending ≤ 3d' },
+  { value: 'wa_connected', label: 'WhatsApp connected' },
+  // Includes broken tokens: the question behind this filter is "who
+  // can't send yet", and a broken token can't.
+  { value: 'wa_not_connected', label: 'WhatsApp not connected' },
 ];
 
 export function AccountsTable({
@@ -70,6 +76,10 @@ export function AccountsTable({
     return rows.filter((r) => {
       if (filter === 'trial_ending') {
         if (!r.isTrial || r.trialDaysLeft > 3) return false;
+      } else if (filter === 'wa_connected') {
+        if (r.whatsapp !== 'connected') return false;
+      } else if (filter === 'wa_not_connected') {
+        if (r.whatsapp === 'connected') return false;
       } else if (filter !== 'all' && r.status !== filter) {
         return false;
       }
@@ -116,6 +126,11 @@ export function AccountsTable({
             { header: 'Owner email', value: (r) => r.ownerEmail },
             { header: 'Plan', value: (r) => r.plan },
             { header: 'Status', value: (r) => r.status },
+            { header: 'WhatsApp', value: (r) => r.whatsapp },
+            {
+              header: 'WhatsApp connected at',
+              value: (r) => r.whatsappConnectedAt,
+            },
             { header: 'Members', value: (r) => r.memberCount },
             { header: 'Trial ends', value: (r) => r.trialEndsAt },
             { header: 'Created', value: (r) => r.createdAt },
@@ -134,6 +149,9 @@ export function AccountsTable({
               </TableHead>
               <TableHead className="text-muted-foreground">Plan</TableHead>
               <TableHead className="text-muted-foreground">Status</TableHead>
+              {/* Not hidden at any width: "has this signup connected a
+                  number yet" is the first thing to check on a new row. */}
+              <TableHead className="text-muted-foreground">WhatsApp</TableHead>
               <TableHead className="text-muted-foreground hidden text-right sm:table-cell">
                 Members
               </TableHead>
@@ -146,7 +164,7 @@ export function AccountsTable({
             {filtered.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="text-muted-foreground h-24 text-center text-sm"
                 >
                   No accounts match.
@@ -177,6 +195,9 @@ export function AccountsTable({
                         </span>
                       )}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <WhatsAppBadge state={r.whatsapp} />
                   </TableCell>
                   <TableCell className="text-muted-foreground hidden text-right tabular-nums sm:table-cell">
                     {r.memberCount}

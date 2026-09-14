@@ -5,8 +5,9 @@ import { ArrowLeft, Users, Radio, LifeBuoy, MessageCircle } from 'lucide-react';
 import { computeSubscription } from '@/lib/billing/subscription';
 import { adminDb } from '../../../_lib/admin-db';
 import { getPlans, getProfiles } from '../../../_lib/admin-data';
+import { getWhatsAppDetail } from '../../../_lib/admin-whatsapp';
 import { fmtDate, fmtDateTime, fmtMoney } from '../../../_lib/format';
-import { SubscriptionBadge } from '../../../_components/badges';
+import { SubscriptionBadge, WhatsAppBadge } from '../../../_components/badges';
 import { StatCard, StatRow } from '../../../_components/ui';
 import { SubscriptionEditor } from '../../../_components/subscription-editor';
 import { BillingEditor } from '../../../_components/billing-editor';
@@ -17,6 +18,31 @@ export const dynamic = 'force-dynamic';
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function Detail({
+  label,
+  value,
+  mono = false,
+}: {
+  label: string;
+  value: string | null | undefined;
+  mono?: boolean;
+}) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-muted-foreground text-xs">{label}</dt>
+      <dd
+        className={
+          mono
+            ? 'text-foreground mt-0.5 truncate font-mono text-xs'
+            : 'text-foreground mt-0.5 truncate'
+        }
+      >
+        {value || '—'}
+      </dd>
+    </div>
+  );
+}
 
 // Members and the plan catalog are no longer queried here. Both come
 // from the shared cached reads, filtered in memory — this page was
@@ -44,7 +70,7 @@ export default async function AdminAccountDetailPage({
 
   const [
     allProfiles,
-    waRes,
+    whatsapp,
     contactsRes,
     broadcastsRes,
     ticketsRes,
@@ -52,11 +78,9 @@ export default async function AdminAccountDetailPage({
     invoicesRes,
   ] = await Promise.all([
     getProfiles(),
-    db
-      .from('whatsapp_config')
-      .select('phone_number_id')
-      .eq('account_id', id)
-      .maybeSingle(),
+    // Live Meta lookup for the readable number, capped at 5s so a slow
+    // Meta can't hold up the rest of this page.
+    getWhatsAppDetail(id),
     db
       .from('contacts')
       .select('*', { count: 'exact', head: true })
@@ -85,7 +109,7 @@ export default async function AdminAccountDetailPage({
 
   const members = allProfiles.filter((p) => p.account_id === id);
   const sub = computeSubscription(account);
-  const waConnected = !!waRes.data?.phone_number_id;
+  const wa = whatsapp.status;
   const ownerEmail =
     members.find((m) => m.user_id === account.owner_user_id)?.email ?? null;
   const billingLabel =
@@ -116,12 +140,59 @@ export default async function AdminAccountDetailPage({
             <SubscriptionBadge status={sub.status} />
           </div>
           <p className="text-muted-foreground mt-1 text-sm">
-            Owner {ownerEmail ?? '—'} · Created {fmtDate(account.created_at)} ·{' '}
-            {waConnected ? 'WhatsApp connected' : 'WhatsApp not connected'}
+            Owner {ownerEmail ?? '—'} · Created {fmtDate(account.created_at)}
             {billingLabel ? ` · ${billingLabel}` : ''}
           </p>
         </div>
       </div>
+
+      {/* Its own card rather than a clause in the subtitle above: whether
+          a signup has connected a number is the first thing to check, and
+          "not connected" buried mid-sentence was easy to read past. */}
+      <section className="border-border bg-card rounded-xl border p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-foreground text-sm font-medium">WhatsApp</h2>
+          <WhatsAppBadge state={wa.state} />
+        </div>
+
+        {wa.state === 'not_connected' ? (
+          <p className="text-muted-foreground mt-2 text-sm">
+            No WhatsApp number connected yet.
+          </p>
+        ) : (
+          <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            <Detail
+              label="Number"
+              value={whatsapp.live?.displayPhoneNumber}
+            />
+            <Detail
+              label="Business name"
+              value={whatsapp.live?.verifiedName}
+            />
+            <Detail label="Connected" value={fmtDateTime(wa.connectedAt)} />
+            <Detail label="Phone number ID" value={wa.phoneNumberId} mono />
+            <Detail label="WABA ID" value={wa.wabaId} mono />
+            <Detail label="Registered" value={fmtDateTime(wa.registeredAt)} />
+          </dl>
+        )}
+
+        {wa.state === 'token_broken' && (
+          <p className="mt-3 text-xs text-red-600 dark:text-red-400">
+            The saved access token no longer decrypts, so this account
+            cannot send messages. The owner has to reconnect WhatsApp.
+          </p>
+        )}
+        {whatsapp.liveError && (
+          <p className="mt-3 text-xs text-amber-600 dark:text-amber-400">
+            Couldn&apos;t read the number from Meta: {whatsapp.liveError}
+          </p>
+        )}
+        {wa.lastRegistrationError && (
+          <p className="mt-3 text-xs text-red-600 dark:text-red-400">
+            Last registration error: {wa.lastRegistrationError}
+          </p>
+        )}
+      </section>
 
       <StatRow cols={4}>
         <StatCard

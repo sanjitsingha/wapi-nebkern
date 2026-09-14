@@ -52,6 +52,7 @@ export const ADMIN_TAGS = {
   contact: 'admin:contact',
   newsletter: 'admin:newsletter',
   qr: 'admin:qr',
+  whatsapp: 'admin:whatsapp',
 } as const;
 
 // There is no `overview` tag any more. The dashboard used to be its own

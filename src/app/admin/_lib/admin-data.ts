@@ -11,6 +11,7 @@ import {
 } from '@/lib/billing/plans';
 import { adminDb } from './admin-db';
 import { ADMIN_TAGS, cachedRead } from './admin-cache';
+import { getWhatsAppStatuses, type WhatsAppState } from './admin-whatsapp';
 
 // ============================================================
 // Shared admin reads — the panel's only source of tenant data.
@@ -301,12 +302,16 @@ export interface AccountView {
   memberCount: number;
   trialEndsAt: string | null;
   createdAt: string;
+  /** Same rule the tenant's own "connect your number" banner uses. */
+  whatsapp: WhatsAppState;
+  whatsappConnectedAt: string | null;
 }
 
 export const getAccountViews = cache(async (): Promise<AccountView[]> => {
-  const [accounts, profiles] = await Promise.all([
+  const [accounts, profiles, whatsapp] = await Promise.all([
     getAccounts(),
     getProfiles(),
+    getWhatsAppStatuses(),
   ]);
 
   const emailByUserId = new Map<string, string | null>();
@@ -318,8 +323,13 @@ export const getAccountViews = cache(async (): Promise<AccountView[]> => {
     }
   }
 
+  const whatsappByAccount = new Map(whatsapp.map((w) => [w.accountId, w]));
+
   return accounts.map((a) => {
     const sub = computeSubscription(a);
+    // No whatsapp_config row at all is the common case for a fresh
+    // signup, and it means not connected.
+    const wa = whatsappByAccount.get(a.id);
     return {
       id: a.id,
       name: a.name,
@@ -331,6 +341,8 @@ export const getAccountViews = cache(async (): Promise<AccountView[]> => {
       memberCount: memberCount.get(a.id) ?? 0,
       trialEndsAt: a.trial_ends_at,
       createdAt: a.created_at,
+      whatsapp: wa?.state ?? 'not_connected',
+      whatsappConnectedAt: wa?.connectedAt ?? null,
     };
   });
 });
