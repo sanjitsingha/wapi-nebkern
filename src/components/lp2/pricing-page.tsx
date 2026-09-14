@@ -222,10 +222,16 @@ export function HowMayaWorks() {
             >
               <Info className="size-4" strokeWidth={2.5} />
             </button>
+            {/* Centred on the icon from sm up. Below that it hangs off the
+                icon's right edge instead: the icon sits near the end of a
+                centred line, and a 288px box centred on it poked past the
+                right side of a phone screen. The box is only transparent
+                while hidden, not removed, so it still takes up room — and
+                that overflow gave every phone a sideways scrollbar. */}
             <span
               id="maya-fairuse"
               role="tooltip"
-              className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 w-72 max-w-[85vw] -translate-x-1/2 rounded-xl border-2 border-(--lp2-ink) bg-(--lp2-ink) px-3.5 py-3 text-left opacity-0 shadow-(--lp2-shadow-sm) transition-opacity duration-150 peer-hover:opacity-100 peer-focus-visible:opacity-100"
+              className="pointer-events-none absolute right-0 bottom-full z-30 mb-2 w-72 max-w-[85vw] rounded-xl border-2 border-(--lp2-ink) bg-(--lp2-ink) px-3.5 py-3 text-left opacity-0 shadow-(--lp2-shadow-sm) transition-opacity duration-150 peer-hover:opacity-100 peer-focus-visible:opacity-100 sm:right-auto sm:left-1/2 sm:-translate-x-1/2"
             >
               <span className="block text-xs font-extrabold text-white">
                 {FAIR_USE.title}

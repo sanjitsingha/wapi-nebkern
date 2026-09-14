@@ -1,8 +1,10 @@
 import './lp2.css';
+import './whatsapp.css';
 
 import { lp2Display } from '@/components/lp2/font';
 import { Analytics } from '@/components/analytics';
 import { CookieConsentModal } from '@/components/consent/cookie-consent-modal';
+import { getSiteDesign } from '@/lib/marketing/site-design.server';
 
 // ============================================================
 // (marketing) — the joyful landing rebuild, promoted to `/`.
@@ -13,17 +15,24 @@ import { CookieConsentModal } from '@/components/consent/cookie-consent-modal';
 // deleted, so this is the only marketing shell now. /docs shares this
 // same lp2 scope + font (see src/app/docs/layout.tsx) so the site reads
 // as one brand even where its tone gets more serious.
+//
+// Two designs share this shell — playful (the default) and whatsapp,
+// picked by a cookie. See lib/marketing/site-design.ts and whatsapp.css.
 // ============================================================
 
-export default function MarketingLayout({
+export default async function MarketingLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { design } = await getSiteDesign();
+
   return (
     // `.lp2` is the scope every token and keyframe in lp2.css hangs
     // off, so none of this page's palette can leak into the app.
+    // `data-design` is the scope whatsapp.css hangs off.
     <div
+      data-design={design}
       className={`lp2 ${lp2Display.variable} min-h-screen bg-(--lp2-cream) text-(--lp2-ink) antialiased`}
     >
       {children}

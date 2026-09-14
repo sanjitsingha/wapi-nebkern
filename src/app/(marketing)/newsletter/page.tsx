@@ -33,7 +33,7 @@ export default function NewsletterPage() {
               Back home
             </Link>
 
-            <span className="mt-8 inline-flex size-12 items-center justify-center rounded-2xl border-2 border-(--lp2-ink) bg-(--lp2-lemon) shadow-(--lp2-shadow-sm)">
+            <span className="mt-8 flex size-12 items-center justify-center rounded-2xl border-2 border-(--lp2-ink) bg-(--lp2-lemon) shadow-(--lp2-shadow-sm)">
               <Mail className="size-6" strokeWidth={2.5} />
             </span>
 

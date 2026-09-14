@@ -1,12 +1,14 @@
 import type { Metadata } from 'next';
 
 import '../(marketing)/lp2.css';
+import '../(marketing)/whatsapp.css';
 
 import { lp2Display } from '@/components/lp2/font';
 import { Lp2Nav } from '@/components/lp2/nav';
 import { Lp2Footer } from '@/components/lp2/footer';
 import { DocsShell } from '@/components/docs/docs-shell';
 import { Analytics } from '@/components/analytics';
+import { getSiteDesign } from '@/lib/marketing/site-design.server';
 
 // Public docs — indexed, unlike the authenticated app.
 export const metadata: Metadata = {
@@ -22,9 +24,15 @@ export const metadata: Metadata = {
 // reference someone is reading carefully, not a pitch. See legal.tsx
 // for the same "serious but on-brand" treatment applied to the legal
 // pages.
-export default function DocsLayout({ children }: { children: React.ReactNode }) {
+export default async function DocsLayout({ children }: { children: React.ReactNode }) {
+  // Same design cookie as the marketing pages — see whatsapp.css.
+  const { design } = await getSiteDesign();
+
   return (
-    <div className={`lp2 ${lp2Display.variable} min-h-screen bg-(--lp2-cream) text-(--lp2-ink) antialiased`}>
+    <div
+      data-design={design}
+      className={`lp2 ${lp2Display.variable} min-h-screen bg-(--lp2-cream) text-(--lp2-ink) antialiased`}
+    >
       <Lp2Nav />
       <main>
         <DocsShell>{children}</DocsShell>

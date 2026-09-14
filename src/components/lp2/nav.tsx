@@ -10,7 +10,7 @@ import { BrandLogo } from '@/components/brand/logo';
 import { cn } from '@/lib/utils';
 import { Sparkle, type Lp2Hue } from './decor';
 import { MayaLockup } from './maya-lockup';
-import { press } from './ui';
+import { hardShadowButton, press } from './ui';
 
 // ============================================================
 // /lp-2 navigation — a floating pill rather than a full-bleed bar.
@@ -44,7 +44,7 @@ const NAV: {
   href: string;
   hue: Lp2Hue;
   /** Rendered as a dropdown on desktop, indented rows on mobile. */
-  children?: { label: string; desc: string; href: string }[];
+  children?: { label: string; href: string }[];
 }[] = [
   { label: 'Features', href: '/#features', hue: 'lemon' },
   { label: 'Ask Maya', href: '/ask-maya', hue: 'maya' },
@@ -57,13 +57,9 @@ const NAV: {
     href: '/blog',
     hue: 'coral',
     children: [
-      { label: 'Blog', desc: 'Playbooks and product news', href: '/blog' },
-      { label: 'Docs', desc: 'Every feature, documented', href: '/docs' },
-      {
-        label: 'QR Generator',
-        desc: 'Free WhatsApp QR codes',
-        href: '/qr-generator',
-      },
+      { label: 'Blog', href: '/blog' },
+      { label: 'Docs', href: '/docs' },
+      { label: 'QR Generator', href: '/qr-generator' },
     ],
   },
   // The form, not /contact — that one is the compliance document
@@ -72,7 +68,7 @@ const NAV: {
 ];
 
 /**
- * The Features mega-menu.
+ * The Features dropdown.
  *
  * Five entries, not eight, and every one goes to a page written to sell
  * that surface. It used to list eight and send most of them into
@@ -90,32 +86,12 @@ const NAV: {
  * own: that page already covers both in full, and a second one would
  * compete with it for the same search.
  */
-const FEATURE_MENU: { label: string; desc: string; href: string }[] = [
-  {
-    label: 'Shared Team Inbox',
-    desc: 'One number, the whole team',
-    href: '/features/shared-inbox',
-  },
-  {
-    label: 'Broadcast Campaigns',
-    desc: 'Reach thousands, one at a time',
-    href: '/features/campaigns',
-  },
-  {
-    label: 'Automations & Flows',
-    desc: 'Replies that run themselves',
-    href: '/ask-maya',
-  },
-  {
-    label: 'Segments & Lists',
-    desc: 'Target the right few hundred',
-    href: '/features/segments',
-  },
-  {
-    label: 'Sales Pipelines',
-    desc: 'The chat is the deal',
-    href: '/features/pipelines',
-  },
+const FEATURE_MENU: { label: string; href: string }[] = [
+  { label: 'Shared Team Inbox', href: '/features/shared-inbox' },
+  { label: 'Broadcast Campaigns', href: '/features/campaigns' },
+  { label: 'Automations & Flows', href: '/ask-maya' },
+  { label: 'Segments & Lists', href: '/features/segments' },
+  { label: 'Sales Pipelines', href: '/features/pipelines' },
 ];
 
 function Logo() {
@@ -131,25 +107,23 @@ function Logo() {
 }
 
 /**
- * Features trigger + hover/focus mega-menu.
+ * Features trigger + hover/focus dropdown.
  *
  * CSS-only, driven by `group-hover` and `group-focus-within` on the
  * wrapper — no state, and it opens on keyboard focus too. Two details
  * make it behave:
  *
- *  - The panel sits at `top-full` with a transparent `pt-4` bridge, so
- *    the visible gap between the pill and the card is still part of the
- *    hover target — the pointer can't fall through it and dismiss the
- *    menu on the way down.
+ *  - The panel sits at `top-full` with a transparent `pt-2` bridge, so
+ *    the visible gap between the trigger and the card is still part of
+ *    the hover target — the pointer can't fall through it and dismiss
+ *    the menu on the way down.
  *  - The trigger's own lit state keys off `group-hover/feat`, not its
  *    own `:hover`, so it stays highlighted while you're down in the
  *    panel rather than going dark the moment the pointer leaves it.
  *
- * Full-width: the wrapper is `static` (not relative), so the panel's
- * `absolute inset-x-0` resolves against the nav pill (the nearest
- * positioned ancestor — it carries `relative` for exactly this), giving
- * a mega-menu that spans the whole bar instead of a card hung under one
- * word.
+ * A vertical list of single-line labels hung under the word, the same
+ * shape as Resources. It used to be a full-bar mega-menu with a label
+ * and a one-line description per item, side by side in five columns.
  */
 /**
  * The Ask Maya link, which is not a plain nav word.
@@ -214,9 +188,55 @@ function MayaNavLink({ href, active }: { href: string; active?: boolean }) {
   );
 }
 
+/**
+ * Entrance for a nav dropdown, in two beats.
+ *
+ *  1. The card slides DOWN into place: it starts 16px above its resting
+ *     spot, transparent, and drops and fades in over 350ms — noticeably
+ *     quicker than the list, so the container is there first.
+ *  2. As the card lands, the list inside it rises UP 20px and fades in
+ *     as one group over a slower 700ms, starting 250ms in. The card
+ *     clips it (`overflow-hidden`), so the list surfaces inside the card
+ *     rather than sliding over its edge.
+ *
+ * Opposite directions on purpose: the card arrives from the trigger
+ * above it, and the content settles up into the card.
+ *
+ * Both run on the same long ease-out — quick to start, slow to settle.
+ * The long durations and the delay live only on the open state
+ * (`group-hover` / `group-focus-within`); closing uses a short 200ms
+ * fade with no delay, so the menu gets out of the way promptly.
+ *
+ * The open-state classes are written out once per menu rather than
+ * built from the group name: Tailwind only generates classes it can read
+ * literally in the source.
+ */
+const DROPDOWN_CARD_MOTION =
+  'invisible -translate-y-4 opacity-0 transition-[opacity,translate,visibility] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:translate-y-0 motion-reduce:transition-none';
+
+const FEATURES_CARD_OPEN =
+  'group-hover/feat:visible group-hover/feat:translate-y-0 group-hover/feat:opacity-100 group-hover/feat:duration-350 group-focus-within/feat:visible group-focus-within/feat:translate-y-0 group-focus-within/feat:opacity-100 group-focus-within/feat:duration-350';
+
+const RESOURCES_CARD_OPEN =
+  'group-hover/res:visible group-hover/res:translate-y-0 group-hover/res:opacity-100 group-hover/res:duration-350 group-focus-within/res:visible group-focus-within/res:translate-y-0 group-focus-within/res:opacity-100 group-focus-within/res:duration-350';
+
+const DROPDOWN_LIST_MOTION =
+  'translate-y-5 opacity-0 transition-[opacity,translate] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:translate-y-0 motion-reduce:transition-none';
+
+const FEATURES_LIST_OPEN =
+  'group-hover/feat:translate-y-0 group-hover/feat:opacity-100 group-hover/feat:duration-700 group-hover/feat:delay-250 group-focus-within/feat:translate-y-0 group-focus-within/feat:opacity-100 group-focus-within/feat:duration-700 group-focus-within/feat:delay-250';
+
+const RESOURCES_LIST_OPEN =
+  'group-hover/res:translate-y-0 group-hover/res:opacity-100 group-hover/res:duration-700 group-hover/res:delay-250 group-focus-within/res:translate-y-0 group-focus-within/res:opacity-100 group-focus-within/res:duration-700 group-focus-within/res:delay-250';
+
+/** One row in a nav dropdown. Taller than before (py-3) and spaced with
+ *  a gap on the list, so the labels do not crowd each other. */
+const DROPDOWN_ROW =
+  'block rounded-xl px-3 py-3 text-base font-bold transition-colors hover:bg-(--lp2-cream)';
+
 function FeaturesMenu() {
   return (
-    <div className="group/feat static">
+    <div className="group/feat relative">
       <button
         type="button"
         aria-haspopup="true"
@@ -231,29 +251,26 @@ function FeaturesMenu() {
         />
       </button>
 
-      {/* inset-x-0 + top-full → spans the full bar width, below it. The
-          pt-2 is a transparent bridge across the visible gap. */}
-      <div className="invisible absolute inset-x-0 top-full z-40 translate-y-1 pt-2 opacity-0 transition-all duration-150 group-focus-within/feat:visible group-focus-within/feat:translate-y-0 group-focus-within/feat:opacity-100 group-hover/feat:visible group-hover/feat:translate-y-0 group-hover/feat:opacity-100">
-        {/* A hairline border and a plain white card. The old panel had a
-            2px ink outline, a 24px radius and a hard offset shadow —
-            sticker treatment, which suited the floating pill but reads
-            as loud hanging off a flush bar. */}
-        <div className="rounded-2xl border border-(--lp2-ink)/12 bg-white p-2">
-          {/* Five columns for five items — one row, no orphan. This was
-              `grid-cols-4` when the menu held eight and filled two rows
-              exactly; five items in it would leave one stranded on a
-              second row with three empty cells beside it. */}
-          <div className="grid grid-cols-5 gap-1">
+      {/* Left-aligned to the trigger rather than centred on it: Features
+          is the first item in the row, and a wide panel centred on it
+          would push out past the logo. The pt-2 is a transparent bridge
+          across the visible gap. */}
+      <div
+        className={cn(
+          'absolute top-full left-0 z-40 w-64 pt-2',
+          DROPDOWN_CARD_MOTION,
+          FEATURES_CARD_OPEN,
+        )}
+      >
+        {/* A hairline border and a white card with a soft, blurred drop
+            shadow to lift it off the page — not the sticker outline and
+            hard offset shadow. `lp2-dropdown` exempts it from the
+            WhatsApp design's no-shadow rule (whatsapp.css). */}
+        <div className="lp2-dropdown overflow-hidden rounded-2xl border border-(--lp2-ink)/12 bg-white p-2.5 shadow-[0_16px_40px_-12px_rgba(28,30,33,0.22),0_2px_8px_rgba(28,30,33,0.06)]">
+          <div className={cn('flex flex-col gap-1.5', DROPDOWN_LIST_MOTION, FEATURES_LIST_OPEN)}>
             {FEATURE_MENU.map((it) => (
-              <Link
-                key={it.label}
-                href={it.href}
-                className="rounded-xl px-3 py-2.5 transition-colors hover:bg-(--lp2-cream)"
-              >
-                <span className="block text-base font-bold">{it.label}</span>
-                <span className="mt-0.5 block text-base leading-snug text-(--lp2-ink-soft)">
-                  {it.desc}
-                </span>
+              <Link key={it.label} href={it.href} className={DROPDOWN_ROW}>
+                {it.label}
               </Link>
             ))}
           </div>
@@ -278,7 +295,7 @@ function ResourcesMenu({
   items,
   active,
 }: {
-  items: { label: string; desc: string; href: string }[];
+  items: { label: string; href: string }[];
   active?: boolean;
 }) {
   return (
@@ -299,20 +316,22 @@ function ResourcesMenu({
         />
       </button>
 
-      <div className="invisible absolute top-full left-1/2 z-40 w-64 -translate-x-1/2 translate-y-1 pt-2 opacity-0 transition-all duration-150 group-focus-within/res:visible group-focus-within/res:translate-y-0 group-focus-within/res:opacity-100 group-hover/res:visible group-hover/res:translate-y-0 group-hover/res:opacity-100">
-        <div className="rounded-2xl border border-(--lp2-ink)/12 bg-white p-2">
-          {items.map((it) => (
-            <Link
-              key={it.label}
-              href={it.href}
-              className="block rounded-xl px-3 py-2.5 transition-colors hover:bg-(--lp2-cream)"
-            >
-              <span className="block text-base font-bold">{it.label}</span>
-              <span className="mt-0.5 block text-base leading-snug text-(--lp2-ink-soft)">
-                {it.desc}
-              </span>
-            </Link>
-          ))}
+      <div
+        className={cn(
+          'absolute top-full left-1/2 z-40 w-64 -translate-x-1/2 pt-2',
+          DROPDOWN_CARD_MOTION,
+          RESOURCES_CARD_OPEN,
+        )}
+      >
+        {/* Same card and shadow as the Features dropdown. */}
+        <div className="lp2-dropdown overflow-hidden rounded-2xl border border-(--lp2-ink)/12 bg-white p-2.5 shadow-[0_16px_40px_-12px_rgba(28,30,33,0.22),0_2px_8px_rgba(28,30,33,0.06)]">
+          <div className={cn('flex flex-col gap-1.5', DROPDOWN_LIST_MOTION, RESOURCES_LIST_OPEN)}>
+            {items.map((it) => (
+              <Link key={it.label} href={it.href} className={DROPDOWN_ROW}>
+                {it.label}
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -401,16 +420,16 @@ export function Lp2Nav() {
               Log in
             </Link>
 
-            {/* The one element still allowed to be emphatic. It keeps its
-              solid fill because it is the point of the page — but the
-              ink outline and offset shadow are gone, so it reads as a
-              button rather than a sticker. */}
+            {/* The one element still allowed to be emphatic — but it earns
+              it on hover rather than shouting at rest. Idle, it is an
+              outline on the nav's own background. Hovered (or focused
+              from the keyboard), it fills with the brand green and throws
+              a hard, unblurred black shadow 4px down and right.
+              `lp2-hard-shadow` exempts that shadow from the WhatsApp
+              design's no-shadow rule (whatsapp.css). */}
             <Link
               href="/signup"
-              className={cn(
-                'inline-flex h-10 items-center gap-1.5 rounded-lg bg-(--lp2-grass) px-4 text-base font-bold text-white transition-colors hover:bg-(--lp2-ink)',
-                press
-              )}
+              className={hardShadowButton}
             >
               Start free
               <ArrowRight className="size-4" strokeWidth={2.5} />

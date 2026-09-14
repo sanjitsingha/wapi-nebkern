@@ -1,0 +1,349 @@
+/* ============================================================
+   The WhatsApp design — built from whatsapp.design.md.
+
+   A second design for every public page, switched by the `site_design`
+   cookie: the layouts put `data-design="whatsapp"` on the same `.lp2`
+   wrapper the playful design already hangs off, and everything below is
+   scoped to that attribute. With the attribute absent none of this
+   matches, so the playful design is untouched.
+
+   HOW IT WORKS WITHOUT FORKING 44 PAGES
+
+   Every lp2 component paints through the `--lp2-*` tokens (lp2.css) —
+   there is not one hardcoded colour in components/lp2. So most of the
+   redesign is the token remap at the top. The rest is the spec's
+   structural rules the tokens cannot express — weight 400 everywhere,
+   pill and tile radii, no shadows, no confetti — applied as scoped
+   overrides on the class names the playful components already use.
+
+   The landing page is the exception: its playful composition does not
+   survive being flattened, so `/` renders its own components
+   (components/wa/landing.tsx) under this design instead.
+
+   The spec in one breath: warm cream canvas #fcf5eb, near-black ink
+   #1c1e21, voltage green #25d366 reserved for the primary CTA, ink text
+   (never white) on green, one weight (400), radii of 25px / 50px / 50%
+   only, flat surfaces, and a single pure-black band for contrast.
+   ============================================================ */
+
+/* Tokens re-applied on nested `.lp2` scopes too: the cookie consent modal
+   carries its own `lp2` class, which would otherwise reset every token
+   back to the playful palette inside it. */
+.lp2[data-design='whatsapp'],
+.lp2[data-design='whatsapp'] .lp2 {
+  --wa-green: #25d366;
+  --wa-green-hover: #1fc15c;
+  --wa-mint: #e6ffda;
+  --wa-ink: #1c1e21;
+  --wa-ink-muted: #5e5e5e;
+  --wa-canvas: #fcf5eb;
+  /* A step deeper than the canvas, so a tinted surface still separates
+     from the page floor without introducing a hue. */
+  --wa-tint: #f3ecdf;
+  --wa-white: #ffffff;
+  --wa-black: #000000;
+  --wa-link: #0373e9;
+  --wa-hairline: rgba(28, 30, 33, 0.12);
+
+  /* ── Token remap ──
+     Surfaces and ink map straight across. The brand green becomes the
+     voltage green; `grass-deep` (link text, active states) becomes ink,
+     because the spec never puts green text on a light ground.
+
+     The confetti hues all collapse. Saturated ones become white — the
+     spec's contact-chip surface — and ink text on them stays legible,
+     which is how the playful components use them. The soft washes
+     become the tint. */
+  --lp2-cream: var(--wa-canvas);
+  --lp2-paper: var(--wa-white);
+  --lp2-ink: var(--wa-ink);
+  --lp2-ink-soft: var(--wa-ink-muted);
+  --lp2-grass: var(--wa-green);
+  --lp2-grass-deep: var(--wa-ink);
+  --lp2-pop: var(--wa-green);
+  --lp2-mint: var(--wa-mint);
+  --lp2-lemon: var(--wa-white);
+  --lp2-lemon-soft: var(--wa-tint);
+  --lp2-coral: var(--wa-white);
+  --lp2-coral-soft: var(--wa-tint);
+  --lp2-sky: var(--wa-white);
+  --lp2-sky-soft: var(--wa-tint);
+  --lp2-grape: var(--wa-white);
+  --lp2-grape-soft: var(--wa-tint);
+  --lp2-tangerine: var(--wa-white);
+  --lp2-tangerine-soft: var(--wa-tint);
+  --lp2-maya: var(--wa-white);
+  --lp2-maya-soft: var(--wa-tint);
+  --lp2-maya-deep: var(--wa-ink);
+  --lp2-lime: var(--wa-white);
+
+  /* Elevation: none. Hierarchy comes from radius and contrast. */
+  --lp2-shadow: none;
+  --lp2-shadow-sm: none;
+  --lp2-shadow-lg: none;
+}
+
+/* Root only — a nested `.lp2` (the full-screen consent overlay) must not
+   paint the cream floor over the page. */
+.lp2[data-design='whatsapp'] {
+  /* WhatsApp Sans Var is proprietary. Inter (already loaded by the root
+     layout as --font-sans) is the spec's named substitute. */
+  font-family:
+    var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    sans-serif;
+  background-color: var(--wa-canvas);
+  color: var(--wa-ink);
+}
+
+/* ── Typography: one weight ──────────────────────────────────────
+   "The system's emphasis mechanism is size, not weight." Every playful
+   component leans on font-bold / font-extrabold; all of it resolves to
+   400 here. */
+.lp2[data-design='whatsapp'] * {
+  font-weight: 400 !important;
+}
+
+.lp2[data-design='whatsapp'] .lp2-display {
+  font-family: inherit;
+  font-variation-settings: normal;
+  letter-spacing: -0.015em;
+}
+
+/* Hue-coloured text (badges, labels) would now be white on a light
+   ground. Ink instead. */
+.lp2[data-design='whatsapp']
+  :is(
+    [class*='text-(--lp2-lemon'],
+    [class*='text-(--lp2-coral'],
+    [class*='text-(--lp2-sky'],
+    [class*='text-(--lp2-grape'],
+    [class*='text-(--lp2-tangerine'],
+    [class*='text-(--lp2-maya'],
+    [class*='text-(--lp2-lime'],
+    [class*='text-(--lp2-pop'],
+    [class~='text-(--lp2-grass)']
+  ) {
+  color: var(--wa-ink) !important;
+}
+
+/* Icons tinted through an inline style (`color: var(--lp2-coral)`, built
+   from a hue name at runtime) resolve to white too — ink instead. */
+.lp2[data-design='whatsapp']
+  :is(
+    [style*='var(--lp2-lemon)'],
+    [style*='var(--lp2-coral)'],
+    [style*='var(--lp2-sky)'],
+    [style*='var(--lp2-grape)'],
+    [style*='var(--lp2-tangerine)'],
+    [style*='var(--lp2-maya)'],
+    [style*='var(--lp2-lime)'],
+    [style*='var(--lp2-pop)'],
+    [style*='var(--lp2-grass)']
+  ):is(svg, span, p, div) {
+  color: var(--wa-ink) !important;
+}
+
+/* Icon tiles filled through an inline style (`backgroundColor:
+   var(--lp2-sky)`) with a white glyph on top: the fill is white now, so
+   the glyph goes ink and the tile gets a hairline to stay visible. */
+.lp2[data-design='whatsapp'] [style*='background-color:var(--lp2-'] {
+  border: 1px solid var(--wa-hairline);
+}
+
+.lp2[data-design='whatsapp'] [style*='background-color:var(--lp2-'] [class~='text-white'] {
+  color: var(--wa-ink) !important;
+}
+
+/* The reverse case: white text on a hue fill (the pricing "popular"
+   badge, sticker labels). The fill is white now, so the text goes ink and
+   a hairline keeps the pill visible on a white card. */
+.lp2[data-design='whatsapp']
+  :is(
+    [class~='bg-(--lp2-lemon)'],
+    [class~='bg-(--lp2-coral)'],
+    [class~='bg-(--lp2-sky)'],
+    [class~='bg-(--lp2-grape)'],
+    [class~='bg-(--lp2-tangerine)'],
+    [class~='bg-(--lp2-maya)'],
+    [class~='bg-(--lp2-lime)']
+  ) {
+  color: var(--wa-ink) !important;
+  border: 1px solid var(--wa-hairline);
+}
+
+/* Inline links in long-form text (docs) use the spec's link blue — the
+   one functional colour, never a brand one. */
+.lp2[data-design='whatsapp'] [class*='[&_a]:text-(--lp2-grass-deep)'] a {
+  color: var(--wa-link) !important;
+  text-decoration-color: rgba(3, 115, 233, 0.35) !important;
+}
+
+/* ── Shape: 25px tiles, 50px pills, full circles ──────────────────
+   No 4 / 8 / 12 / 16px tier exists in the spec. Every rounded container
+   becomes a tile; anything that behaves as a button becomes a pill. */
+.lp2[data-design='whatsapp']
+  :is(
+    [class~='rounded'],
+    [class~='rounded-sm'],
+    [class~='rounded-md'],
+    [class~='rounded-lg'],
+    [class~='rounded-xl'],
+    [class~='rounded-2xl'],
+    [class~='rounded-3xl']
+  ) {
+  border-radius: 25px;
+}
+
+.lp2[data-design='whatsapp'] :is(a, button)[class*='inline-flex'][class*='rounded'],
+.lp2[data-design='whatsapp'] :is(input, select)[class*='rounded'] {
+  border-radius: 9999px;
+}
+
+/* Hairlines, not 2px outlines. */
+.lp2[data-design='whatsapp'] [class~='border-2'] {
+  border-width: 1px;
+}
+
+/* ── Elevation and motion ─────────────────────────────────────────
+   Flat. Focus rings are drawn with box-shadow in Tailwind, so the reset
+   spares :focus-visible and an explicit outline replaces the ring.
+
+   Two deliberate exceptions:
+   - The nav's dropdown cards (`.lp2-dropdown`) keep their soft drop
+     shadow. They float over page content — often over the dark hero —
+     and without elevation a white card reads as a hole punched in the
+     page rather than a menu on top of it.
+   - The nav's Start free button (`.lp2-hard-shadow`) keeps the hard
+     black shadow it throws on hover. */
+.lp2[data-design='whatsapp'] *:not(:focus-visible):not(.lp2-dropdown):not(.lp2-hard-shadow) {
+  box-shadow: none !important;
+}
+
+.lp2[data-design='whatsapp'] :focus-visible {
+  outline: 2px solid var(--wa-ink);
+  outline-offset: 2px;
+}
+
+/* The playful "press" slides a button into its shadow. No shadow, no
+   slide. Matched on a whole `hover:` / `active:` class, never a
+   substring: `group-hover/res:translate-y-0` also contains
+   "hover:translate", and cancelling translate there would drop the
+   Resources dropdown's -50% centring the moment the pointer reached it. */
+.lp2[data-design='whatsapp'] :is([class^='hover:translate'], [class*=' hover:translate']):hover,
+.lp2[data-design='whatsapp'] :is([class^='active:translate'], [class*=' active:translate']):active {
+  translate: none !important;
+}
+
+/* ── The confetti goes ────────────────────────────────────────────
+   Blobs, dot fields, sparkles, squiggles, wavy edges, and the marker
+   boxes behind highlighted words. Lucide icons are aria-hidden too, and
+   the search fields' icons are pointer-events-none — they stay. */
+.lp2[data-design='whatsapp'] .lp2-drift,
+.lp2[data-design='whatsapp'] [class*='inset-x-[-0.12em]'],
+.lp2[data-design='whatsapp'] svg.pointer-events-none[aria-hidden='true']:not(.lucide),
+.lp2[data-design='whatsapp'] div[aria-hidden='true'][style*='radial-gradient(circle'] {
+  display: none !important;
+}
+
+/* A highlighted word may have been set white to sit on its marker box.
+   With the box gone it would vanish into the cream. It also goes back to
+   plain inline: as an inline-block, the punctuation straight after it
+   ("branches, exactly…") could wrap onto the next line on its own. */
+.lp2[data-design='whatsapp'] span:has(> [class*='inset-x-[-0.12em]']) {
+  display: inline !important;
+  color: inherit !important;
+  margin-inline: 0 !important;
+}
+
+/* Stickers stand up straight and stop bobbing. */
+.lp2[data-design='whatsapp'] [style*='--lp2-tilt'],
+.lp2[data-design='whatsapp'] .lp2-float {
+  transform: none !important;
+  animation: none !important;
+}
+
+.lp2[data-design='whatsapp'] [class~='-rotate-2'] {
+  rotate: none;
+}
+
+/* "Every band terminates on a flat fill colour" — no washes. */
+.lp2[data-design='whatsapp'] [style*='background-image'][style*='linear-gradient'] {
+  background-image: none !important;
+}
+
+/* White section bands sit on the cream floor instead; white is kept for
+   the tiles on top of them. */
+.lp2[data-design='whatsapp'] section[class~='bg-white'] {
+  background-color: var(--wa-canvas) !important;
+}
+
+/* ── The green button ─────────────────────────────────────────────
+   Voltage green takes INK text, with a 1px ink hairline — the spec is
+   explicit that white on this green reads worse at button size. The
+   playful hover to solid ink would make ink-on-ink, so it gets a
+   slightly deeper green instead. */
+.lp2[data-design='whatsapp'] :is(a, button)[class~='bg-(--lp2-grass)'] {
+  color: var(--wa-ink) !important;
+  border: 1px solid var(--wa-ink) !important;
+}
+
+.lp2[data-design='whatsapp'] :is(a, button)[class~='bg-(--lp2-grass)']:hover {
+  background-color: var(--wa-green-hover) !important;
+  color: var(--wa-ink) !important;
+}
+
+.lp2[data-design='whatsapp'] [class~='bg-(--lp2-grass)'][class~='text-white'] {
+  color: var(--wa-ink) !important;
+}
+
+/* ── Top nav ──────────────────────────────────────────────────────
+   Cream, flush with the page floor, no blur. */
+.lp2[data-design='whatsapp'] header[class~='sticky'] {
+  background-color: var(--wa-canvas) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: 1px solid var(--wa-hairline) !important;
+}
+
+/* ── Footer ───────────────────────────────────────────────────────
+   The playful footer is an ink panel. The spec's footer continues the
+   cream with no surface contrast against the page. */
+.lp2[data-design='whatsapp'] footer[class~='bg-(--lp2-ink)'] {
+  background-color: var(--wa-canvas) !important;
+  color: var(--wa-ink) !important;
+  border-top: 1px solid var(--wa-hairline) !important;
+}
+
+.lp2[data-design='whatsapp'] footer :is([class~='text-white/65'], [class~='text-white/55']) {
+  color: var(--wa-ink-muted) !important;
+}
+
+.lp2[data-design='whatsapp'] footer [class~='text-white'] {
+  color: var(--wa-ink) !important;
+}
+
+.lp2[data-design='whatsapp'] footer [class~='hover:text-white']:hover {
+  color: var(--wa-ink) !important;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.lp2[data-design='whatsapp'] footer [class~='border-white/15'] {
+  border-color: var(--wa-hairline) !important;
+}
+
+/* The per-column hue dots. */
+.lp2[data-design='whatsapp'] footer span[aria-hidden='true'][class~='size-2.5'] {
+  display: none;
+}
+
+/* ── Page scrollbar ───────────────────────────────────────────────
+   On Windows the page scrollbar is a solid grey strip down the right
+   edge. Next to the edge-to-edge hero it reads as extra padding on the
+   right only, so the tile looks off-centre. Thin, on the page's own
+   cream, it blends into the canvas instead. Scoped with :has() so only
+   pages in this design are affected — the app keeps its scrollbar. */
+html:has(.lp2[data-design='whatsapp']) {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(28, 30, 33, 0.28) #fcf5eb;
+}

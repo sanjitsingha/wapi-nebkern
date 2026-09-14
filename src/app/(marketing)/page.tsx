@@ -14,6 +14,8 @@ import { Lp2PricingNote } from '@/components/lp2/pricing-note';
 import { Lp2Faq } from '@/components/lp2/faq';
 import { Lp2Cta } from '@/components/lp2/cta';
 import { Lp2Footer } from '@/components/lp2/footer';
+import { WaLanding } from '@/components/wa/landing';
+import { getSiteDesign } from '@/lib/marketing/site-design.server';
 
 // The public marketing landing page — the "joyful rebuild," promoted to
 // `/` from its former home at /lp-2. The older design it replaced has
@@ -31,8 +33,8 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-// Fully static — nothing here reads the database or the request, so it
-// prerenders once at build time.
+// Rendered per request: the design cookie picks which composition below
+// is served. Nothing here reads the database.
 
 const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL ?? 'https://instant.nebkern.com'
@@ -59,14 +61,37 @@ const WEBSITE_JSONLD = {
   url: `${SITE_URL}/`,
 };
 
-export default function Lp2Page() {
+export default async function Lp2Page() {
+  const { design } = await getSiteDesign();
+
+  const jsonLd = (
+    <script
+      type="application/ld+json"
+      // Static object we control — no user input reaches it.
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_JSONLD) }}
+    />
+  );
+
+  // The WhatsApp design (whatsapp.design.md) gets its own composition —
+  // the playful sections below lean on stickers and colour blocking that
+  // do not survive being flattened. Nav and footer are shared; the
+  // layout's data-design attribute restyles them.
+  if (design === 'whatsapp') {
+    return (
+      <>
+        {jsonLd}
+        <Lp2Nav />
+        <main>
+          <WaLanding />
+        </main>
+        <Lp2Footer />
+      </>
+    );
+  }
+
   return (
     <>
-      <script
-        type="application/ld+json"
-        // Static object we control — no user input reaches it.
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_JSONLD) }}
-      />
+      {jsonLd}
       <Lp2Nav />
       <main>
         <Lp2Hero />

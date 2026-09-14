@@ -24,6 +24,20 @@ import { Highlight, type Lp2Hue } from './decor';
 export const press =
   'transition-all duration-150 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_var(--lp2-ink)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none';
 
+/**
+ * The outline button that fills on hover — first made for the nav's
+ * Start free, and shared so every button that copies it stays identical.
+ *
+ * Idle, an ink outline on whatever background it sits on. Hovered (or
+ * focused from the keyboard), it fills with the brand green and throws a
+ * hard, unblurred black shadow 4px down and right.
+ *
+ * `lp2-hard-shadow` exempts that shadow from the WhatsApp design's
+ * no-shadow rule (app/(marketing)/whatsapp.css).
+ */
+export const hardShadowButton =
+  'lp2-hard-shadow inline-flex h-10 items-center gap-1.5 rounded-lg border border-(--lp2-ink) bg-transparent px-4 text-base font-bold text-(--lp2-ink) transition-[background-color,box-shadow] duration-200 hover:bg-(--lp2-grass) hover:shadow-[4px_4px_0_#000] focus-visible:bg-(--lp2-grass) focus-visible:shadow-[4px_4px_0_#000]';
+
 export function Btn({
   href,
   children,
