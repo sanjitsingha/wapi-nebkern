@@ -218,7 +218,12 @@ export default async function AdminAccountDetailPage({
       </StatRow>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* Keyed on what it displays. The editor copies its props into
+            local state, and router.refresh() keeps client state — so
+            without the key, saving billing (which activates the plan)
+            left this card still reading "trialing" until a full reload. */}
         <SubscriptionEditor
+          key={`${sub.plan}:${sub.status}:${account.trial_ends_at ?? ''}`}
           accountId={account.id}
           plan={sub.plan}
           status={sub.status}
