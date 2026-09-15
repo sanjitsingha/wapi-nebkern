@@ -1,10 +1,17 @@
 // ============================================================
 // DELETE /api/conversations/[id]
 //
-// Delete a chat for good: the conversation row and every message in it.
-// Agent+. The contact is NOT deleted, and neither is its team thread —
-// that hangs off the contact, not the chat. The next message to or from
-// the same number starts a new, empty conversation.
+// Delete a chat for good: the conversation row, every message in it, and
+// the contact's Team Inbox thread (its messages and their @mentions).
+// Agent+. The contact itself is NOT deleted. The next message to or from
+// the same number starts a new, empty conversation and an empty thread.
+//
+// The team thread goes with the chat because a contact has exactly one
+// conversation (UNIQUE(account_id, contact_id), migration 027) — the
+// thread is the team's talk about that chat, and keeping it after the
+// chat was deleted left history the user had just asked to remove. The
+// rows are hard-deleted, unlike a single thread message's soft delete:
+// this is the whole record going, not one comment being retracted.
 //
 // This used to delete through the caller's RLS client and answer
 // { ok: true } without checking that anything went. RLS does not error
@@ -35,7 +42,7 @@ export async function DELETE(
     // service-role and bypass RLS, so this lookup is the tenancy boundary.
     const { data: conv } = await supabase
       .from('conversations')
-      .select('id, contact:contacts(name, phone)')
+      .select('id, contact_id, contact:contacts(name, phone)')
       .eq('id', id)
       .eq('account_id', accountId)
       .maybeSingle();
@@ -65,6 +72,28 @@ export async function DELETE(
       .eq('conversation_id', id);
     if (messagesError) return failed('delete messages', messagesError);
 
+    // The Team Inbox thread. Mentions first and explicitly, for the same
+    // reason as messages above — they would cascade from the thread
+    // messages, but a leftover mention is a bell notification pointing
+    // at a thread that no longer exists.
+    let teamMessagesDeleted = 0;
+    if (conv.contact_id) {
+      const { error: mentionsError } = await admin
+        .from('contact_thread_mentions')
+        .delete()
+        .eq('account_id', accountId)
+        .eq('contact_id', conv.contact_id);
+      if (mentionsError) return failed('delete team mentions', mentionsError);
+
+      const { error: threadError, count } = await admin
+        .from('contact_thread_messages')
+        .delete({ count: 'exact' })
+        .eq('account_id', accountId)
+        .eq('contact_id', conv.contact_id);
+      if (threadError) return failed('delete team thread', threadError);
+      teamMessagesDeleted = count ?? 0;
+    }
+
     const { data: deleted, error } = await admin
       .from('conversations')
       .delete()
@@ -87,7 +116,10 @@ export async function DELETE(
       targetType: 'conversation',
       targetId: id,
       targetLabel: contact?.name || contact?.phone || null,
-      metadata: { messages_deleted: messagesDeleted ?? 0 },
+      metadata: {
+        messages_deleted: messagesDeleted ?? 0,
+        team_messages_deleted: teamMessagesDeleted,
+      },
       request,
     });
 

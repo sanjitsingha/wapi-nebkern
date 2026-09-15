@@ -1314,8 +1314,9 @@ export function MessageThread({
               Delete chat
             </DialogTitle>
             <DialogDescription>
-              This deletes the conversation and all its messages, and can’t be
-              undone. The contact is kept.
+              This deletes the conversation, all its messages and the
+              contact’s Team Inbox thread, and can’t be undone. The contact
+              is kept.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
