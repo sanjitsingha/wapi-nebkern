@@ -4,6 +4,7 @@ import { sendTemplateMessage } from '@/lib/whatsapp/meta-api'
 import { decrypt } from '@/lib/whatsapp/encryption'
 import type { SendTimeParams } from '@/lib/whatsapp/template-send-builder'
 import { isMessageTemplate } from '@/lib/whatsapp/template-row-guard'
+import { renderTemplateBody } from '@/lib/whatsapp/template-body'
 import {
   sanitizePhoneForMeta,
   isValidE164,
@@ -23,6 +24,8 @@ interface BroadcastResult {
   phone: string
   status: 'sent' | 'failed'
   whatsapp_message_id?: string
+  /** The template body with this recipient's variables filled in. */
+  rendered_body?: string
   error?: string
 }
 
@@ -268,6 +271,15 @@ export async function POST(request: Request) {
           phone: recipient.phone,
           status: 'sent',
           whatsapp_message_id: sentMessageId,
+          // What this recipient actually read. The send hook stores it on
+          // the recipient row so the message shows in their chat
+          // (migration 102).
+          rendered_body: renderTemplateBody(
+            templateRow?.body_text ?? '',
+            (recipient.messageParams?.body as string[] | undefined) ??
+              recipient.params ??
+              [],
+          ),
         })
         sentCount++
       } else {

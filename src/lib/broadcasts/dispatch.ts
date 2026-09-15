@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { sendTemplateMessage } from '@/lib/whatsapp/meta-api';
+import { renderTemplateBody } from '@/lib/whatsapp/template-body';
 import { decrypt } from '@/lib/whatsapp/encryption';
 import { isMessageTemplate } from '@/lib/whatsapp/template-row-guard';
 import {
@@ -222,6 +223,24 @@ export async function dispatchScheduledBroadcast(
             error_message: null,
           })
           .eq('id', row.id);
+
+        // The text they got, for their chat (migration 102). A write of
+        // its own, as in useBroadcastSending, so a database without the
+        // column loses only this.
+        const { error: bodyError } = await admin
+          .from('broadcast_recipients')
+          .update({
+            rendered_body:
+              renderTemplateBody(templateRow?.body_text ?? '', params) ||
+              `[${broadcast.template_name}]`,
+          })
+          .eq('id', row.id);
+        if (bodyError) {
+          console.warn(
+            '[broadcast dispatch] could not store message text:',
+            bodyError.message,
+          );
+        }
       } else {
         failed++;
         await admin

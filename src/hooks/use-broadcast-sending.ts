@@ -76,6 +76,8 @@ interface BroadcastApiResult {
   phone: string;
   status: 'sent' | 'failed';
   whatsapp_message_id?: string;
+  /** The template body with this recipient's variables filled in. */
+  rendered_body?: string;
   error?: string;
 }
 
@@ -531,6 +533,26 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
                   error_message: null,
                 })
                 .eq('id', recipient.id);
+
+              // The text they got, which migration 102 puts in their chat.
+              // Its own write, after the status: on a database without
+              // the column yet, only this fails and the campaign's counts
+              // are unaffected.
+              if (result.whatsapp_message_id) {
+                const { error: bodyError } = await supabase
+                  .from('broadcast_recipients')
+                  .update({
+                    rendered_body:
+                      result.rendered_body || `[${payload.template.name}]`,
+                  })
+                  .eq('id', recipient.id);
+                if (bodyError) {
+                  console.warn(
+                    'Could not store the campaign message text:',
+                    bodyError.message,
+                  );
+                }
+              }
             } else {
               failedCount++;
               await supabase
