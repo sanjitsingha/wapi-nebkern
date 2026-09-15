@@ -26,6 +26,7 @@ export const AUDIT = {
   CONVERSATION_ASSIGNED_AGENT: 'conversation.assigned_agent',
   CONVERSATION_ASSIGNED_AI: 'conversation.assigned_ai',
   CONVERSATION_UNASSIGNED: 'conversation.unassigned',
+  CONVERSATION_DELETED: 'conversation.deleted',
 
   // Operational
   CONTACT_CREATED: 'contact.created',
@@ -105,6 +106,10 @@ export const ACTION_META: Record<string, ActionMeta> = {
   },
   [AUDIT.CONVERSATION_UNASSIGNED]: {
     label: 'Unassigned a chat',
+    category: 'conversations',
+  },
+  [AUDIT.CONVERSATION_DELETED]: {
+    label: 'Deleted a chat',
     category: 'conversations',
   },
 
