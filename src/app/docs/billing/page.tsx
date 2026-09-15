@@ -9,7 +9,11 @@ import {
   DocsPager,
 } from '@/components/docs/docs-components';
 
-export const metadata: Metadata = { title: 'Billing & plans' };
+export const metadata: Metadata = {
+  title: 'Billing & plans',
+  description: "Billing & plans in Instant: The trial, plan tiers, checkout, activation codes, and invoices. A step-by-step guide for teams selling on WhatsApp.",
+  alternates: { canonical: '/docs/billing' },
+};
 
 export default function BillingDocsPage() {
   return (

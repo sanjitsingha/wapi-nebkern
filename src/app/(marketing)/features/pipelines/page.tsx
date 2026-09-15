@@ -13,7 +13,7 @@ import {
 export const metadata: Metadata = {
   title: { absolute: 'Sales Pipelines built on the conversation — Instant' },
   description:
-    'Drag WhatsApp conversations through your own sales stages. The chat is the deal — full history, custom fields and owner on one record, with automations that fire on a stage change.',
+    'Drag WhatsApp conversations through your own sales stages. The chat is the deal: history, custom fields and owner on one record, with stage automations.',
   alternates: { canonical: '/features/pipelines' },
   robots: { index: true, follow: true },
 };

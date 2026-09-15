@@ -9,9 +9,10 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // placeholder — a subprocessor list naming the wrong host is worse
 // than one that visibly needs filling in.
 export const metadata: Metadata = {
+  alternates: { canonical: '/subprocessors' },
   title: { absolute: 'Subprocessor List — Instant' },
   description:
-    'The third-party providers Instant uses to process personal data on behalf of customers — what each one does, what data it sees, and how we notify you of changes.',
+    'The third-party providers Instant uses to process personal data for customers — what each does, what data it sees, and how we notify you of changes.',
   robots: { index: true, follow: true },
 };
 

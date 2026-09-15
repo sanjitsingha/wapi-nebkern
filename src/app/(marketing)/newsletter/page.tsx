@@ -8,6 +8,7 @@ import { Highlight } from '@/components/lp2/decor';
 import { Lp2NewsletterForm } from '@/components/lp2/newsletter-form';
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/newsletter' },
   title: { absolute: 'Newsletter — Instant' },
   description:
     'One email a month on WhatsApp marketing, AI agents and what actually moves the needle for teams selling on chat.',

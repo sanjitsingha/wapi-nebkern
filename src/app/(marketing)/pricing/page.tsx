@@ -19,9 +19,10 @@ import {
 // database or the request; the plan CTAs point at /signup, which starts the
 // trial and later lands the buyer on the in-app checkout.
 export const metadata: Metadata = {
+  alternates: { canonical: '/pricing' },
   title: { absolute: 'Pricing — Maya AI included, zero markup on Meta' },
   description:
-    'Instant by Nebkern: a flat platform fee with Maya AI included and Meta charges passed through at zero markup. Starter ₹499, Growth ₹799, Business ₹999/mo — plus a 14-day free trial. All prices exclude 18% GST.',
+    'Instant pricing: flat monthly plans with Maya AI included and Meta charges at zero markup. Starter ₹499, Growth ₹799, Business ₹999/mo. 14-day free trial.',
   robots: { index: true, follow: true },
 };
 

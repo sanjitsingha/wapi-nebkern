@@ -9,9 +9,10 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // Written to be signable — hence the "how to execute" section, which is
 // the part most template DPAs forget.
 export const metadata: Metadata = {
+  alternates: { canonical: '/dpa' },
   title: { absolute: 'Data Processing Agreement — Instant' },
   description:
-    'The Instant Data Processing Agreement — processor obligations, subprocessors, international transfers, security, breach notification, audit rights and deletion on termination.',
+    "Instant's Data Processing Agreement: processor obligations, subprocessors, international transfers, security, breach notification and deletion.",
   robots: { index: true, follow: true },
 };
 

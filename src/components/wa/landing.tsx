@@ -35,11 +35,11 @@ import { WaPill, waType } from './ui';
 const META_LOGO = 'https://media.instant.nebkern.com/assets/meta-logo.png';
 const ORBIT_ART = 'https://media.instant.nebkern.com/assets/intregation.png';
 
-/** Which hero to render. `chat` is the live design; `centered` is an
- *  alternative being tried, previewed at /?hero=centered. */
+/** Which hero to render. `centered` is the live design; `chat` is the
+ *  earlier chat-bubble hero, still reachable at /?hero=chat. */
 export type WaHeroVariant = 'chat' | 'centered';
 
-export function WaLanding({ hero = 'chat' }: { hero?: WaHeroVariant }) {
+export function WaLanding({ hero = 'centered' }: { hero?: WaHeroVariant }) {
   return (
     <>
       {hero === 'centered' ? <HeroCentered /> : <Hero />}
@@ -197,8 +197,9 @@ function Hero() {
 /**
  * Alternative hero — one centred column, no conversation panel.
  *
- * Being tried alongside Hero above, which stays the default. Preview it at
- * /?hero=centered (see app/(marketing)/page.tsx). Same paragraph as Hero;
+ * The live hero, rendered on /. The chat-bubble Hero above is kept and
+ * still reachable at /?hero=chat (see app/(marketing)/page.tsx). Same
+ * paragraph as Hero;
  * the headline is the longer "Turn every WhatsApp @conversation into
  * ₹revenue" over two lines, the button is the nav's outline Start free,
  * and there is no Meta credential line.

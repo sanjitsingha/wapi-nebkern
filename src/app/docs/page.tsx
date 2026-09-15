@@ -1,8 +1,13 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
 import { DOCS_NAV, docHref } from '@/lib/docs/nav';
 import { cn } from '@/lib/utils';
+
+export const metadata: Metadata = {
+  alternates: { canonical: '/docs' },
+};
 
 export default function DocsIndexPage() {
   return (

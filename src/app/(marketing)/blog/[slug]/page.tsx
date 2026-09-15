@@ -20,6 +20,16 @@ import '../post-content.css';
 
 export const revalidate = 300;
 
+const SITE = (
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://instant.nebkern.com'
+).replace(/\/$/, '');
+
+const PUBLISHER = {
+  '@type': 'Organization',
+  name: 'Nebkern Technology',
+  url: 'https://nebkern.com/',
+};
+
 export async function generateMetadata({
   params,
 }: {
@@ -30,16 +40,25 @@ export async function generateMetadata({
   if (!post) return { title: 'Post not found — Instant' };
 
   return {
-    title: { absolute: `${post.title} — Instant blog` },
+    // Google cuts titles off around 60 characters. A long post title
+    // already fills that, so the " — Instant blog" suffix would only be
+    // truncated away; shorter titles keep it.
+    title: {
+      absolute: post.title.length > 45 ? post.title : `${post.title} — Instant blog`,
+    },
     description: post.excerpt ?? undefined,
     // The live, indexed post page — and since /lp-2/blog/[slug] was
     // deleted, the only one rendering these rows.
     robots: { index: true, follow: true },
+    // The post's one official address, matching its sitemap entry.
+    alternates: { canonical: `/blog/${slug}` },
     openGraph: {
       title: post.title,
       description: post.excerpt ?? undefined,
       type: 'article',
-      ...(post.coverImageUrl ? { images: [{ url: post.coverImageUrl }] } : {}),
+      // This openGraph replaces the root one, file-generated share image
+      // included, so a post without a cover names the site image itself.
+      images: [{ url: post.coverImageUrl ?? '/opengraph-image' }],
     },
   };
 }
@@ -66,8 +85,30 @@ export default async function Lp2BlogPostPage({
   // body the article renders; `toc` feeds the sidebar.
   const { html, toc } = buildToc(post.contentHtml);
 
+  // Article structured data, so Google can show the post as an article
+  // with its date and publisher. Undefined fields drop out of the JSON.
+  const articleLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description: post.excerpt ?? undefined,
+    image: post.coverImageUrl ? [post.coverImageUrl] : undefined,
+    datePublished: post.publishedAt ?? undefined,
+    author: post.authorName ? { '@type': 'Person', name: post.authorName } : PUBLISHER,
+    publisher: PUBLISHER,
+    mainEntityOfPage: `${SITE}/blog/${post.slug}`,
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        // Post fields come from the admin panel, so "<" is escaped: a
+        // title containing "</script>" must not be able to close this tag.
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(articleLd).replace(/</g, '\\u003c'),
+        }}
+      />
       <Lp2Nav />
 
       <main className="bg-white">

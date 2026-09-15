@@ -8,9 +8,10 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // — the app has no customer-facing account-deletion endpoint today, and
 // promising one on a legal page would be a promise we'd break.
 export const metadata: Metadata = {
+  alternates: { canonical: '/data-retention' },
   title: { absolute: 'Data Retention & Deletion Policy — Instant' },
   description:
-    'How long Instant keeps each category of data, what happens when you delete a record or close an account, backup expiry, and the narrow categories we are required to retain.',
+    'How long Instant keeps each kind of data, what happens when you delete a record or close an account, backup expiry, and what we must retain by law.',
   robots: { index: true, follow: true },
 };
 

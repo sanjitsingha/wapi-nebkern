@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     absolute: 'Free WhatsApp QR Code Generator — with a pre-filled message',
   },
   description:
-    'Turn any WhatsApp number into a scannable QR code, free. Add a message that is already typed when someone scans, then download it as PNG or SVG for posters, packaging and shop windows. Runs entirely in your browser.',
+    'Free WhatsApp QR code generator. Add a pre-filled message, then download a print-ready PNG or SVG for posters, packaging and shop windows. No sign-up.',
   alternates: { canonical: '/qr-generator' },
   robots: { index: true, follow: true },
   openGraph: {
@@ -35,6 +35,9 @@ export const metadata: Metadata = {
     title: 'Free WhatsApp QR Code Generator',
     description:
       'Turn any WhatsApp number into a scannable QR code with a pre-filled message. Download as PNG or SVG.',
+    // A page-level openGraph replaces the parent's, file-generated image
+    // included, so the site's share image has to be named here.
+    images: '/opengraph-image',
   },
 };
 

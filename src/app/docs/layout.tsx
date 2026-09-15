@@ -12,7 +12,11 @@ import { getSiteDesign } from '@/lib/marketing/site-design.server';
 
 // Public docs — indexed, unlike the authenticated app.
 export const metadata: Metadata = {
-  title: { template: '%s — Instant docs', default: 'Documentation — Instant' },
+  // `default` is the docs index's own title. The root layout's
+  // '%s — Instant' template still wraps it, so it must not say
+  // "— Instant" itself — that is how the index read
+  // "Documentation — Instant — Instant".
+  title: { template: '%s — Instant docs', default: 'Documentation' },
   description:
     'Everything Instant can do — channels, the shared inbox, CRM, campaigns, automations, AI agents, billing, and the API — documented in detail.',
   robots: { index: true, follow: true },

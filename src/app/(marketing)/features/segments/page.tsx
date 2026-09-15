@@ -13,7 +13,7 @@ import {
 export const metadata: Metadata = {
   title: { absolute: 'Segments & Lists — target the right WhatsApp audience | Instant' },
   description:
-    'Filter contacts by tag, pipeline stage, order history or last activity. Segments keep themselves up to date; lists hold still. Both plug straight into a campaign or an automation.',
+    'Filter WhatsApp contacts by tag, pipeline stage, orders or last activity. Segments stay up to date, lists hold still — both feed campaigns and automations.',
   alternates: { canonical: '/features/segments' },
   robots: { index: true, follow: true },
 };

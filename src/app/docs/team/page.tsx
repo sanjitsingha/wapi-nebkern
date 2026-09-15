@@ -8,7 +8,11 @@ import {
   DocsPager,
 } from '@/components/docs/docs-components';
 
-export const metadata: Metadata = { title: 'Team members & roles' };
+export const metadata: Metadata = {
+  title: 'Team members & roles',
+  description: "Team members & roles in Instant: Inviting teammates, roles, and transferring ownership. A step-by-step guide for teams selling on WhatsApp.",
+  alternates: { canonical: '/docs/team' },
+};
 
 export default function TeamDocsPage() {
   return (

@@ -13,7 +13,7 @@ import {
 export const metadata: Metadata = {
   title: { absolute: 'WhatsApp Broadcast Campaigns that actually arrive — Instant' },
   description:
-    'Send an approved WhatsApp template to a segment, personalised per recipient, with live delivery and read rates. Opt-outs handled and sends paced, so your number keeps its quality rating.',
+    'Send approved WhatsApp templates to a segment, personalised per recipient, with live delivery and read rates — opt-outs handled, sends paced.',
   alternates: { canonical: '/features/campaigns' },
   robots: { index: true, follow: true },
 };

@@ -9,7 +9,11 @@ import {
   DocsPager,
 } from '@/components/docs/docs-components';
 
-export const metadata: Metadata = { title: 'Segments & lists' };
+export const metadata: Metadata = {
+  title: 'Segments & lists',
+  description: "Segments & lists in Instant: Dynamic rule-based segments versus static, manually built lists. A step-by-step guide for teams selling on WhatsApp.",
+  alternates: { canonical: '/docs/segments-and-lists' },
+};
 
 export default function SegmentsAndListsDocsPage() {
   return (

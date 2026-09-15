@@ -8,7 +8,11 @@ import {
   DocsPager,
 } from '@/components/docs/docs-components';
 
-export const metadata: Metadata = { title: 'Pipelines & deals' };
+export const metadata: Metadata = {
+  title: 'Pipelines & deals',
+  description: "Pipelines & deals in Instant: Kanban deal stages, deal value and currency, and the sales CRM. A step-by-step guide for teams selling on WhatsApp.",
+  alternates: { canonical: '/docs/pipelines' },
+};
 
 export default function PipelinesDocsPage() {
   return (

@@ -8,6 +8,7 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // the document we point at when suspending an account, so it has to be
 // specific about opt-in and opt-out rather than gesturing at "misuse".
 export const metadata: Metadata = {
+  alternates: { canonical: '/acceptable-use' },
   title: { absolute: 'Acceptable Use Policy — Instant' },
   description:
     'The messaging rules for Instant — opt-in requirements, honouring opt-outs, prohibited content and conduct, and how we enforce them.',

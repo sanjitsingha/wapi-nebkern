@@ -10,7 +10,11 @@ import {
   DocsSteps,
 } from '@/components/docs/docs-components';
 
-export const metadata: Metadata = { title: 'Getting started' };
+export const metadata: Metadata = {
+  title: 'Getting started',
+  description: "Getting started in Instant: Create an account, understand the trial, and send your first message. A step-by-step guide for teams selling on WhatsApp.",
+  alternates: { canonical: '/docs/getting-started' },
+};
 
 export default function GettingStartedDocsPage() {
   return (

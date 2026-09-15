@@ -8,9 +8,10 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // promotional sending — opt-in standard, frequency, opt-out, campaigns
 // and broadcasts, and what we do when a campaign goes wrong.
 export const metadata: Metadata = {
+  alternates: { canonical: '/whatsapp-marketing-policy' },
   title: { absolute: 'WhatsApp Marketing Policy — Instant' },
   description:
-    'The rules for promotional messaging through Instant — the marketing opt-in standard, frequency and timing, mandatory opt-out, campaign and broadcast conduct, and enforcement.',
+    'Rules for promotional WhatsApp messaging through Instant: opt-in standard, frequency and timing, mandatory opt-out, campaign conduct and enforcement.',
   robots: { index: true, follow: true },
 };
 

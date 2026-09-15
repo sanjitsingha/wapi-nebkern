@@ -9,7 +9,11 @@ import {
   DocsPager,
 } from '@/components/docs/docs-components';
 
-export const metadata: Metadata = { title: 'AI agents' };
+export const metadata: Metadata = {
+  title: 'AI agents',
+  description: "AI agents in Instant: Knowledge base, playground, auto-reply, and handoff to a human. A step-by-step guide for teams selling on WhatsApp.",
+  alternates: { canonical: '/docs/ai-agents' },
+};
 
 export default function AiAgentsDocsPage() {
   return (

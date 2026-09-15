@@ -15,7 +15,7 @@ import {
 export const metadata: Metadata = {
   title: { absolute: 'Ask Maya — the AI assistant, Flows & Automations behind Instant' },
   description:
-    'Three systems, one job: Maya, an AI assistant trained on your own knowledge base, visual Flows for multi-step conversations, and rule-based Automations for everything else — so no customer waits on a human who is asleep.',
+    'Maya, an AI assistant trained on your own knowledge base, plus visual Flows and rule-based Automations — so no WhatsApp customer waits on a sleeping team.',
   // The page moved from /autopilot; without this, the old URL and the
   // new one both describe the same content to a crawler that has the
   // former indexed. next.config.ts 301s the old path, and this names

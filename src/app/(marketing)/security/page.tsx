@@ -9,9 +9,10 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // not hold or controls we have not built is a liability in a breach,
 // so the "what we do not claim" section stays until it is untrue.
 export const metadata: Metadata = {
+  alternates: { canonical: '/security' },
   title: { absolute: 'Security Policy — Instant' },
   description:
-    'How Instant protects your data — encryption, tenant isolation, access control, credential handling, webhook verification, backups, incident response and vulnerability reporting.',
+    'How Instant protects your data: encryption, tenant isolation, access control, webhook verification, backups, incident response and vulnerability reports.',
   robots: { index: true, follow: true },
 };
 

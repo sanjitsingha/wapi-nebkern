@@ -9,7 +9,11 @@ import {
   DocsPager,
 } from '@/components/docs/docs-components';
 
-export const metadata: Metadata = { title: 'Flows' };
+export const metadata: Metadata = {
+  title: 'Flows',
+  description: "Flows in Instant: The visual, no-code conversation builder. A step-by-step guide for teams selling on WhatsApp.",
+  alternates: { canonical: '/docs/flows' },
+};
 
 export default function FlowsDocsPage() {
   return (

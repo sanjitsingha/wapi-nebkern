@@ -9,7 +9,11 @@ import {
   DocsPager,
 } from '@/components/docs/docs-components';
 
-export const metadata: Metadata = { title: 'Contacts' };
+export const metadata: Metadata = {
+  title: 'Contacts',
+  description: "Contacts in Instant: Contact fields, custom fields, tags, and duplicate handling. A step-by-step guide for teams selling on WhatsApp.",
+  alternates: { canonical: '/docs/contacts' },
+};
 
 export default function ContactsDocsPage() {
   return (

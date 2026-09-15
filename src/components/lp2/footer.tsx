@@ -48,6 +48,9 @@ const COLUMNS: {
     links: [
       { label: 'Docs', href: '/docs' },
       { label: 'Blog', href: '/blog' },
+      // The only site-wide link to /newsletter — without it the page was
+      // in the sitemap but reachable from nowhere on the site.
+      { label: 'Newsletter', href: '/newsletter' },
       { label: 'Contact us', href: '/contact' },
     ],
   },
@@ -84,6 +87,23 @@ export function Lp2Footer() {
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/65">
               The WhatsApp CRM for your whole team — shared inbox, AI agents,
               campaigns and automations on the official Business API.
+            </p>
+            {/* Who makes Instant, in words a search engine can read on
+                every public page. "Instant" alone is an ordinary word;
+                naming the company — and linking its site — is what ties
+                searches for "Instant Nebkern" and "Nebkern Technology" to
+                this product. Lives here rather than on the landing page
+                on purpose. */}
+            <p className="mt-3 max-w-xs text-sm leading-relaxed text-white/65">
+              Instant is built and run by{' '}
+              <a
+                href="https://nebkern.com"
+                className="text-white underline underline-offset-2 hover:text-white"
+              >
+                Nebkern Technology
+              </a>
+              , a software company in Siliguri, West Bengal, India, and an
+              official Meta Tech Provider.
             </p>
           </div>
 
@@ -164,6 +184,10 @@ export function Lp2Footer() {
               alt=""
               width={4096}
               height={825}
+              // Drawn about 80px wide. Without `sizes`, next/image offers
+              // only 1x/2x candidates of the 4096px intrinsic width, so
+              // every visitor downloaded a ~3840px PNG for this badge.
+              sizes="96px"
               className="h-4 w-auto shrink-0"
             />
             <span className="text-xs font-bold">
@@ -183,6 +207,8 @@ export function Lp2Footer() {
               alt=""
               width={600}
               height={276}
+              // Drawn about 78px wide — see the Meta mark above.
+              sizes="96px"
               className="h-9 w-auto shrink-0"
             />
             <span className="leading-tight">

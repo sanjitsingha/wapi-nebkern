@@ -8,7 +8,11 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // policies, and the DPDP Act requires a named grievance contact. It's a
 // compliance page that happens to also be useful.
 export const metadata: Metadata = {
-  title: { absolute: 'Contact us — Instant' },
+  alternates: { canonical: '/contact' },
+  // Distinct from /contact-us (the form), which already owns
+  // "Contact us — Instant": two pages sharing a title compete with each
+  // other in search.
+  title: { absolute: 'Contact details & grievance officer — Instant' },
   description:
     'How to reach Instant — support, billing, privacy and grievance contacts, registered address and response times.',
   robots: { index: true, follow: true },

@@ -9,7 +9,11 @@ import {
   DocsSteps,
 } from '@/components/docs/docs-components';
 
-export const metadata: Metadata = { title: 'Instagram & Messenger' };
+export const metadata: Metadata = {
+  title: 'Instagram & Messenger',
+  description: "Instagram & Messenger in Instant: Connect both inboxes in a single Facebook login. A step-by-step guide for teams selling on WhatsApp.",
+  alternates: { canonical: '/docs/instagram-messenger' },
+};
 
 export default function InstagramMessengerDocsPage() {
   return (

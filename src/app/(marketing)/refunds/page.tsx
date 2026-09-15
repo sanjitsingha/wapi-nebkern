@@ -9,6 +9,7 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // delivery" section lives here rather than in the Terms — it's the
 // SaaS equivalent of the shipping policy the gateway looks for.
 export const metadata: Metadata = {
+  alternates: { canonical: '/refunds' },
   title: { absolute: 'Cancellation & Refunds — Instant' },
   description:
     'How to cancel an Instant subscription, when refunds are and are not available, how failed or duplicate payments are handled, and when the service is delivered.',

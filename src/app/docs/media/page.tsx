@@ -9,7 +9,11 @@ import {
   DocsPager,
 } from '@/components/docs/docs-components';
 
-export const metadata: Metadata = { title: 'Media library' };
+export const metadata: Metadata = {
+  title: 'Media library',
+  description: "Media library in Instant: Uploading and reusing images, video, audio, and documents. A step-by-step guide for teams selling on WhatsApp.",
+  alternates: { canonical: '/docs/media' },
+};
 
 export default function MediaDocsPage() {
   return (

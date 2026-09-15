@@ -47,7 +47,9 @@ const SECURITY_HEADERS = [
       // never renders — no error, just a missing sign-in option.
       // googletagmanager.com is gtag.js, loaded only on the public
       // marketing + docs pages (src/components/analytics.tsx).
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://accounts.google.com https://gstatic.com https://www.gstatic.com https://www.googletagmanager.com",
+      // cloud.umami.is serves the Umami analytics script on the public
+      // pages; without it Chrome logs a CSP issue on every page load.
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://accounts.google.com https://gstatic.com https://www.gstatic.com https://www.googletagmanager.com https://cloud.umami.is",
       // Tailwind + inline style attributes on lots of components.
       "style-src 'self' 'unsafe-inline'",
       // Supabase public-bucket avatars, contact avatars (arbitrary
@@ -63,7 +65,8 @@ const SECURITY_HEADERS = [
       // GA4 beacons go to google-analytics.com (and, for some regions
       // and consent modes, back to googletagmanager.com) — without both
       // the script loads and then silently reports nothing.
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://lumberjack.razorpay.com https://accounts.google.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com",
+      // gateway.umami.is receives Umami's page-view beacons.
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://lumberjack.razorpay.com https://accounts.google.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://gateway.umami.is https://cloud.umami.is",
       // The checkout modal is an iframe off Razorpay's domain, and the
       // bank/UPI step redirects inside it — no frame-src means this
       // falls back to default-src 'self' and the modal renders blank.

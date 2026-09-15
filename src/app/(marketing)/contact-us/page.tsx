@@ -8,6 +8,7 @@ import { Highlight } from '@/components/lp2/decor';
 import { Lp2ContactForm } from '@/components/lp2/contact-form';
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/contact-us' },
   title: { absolute: 'Contact us — Instant' },
   description:
     'Send us a message and a human will reply within one business day — questions about the product, pricing, migrating a number, or anything else.',

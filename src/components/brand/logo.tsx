@@ -40,6 +40,11 @@ export function BrandLogo({
       alt="Instant"
       width={INTRINSIC_WIDTH}
       height={INTRINSIC_HEIGHT}
+      // Drawn about 150px wide (h-8 / h-9). Without `sizes`, next/image
+      // offers only 1x/2x candidates of the 3514px intrinsic width, so
+      // the nav downloaded a 3840px image — Lighthouse's "properly size
+      // images" failure, ~76 KB wasted on every page.
+      sizes="240px"
       priority={priority}
       className={cn('w-auto', className)}
     />

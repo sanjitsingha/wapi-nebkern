@@ -13,7 +13,7 @@ import {
 export const metadata: Metadata = {
   title: { absolute: 'Shared Team Inbox for WhatsApp, Instagram & Messenger — Instant' },
   description:
-    'One WhatsApp number your whole team can answer. Assign conversations, leave internal notes, and keep every message on the customer record — across WhatsApp, Instagram and Messenger.',
+    'One WhatsApp number your whole team can answer. Assign chats, leave internal notes and keep history on the contact — WhatsApp, Instagram and Messenger.',
   alternates: { canonical: '/features/shared-inbox' },
   robots: { index: true, follow: true },
 };

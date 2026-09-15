@@ -9,7 +9,11 @@ import {
   DocsPager,
 } from '@/components/docs/docs-components';
 
-export const metadata: Metadata = { title: 'Automations' };
+export const metadata: Metadata = {
+  title: 'Automations',
+  description: "Automations in Instant: Trigger → condition → action rules that run without a bot builder. A step-by-step guide for teams selling on WhatsApp.",
+  alternates: { canonical: '/docs/automations' },
+};
 
 export default function AutomationsDocsPage() {
   return (

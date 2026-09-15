@@ -8,6 +8,7 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // that they resolve publicly, and there's no other copy of this text
 // to duplicate.
 export const metadata: Metadata = {
+  alternates: { canonical: '/privacy' },
   title: { absolute: 'Privacy Policy — Instant' },
   description:
     'How Instant collects, uses, shares and protects personal data — including WhatsApp message data processed on behalf of our customers.',

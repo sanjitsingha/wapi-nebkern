@@ -17,6 +17,13 @@ import { Lp2Footer } from '@/components/lp2/footer';
 import { WaLanding } from '@/components/wa/landing';
 import { getSiteDesign } from '@/lib/marketing/site-design.server';
 
+/** The search-result description, reused in the structured data below.
+ *  Under 160 characters so Google shows it whole, and it names the
+ *  company as well as the product: "instant" on its own is an ordinary
+ *  word, so "Nebkern" is what ties a search to this site. */
+const DESCRIPTION =
+  'Instant by Nebkern Technology: WhatsApp CRM and marketing automation on the official WhatsApp Business API — shared inbox, AI replies, campaigns and follow-ups.';
+
 // The public marketing landing page — the "joyful rebuild," promoted to
 // `/` from its former home at /lp-2. The older design it replaced has
 // since been deleted, so this is the only landing page. Indexed, being
@@ -24,12 +31,15 @@ import { getSiteDesign } from '@/lib/marketing/site-design.server';
 export const metadata: Metadata = {
   title: {
     // The exact string a search result and a shared link show. Leads
-    // with the product name, then what it does — the brand is new, so
-    // "Instant" alone tells a stranger nothing.
-    absolute: 'Instant — WhatsApp Marketing Automation',
+    // with the product name, then what it does, then who makes it — the
+    // brand is new, and "Instant" alone tells a stranger (and Google)
+    // nothing.
+    absolute: 'Instant — WhatsApp CRM & Marketing Automation by Nebkern',
   },
-  description:
-    'One shared inbox, AI agents that reply in seconds, and campaigns, pipelines and automations that turn every WhatsApp question into a paid order. From an official Meta Tech Provider.',
+  description: DESCRIPTION,
+  // One official address for the home page, whatever query string it is
+  // reached with — including /?hero=chat, which renders the other hero.
+  alternates: { canonical: '/' },
   robots: { index: true, follow: true },
 };
 
@@ -40,25 +50,61 @@ const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL ?? 'https://instant.nebkern.com'
 ).replace(/\/$/, '');
 
+const ORGANIZATION_ID = 'https://nebkern.com/#organization';
+
 /**
- * Site-name structured data.
+ * Structured data — who makes Instant, and what it is.
  *
- * Google reads the name it prints above a result from the HOMEPAGE
- * only, and this outranks `og:site_name` in its list of signals — so
- * both are declared: this here, the OG tag in the root layout.
+ * Three linked entities in one graph:
  *
- * `name` is short on purpose. The site name sits directly above the
- * blue title, and the title is already "Instant — WhatsApp Marketing
- * Automation"; putting the same sentence in both slots prints it twice
- * and reads as a bug. `alternateName` is the correct home for the
- * longer form, and Google may use it where the short one is ambiguous.
+ *  - Organization: Nebkern Technology, at nebkern.com. The company site
+ *    carries its own Organization markup; this ties the product to it,
+ *    so Google can connect "Instant" and "Nebkern" as one brand.
+ *  - WebSite: the site name Google prints above a result. Google reads it
+ *    from the HOMEPAGE only, and it outranks `og:site_name` (declared in
+ *    the root layout). `name` stays short on purpose — the title already
+ *    says the long form, and repeating it in both slots reads as a bug.
+ *  - SoftwareApplication: what Instant is, with its starting price. The
+ *    ₹499/month figure mirrors src/lib/marketing/pricing-data.ts, as the
+ *    landing page's pricing note does — change them together.
  */
-const WEBSITE_JSONLD = {
+const STRUCTURED_DATA = {
   '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  name: 'Instant',
-  alternateName: 'Instant — WhatsApp Marketing Automation',
-  url: `${SITE_URL}/`,
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': ORGANIZATION_ID,
+      name: 'Nebkern Technology',
+      alternateName: 'Nebkern',
+      url: 'https://nebkern.com/',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Siliguri',
+        addressRegion: 'West Bengal',
+        addressCountry: 'IN',
+      },
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${SITE_URL}/#website`,
+      name: 'Instant',
+      alternateName: ['Instant by Nebkern', 'Instant — WhatsApp CRM & Marketing Automation'],
+      url: `${SITE_URL}/`,
+      inLanguage: 'en-IN',
+      publisher: { '@id': ORGANIZATION_ID },
+    },
+    {
+      '@type': 'SoftwareApplication',
+      '@id': `${SITE_URL}/#software`,
+      name: 'Instant',
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Web',
+      url: `${SITE_URL}/`,
+      description: DESCRIPTION,
+      publisher: { '@id': ORGANIZATION_ID },
+      offers: { '@type': 'Offer', price: '499', priceCurrency: 'INR' },
+    },
+  ],
 };
 
 export default async function Lp2Page({
@@ -68,15 +114,16 @@ export default async function Lp2Page({
 }) {
   const { design } = await getSiteDesign();
 
-  // /?hero=centered previews the alternative centred hero; anything else
-  // gets the live one. See HeroCentered in components/wa/landing.tsx.
-  const heroVariant = (await searchParams).hero === 'centered' ? 'centered' : 'chat';
+  // The centred hero is the live one. /?hero=chat still renders the
+  // earlier chat-bubble hero — see Hero in components/wa/landing.tsx —
+  // and shares this page's canonical, so it is never indexed separately.
+  const heroVariant = (await searchParams).hero === 'chat' ? 'chat' : 'centered';
 
   const jsonLd = (
     <script
       type="application/ld+json"
       // Static object we control — no user input reaches it.
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_JSONLD) }}
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }}
     />
   );
 

@@ -9,7 +9,11 @@ import {
   DocsPager,
 } from '@/components/docs/docs-components';
 
-export const metadata: Metadata = { title: 'Message templates' };
+export const metadata: Metadata = {
+  title: 'Message templates',
+  description: "Message templates in Instant: Categories, variables, buttons, and the Meta approval process. A step-by-step guide for teams selling on WhatsApp.",
+  alternates: { canonical: '/docs/templates' },
+};
 
 export default function TemplatesDocsPage() {
   return (

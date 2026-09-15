@@ -155,7 +155,9 @@ function PlanCard({
         className="rounded-xl p-5"
         style={{ backgroundColor: `var(--lp2-${hue}-soft)` }}
       >
-        <h3 className="lp2-display text-xl font-extrabold">{plan.name}</h3>
+        {/* h2, not h3: the cards sit straight under the page's h1, with no
+            section heading between, so an h3 skipped a level. */}
+        <h2 className="lp2-display text-xl font-extrabold">{plan.name}</h2>
         <p className="mt-1 text-sm leading-relaxed font-semibold text-(--lp2-ink-soft)">
           {plan.tagline}
         </p>
@@ -287,14 +289,18 @@ function Stat({
   value: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-(--lp2-ink-soft)">{icon}</span>
-      <div className="min-w-0">
-        <dt className="text-[10px] font-bold tracking-wide text-(--lp2-ink-soft) uppercase">
-          {label}
-        </dt>
-        <dd className="flex items-center text-sm font-extrabold">{value}</dd>
-      </div>
+    // A <dl> may hold only dt/dd pairs, or <div>s wrapping exactly those.
+    // The icon used to sit beside the pair in an extra wrapper, which made
+    // the list invalid (Lighthouse "definition-list" / "dlitem"), so it
+    // now lives inside the <dt>, in line with the label.
+    <div className="min-w-0">
+      <dt className="flex items-center gap-1.5 text-[10px] font-bold tracking-wide text-(--lp2-ink-soft) uppercase">
+        <span aria-hidden className="[&_svg]:size-3.5">
+          {icon}
+        </span>
+        {label}
+      </dt>
+      <dd className="mt-0.5 flex items-center text-sm font-extrabold">{value}</dd>
     </div>
   );
 }

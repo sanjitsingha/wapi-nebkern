@@ -10,7 +10,11 @@ import {
   DocsSteps,
 } from '@/components/docs/docs-components';
 
-export const metadata: Metadata = { title: 'WhatsApp channel' };
+export const metadata: Metadata = {
+  title: 'WhatsApp channel',
+  description: "WhatsApp channel in Instant: Connect your WhatsApp Business number, catalog, and calling. A step-by-step guide for teams selling on WhatsApp.",
+  alternates: { canonical: '/docs/whatsapp' },
+};
 
 export default function WhatsAppDocsPage() {
   return (

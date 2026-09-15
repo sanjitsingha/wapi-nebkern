@@ -10,7 +10,11 @@ import {
   DocsPager,
 } from '@/components/docs/docs-components';
 
-export const metadata: Metadata = { title: 'API & integrations' };
+export const metadata: Metadata = {
+  title: 'API & integrations',
+  description: "API & integrations in Instant: API keys, the REST API, outbound webhooks, and Zapier/Make/n8n. A step-by-step guide for teams selling on WhatsApp.",
+  alternates: { canonical: '/docs/api-and-integrations' },
+};
 
 export default function ApiAndIntegrationsDocsPage() {
   return (

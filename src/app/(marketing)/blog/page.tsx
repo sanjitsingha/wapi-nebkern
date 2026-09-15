@@ -18,6 +18,7 @@ export const revalidate = 300;
 // compete for the same content; that route is deleted, so this is now
 // the only page these posts render on.
 export const metadata: Metadata = {
+  alternates: { canonical: '/blog' },
   title: { absolute: 'Blog — Instant' },
   description:
     'Insights to scale your brand with WhatsApp automation and AI-powered business intelligence.',

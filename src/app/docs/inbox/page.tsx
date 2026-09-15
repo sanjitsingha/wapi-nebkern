@@ -9,7 +9,11 @@ import {
   DocsPager,
 } from '@/components/docs/docs-components';
 
-export const metadata: Metadata = { title: 'Shared inbox' };
+export const metadata: Metadata = {
+  title: 'Shared inbox',
+  description: "Shared inbox in Instant: Conversations, assignment, tags, filters, and the 24-hour window. A step-by-step guide for teams selling on WhatsApp.",
+  alternates: { canonical: '/docs/inbox' },
+};
 
 export default function InboxDocsPage() {
   return (

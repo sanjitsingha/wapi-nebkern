@@ -10,7 +10,11 @@ import {
   DocsSteps,
 } from '@/components/docs/docs-components';
 
-export const metadata: Metadata = { title: 'Campaigns' };
+export const metadata: Metadata = {
+  title: 'Campaigns',
+  description: "Campaigns in Instant: Bulk broadcasts on approved templates, targeting, and delivery stats. A step-by-step guide for teams selling on WhatsApp.",
+  alternates: { canonical: '/docs/campaigns' },
+};
 
 export default function CampaignsDocsPage() {
   return (

@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   title: {
     // What a browser tab and a Google result say. `default` is the
     // homepage; `template` wraps every page that sets its own title.
-    default: 'Instant — WhatsApp Marketing Automation',
+    default: 'Instant — WhatsApp CRM & Marketing Automation by Nebkern',
     template: '%s — Instant',
   },
   description:
@@ -54,6 +54,11 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_IN',
     url: SITE_URL,
+  },
+  // Large preview cards when a link is shared. The image itself comes
+  // from app/opengraph-image.tsx, which X/Twitter falls back to.
+  twitter: {
+    card: 'summary_large_image',
   },
   robots: {
     index: false,

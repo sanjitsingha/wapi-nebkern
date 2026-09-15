@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/terms' },
   title: { absolute: 'Terms & Conditions — Instant' },
   description:
     'The agreement between you and Instant — accounts, billing, acceptable use, WhatsApp Business Platform obligations, liability and termination.',
