@@ -41,13 +41,17 @@ export function WaRail({
   label,
   title,
   subtitle,
+  className,
   children,
 }: {
   /** Section id, for in-page links like /#features. */
   id?: string;
+  /** Extra classes for the section, e.g. its background. */
+  className?: string;
   /** Accessible name for the scrollable region. */
   label: string;
-  title: string;
+  /** A node, not just a string, so a caller can place a line break. */
+  title: React.ReactNode;
   subtitle?: string;
   children: React.ReactNode;
 }) {
@@ -88,12 +92,14 @@ export function WaRail({
   };
 
   return (
-    <section id={id} className="scroll-mt-24 py-20 sm:py-24">
+    <section id={id} className={cn('scroll-mt-24 py-20 sm:py-24', className)}>
       <div className="mx-auto flex max-w-[1232px] flex-col gap-8 px-6 sm:flex-row sm:items-end sm:justify-between">
-        <div className="max-w-[640px]">
+        {/* Wide enough for a long title to sit on two lines at full size;
+            the subtitle keeps its own shorter measure. */}
+        <div className="max-w-[900px]">
           <h2 className={cn(waType.displayLg, 'text-balance')}>{title}</h2>
           {subtitle && (
-            <p className={cn(waType.bodyLg, 'mt-6 text-pretty text-(--wa-ink-muted)')}>
+            <p className={cn(waType.bodyLg, 'mt-6 max-w-[640px] text-pretty text-(--wa-ink-muted)')}>
               {subtitle}
             </p>
           )}

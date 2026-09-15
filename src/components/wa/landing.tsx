@@ -9,6 +9,7 @@ import { formatPostDate, getPublishedPosts } from '@/lib/blog';
 import { cn } from '@/lib/utils';
 import { SAMPLE_BLOG_CARDS, WaBlogRail, type WaBlogCardItem } from './blog-rail';
 import { WaFeatureCarousel } from './feature-carousel';
+import { WaHeroChat } from './hero-chat';
 import { WaPill, waType } from './ui';
 
 // ============================================================
@@ -34,10 +35,14 @@ import { WaPill, waType } from './ui';
 const META_LOGO = 'https://media.instant.nebkern.com/assets/meta-logo.png';
 const ORBIT_ART = 'https://media.instant.nebkern.com/assets/intregation.png';
 
-export function WaLanding() {
+/** Which hero to render. `chat` is the live design; `centered` is an
+ *  alternative being tried, previewed at /?hero=centered. */
+export type WaHeroVariant = 'chat' | 'centered';
+
+export function WaLanding({ hero = 'chat' }: { hero?: WaHeroVariant }) {
   return (
     <>
-      <Hero />
+      {hero === 'centered' ? <HeroCentered /> : <Hero />}
       <Industries />
       <WaFeatureCarousel />
       <Compare />
@@ -123,87 +128,62 @@ function Bubble({ side, text, time }: { side: 'in' | 'out'; text: string; time?:
 
 /* ─── Hero ────────────────────────────────────────────────────────── */
 
-/** Contact chips drifting around the hero tile — the spec's
- *  "torn from a contact picker" detail. They straddle the tile's top and
- *  bottom edges only, never the headline column — and never past the
- *  tile's sides, which now sit 10px from the screen edge, where a chip
- *  hanging outside would cause sideways scrolling. Desktop only: on a
- *  phone they would sit on the text. */
-const CHIPS = [
-  { initials: 'AR', name: 'Aarav · new order', className: '-top-5 left-[6%]' },
-  { initials: 'MK', name: 'Meera · delivery?', className: '-top-5 right-[36%]' },
-  { initials: 'RT', name: 'Rohit · paid', className: '-top-5 right-[8%]' },
-  { initials: 'NB', name: 'Neha · returning', className: '-bottom-5 right-[12%]' },
-] as const;
-
 function Hero() {
   return (
     <section className="px-2.5 pt-8 pb-16 sm:pt-12 sm:pb-20">
-      {/* Edge to edge: the tile spans the whole screen, 10px in from each
-          side. The words and chat card inside it still sit on the nav's
-          content column (see the max-width on the grid below), so on a
-          wide screen they do not drift out to the corners. */}
+      {/* The section runs edge to edge, 10px in from each side. The words
+          and the conversation still sit on the nav's content column (see
+          the max-width on the grid below), so on a wide screen they do
+          not drift out to the corners. */}
       <div>
-        {/* Chips and tile share a box of their own, so a chip's
-            `-bottom-5` measures from the tile's bottom edge rather than
-            from below the Meta line. */}
+        {/* An open hero on the page's own cream — no tile behind it. Ink
+            headline on the left, the conversation on the right. */}
         <div className="relative">
-        {CHIPS.map((c) => (
-          <span
-            key={c.initials}
-            aria-hidden
-            className={cn(
-              waType.caption,
-              'absolute z-10 hidden h-10 items-center gap-2 rounded-full bg-white py-1 pr-3.5 pl-1 text-(--wa-ink) lg:inline-flex',
-              c.className,
-            )}
-          >
-            <span className="flex size-8 items-center justify-center rounded-full bg-(--wa-tint) text-[11px]">
-              {c.initials}
-            </span>
-            {c.name}
-          </span>
-        ))}
-
-        {/* The "photograph": 25px tile, no shadow, no border — the corner
-            radius alone defines it. Dark chat wallpaper so the white
-            headline can sit on it the way whatsapp.com's sits on a photo. */}
-        <div className="relative overflow-hidden rounded-[25px] bg-[#0b141a]">
-          <ChatWallpaper />
-
           {/* 1328px = the nav's 1232px content column plus this box's own
               48px side padding, so the headline starts exactly under the
               logo on a wide screen. */}
           <div className="relative mx-auto grid max-w-[1328px] items-center gap-12 px-6 py-14 sm:px-12 sm:py-16 lg:grid-cols-[1.15fr_0.85fr] lg:py-24">
-            <div>
-              <h1 className={cn(waType.displayXl, 'text-balance text-white')}>
-                Turn WhatsApp chats into paid orders
+            {/* A size container, so the headline can be sized against this
+                column's width rather than the viewport's. */}
+            <div className="@container">
+              {/* "Turn @conversation" always shares one line, with "into
+                  revenue" under it. That line runs about 9.3em wide, so the
+                  font is sized in container units (10.2cqw) to fill ~96% of
+                  the column at any width, capped at 72px on large screens
+                  and floored at 24px on the narrowest phones. */}
+              <h1 className="text-[clamp(1.5rem,10.2cqw,4.5rem)] leading-[1.08] tracking-[-0.02em] text-(--wa-ink)">
+                <span className="whitespace-nowrap">
+                  Turn{' '}
+                  {/* The highlighted word, styled like a mention: green text
+                      on a light mint box. Its corner radius is an arbitrary
+                      value on purpose: whatsapp.css turns the rounded-lg-style
+                      token classes into 25px tiles, far too round here. The
+                      box is a step deeper than the spec's mint (#e6ffda) so
+                      it holds its own against the cream page, edged with a
+                      1px border in a deeper green still. */}
+                  <span className="rounded-[0.14em] border border-[#1fae55] bg-[#d4f5c6] px-[0.12em] text-(--wa-green)">
+                    @conversation
+                  </span>
+                </span>
+                <br />
+                into revenue
               </h1>
-              <p className={cn(waType.bodyLg, 'mt-7 max-w-[580px] text-pretty text-white/80')}>
-                One shared inbox for the whole team. AI agents that answer in
-                seconds. Campaigns, pipelines and automations that keep every
-                conversation moving towards a sale.
+              <p className={cn(waType.bodyLg, 'mt-7 max-w-[580px] text-pretty text-(--wa-ink-muted)')}>
+                One shared inbox for your team. AI that responds instantly.
+                Automated follow-ups that keep every lead moving towards a sale.
               </p>
               <div className="mt-9 flex flex-col items-start gap-5 sm:flex-row sm:items-center">
                 <WaPill href="/signup" variant="primary">
                   Start free — 14 days
                 </WaPill>
-                <Link
-                  href="/pricing"
-                  className={cn(waType.bodyMd, 'text-white underline decoration-white/40 underline-offset-4 hover:decoration-white')}
-                >
-                  See pricing
-                </Link>
               </div>
             </div>
 
-            <ChatCard />
+            <WaHeroChat />
           </div>
         </div>
-        </div>
 
-        {/* The credential, on the cream beneath the tile — the Meta mark is
-            dark artwork and would disappear on the wallpaper. */}
+        {/* The credential, beneath the hero. */}
         <p className={cn(waType.bodyMd, 'mt-10 flex flex-wrap items-center justify-center gap-3 text-(--wa-ink-muted)')}>
           <Image src={META_LOGO} alt="" width={124} height={25} priority className="h-5 w-auto" />
           Official Meta Tech Provider · built on the WhatsApp Business API
@@ -213,55 +193,58 @@ function Hero() {
   );
 }
 
-function ChatCard() {
-  return (
-    // Pushed to the right edge of its column on desktop rather than
-    // centred in it: the headline sits flush on the left content edge, so
-    // a centred card left visibly more space on the right than the left.
-    <div className="mx-auto w-full max-w-[440px] overflow-hidden rounded-[25px] bg-[#efeae2] lg:mr-0">
-      <div className="flex items-center gap-3 bg-white px-4 py-3">
-        <span className="flex size-10 items-center justify-center rounded-full bg-(--wa-tint) text-sm text-(--wa-ink)">
-          PR
-        </span>
-        <div className="min-w-0">
-          <p className={cn(waType.bodyMd, 'truncate text-(--wa-ink)')}>Priya Raman</p>
-          <p className={cn(waType.caption, 'text-(--wa-ink-muted)')}>online</p>
-        </div>
-      </div>
-      <div className="space-y-2.5 px-3.5 py-4">
-        <Bubble side="in" text="Can I change the delivery address on my order?" time="10:41" />
-        <Bubble side="out" text="Done — it's updated. Anything else before it ships?" time="10:41" />
-        <Bubble side="in" text="And what's your return policy?" time="10:42" />
-        <Bubble side="out" text="30 days, unworn, free pickup. Want me to start one?" time="10:42" />
-      </div>
-    </div>
-  );
-}
 
 /**
- * Chat-wallpaper doodles. Our own glyphs — WhatsApp's wallpaper is Meta's
- * artwork, and an official Meta Tech Provider should not reproduce it.
- * White at 6%, under everything.
+ * Alternative hero — one centred column, no conversation panel.
+ *
+ * Being tried alongside Hero above, which stays the default. Preview it at
+ * /?hero=centered (see app/(marketing)/page.tsx). Same paragraph as Hero;
+ * the headline is the longer "Turn every WhatsApp @conversation into
+ * ₹revenue" over two lines, the button is the nav's outline Start free,
+ * and there is no Meta credential line.
  */
-function ChatWallpaper() {
+function HeroCentered() {
   return (
-    <div aria-hidden className="absolute inset-0 text-white opacity-[0.06]">
-      <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <pattern id="wa-wallpaper" width="220" height="220" patternUnits="userSpaceOnUse">
-            <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 20h30a4 4 0 0 1 4 4v14a4 4 0 0 1-4 4H36l-9 7v-7h-5a4 4 0 0 1-4-4V24a4 4 0 0 1 4-4z" />
-              <path d="M120 40l6 6 12-14M132 46l4 4 14-16" />
-              <circle cx="176" cy="104" r="14" />
-              <path d="M176 96v8l5 4" />
-              <path d="M40 130l34-14-12 34-7-14z" />
-              <path d="M112 170h26l-3 22h-20z M120 170a5 5 0 0 1 10 0" />
-            </g>
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#wa-wallpaper)" />
-      </svg>
-    </div>
+    <section className="px-6 pt-24 pb-24 sm:pt-36 sm:pb-32">
+      {/* A size container, so the headline can be sized against this
+          column's width rather than the viewport's. */}
+      <div className="@container mx-auto flex max-w-[980px] flex-col items-center text-center">
+        {/* Two lines, always: "Turn every WhatsApp", then "@conversation
+            into ₹revenue" held together with whitespace-nowrap. That second
+            line runs about 13.8em, so the font is sized in container units
+            (6.9cqw) to fill ~96% of the column at any width — capped at
+            72px, floored at 20px for the narrowest phones.
+
+            Two words styled like mentions: "@conversation" in the same
+            green as the live hero's, "₹revenue" in a yellow counterpart.
+            Corner radii are arbitrary values on purpose — whatsapp.css
+            turns the rounded-lg-style token classes into 25px tiles. */}
+        <h1 className="text-[clamp(1.25rem,6.9cqw,4.5rem)] leading-[1.25] tracking-[-0.02em] text-(--wa-ink)">
+          Turn every WhatsApp
+          <br />
+          <span className="whitespace-nowrap">
+            <span className="rounded-[0.14em] border border-[#1fae55] bg-[#d4f5c6] px-[0.12em] text-(--wa-green)">
+              @conversation
+            </span>{' '}
+            into{' '}
+            <span className="rounded-[0.14em] border border-[#d9a400] bg-[#fff1b8] px-[0.12em] text-[#b27d00]">
+              ₹revenue
+            </span>
+          </span>
+        </h1>
+        <p className={cn(waType.bodyLg, 'mt-7 max-w-[600px] text-pretty text-(--wa-ink-muted)')}>
+          One shared inbox for your team. AI that responds instantly.
+          Automated follow-ups that keep every lead moving towards a sale.
+        </p>
+        <div className="mt-9">
+          {/* Same button as the nav's Start free — see hardShadowButton. */}
+          <Link href="/signup" className={hardShadowButton}>
+            Start free — 14 days
+            <ArrowRight className="size-4" strokeWidth={2.5} />
+          </Link>
+        </div>
+      </div>
+    </section>
   );
 }
 

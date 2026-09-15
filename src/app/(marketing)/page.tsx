@@ -61,8 +61,16 @@ const WEBSITE_JSONLD = {
   url: `${SITE_URL}/`,
 };
 
-export default async function Lp2Page() {
+export default async function Lp2Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const { design } = await getSiteDesign();
+
+  // /?hero=centered previews the alternative centred hero; anything else
+  // gets the live one. See HeroCentered in components/wa/landing.tsx.
+  const heroVariant = (await searchParams).hero === 'centered' ? 'centered' : 'chat';
 
   const jsonLd = (
     <script
@@ -82,7 +90,7 @@ export default async function Lp2Page() {
         {jsonLd}
         <Lp2Nav />
         <main>
-          <WaLanding />
+          <WaLanding hero={heroVariant} />
         </main>
         <Lp2Footer />
       </>

@@ -297,9 +297,10 @@
 }
 
 /* ── Top nav ──────────────────────────────────────────────────────
-   Cream, flush with the page floor, no blur. */
+   A solid white bar over the cream page, with a hairline under it and no
+   blur. */
 .lp2[data-design='whatsapp'] header[class~='sticky'] {
-  background-color: var(--wa-canvas) !important;
+  background-color: var(--wa-white) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border-bottom: 1px solid var(--wa-hairline) !important;
@@ -346,4 +347,23 @@
 html:has(.lp2[data-design='whatsapp']) {
   scrollbar-width: thin;
   scrollbar-color: rgba(28, 30, 33, 0.28) #fcf5eb;
+}
+
+/* ── Hero chat bubbles ────────────────────────────────────────────
+   Each message in the hero conversation (components/wa/hero-chat.tsx)
+   grows from zero height to its own — pushing the messages above it up —
+   while it fades and rises into place. The component staggers them with
+   an inline animation-delay so they arrive one after another; `both`
+   holds each one collapsed and invisible until its turn. */
+@keyframes wa-bubble-push {
+  from {
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transform: none;
+  }
 }

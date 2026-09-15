@@ -15,7 +15,8 @@ import { WaRail } from './rail';
 import { waType } from './ui';
 
 // ============================================================
-// "Everything you need to sell on WhatsApp" — a horizontal card rail.
+// "Everything your team needs to turn chats into customers" — a
+// horizontal card rail.
 //
 // whatsapp.com lays feature stories out as a row of tall tiles you
 // scroll sideways, rather than a grid you scroll past. Each tile here is
@@ -57,15 +58,26 @@ export function WaFeatureCarousel() {
     <WaRail
       id="features"
       label="Features"
-      title="Everything you need to sell on WhatsApp"
-      subtitle="Inbox, campaigns, CRM and automations usually mean four tools and four bills. Here they are one product, on the official WhatsApp Business API."
+      // A white band between the cream sections around it. bg-(--wa-white)
+      // rather than bg-white: whatsapp.css repaints `section.bg-white` cream.
+      className="bg-(--wa-white)"
+      title={
+        <>
+          Everything your team needs
+          {/* Two lines from sm up; on a phone the words wrap as they fit. */}
+          <br className="hidden sm:block" /> to turn chats into customers
+        </>
+      }
+      subtitle="Manage conversations, qualify leads, automate follow-ups, and track every opportunity without jumping between tools."
     >
       {FEATURES.map((f) => (
         <article
           key={f.term}
           data-card
           className={cn(
-            'flex shrink-0 snap-start flex-col overflow-hidden rounded-[25px] bg-white',
+            // Cream cards on the section's white — a white card would
+            // disappear into it.
+            'flex shrink-0 snap-start flex-col overflow-hidden rounded-[25px] bg-(--wa-canvas)',
             // Sized so a set number of cards shows at once, the last one
             // cut by the screen edge so the row reads as scrollable:
             //   phone ~1.2   tablet ~1.5   laptop+ ~2.5
