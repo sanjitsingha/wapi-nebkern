@@ -18,6 +18,7 @@ import type {
   ContactThreadMessage,
   MentionableMember,
 } from '@/types';
+import { PersonAvatar } from '@/components/ui/person-avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 // ============================================================
@@ -40,6 +41,23 @@ interface Author {
   avatar_url: string | null;
 }
 
+// A tagged teammate reads as their photo and name — in the composer
+// while the message is being written, and in the bubble once it is
+// posted. `@[Name](uuid)` is only ever the stored form; nobody should
+// see it. Both places share this so the chip does not change on send.
+const CHIP_CLASS =
+  'bg-primary/10 text-primary mx-px inline-flex select-none items-center gap-1 rounded-full py-px pr-1.5 pl-0.5 align-middle font-medium leading-4';
+
+/** Keys that move the caret without an input event. */
+const CARET_KEYS = new Set([
+  'ArrowLeft',
+  'ArrowRight',
+  'ArrowUp',
+  'ArrowDown',
+  'Home',
+  'End',
+]);
+
 export function TeamThread({ contactId }: { contactId: string }) {
   const { user, accountId } = useAuth();
   const supabase = createClient();
@@ -47,18 +65,28 @@ export function TeamThread({ contactId }: { contactId: string }) {
   const [messages, setMessages] = useState<ContactThreadMessage[] | null>(null);
   const [authors, setAuthors] = useState<Record<string, Author>>({});
   const [members, setMembers] = useState<MentionableMember[]>([]);
-  const [draft, setDraft] = useState('');
+  const [isEmpty, setIsEmpty] = useState(true);
   const [sending, setSending] = useState(false);
 
-  // Mention picker state. `start` is where the `@` sits, so accepting a
-  // suggestion knows what to replace.
+  // Mention picker state.
   const [mentionQuery, setMentionQuery] = useState<{
     query: string;
     start: number;
   } | null>(null);
   const [highlight, setHighlight] = useState(0);
 
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  // The composer is contentEditable, not a textarea, because a textarea
+  // can only hold text — a tag would have to be the raw token. React
+  // renders no children into it; the DOM inside is the draft, and
+  // `serializeDraft` turns it back into the stored body on send.
+  const editorRef = useRef<HTMLDivElement>(null);
+  // Which text node the `@…` being typed sits in, and its span, so
+  // accepting a suggestion replaces exactly that run.
+  const mentionAnchorRef = useRef<{
+    node: Text;
+    start: number;
+    end: number;
+  } | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
@@ -167,24 +195,80 @@ export function TeamThread({ contactId }: { contactId: string }) {
       .slice(0, 6);
   }, [mentionQuery, members, user?.id]);
 
-  const onDraftChange = (value: string, caret: number) => {
-    setDraft(value);
-    setMentionQuery(activeMentionQuery(value, caret));
+  const closeMention = () => {
+    mentionAnchorRef.current = null;
+    setMentionQuery(null);
+  };
+
+  /** Re-read the caret and open, narrow or close the picker to match. */
+  const syncMention = () => {
+    const editor = editorRef.current;
+    const sel = window.getSelection();
+    const range = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+    const node = range?.startContainer;
+    if (
+      !editor ||
+      !range ||
+      !range.collapsed ||
+      !node ||
+      node.nodeType !== Node.TEXT_NODE ||
+      !editor.contains(node)
+    ) {
+      closeMention();
+      return;
+    }
+
+    // Only the caret's own text node is searched: a chip ends the text
+    // before it, the same way a completed token did in the old textarea.
+    const found = activeMentionQuery(node.textContent ?? '', range.startOffset);
+    if (!found) {
+      closeMention();
+      return;
+    }
+    mentionAnchorRef.current = {
+      node: node as Text,
+      start: found.start,
+      end: range.startOffset,
+    };
+    setMentionQuery(found);
+  };
+
+  const onDraftInput = () => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    setIsEmpty(serializeDraft(editor).trim() === '');
+    syncMention();
     setHighlight(0);
   };
 
   const acceptMention = (member: MentionableMember) => {
-    if (!mentionQuery) return;
-    const before = draft.slice(0, mentionQuery.start);
-    const after = draft.slice(mentionQuery.start + 1 + mentionQuery.query.length);
-    const next = `${before}${mentionToken(member)} ${after}`;
-    setDraft(next);
-    setMentionQuery(null);
-    inputRef.current?.focus();
+    const editor = editorRef.current;
+    const anchor = mentionAnchorRef.current;
+    closeMention();
+    if (!editor || !anchor || !editor.contains(anchor.node)) return;
+
+    // Cut the typed `@query` out of its text node and put the chip, then
+    // a space, where it was.
+    const { node, start, end } = anchor;
+    const rest = node.splitText(end);
+    node.deleteData(start, end - start);
+    const space = document.createTextNode(' ');
+    rest.before(createMentionChip(member), space);
+
+    // Caret after the space, so typing carries straight on.
+    editor.focus();
+    const caret = document.createRange();
+    caret.setStart(space, 1);
+    caret.collapse(true);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(caret);
+    setIsEmpty(false);
   };
 
   const send = async () => {
-    const body = draft.trim();
+    const editor = editorRef.current;
+    const body = editor ? serializeDraft(editor).trim() : '';
     if (!body || sending) return;
     setSending(true);
     try {
@@ -198,8 +282,9 @@ export function TeamThread({ contactId }: { contactId: string }) {
         toast.error(data.error || 'Could not post the message.');
         return;
       }
-      setDraft('');
-      setMentionQuery(null);
+      editorRef.current?.replaceChildren();
+      setIsEmpty(true);
+      closeMention();
       if (data.message && data.message.id) {
         setMessages((prev) => {
           if (!prev) return [data.message];
@@ -237,6 +322,7 @@ export function TeamThread({ contactId }: { contactId: string }) {
                 key={m.id || `msg-${i}`}
                 message={m}
                 author={authors[m.author_id]}
+                authors={authors}
                 isMine={m.author_id === user?.id}
                 // Only date-stamp when the day changes — a timestamp on
                 // every line is noise in a thread this narrow.
@@ -262,51 +348,81 @@ export function TeamThread({ contactId }: { contactId: string }) {
         )}
 
         <div className="flex items-end gap-2">
-          <textarea
-            ref={inputRef}
-            value={draft}
-            onChange={(e) =>
-              onDraftChange(e.target.value, e.target.selectionStart ?? 0)
-            }
-            onKeyDown={(e) => {
-              // The picker owns the arrows and Enter while it is open,
-              // or choosing a name would send the message instead.
-              if (suggestions.length > 0) {
-                if (e.key === 'ArrowDown') {
-                  e.preventDefault();
-                  setHighlight((h) => (h + 1) % suggestions.length);
-                  return;
-                }
-                if (e.key === 'ArrowUp') {
-                  e.preventDefault();
-                  setHighlight(
-                    (h) => (h - 1 + suggestions.length) % suggestions.length,
-                  );
-                  return;
-                }
-                if (e.key === 'Enter' || e.key === 'Tab') {
-                  e.preventDefault();
-                  acceptMention(suggestions[highlight]);
-                  return;
-                }
-                if (e.key === 'Escape') {
-                  setMentionQuery(null);
-                  return;
-                }
-              }
-              if (e.key === 'Enter' && !e.shiftKey) {
+          <div className="relative min-w-0 flex-1">
+            {isEmpty && (
+              <span
+                aria-hidden
+                className="text-muted-foreground pointer-events-none absolute top-2 left-3 text-xs leading-4"
+              >
+                Message your team… use @ to tag someone
+              </span>
+            )}
+            <div
+              ref={editorRef}
+              contentEditable
+              role="textbox"
+              aria-multiline="true"
+              aria-label="Message your team"
+              onInput={onDraftInput}
+              onKeyUp={(e) => {
+                if (CARET_KEYS.has(e.key)) syncMention();
+              }}
+              onClick={syncMention}
+              onBlur={closeMention}
+              // Plain text only — pasted or dropped markup would carry
+              // styles and elements the serializer does not expect.
+              onPaste={(e) => {
                 e.preventDefault();
-                void send();
-              }
-            }}
-            rows={2}
-            placeholder="Message your team… use @ to tag someone"
-            className="border-border bg-muted text-foreground placeholder-muted-foreground focus:border-primary/50 min-h-[38px] flex-1 resize-none rounded-lg border px-3 py-2 text-xs outline-none"
-          />
+                document.execCommand(
+                  'insertText',
+                  false,
+                  e.clipboardData.getData('text/plain'),
+                );
+              }}
+              onDrop={(e) => e.preventDefault()}
+              onKeyDown={(e) => {
+                // The picker owns the arrows and Enter while it is open,
+                // or choosing a name would send the message instead.
+                if (suggestions.length > 0) {
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setHighlight((h) => (h + 1) % suggestions.length);
+                    return;
+                  }
+                  if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setHighlight(
+                      (h) => (h - 1 + suggestions.length) % suggestions.length,
+                    );
+                    return;
+                  }
+                  if (e.key === 'Enter' || e.key === 'Tab') {
+                    e.preventDefault();
+                    acceptMention(suggestions[highlight]);
+                    return;
+                  }
+                  if (e.key === 'Escape') {
+                    closeMention();
+                    return;
+                  }
+                }
+                // Enter while an IME is composing picks the candidate.
+                if (
+                  e.key === 'Enter' &&
+                  !e.shiftKey &&
+                  !e.nativeEvent.isComposing
+                ) {
+                  e.preventDefault();
+                  void send();
+                }
+              }}
+              className="border-border bg-muted text-foreground focus:border-primary/50 max-h-32 min-h-[50px] overflow-y-auto rounded-lg border px-3 py-2 text-xs leading-4 break-words whitespace-pre-wrap outline-none"
+            />
+          </div>
           <button
             type="button"
             onClick={() => void send()}
-            disabled={!draft.trim() || sending}
+            disabled={isEmpty || sending}
             aria-label="Post to team inbox"
             className="bg-primary text-primary-foreground hover:bg-primary/90 flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors disabled:opacity-40"
           >
@@ -342,11 +458,13 @@ function EmptyState() {
 function ThreadBubble({
   message,
   author,
+  authors,
   isMine,
   showDay,
 }: {
   message: ContactThreadMessage;
   author?: Author;
+  authors: Record<string, Author>;
   isMine: boolean;
   showDay: boolean;
 }) {
@@ -414,12 +532,12 @@ function ThreadBubble({
                     user and is not markup anywhere in this app. */}
                 {segmentBody(message.body).map((seg, i) =>
                   seg.kind === 'mention' ? (
-                    <span
+                    <MentionChip
                       key={i}
-                      className="text-primary bg-primary/10 rounded px-1 font-medium"
-                    >
-                      @{seg.label}
-                    </span>
+                      label={seg.label}
+                      userId={seg.userId}
+                      avatarUrl={authors[seg.userId]?.avatar_url}
+                    />
                   ) : (
                     <span key={i}>{seg.text}</span>
                   ),
@@ -434,6 +552,110 @@ function ThreadBubble({
       </div>
     </>
   );
+}
+
+/**
+ * A posted mention. The name is the label written into the token, not
+ * the member's current name — see lib/inbox/mentions.ts for why. The
+ * photo is looked up by id, which cannot re-point at someone else.
+ */
+function MentionChip({
+  label,
+  userId,
+  avatarUrl,
+}: {
+  label: string;
+  userId: string;
+  avatarUrl?: string | null;
+}) {
+  return (
+    <span className={CHIP_CLASS}>
+      <PersonAvatar
+        name={label}
+        avatarUrl={avatarUrl}
+        seed={userId}
+        className="size-4 text-[8px]"
+      />
+      <span>{label}</span>
+    </span>
+  );
+}
+
+/**
+ * The composer's version of MentionChip, built as DOM because it lives
+ * inside contentEditable where React does not render. Keep the two in
+ * step. `data-user-id` / `data-label` are what `serializeDraft` reads;
+ * contenteditable=false makes the chip one unit to the caret and to
+ * Backspace, so it cannot be half-deleted into a broken token.
+ */
+function createMentionChip(member: MentionableMember): HTMLSpanElement {
+  const chip = document.createElement('span');
+  chip.contentEditable = 'false';
+  chip.dataset.userId = member.user_id;
+  chip.dataset.label = member.full_name;
+  chip.className = CHIP_CLASS;
+
+  if (member.avatar_url) {
+    const img = document.createElement('img');
+    img.src = member.avatar_url;
+    img.alt = '';
+    img.className = 'size-4 shrink-0 rounded-full object-cover';
+    chip.append(img);
+  } else {
+    const colors = avatarColor(member.user_id);
+    const initial = document.createElement('span');
+    initial.className =
+      'flex size-4 shrink-0 items-center justify-center rounded-full text-[8px] font-semibold';
+    initial.style.backgroundColor = colors.bg;
+    initial.style.color = colors.fg;
+    initial.textContent = (member.full_name || '?').charAt(0).toUpperCase();
+    chip.append(initial);
+  }
+
+  const name = document.createElement('span');
+  name.textContent = member.full_name;
+  chip.append(name);
+  return chip;
+}
+
+/**
+ * Read the composer back into the stored body: text as typed, each chip
+ * as its `@[Name](uuid)` token, line breaks as `\n`. Browsers write a
+ * line break as `<br>` or wrap lines in `<div>`s depending on engine,
+ * so both are handled.
+ */
+function serializeDraft(root: HTMLElement): string {
+  let out = '';
+  const walk = (parent: Node) => {
+    for (const child of Array.from(parent.childNodes)) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        // contentEditable pads spaces with NBSP so they are not collapsed.
+        out += (child.textContent ?? '').replace(/ /g, ' ');
+        continue;
+      }
+      if (!(child instanceof HTMLElement)) continue;
+
+      const userId = child.dataset.userId;
+      if (userId) {
+        out += mentionToken({
+          user_id: userId,
+          full_name: child.dataset.label ?? '',
+          email: '',
+        });
+        continue;
+      }
+      if (child.tagName === 'BR') {
+        out += '\n';
+        continue;
+      }
+      if ((child.tagName === 'DIV' || child.tagName === 'P') && out && !out.endsWith('\n')) {
+        out += '\n';
+      }
+      walk(child);
+    }
+  };
+  walk(root);
+  return out;
 }
 
 function MentionPicker({
@@ -459,7 +681,7 @@ function MentionPicker({
               <button
                 type="button"
                 // `onMouseDown`, not `onClick`: a click would blur the
-                // textarea first, closing the picker before the handler
+                // composer first, closing the picker before the handler
                 // runs and losing the caret position it needs.
                 onMouseDown={(e) => {
                   e.preventDefault();
