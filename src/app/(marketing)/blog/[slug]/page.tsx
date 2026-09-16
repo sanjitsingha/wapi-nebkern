@@ -1,20 +1,14 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowRight, Clock, Newspaper } from 'lucide-react';
+import { ArrowRight, ChevronLeft, Newspaper } from 'lucide-react';
 
-import {
-  getPostBySlug,
-  getPublishedPosts,
-  readMinutes,
-  formatPostDate,
-} from '@/lib/blog';
+import { getPostBySlug, getPublishedPosts, formatPostDate } from '@/lib/blog';
 import { buildToc } from '@/lib/lp2-blog-toc';
 import { Lp2Nav } from '@/components/lp2/nav';
 import { Lp2Footer } from '@/components/lp2/footer';
 import { Sparkle, Squiggle } from '@/components/lp2/decor';
-import { postHue, TagPill } from '@/components/lp2/blog-bits';
-import { BlogToc, PromoBanner } from '@/components/lp2/blog-toc';
+import { postHue } from '@/components/lp2/blog-bits';
 import { ShareButtons } from '@/components/lp2/share-buttons';
 import '../post-content.css';
 
@@ -79,11 +73,12 @@ export default async function Lp2BlogPostPage({
     .slice(0, 3);
 
   const hue = postHue(post.slug);
-  const minutes = readMinutes(post.contentHtml);
 
-  // Give every h2–h4 an id and pull out the ToC. `html` is the rewritten
-  // body the article renders; `toc` feeds the sidebar.
-  const { html, toc } = buildToc(post.contentHtml);
+  // Give every h2–h4 an id: `html` is the rewritten body the article
+  // renders. The ids stay useful for deep links into a section even
+  // though the sidebar that listed them is gone, so the returned `toc`
+  // itself is discarded.
+  const { html } = buildToc(post.contentHtml);
 
   // Article structured data, so Google can show the post as an article
   // with its date and publisher. Undefined fields drop out of the JSON.
@@ -113,116 +108,91 @@ export default async function Lp2BlogPostPage({
 
       <main className="bg-white">
         {/* ── Feature image ──
-            Full width (left to right, spanning the whole article
-            container), and no border/outline/shadow — just the image. */}
+            The same measure as the article below it, so the two share
+            one left and right edge. No border/outline/shadow — just the
+            image. */}
         <section className="relative -mt-19 px-4 pt-19 sm:-mt-20 sm:px-6 sm:pt-20">
-          <div className="mx-auto max-w-7xl pt-10">
-            {post.coverImageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={post.coverImageUrl}
-                alt=""
-                className="aspect-[16/5] w-full rounded-[1.75rem] object-cover"
-              />
-            ) : (
-              <div
-                className="relative flex aspect-[16/5] items-center justify-center overflow-hidden rounded-[1.75rem]"
-                style={{ backgroundColor: `var(--lp2-${hue}-soft)` }}
-              >
-                <span
-                  className="flex size-20 items-center justify-center rounded-3xl"
-                  style={{
-                    backgroundColor: `var(--lp2-${hue})`,
-                    transform: 'rotate(-6deg)',
-                  }}
+          <div className="mx-auto max-w-3xl pt-10">
+            {/* Way back to the index. Plain text, not a button: on hover
+                (or keyboard focus) a green rule grows in from the left
+                under the words — the same device as the blog cards on
+                the landing page. */}
+            <Link
+              href="/blog"
+              className="group inline-flex items-center gap-1 text-base font-semibold text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink) focus-visible:text-(--lp2-ink)"
+            >
+              <ChevronLeft className="size-4" strokeWidth={3} />
+              <span className="bg-[linear-gradient(var(--lp2-grass),var(--lp2-grass))] bg-size-[0%_2px] bg-bottom-left bg-no-repeat pb-0.5 transition-[background-size] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:bg-size-[100%_2px] group-focus-visible:bg-size-[100%_2px] motion-reduce:transition-none">
+                Back to blogs
+              </span>
+            </Link>
+
+            <div className="mt-5">
+              {post.coverImageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={post.coverImageUrl}
+                  alt=""
+                  className="aspect-video w-full object-cover"
+                />
+              ) : (
+                <div
+                  className="relative flex aspect-video items-center justify-center overflow-hidden"
+                  style={{ backgroundColor: `var(--lp2-${hue}-soft)` }}
                 >
-                  <Newspaper className="size-9" strokeWidth={2.5} />
-                </span>
-                <Sparkle color="lemon" className="absolute top-8 right-12 size-6" />
-                <Squiggle color="grape" className="absolute bottom-8 left-10 w-16" />
-              </div>
-            )}
+                  <span
+                    className="flex size-20 items-center justify-center rounded-3xl"
+                    style={{
+                      backgroundColor: `var(--lp2-${hue})`,
+                      transform: 'rotate(-6deg)',
+                    }}
+                  >
+                    <Newspaper className="size-9" strokeWidth={2.5} />
+                  </span>
+                  <Sparkle color="lemon" className="absolute top-8 right-12 size-6" />
+                  <Squiggle color="grape" className="absolute bottom-8 left-10 w-16" />
+                </div>
+              )}
+            </div>
           </div>
         </section>
 
         {/* ── Article ──
-            One grid: sticky ToC + promo on the left, and the article on
-            the right in reading order — tags, title, excerpt, info box,
-            then the body. */}
+            A single centred column on the same measure as the image
+            above it: title, body, then the date and share
+            icons. No byline, no read time, and no outlined info strip —
+            the page is the post and little else. */}
         <section className="px-4 pb-4 sm:px-6">
-          <div className="mx-auto mt-10 grid max-w-7xl gap-10 lg:grid-cols-[15rem_1fr] lg:gap-12">
-            {/* Sidebar. Desktop only — on a phone a ToC above the article
-                is more clutter than help, and the bottom CTA still
-                carries the promo. Sticky so it rides along as you read. */}
-            <aside className="hidden lg:sticky lg:top-32 lg:block lg:self-start">
-              <BlogToc items={toc} />
-              <PromoBanner className={toc.length > 0 ? 'mt-8' : ''} />
-            </aside>
+          <article className="mx-auto mt-10 max-w-3xl">
+            {/* 1. Title. No `text-balance`: evening up the lines pulled
+                the last one in and made the block look narrower than the
+                image, when it should fill the same measure. */}
+            <h1 className="lp2-display text-2xl leading-[1.14] font-extrabold sm:text-4xl">
+              {post.title}
+            </h1>
 
-            <article className="min-w-0">
-              {/* Capped so the header and prose share one readable measure
-                  and a common left edge in the wide column. */}
-              <div className="max-w-3xl">
-                {/* 1. Tags */}
-                <div className="flex flex-wrap items-center gap-2">
-                  {post.tags.slice(0, 3).map((t) => (
-                    <TagPill key={t} tag={t} />
-                  ))}
-                </div>
+            {/* 2. Body. Admin-authored HTML (ids injected by
+                buildToc). Writers are ADMIN_EMAILS only — the same
+                trust boundary the live blog relies on.
 
-                {/* 2. Title */}
-                <h1 className="lp2-display mt-4 text-3xl leading-[1.08] font-extrabold text-balance sm:text-5xl">
-                  {post.title}
-                </h1>
+                The excerpt is deliberately not printed here: it belongs
+                to the cards that link to the post, and repeating it
+                above the body says the same thing twice. It still feeds
+                the page description and the share card. */}
+            <div
+              className="lp2-post mt-8"
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
 
-                {/* 3. Excerpt */}
-                {post.excerpt && (
-                  <p className="mt-5 text-lg leading-relaxed text-pretty text-(--lp2-ink-soft)">
-                    {post.excerpt}
-                  </p>
-                )}
-
-                {/* 4. Info box — full-width outlined strip: byline on
-                    the left, share buttons on the right. */}
-                <div className="mt-7 flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-2xl border-2 border-(--lp2-ink) bg-white px-4 py-3 shadow-(--lp2-shadow-sm)">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    {post.authorName && (
-                      <>
-                        <span
-                          className="flex size-9 items-center justify-center rounded-full border-2 border-(--lp2-ink) text-[11px] font-extrabold"
-                          style={{ backgroundColor: `var(--lp2-${hue})` }}
-                        >
-                          {initials(post.authorName)}
-                        </span>
-                        <span className="text-sm font-extrabold">
-                          {post.authorName}
-                        </span>
-                        <Dot />
-                      </>
-                    )}
-                    <span className="text-lg font-semibold text-(--lp2-ink-soft)">
-                      {formatPostDate(post.publishedAt)}
-                    </span>
-                    <Dot />
-                    <span className="inline-flex items-center gap-1.5 text-lg font-semibold text-(--lp2-ink-soft)">
-                      <Clock className="size-3.5" strokeWidth={3} />
-                      {minutes} min read
-                    </span>
-                  </div>
-
-                  <ShareButtons title={post.title} />
-                </div>
-
-                {/* 5. Body. Admin-authored HTML (ids injected by
-                    buildToc). Writers are ADMIN_EMAILS only — the same
-                    trust boundary the live blog relies on. */}
-                <div
-                  className="lp2-post mt-10 border-t-2 border-(--lp2-ink)/10 pt-10"
-                  dangerouslySetInnerHTML={{ __html: html }}
-                />
-              </div>
-            </article>
-          </div>
+            {/* 4. Closing line: date left, share icons right. Plain —
+                no box, no rule, no shadow. */}
+            <div className="mt-12 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+              <span className="text-base font-semibold text-(--lp2-ink-soft)">
+                {formatPostDate(post.publishedAt)}
+              </span>
+              <ShareButtons title={post.title} />
+            </div>
+          </article>
         </section>
 
         {/* ── Keep reading ──
@@ -273,18 +243,3 @@ export default async function Lp2BlogPostPage({
   );
 }
 
-/* ─── Bits ────────────────────────────────────────────────────────── */
-
-function Dot() {
-  return <span aria-hidden className="size-1.5 rounded-full bg-(--lp2-ink)/25" />;
-}
-
-/** First letters of the first two words — "Aarti Rao" → "AR". */
-function initials(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? '')
-    .join('');
-}

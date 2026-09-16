@@ -105,13 +105,12 @@
   background-size: 100% 100%;
 }
 
+/* No frame of any kind — no outline, rounding or shadow. A picture in a
+   post carries itself; the page's furniture stays out of the way. */
 .lp2 .lp2-post img {
   margin: 1.8em auto;
   display: block;
   max-width: 100%;
-  border: 2px solid var(--lp2-ink);
-  border-radius: 1.25rem;
-  box-shadow: var(--lp2-shadow);
 }
 
 /* Three dots instead of a rule — a section break that matches the

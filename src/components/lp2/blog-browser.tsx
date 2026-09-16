@@ -4,8 +4,10 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Newspaper, Search, X } from 'lucide-react';
 
+import { WaPill } from '@/components/wa/ui';
 import { Sparkle } from './decor';
-import { postHue, TagPill } from './blog-bits';
+import { postHue } from './blog-bits';
+import { ShareButtons } from './share-buttons';
 
 // ============================================================
 // /lp-2 blog index — two bands:
@@ -57,9 +59,10 @@ export function Lp2BlogBrowser({ posts }: { posts: BlogListItem[] }) {
           above it. No overflow-hidden here, so the dropdown can escape. */}
       <section className="relative z-20 -mt-19 bg-(--lp2-sky-soft) pt-19 sm:-mt-20 sm:pt-20">
         <div className="relative mx-auto max-w-3xl px-4 pt-16 pb-16 text-center sm:px-6 sm:pt-20 sm:pb-20">
-          <h1 className="lp2-display mx-auto max-w-2xl text-3xl leading-[1.12] font-extrabold text-balance sm:text-[2.6rem]">
-            Insights to scale your brand with WhatsApp automation &amp;
-            AI-powered business intelligence
+          {/* Says what the page is and stops. The longer pitch it used to
+              carry lives on in the page description search results show. */}
+          <h1 className="lp2-display mx-auto max-w-2xl text-3xl leading-[1.12] font-extrabold sm:text-[2.6rem]">
+            The Instant blog
           </h1>
 
           {/* Search + typeahead dropdown. `text-left` resets the
@@ -135,8 +138,10 @@ export function Lp2BlogBrowser({ posts }: { posts: BlogListItem[] }) {
         </div>
       </section>
 
-      {/* ── 2. Cards (white, generous margins) ── */}
-      <section className="relative z-10 border-t-2 border-(--lp2-ink) bg-white px-4 py-20 sm:px-6 sm:py-28">
+      {/* ── 2. Cards (white, generous margins) ──
+          No rule along the top: the change of background from the header
+          band to white is the only division the two sections need. */}
+      <section className="relative z-10 bg-white px-4 py-20 sm:px-6 sm:py-28">
         <div className="mx-auto max-w-7xl">
           {posts.length === 0 ? (
             <EmptyState />
@@ -157,17 +162,24 @@ export function Lp2BlogBrowser({ posts }: { posts: BlogListItem[] }) {
 
 function Card({ post }: { post: BlogListItem }) {
   const hue = postHue(post.slug);
+  const href = `/blog/${post.slug}`;
 
   return (
     // A slight ink outline (15% opacity), no shadow: the card is a soft
     // white box with a full-bleed coloured cover up top, divided from
     // the text by the same light rule.
-    <Link
-      href={`/blog/${post.slug}`}
-      className="group flex flex-col overflow-hidden rounded-[1.75rem] border-2 border-(--lp2-ink)/15 bg-white transition-transform duration-200 hover:-translate-y-1"
-    >
-      <div
-        className="relative aspect-video overflow-hidden border-b-2 border-(--lp2-ink)/15"
+    //
+    // An <article> rather than one card-wide link, because the Read more
+    // button is a link itself and an anchor cannot nest inside another.
+    // The title and the button are the two real links; the cover is a
+    // third for the mouse, hidden from screen readers and the tab order
+    // so the same post is not announced three times.
+    <article className="group flex flex-col overflow-hidden rounded-2xl border-2 border-(--lp2-ink)/15 bg-white transition-transform duration-200 hover:-translate-y-1">
+      <Link
+        href={href}
+        aria-hidden
+        tabIndex={-1}
+        className="relative block aspect-video overflow-hidden border-b-2 border-(--lp2-ink)/15"
         style={{ backgroundColor: `var(--lp2-${hue}-soft)` }}
       >
         {post.coverImageUrl ? (
@@ -195,20 +207,23 @@ function Card({ post }: { post: BlogListItem }) {
             <Sparkle color="lemon" className="absolute bottom-6 left-7 size-4" />
           </div>
         )}
-      </div>
+      </Link>
 
       <div className="flex flex-1 flex-col p-6">
-        <div className="flex flex-wrap items-center gap-2">
-          {post.tags.slice(0, 2).map((t) => (
-            <TagPill key={t} tag={t} />
-          ))}
-          <span className="text-base font-bold text-(--lp2-ink-soft)">
-            {post.dateLabel}
-          </span>
-        </div>
+        {/* Date alone now — the category pills came off. */}
+        <span className="text-base font-bold text-(--lp2-ink-soft)">
+          {post.dateLabel}
+        </span>
 
         <h2 className="lp2-display mt-3 text-xl font-extrabold text-balance">
-          {post.title}
+          <Link href={href} className="outline-none">
+            {/* The green rule grows in from the left while the card is
+                hovered or the title has keyboard focus — the same device
+                as the landing page's blog cards. */}
+            <span className="bg-[linear-gradient(var(--lp2-grass),var(--lp2-grass))] bg-size-[0%_2px] bg-bottom-left bg-no-repeat pb-1 transition-[background-size] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:bg-size-[100%_2px] group-focus-within:bg-size-[100%_2px] motion-reduce:transition-none">
+              {post.title}
+            </span>
+          </Link>
         </h2>
 
         {post.excerpt && (
@@ -217,15 +232,23 @@ function Card({ post }: { post: BlogListItem }) {
           </p>
         )}
 
-        <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-extrabold">
-          Read article
-          <ArrowRight
-            className="size-4 transition-transform group-hover:translate-x-1"
-            strokeWidth={3}
-          />
-        </span>
+        {/* mt-auto pins this row to the card's foot, so buttons line up
+            across a row of cards whatever the length of the copy above:
+            Read more on the left, ways to share it on the right. */}
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-x-4 gap-y-3 pt-6">
+          <WaPill href={href}>
+            Read more
+            {/* "Read more" on its own is the same link on every card to
+                anyone reading the page by its links alone. */}
+            <span className="sr-only">: {post.title}</span>
+          </WaPill>
+
+          {/* `path`, not the current page: these share the post the card
+              points at, not the index they sit on. */}
+          <ShareButtons title={post.title} path={href} />
+        </div>
       </div>
-    </Link>
+    </article>
   );
 }
 
