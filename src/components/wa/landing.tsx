@@ -83,7 +83,9 @@ function Heading({
   size = 'lg',
   className,
 }: {
-  title: string;
+  /** A node, not just a string, so a caller can highlight a word —
+   *  the same green box the hero puts around `@conversation`. */
+  title: React.ReactNode;
   subtitle?: string;
   size?: 'lg' | 'md';
   className?: string;
@@ -490,7 +492,19 @@ function Maya() {
     <Section>
       <Heading
         size="md"
-        title="10X your performance with Maya"
+        title={
+          <>
+            10X your performance with{' '}
+            {/* The hero's green highlight box, around the assistant's
+                handle — the same device, so the two read as one page.
+                Not the solid voltage green, which the spec reserves for
+                the CTA pill. `whitespace-nowrap` keeps the handle and its
+                box on one line when the title wraps. */}
+            <span className="rounded-[0.14em] border border-[#1fae55] bg-[#d4f5c6] px-[0.12em] whitespace-nowrap text-(--wa-green)">
+              @askMaya
+            </span>
+          </>
+        }
         subtitle="Let Maya take the repetitive work off your team, so the hours they do spend on WhatsApp go into the conversations that build relationships — and revenue."
       />
       <div className="mx-auto mt-14 grid max-w-[1080px] gap-4 md:grid-cols-2">
