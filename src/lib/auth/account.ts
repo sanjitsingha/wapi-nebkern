@@ -141,6 +141,14 @@ export interface AccountContext {
  * Returns null when any key is absent — a session from before 079, or
  * the brief window during signup before the trigger has run — and the
  * caller falls back to querying `profiles`.
+ *
+ * `pending_deletion` counts as one of those required keys. It used to be
+ * read as `=== true`, so an absent key meant "live", and migration 087
+ * turned that leniency into an open door: it rewrote the sync function
+ * without the key, and for every account scheduled after it the claim
+ * went stale rather than missing — owners kept full access to accounts
+ * the UI had closed, until 103 put the key back. A claim this path
+ * cannot verify is now a reason to go and read the column.
  */
 function claimsFromAppMetadata(user: User): {
   accountId: string;
@@ -159,16 +167,20 @@ function claimsFromAppMetadata(user: User): {
     typeof accountId !== "string" ||
     typeof role !== "string" ||
     typeof accountName !== "string" ||
-    !isAccountRole(role)
+    !isAccountRole(role) ||
+    // Not `=== true`: a missing or non-boolean value means this session
+    // cannot answer the question, so the caller must ask the database
+    // rather than be waved through.
+    typeof meta.pending_deletion !== "boolean"
   ) {
     return null;
   }
-  // Absent on sessions predating 086. Treated as "not deleted" so an
-  // old session is not locked out by a key it never had — the fallback
-  // query below reads the column directly for anyone the fast path
-  // rejects, and the trigger stamps the key on the next account change.
-  const pendingDeletion = meta.pending_deletion === true;
-  return { accountId, role, accountName, pendingDeletion };
+  return {
+    accountId,
+    role,
+    accountName,
+    pendingDeletion: meta.pending_deletion,
+  };
 }
 
 async function loadCurrentAccount(): Promise<AccountContext> {

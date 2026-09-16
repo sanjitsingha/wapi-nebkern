@@ -243,17 +243,15 @@ export default function WelcomePage() {
                   type="tel"
                   inputMode="tel"
                   autoComplete="tel"
-                  placeholder="98765 43210"
+                  // Matches the signup form: the country code lives in the
+                  // placeholder, with no note under the field.
+                  placeholder="+91 98765 43210"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   required
                   className="h-12 rounded-xl border-border bg-muted/40 pl-11 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-background focus-visible:ring-primary/20"
                 />
               </div>
-              <p className="text-xs text-muted-foreground">
-                India by default. Outside India, start with your country code,
-                e.g. +44.
-              </p>
             </div>
 
             {canNameWorkspace && (

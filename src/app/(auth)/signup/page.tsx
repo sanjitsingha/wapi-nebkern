@@ -81,7 +81,6 @@ function SignupPageInner() {
   // account, "Continue with Google" for a Google one — so a blocked
   // signup ends somewhere useful instead of just being refused.
   const [conflict, setConflict] = useState<"google" | "password" | null>(null);
-  const [checkingEmail, setCheckingEmail] = useState(false);
   // Password rules stay out of the way until the user actually tries to
   // submit — the full list lives behind the (i) on the label until then.
   const [showPasswordErrors, setShowPasswordErrors] = useState(false);
@@ -106,6 +105,11 @@ function SignupPageInner() {
    * message when it isn't, null when it is (or when the check itself
    * failed — an advisory lookup must never block registration; signUp
    * is re-checked below and GoTrue owns uniqueness regardless).
+   *
+   * Called once, from the submit handler. It used to run on every blur
+   * of the email field too, which meant a request per visit to that
+   * input — tabbing back and forth, or correcting a typo, each cost a
+   * lookup. The address is checked when it is actually being used.
    */
   const checkEmailAvailable = async (value: string): Promise<string | null> => {
     try {
@@ -125,18 +129,6 @@ function SignupPageInner() {
       setConflict(null);
       return null;
     }
-  };
-
-  // Check on blur so the user learns the address is taken before
-  // filling in two password fields, not after.
-  const handleEmailBlur = async () => {
-    const value = email.trim();
-    if (!value || loading) return;
-    setCheckingEmail(true);
-    const message = await checkEmailAvailable(value);
-    setCheckingEmail(false);
-    if (message) setError(message);
-    else if (conflict) setError(null);
   };
 
   const handleGoogle = async () => {
@@ -198,9 +190,10 @@ function SignupPageInner() {
 
     setLoading(true);
 
-    // Re-check at submit even if the blur check already passed — the
-    // address can be claimed in between, and the user may never have
-    // blurred the field at all (Enter straight from the password box).
+    // The one availability lookup, after the cheap local checks above so
+    // a form that fails on the phone or password costs no request. The
+    // decoy check further down still covers an address claimed between
+    // this call and signUp.
     const taken = await checkEmailAvailable(email.trim());
     if (taken) {
       setError(taken);
@@ -561,17 +554,16 @@ function SignupPageInner() {
                   type="tel"
                   inputMode="tel"
                   autoComplete="tel"
-                  placeholder="98765 43210"
+                  // The placeholder carries the country code now that the
+                  // note under the field is gone. A number typed exactly
+                  // like this normalizes fine, as does a bare local one.
+                  placeholder="+91 98765 43210"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   required
                   className="h-12 rounded-xl border-border bg-muted/40 pl-11 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-background focus-visible:ring-primary/20"
                 />
               </div>
-              <p className="text-xs text-muted-foreground">
-                India by default. Outside India, start with your country code,
-                e.g. +44.
-              </p>
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -597,16 +589,10 @@ function SignupPageInner() {
                       setError(null);
                     }
                   }}
-                  onBlur={handleEmailBlur}
                   required
                   className="h-12 rounded-xl border-border bg-muted/40 pl-11 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-background focus-visible:ring-primary/20"
                 />
               </div>
-              {checkingEmail && (
-                <p className="text-xs text-muted-foreground">
-                  Checking availability…
-                </p>
-              )}
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -626,7 +612,13 @@ function SignupPageInner() {
                   type={showPassword ? "text" : "password"}
                   placeholder="Create a strong password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    // Clearing the password hides the confirm field, so
+                    // drop whatever was typed in it rather than keeping
+                    // a value the user can no longer see or correct.
+                    if (!e.target.value) setConfirmPassword("");
+                  }}
                   required
                   aria-invalid={passwordInvalid || undefined}
                   className="h-12 rounded-xl border-border bg-muted/40 pl-11 pr-11 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-background focus-visible:ring-primary/20"
@@ -649,26 +641,30 @@ function SignupPageInner() {
               )}
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <Label
-                htmlFor="confirmPassword"
-                className="text-sm font-medium text-foreground"
-              >
-                Confirm password
-              </Label>
-              <div className="group relative">
-                <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
-                <Input
-                  id="confirmPassword"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Repeat your password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  className="h-12 rounded-xl border-border bg-muted/40 pl-11 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-background focus-visible:ring-primary/20"
-                />
+            {/* Nothing to confirm until there is a password: the field
+                appears with the first character typed above. */}
+            {password.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <Label
+                  htmlFor="confirmPassword"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Confirm password
+                </Label>
+                <div className="group relative">
+                  <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+                  <Input
+                    id="confirmPassword"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Repeat your password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    className="h-12 rounded-xl border-border bg-muted/40 pl-11 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-background focus-visible:ring-primary/20"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             <Button
               type="submit"
