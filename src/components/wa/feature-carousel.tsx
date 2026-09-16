@@ -12,7 +12,7 @@ import {
 
 import { cn } from '@/lib/utils';
 import { WaRail } from './rail';
-import { waType } from './ui';
+import { WaPill, waType } from './ui';
 
 // ============================================================
 // "Everything your team needs to turn chats into customers" — a
@@ -41,12 +41,18 @@ interface Feature {
   icon: LucideIcon;
   /** Path or allowed remote URL. Omitted → placeholder panel. */
   image?: string;
+  /**
+   * The feature's own page. Only set where one exists — the card then
+   * carries a Read more. The rest stop at the paragraph rather than
+   * sending someone to a page that does not answer the card.
+   */
+  href?: string;
 }
 
 const FEATURES: Feature[] = [
-  { term: 'Shared team inbox', icon: MessagesSquare, body: 'WhatsApp, Instagram and Messenger in one thread list. Assign an owner, leave notes your customer never sees, and keep the history with the contact rather than the agent.' },
-  { term: 'Broadcast campaigns', icon: Megaphone, body: 'Send an approved template to thousands, filtered by tag, pipeline stage or last activity. Delivery, read and reply rates arrive live rather than in a report next week.' },
-  { term: 'Pipelines & CRM', icon: SquareKanban, body: 'Custom fields, tags and drag-and-drop stages wrapped around the conversation itself, so a chat becomes a deal without anyone retyping it into another system.' },
+  { term: 'Shared team inbox', icon: MessagesSquare, href: '/features/shared-inbox', body: 'WhatsApp, Instagram and Messenger in one thread list. Assign an owner, leave notes your customer never sees, and keep the history with the contact rather than the agent.' },
+  { term: 'Broadcast campaigns', icon: Megaphone, href: '/features/campaigns', body: 'Send an approved template to thousands, filtered by tag, pipeline stage or last activity. Delivery, read and reply rates arrive live rather than in a report next week.' },
+  { term: 'Pipelines & CRM', icon: SquareKanban, href: '/features/pipelines', body: 'Custom fields, tags and drag-and-drop stages wrapped around the conversation itself, so a chat becomes a deal without anyone retyping it into another system.' },
   { term: 'Flows & automations', icon: Workflow, body: 'No-code triggers, conditions, waits and actions. Greet, qualify, route and follow up at 3am, then hand to a human the moment it stops being routine.' },
   { term: 'AI agents', icon: Bot, body: 'Answer in seconds from your own documents and past replies, in your own tone. Every answer is logged, and anything the agent is unsure of goes to a person instead of being guessed at.' },
   { term: 'Widget, QR & links', icon: QrCode, body: 'Turn a website visitor, a poster or a printed menu into a WhatsApp conversation in one tap. Every entry point is tracked, so you can see which ones actually bring people in.' },
@@ -75,9 +81,11 @@ export function WaFeatureCarousel() {
           key={f.term}
           data-card
           className={cn(
-            // Cream cards on the section's white — a white card would
-            // disappear into it.
-            'flex shrink-0 snap-start flex-col overflow-hidden rounded-[25px] bg-(--wa-canvas)',
+            // White cards on the section's white band. With no fill to
+            // separate them they take the spec's hairline, the same way
+            // whatsapp.css keeps a white pill visible on a white card —
+            // the picture band below carries the rest of the contrast.
+            'flex shrink-0 snap-start flex-col overflow-hidden rounded-[25px] border border-(--wa-hairline) bg-(--wa-white)',
             // Sized so a set number of cards shows at once, the last one
             // cut by the screen edge so the row reads as scrollable:
             //   phone ~1.2   tablet ~1.5   laptop+ ~2.5
@@ -122,6 +130,19 @@ export function WaFeatureCarousel() {
             <p className={cn(waType.bodyMd, 'mt-3 text-pretty text-(--wa-ink-muted) lg:mt-4 lg:text-[18px] lg:leading-[26px]')}>
               {f.body}
             </p>
+            {f.href && (
+              // `mt-auto` rather than a fixed margin: cards stretch to the
+              // tallest in the row, so this keeps every button on the same
+              // line however long the copy above it runs.
+              <div className="mt-auto pt-6">
+                <WaPill href={f.href}>
+                  Read more
+                  {/* "Read more" on its own is the same link seven times to
+                      anyone reading the page by its links alone. */}
+                  <span className="sr-only"> about {f.term}</span>
+                </WaPill>
+              </div>
+            )}
           </div>
         </article>
       ))}
