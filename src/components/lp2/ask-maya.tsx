@@ -141,6 +141,12 @@ function MayaWindow() {
           priority
           className="h-[54px] sm:h-[72px] lg:h-[92px]"
         />
+        {/* The lockup's alt alone gave the page's only h1 the two words
+            "ask maya", which says nothing about what the page is. This
+            finishes the sentence for search and screen readers — the
+            heading reads "ask maya, the AI assistant for WhatsApp" —
+            without changing what a sighted visitor sees. */}
+        <span className="sr-only">, the AI assistant for WhatsApp</span>
       </h1>
 
       {/* Status line under the mark. Fills the gap the lockup used to

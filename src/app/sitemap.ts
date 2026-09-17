@@ -95,22 +95,25 @@ const LEGAL = [
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
+  // No `lastModified` on the static pages. The only date available here
+  // is "now", regenerated every hour — so every page claimed to have
+  // changed on every crawl, which is exactly what teaches Google the
+  // field is meaningless (the reasoning on the blog posts below). A page
+  // with no <lastmod> loses nothing; one with a lying one costs the
+  // posts' real dates their credibility.
   const staticEntries: MetadataRoute.Sitemap = [
     ...MARKETING.map(([path, priority]) => ({
       url: `${SITE}${path}`,
-      lastModified: now,
       changeFrequency: 'weekly' as const,
       priority,
     })),
     ...DOCS.map((path) => ({
       url: `${SITE}${path}`,
-      lastModified: now,
       changeFrequency: 'monthly' as const,
       priority: 0.5,
     })),
     ...LEGAL.map((path) => ({
       url: `${SITE}${path}`,
-      lastModified: now,
       changeFrequency: 'yearly' as const,
       priority: 0.3,
     })),

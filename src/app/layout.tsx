@@ -49,11 +49,17 @@ export const metadata: Metadata = {
    * so any page that defines its own `openGraph` must re-declare
    * `siteName` or it will silently lose it.
    */
+  //
+  // No `url` here. A root `openGraph.url` is inherited by every page that
+  // does not declare its own `openGraph`, so /features/shared-inbox,
+  // /ask-maya and the rest all announced og:url = the homepage — telling
+  // crawlers each of them IS the homepage, against its own canonical.
+  // Without it, scrapers use the address they fetched, and the canonical
+  // (`alternates.canonical` per page) stays the one authoritative URL.
   openGraph: {
     siteName: 'Instant',
     type: 'website',
     locale: 'en_IN',
-    url: SITE_URL,
   },
   // Large preview cards when a link is shared. The image itself comes
   // from app/opengraph-image.tsx, which X/Twitter falls back to.
