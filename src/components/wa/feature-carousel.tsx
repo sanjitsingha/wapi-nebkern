@@ -20,26 +20,35 @@ import { WaPill, waType } from './ui';
 //
 // whatsapp.com lays feature stories out as a row of tall tiles you
 // scroll sideways, rather than a grid you scroll past. Each tile here is
-// the spec's 25px white tile, picture-led: most of its height is the
-// picture, with a short title and line of copy underneath. The detail
-// lives on each feature's own page, so the card's job is to be seen.
+// the spec's 25px white tile, picture-led: the picture on top, with a
+// short title and line of copy underneath. The detail lives on each
+// feature's own page, so the card's job is to be seen.
 //
 // The heading, arrows and scrolling come from WaRail (rail.tsx); this
 // file is only the cards.
 //
-// IMAGES
+// IMAGES — make them 1500 × 1000 px (3:2)
 //
-// None exist yet, so every card renders a placeholder — a tinted panel
-// with the feature's icon. Give a card an `image` (a path under /public
-// or an allowed remote URL) and the placeholder is replaced by that
-// picture, cropped to fill the band.
+// The picture band is locked to 3:2 at every screen width, so art made
+// at that shape fills it exactly and nothing is cropped anywhere. 1500px
+// wide stays sharp on a retina laptop and on a 2560px monitor, where the
+// card is at its widest (~750 CSS px). Put the file under
+// /public/images/features and set the card's `image`.
+//
+// Art at any other shape is cropped to fit (object-cover, centred). The
+// band used to be a fixed height per breakpoint, which made its shape
+// swing from square on a phone to 2:1 on a wide screen — no single image
+// could fit that, and every one was cut somewhere.
+//
+// A card with no `image` renders a placeholder: a tinted panel with the
+// feature's icon, in the same 3:2 band.
 // ============================================================
 
 interface Feature {
   term: string;
   body: string;
   icon: LucideIcon;
-  /** Path or allowed remote URL. Omitted → placeholder panel. */
+  /** Path or allowed remote URL, ideally 1500 × 1000. Omitted → placeholder panel. */
   image?: string;
   /**
    * The feature's own page. Only set where one exists — the card then
@@ -51,11 +60,11 @@ interface Feature {
 
 const FEATURES: Feature[] = [
   { term: 'Shared team inbox', icon: MessagesSquare, href: '/features/shared-inbox', image: '/images/features/shared-team-inbox.webp', body: 'WhatsApp, Instagram and Messenger in one thread list. Assign an owner, leave notes your customer never sees, and keep the history with the contact rather than the agent.' },
-  { term: 'Broadcast campaigns', icon: Megaphone, href: '/features/campaigns', body: 'Send an approved template to thousands, filtered by tag, pipeline stage or last activity. Delivery, read and reply rates arrive live rather than in a report next week.' },
+  { term: 'Broadcast campaigns', icon: Megaphone, href: '/features/campaigns', image: '/images/features/campaign-broadcast.jpg', body: 'Send an approved template to thousands, filtered by tag, pipeline stage or last activity. Delivery, read and reply rates arrive live rather than in a report next week.' },
   { term: 'Pipelines & CRM', icon: SquareKanban, href: '/features/pipelines', body: 'Custom fields, tags and drag-and-drop stages wrapped around the conversation itself, so a chat becomes a deal without anyone retyping it into another system.' },
   { term: 'Flows & automations', icon: Workflow, body: 'No-code triggers, conditions, waits and actions. Greet, qualify, route and follow up at 3am, then hand to a human the moment it stops being routine.' },
-  { term: 'AI agents', icon: Bot, body: 'Answer in seconds from your own documents and past replies, in your own tone. Every answer is logged, and anything the agent is unsure of goes to a person instead of being guessed at.' },
-  { term: 'Widget, QR & links', icon: QrCode, body: 'Turn a website visitor, a poster or a printed menu into a WhatsApp conversation in one tap. Every entry point is tracked, so you can see which ones actually bring people in.' },
+  { term: 'AI agents', icon: Bot, image: '/images/features/ai-agent.jpg', body: 'Answer in seconds from your own documents and past replies, in your own tone. Every answer is logged, and anything the agent is unsure of goes to a person instead of being guessed at.' },
+  { term: 'Widget, QR & links', icon: QrCode, image: '/images/features/qr-link.jpg', body: 'Turn a website visitor, a poster or a printed menu into a WhatsApp conversation in one tap. Every entry point is tracked, so you can see which ones actually bring people in.' },
   { term: 'Easy integrations', icon: Plug, body: 'Push every message, contact and deal event into your own stack, or drive Instant from it. Your data stays yours, and stays reachable.' },
 ];
 
@@ -93,19 +102,19 @@ export function WaFeatureCarousel() {
             // gutter is the 24px padding; from xl (1280) it is half of the
             // viewport beyond 1232px, so the visible width is
             // (100vw + 1232px) / 2. Each count subtracts its gaps (16px).
-            // No fixed height: the picture band has a set height and the
-            // text sizes itself, so copy never overflows. Cards in the row
-            // still match — flex rows stretch every card to the tallest.
+            // No fixed height: the picture band takes its height from the
+            // card's width and the text sizes itself, so copy never
+            // overflows. Cards in the row still match — they share a
+            // width, and flex rows stretch every card to the tallest.
             'w-[82%]',
             'sm:w-[calc((100vw-40px)/1.5)]',
             'lg:w-[calc((100vw-56px)/2.5)]',
             'xl:w-[calc(((100vw+1232px)/2-32px)/2.5)]',
           )}
         >
-          {/* The picture band — the larger part of the card. Heights are
-              picked to stay taller than the text below at every width:
-              the text runs ~230px on a phone and ~250px on a laptop. */}
-          <div className="relative h-[260px] shrink-0 bg-(--wa-tint) sm:h-[300px] lg:h-[320px] xl:h-[360px]">
+          {/* The picture band, locked to 3:2 so a 1500 × 1000 image fills
+              it exactly at every width — see IMAGES above. */}
+          <div className="relative aspect-[3/2] shrink-0 bg-(--wa-tint)">
             {f.image ? (
               <Image
                 src={f.image}
