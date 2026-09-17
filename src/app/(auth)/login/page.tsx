@@ -100,7 +100,7 @@ function LoginPageInner() {
     setError(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -108,6 +108,15 @@ function LoginPageInner() {
     if (error) {
       setError(error.message);
       setLoading(false);
+      return;
+    }
+
+    // A closed account lands on the lockout screen — not the dashboard,
+    // and not the 2FA step either: there is nothing behind either of
+    // them for an account on its way out. The middleware would redirect
+    // anyway; doing it here skips the flash of a page they cannot use.
+    if (data.user?.app_metadata?.pending_deletion === true) {
+      router.replace('/account-deleted');
       return;
     }
 

@@ -81,6 +81,20 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Is this session's account inside its deletion window? Read once:
+  // the gate further down enforces it, and the rule directly below has
+  // to stand aside for it.
+  //
+  // A locked session must still be able to reach /login. It is the only
+  // route to another account from a browser holding that session, and
+  // without this exception there was none: /login sent the user to
+  // /dashboard, and the deletion gate sent /dashboard here to
+  // /account-deleted. Signing in again with the same credentials still
+  // ends at the lockout screen, by that same gate.
+  const pendingDeletion =
+    (user?.app_metadata as Record<string, unknown> | undefined)
+      ?.pending_deletion === true;
+
   // Auth pages - redirect to dashboard if already logged in.
   // Exception: when an invite token is in the query string we
   // send the already-signed-in user to /join/<token> instead so
@@ -93,6 +107,7 @@ export async function middleware(request: NextRequest) {
   if (
     user &&
     !awaitingMfa &&
+    !pendingDeletion &&
     (request.nextUrl.pathname === '/login' ||
       request.nextUrl.pathname === '/signup' ||
       request.nextUrl.pathname === '/forgot-password')
@@ -205,12 +220,14 @@ export async function middleware(request: NextRequest) {
     // request rather than after a token refresh.
     const meta = user.app_metadata as Record<string, unknown> | undefined;
 
-    // The deletion lock (migration 086) is checked before the gates and
-    // before anything else, because it outranks them: an account on its
-    // way out should not be asked to finish onboarding or pay. Missing
-    // key means a session predating 086, which is treated as live — the
-    // API's own check reads the column directly and will catch it.
-    if (meta?.pending_deletion === true) {
+    // The deletion lock (migrations 086 / 103) is checked before the
+    // gates and before anything else, because it outranks them: an
+    // account on its way out should not be asked to finish onboarding or
+    // pay. This is also what puts a fresh sign-in with a closed
+    // account's credentials on the lockout screen rather than the
+    // dashboard. A missing key is treated as live here — the API's own
+    // check reads the column directly and will catch it.
+    if (pendingDeletion) {
       const url = request.nextUrl.clone();
       url.pathname = '/account-deleted';
       url.search = '';

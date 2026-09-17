@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/use-auth';
+import { createClient } from '@/lib/supabase/client';
 import { DELETION_WINDOW_DAYS } from '@/lib/account/deletion-window';
 
 /**
@@ -35,6 +36,7 @@ import { DELETION_WINDOW_DAYS } from '@/lib/account/deletion-window';
 export function DeleteAccountCard() {
   const { account, isOwner } = useAuth();
   const router = useRouter();
+  const supabase = createClient();
 
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState('');
@@ -58,10 +60,28 @@ export function DeleteAccountCard() {
       if (!res.ok) {
         throw new Error(data?.error ?? 'Could not schedule the deletion.');
       }
-      // Straight to the lockout screen. Staying on a settings page that
-      // every subsequent request will now 403 would just produce a
-      // cascade of failed loads.
-      router.push('/account-deleted');
+
+      // Sign out — everywhere, not just this tab — before leaving.
+      //
+      // The account is closed, so the session that closed it has nothing
+      // left to do, and leaving it in place strands the browser: every
+      // page redirects to the lockout screen, including /login, so there
+      // is no way to sign in as somebody else. `global` also ends the
+      // session on this person's other devices, which is what "access
+      // stops immediately" in the dialog above promises.
+      //
+      // Swallowing the error is deliberate: the deletion is already
+      // recorded and the lock is already on. A failed token revocation
+      // must not leave the user on a dead settings page.
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch {
+        // Nothing to recover — carry on to the lockout screen.
+      }
+
+      // `replace`, not `push`: Back should not return to a settings page
+      // that every request now refuses.
+      router.replace('/account-deleted');
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : 'Could not schedule the deletion.'

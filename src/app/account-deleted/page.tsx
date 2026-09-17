@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 
 import { DELETION_WINDOW_DAYS } from '@/lib/account/deletion-window';
+import { SwitchAccountButton } from './switch-account-button';
 
 export const metadata: Metadata = {
   title: 'Account scheduled for deletion',
@@ -45,6 +46,10 @@ export default function AccountDeletedPage() {
           >
             Restore this account
           </Link>
+          {/* The way to another account. Without it, a session that is
+              locked but still live has nowhere to go: every page,
+              /login included, redirects back to this one. */}
+          <SwitchAccountButton />
           <Link
             href="/"
             className="text-muted-foreground hover:text-foreground flex h-11 items-center justify-center text-sm font-medium transition-colors"
