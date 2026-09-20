@@ -52,7 +52,11 @@ export async function POST(
     update.slug = slug;
   }
 
+  // Clearing any of these sends "" or null, which stores NULL — for
+  // meta_title that is what puts the headline back in charge of the
+  // search result.
   for (const [key, max] of [
+    ['meta_title', 120],
     ['excerpt', 400],
     ['cover_image_url', 2000],
     ['author_name', 80],

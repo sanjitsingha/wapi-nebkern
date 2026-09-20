@@ -176,9 +176,25 @@
 
 .lp2 .lp2-post th,
 .lp2 .lp2-post td {
-  padding: 0.6em 0.8em;
+  padding: 0.45em 0.7em;
   border: 2px solid color-mix(in oklab, var(--lp2-ink) 12%, transparent);
   text-align: left;
+  vertical-align: top;
+  /* Tighter than the body's: a cell holds a phrase, not a paragraph. */
+  line-height: 1.5;
+}
+
+/* The editor stores each cell's text inside a `p`, so the paragraph
+   margin above applied within every cell and doubled the height of each
+   row. Kept only between two paragraphs in the same cell. */
+.lp2 .lp2-post th > p,
+.lp2 .lp2-post td > p {
+  margin: 0;
+}
+
+.lp2 .lp2-post th > p + p,
+.lp2 .lp2-post td > p + p {
+  margin-top: 0.4em;
 }
 
 .lp2 .lp2-post th {

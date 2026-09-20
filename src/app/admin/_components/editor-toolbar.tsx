@@ -26,17 +26,6 @@ import {
   Undo2,
   Redo2,
   Highlighter,
-  ArrowLeftToLine,
-  ArrowRightToLine,
-  ArrowUpToLine,
-  ArrowDownToLine,
-  Columns3,
-  Rows3,
-  Combine,
-  Split,
-  PanelTop,
-  PanelLeft,
-  Trash2,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -47,7 +36,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ImageDialog, LinkDialog } from './editor-dialogs';
+import { ImageDialog } from './editor-dialogs';
+import { LinkPopover } from './editor-popovers';
 
 // ============================================================
 // The editor's formatting bar: one persistent row across the writing
@@ -152,7 +142,16 @@ function Btn({
 export function EditorToolbar({ editor }: { editor: Editor }) {
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [imageOpen, setImageOpen] = useState(false);
-  const [linkOpen, setLinkOpen] = useState(false);
+  // Where the selected words are on screen, captured when Link is
+  // pressed: focusing the URL box collapses the selection this is
+  // measured from, so it cannot be read again afterwards. Null means
+  // closed.
+  const [linkAt, setLinkAt] = useState<{
+    top: number;
+    bottom: number;
+    left: number;
+    right: number;
+  } | null>(null);
 
   const state = useEditorState({
     editor,
@@ -219,8 +218,15 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
   };
 
   return (
-    <div className="sticky top-14 z-10 border-y border-neutral-200 bg-white/95 backdrop-blur">
-      <div className="flex flex-wrap items-center gap-0.5 px-8 py-2 sm:px-12">
+    // Not sticky itself: it rides inside the band that pins the title
+    // with it (blog-editor.tsx). A sticky element inside a sticky parent
+    // detaches from it as the parent moves.
+    //
+    // No rules above or below it either: the band is the same white as
+    // the page, so a line would draw a box around the title rather than
+    // separate anything.
+    <div className="bg-white/95 backdrop-blur">
+      <div className="flex flex-wrap items-center gap-0.5 px-8 py-3 sm:px-12">
         {/* Block type — a select rather than a menu so every level is
             one click away and the current one is always visible. */}
         <Select
@@ -349,7 +355,23 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
 
         <Divider />
 
-        <Btn label="Link" active={state.link} onClick={() => setLinkOpen(true)}>
+        <Btn
+          label="Link"
+          active={state.link}
+          onClick={() => {
+            // Measure both ends of the selection, so the box opens under
+            // the words rather than under wherever the caret started.
+            const { from, to } = editor.state.selection;
+            const a = editor.view.coordsAtPos(from);
+            const b = editor.view.coordsAtPos(to);
+            setLinkAt({
+              top: Math.min(a.top, b.top),
+              bottom: Math.max(a.bottom, b.bottom),
+              left: Math.min(a.left, b.left),
+              right: Math.max(a.right, b.right),
+            });
+          }}
+        >
           <Link2 className="size-4" />
         </Btn>
         <Btn label="Image" onClick={() => setImageOpen(true)}>
@@ -443,85 +465,11 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
         </div>
       </div>
 
-      {/* Table row — only while the caret is inside a table. A second
-          row rather than a floating menu: table editing is a burst of
-          several operations in a row, and a menu that re-positions
-          itself after each one is exhausting to aim at. */}
-      {state.inTable && (
-        <div className="flex flex-wrap items-center gap-0.5 border-t border-neutral-200 bg-neutral-50 px-8 py-1.5 sm:px-12">
-          <span className="mr-2 text-[11px] font-semibold tracking-wide text-neutral-500 uppercase">
-            Table
-          </span>
-
-          <Btn
-            label="Insert column before"
-            onClick={() => chain().addColumnBefore().run()}
-          >
-            <ArrowLeftToLine className="size-4" />
-          </Btn>
-          <Btn
-            label="Insert column after"
-            onClick={() => chain().addColumnAfter().run()}
-          >
-            <ArrowRightToLine className="size-4" />
-          </Btn>
-          <Btn
-            label="Delete column"
-            onClick={() => chain().deleteColumn().run()}
-          >
-            <Columns3 className="size-4" />
-          </Btn>
-
-          <Divider />
-
-          <Btn
-            label="Insert row above"
-            onClick={() => chain().addRowBefore().run()}
-          >
-            <ArrowUpToLine className="size-4" />
-          </Btn>
-          <Btn
-            label="Insert row below"
-            onClick={() => chain().addRowAfter().run()}
-          >
-            <ArrowDownToLine className="size-4" />
-          </Btn>
-          <Btn label="Delete row" onClick={() => chain().deleteRow().run()}>
-            <Rows3 className="size-4" />
-          </Btn>
-
-          <Divider />
-
-          <Btn
-            label="Toggle header row"
-            onClick={() => chain().toggleHeaderRow().run()}
-          >
-            <PanelTop className="size-4" />
-          </Btn>
-          <Btn
-            label="Toggle header column"
-            onClick={() => chain().toggleHeaderColumn().run()}
-          >
-            <PanelLeft className="size-4" />
-          </Btn>
-          <Btn label="Merge cells" onClick={() => chain().mergeCells().run()}>
-            <Combine className="size-4" />
-          </Btn>
-          <Btn label="Split cell" onClick={() => chain().splitCell().run()}>
-            <Split className="size-4" />
-          </Btn>
-
-          <Divider />
-
-          <Btn label="Delete table" onClick={() => chain().deleteTable().run()}>
-            <Trash2 className="size-4" />
-          </Btn>
-
-          <span className="ml-auto text-[11px] text-neutral-500">
-            Drag a column edge to resize
-          </span>
-        </div>
-      )}
+      {/* No table row here any more. Every control in it was meaningless
+          outside a table and nowhere near the table when inside one —
+          on a long table you scrolled to the top of the page to add a
+          row at the bottom. They hang off the table's own corner now,
+          behind the gear in editor-popovers.tsx. */}
 
       {/* Mounted only while open: each opens with fresh state, which is
           what makes the dialogs effect-free. */}
@@ -532,9 +480,10 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
         />
       )}
 
-      {linkOpen && (
-        <LinkDialog
-          onOpenChange={setLinkOpen}
+      {linkAt && (
+        <LinkPopover
+          anchor={linkAt}
+          onClose={() => setLinkAt(null)}
           hasLink={state.link}
           initialHref={(editor.getAttributes('link').href as string) ?? ''}
           onSubmit={(href) => chain().setLink({ href }).run()}

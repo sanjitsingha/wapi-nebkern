@@ -187,10 +187,26 @@
 
 .post-content th,
 .post-content td {
-  padding: 0.55em 0.7em;
+  padding: 0.35em 0.6em;
   border: 1px solid var(--border);
   text-align: left;
   vertical-align: top;
+  /* The body's 1.8 is built for long prose; a cell holds a phrase. */
+  line-height: 1.45;
+}
+
+/* A cell's paragraph IS the cell. TipTap wraps every cell's text in a
+   `p`, so the body's 1.1em paragraph margin was being applied inside
+   each one — top and bottom — which made a three-row table as tall as
+   the screen. Only a second paragraph in the same cell needs a gap. */
+.post-content th > p,
+.post-content td > p {
+  margin: 0;
+}
+
+.post-content th > p + p,
+.post-content td > p + p {
+  margin-top: 0.4em;
 }
 
 .post-content th {

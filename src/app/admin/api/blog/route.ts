@@ -53,6 +53,9 @@ export async function POST(request: Request) {
   const row = {
     slug,
     title,
+    // Capped at 120 rather than the headline's 200: this one exists to
+    // fit a search result, and a longer value would only be truncated.
+    meta_title: str(body.meta_title, 120),
     excerpt: str(body.excerpt, 400),
     content_html:
       typeof body.content_html === 'string' ? body.content_html : '',

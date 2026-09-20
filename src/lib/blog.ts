@@ -20,6 +20,9 @@ export interface BlogPostMeta {
   id: string;
   slug: string;
   title: string;
+  /** The search-result title, when the writer set one. Null means the
+   *  headline does both jobs — see migration 104. */
+  metaTitle: string | null;
   excerpt: string | null;
   coverImageUrl: string | null;
   authorName: string | null;
@@ -35,6 +38,7 @@ interface PostRow {
   id: string;
   slug: string;
   title: string;
+  meta_title?: string | null;
   excerpt: string | null;
   content_html?: string;
   cover_image_url: string | null;
@@ -48,6 +52,7 @@ function mapMeta(r: PostRow): BlogPostMeta {
     id: r.id,
     slug: r.slug,
     title: r.title,
+    metaTitle: r.meta_title?.trim() || null,
     excerpt: r.excerpt,
     coverImageUrl: r.cover_image_url,
     authorName: r.author_name,
@@ -63,7 +68,7 @@ export async function getPublishedPosts(limit = 50): Promise<BlogPostMeta[]> {
   const { data } = await publicDb()
     .from('blog_posts')
     .select(
-      'id, slug, title, excerpt, cover_image_url, author_name, tags, published_at',
+      'id, slug, title, meta_title, excerpt, cover_image_url, author_name, tags, published_at',
     )
     .order('published_at', { ascending: false })
     .limit(limit);
@@ -75,7 +80,7 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
   const { data } = await publicDb()
     .from('blog_posts')
     .select(
-      'id, slug, title, excerpt, content_html, cover_image_url, author_name, tags, published_at',
+      'id, slug, title, meta_title, excerpt, content_html, cover_image_url, author_name, tags, published_at',
     )
     .eq('slug', slug)
     .maybeSingle();

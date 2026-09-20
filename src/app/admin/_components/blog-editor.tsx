@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { EditorContent, useEditor } from '@tiptap/react';
@@ -30,6 +30,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Callout, CtaButton } from './editor-extensions';
 import { EditorToolbar } from './editor-toolbar';
+import { TableTools } from './editor-popovers';
 import { uploadImage } from './editor-dialogs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +41,7 @@ export interface BlogPostRecord {
   id: string;
   slug: string;
   title: string;
+  meta_title: string | null;
   excerpt: string | null;
   content_html: string;
   cover_image_url: string | null;
@@ -82,6 +84,7 @@ export function BlogEditor({ post }: { post: BlogPostRecord | null }) {
   const [title, setTitle] = useState(post?.title ?? '');
   const [slug, setSlug] = useState(post?.slug ?? '');
   const [slugDirty, setSlugDirty] = useState(!!post);
+  const [metaTitle, setMetaTitle] = useState(post?.meta_title ?? '');
   const [excerpt, setExcerpt] = useState(post?.excerpt ?? '');
   const [coverUrl, setCoverUrl] = useState(post?.cover_image_url ?? '');
   const [author, setAuthor] = useState(post?.author_name ?? '');
@@ -94,6 +97,36 @@ export function BlogEditor({ post }: { post: BlogPostRecord | null }) {
 
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+
+  /**
+   * Grows the title box to its own content.
+   *
+   * A textarea with `rows={1}` scrolls a long title inside a one-line
+   * box, which hides the beginning of the headline you are writing and
+   * puts a scrollbar in the middle of the page. Setting the height from
+   * `scrollHeight` — after clearing it, or it can only ever grow —
+   * pushes the toolbar and the post down instead, which is what the
+   * title does on the published page too.
+   */
+  const titleRef = useRef<HTMLTextAreaElement>(null);
+  const fitTitle = useCallback(() => {
+    const el = titleRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, []);
+
+  // On mount for an existing post's long title, and again whenever the
+  // column's width changes, since that changes where the title wraps.
+  useEffect(() => {
+    fitTitle();
+    window.addEventListener('resize', fitTitle);
+    return () => window.removeEventListener('resize', fitTitle);
+  }, [fitTitle]);
+
+  // The rail folding in or out resizes the writing column without a
+  // window resize event.
+  useEffect(fitTitle, [panelOpen, fitTitle]);
 
   const editor = useEditor({
     // Next renders this on the server first; without it TipTap warns
@@ -164,6 +197,9 @@ export function BlogEditor({ post }: { post: BlogPostRecord | null }) {
       const payload = {
         title: cleanTitle,
         slug: cleanSlug,
+        // Empty clears it, which hands the search result back to the
+        // headline rather than storing a blank title.
+        meta_title: metaTitle.trim() || null,
         excerpt: excerpt.trim() || null,
         content_html: editor?.getHTML() ?? '',
         cover_image_url: coverUrl.trim() || null,
@@ -278,33 +314,54 @@ export function BlogEditor({ post }: { post: BlogPostRecord | null }) {
             so it matches the page the post will be published on — you
             are looking at the article, not at a form. */}
         <div className="flex flex-1 flex-col bg-white">
-          {/* Title. Generous top room: the action bar above is sticky
-              and sits right on top of it otherwise. */}
-          <div className="px-8 pt-14 pb-8 sm:px-12">
-            <textarea
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value.replace(/\n/g, ' '));
-                if (!slugDirty) setSlug(slugify(e.target.value));
-              }}
-              placeholder="Title"
-              rows={1}
-              className="placeholder:text-muted-foreground/40 w-full resize-none bg-transparent text-4xl leading-tight font-bold tracking-tight text-neutral-900 outline-none"
-            />
-          </div>
+          {/* The title and the toolbar ride together, pinned under the
+              action bar (py-3 + h-8 button ≈ 3.5rem) while the post
+              scrolls beneath them.
 
-          {/* Toolbar — a real row spanning the column, replacing the
-              bubble that used to appear over a selection. The bubble
-              was only discoverable if you already knew to highlight
-              text first, and it covered the line above the one being
-              formatted. Sticks under the action bar (py-3 + h-8 button
-              ≈ 3.5rem) so it stays reachable down a long post. */}
-          {editor && <EditorToolbar editor={editor} />}
+              One sticky band rather than two sticky elements: separate
+              ones need their offsets kept in step by hand, and they
+              leave a seam between them that text shows through as it
+              scrolls past. The white is the page's own, so the band is
+              invisible at rest and only reads as one once text is
+              passing under it. */}
+          <div data-editor-band className="sticky top-14 z-20 bg-white">
+            <div className="px-8 pt-12 pb-6 sm:px-12">
+              <textarea
+                ref={titleRef}
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value.replace(/\n/g, ' '));
+                  if (!slugDirty) setSlug(slugify(e.target.value));
+                  fitTitle();
+                }}
+                placeholder="Title"
+                rows={1}
+                // `overflow-hidden`: the box is sized to its content, so
+                // a scrollbar here would only ever be a wrong
+                // measurement showing through.
+                className="placeholder:text-muted-foreground/40 w-full resize-none overflow-hidden bg-transparent text-4xl leading-tight font-bold tracking-tight text-neutral-900 outline-none"
+              />
+            </div>
+
+            {/* Toolbar — a real row spanning the column, replacing the
+                bubble that used to appear over a selection. The bubble
+                was only discoverable if you already knew to highlight
+                text first, and it covered the line above the one being
+                formatted. */}
+            {editor && <EditorToolbar editor={editor} />}
+          </div>
 
           {/* Editable body */}
           <div className="px-8 sm:px-12">
             <EditorContent editor={editor} />
           </div>
+
+          {/* The gear on a table's corner, and the controls it opens.
+              Mounted beside the body rather than inside the toolbar:
+              it is positioned against the table it belongs to, not
+              against the band. Renders nothing unless the caret is in
+              a table. */}
+          {editor && <TableTools editor={editor} />}
         </div>
       </div>
 
@@ -428,6 +485,31 @@ export function BlogEditor({ post }: { post: BlogPostRecord | null }) {
 
               <Section title="SEO" icon={Search} defaultOpen>
                 <Label className="text-muted-foreground text-[11px]">
+                  Meta title
+                </Label>
+                <Input
+                  value={metaTitle}
+                  onChange={(e) => setMetaTitle(e.target.value)}
+                  maxLength={120}
+                  placeholder={title.trim() || 'Same as the post title'}
+                  className="border-border bg-muted text-xs"
+                />
+                {/* Google shows about 60 characters. Empty is the normal
+                    case, and says so rather than looking unfinished. */}
+                <p
+                  className={cn(
+                    'text-right text-[11px]',
+                    metaTitle.length > 60
+                      ? 'text-amber-600 dark:text-amber-400'
+                      : 'text-muted-foreground'
+                  )}
+                >
+                  {metaTitle.trim()
+                    ? `${metaTitle.length}/60 shown in search`
+                    : 'Empty — the post title is used'}
+                </p>
+
+                <Label className="text-muted-foreground mt-3 text-[11px]">
                   Meta description
                 </Label>
                 <textarea
@@ -456,7 +538,7 @@ export function BlogEditor({ post }: { post: BlogPostRecord | null }) {
                     Search preview
                   </p>
                   <p className="text-primary truncate text-[13px]">
-                    {title.trim() || 'Post title'}
+                    {metaTitle.trim() || title.trim() || 'Post title'}
                   </p>
                   <p className="truncate text-[11px] text-emerald-700 dark:text-emerald-500">
                     instant.nebkern.com/blog/{slug || 'my-first-post'}

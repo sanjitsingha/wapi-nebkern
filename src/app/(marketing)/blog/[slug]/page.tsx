@@ -34,11 +34,18 @@ export async function generateMetadata({
   if (!post) return { title: 'Post not found — Instant' };
 
   return {
-    // Google cuts titles off around 60 characters. A long post title
-    // already fills that, so the " — Instant blog" suffix would only be
-    // truncated away; shorter titles keep it.
+    // A `meta_title` set in the admin wins outright, suffix included:
+    // it was written to be the search result, so adding to it would
+    // undo the point of the field.
+    //
+    // Otherwise the headline stands in. Google cuts titles off around
+    // 60 characters, so a long one already fills that and the
+    // " — Instant blog" suffix would only be truncated away; shorter
+    // ones keep it.
     title: {
-      absolute: post.title.length > 45 ? post.title : `${post.title} — Instant blog`,
+      absolute:
+        post.metaTitle ??
+        (post.title.length > 45 ? post.title : `${post.title} — Instant blog`),
     },
     description: post.excerpt ?? undefined,
     // The live, indexed post page — and since /lp-2/blog/[slug] was

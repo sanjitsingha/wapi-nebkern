@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { ImagePlus, Loader2, Trash2 } from 'lucide-react';
+import { ImagePlus, Loader2 } from 'lucide-react';
 
 import {
   Dialog,
@@ -16,9 +16,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 // ============================================================
-// The image and link pickers.
+// The image picker.
 //
-// Both replaced `window.prompt`, which could only ask for a URL — so
+// It replaced `window.prompt`, which could only ask for a URL — so
 // inserting an image meant uploading it somewhere else first, copying
 // the address, and finding out whether you got it right only after it
 // was already in the document.
@@ -196,93 +196,7 @@ export function ImageDialog({
   );
 }
 
-/* ─── Link ───────────────────────────────────────────────────── */
-
-/** Mounted only while open, so `initialHref` is read once at mount —
- *  see the note on ImageDialog. */
-export function LinkDialog({
-  onOpenChange,
-  initialHref,
-  hasLink,
-  onSubmit,
-  onRemove,
-}: {
-  onOpenChange: (open: boolean) => void;
-  initialHref: string;
-  /** Whether the caret is inside an existing link — decides if the
-   *  Remove action is offered. */
-  hasLink: boolean;
-  onSubmit: (href: string) => void;
-  onRemove: () => void;
-}) {
-  const [href, setHref] = useState(initialHref);
-
-  const valid =
-    /^https?:\/\//i.test(href.trim()) || href.trim().startsWith('/');
-
-  return (
-    <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="border-border bg-popover text-popover-foreground sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{hasLink ? 'Edit link' : 'Add link'}</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-1.5">
-          <Label className="text-xs">Links to</Label>
-          <Input
-            autoFocus
-            value={href}
-            onChange={(e) => setHref(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && valid) {
-                e.preventDefault();
-                onSubmit(href.trim());
-                onOpenChange(false);
-              }
-            }}
-            placeholder="https://example.com  or  /pricing"
-            className="border-border bg-muted text-xs"
-          />
-          <p className="text-muted-foreground text-[11px]">
-            An external address, or a path on this site starting with /.
-          </p>
-        </div>
-
-        <DialogFooter>
-          {hasLink && (
-            <Button
-              type="button"
-              variant="outline"
-              className="border-border mr-auto"
-              onClick={() => {
-                onRemove();
-                onOpenChange(false);
-              }}
-            >
-              <Trash2 className="size-4" />
-              Remove link
-            </Button>
-          )}
-          <Button
-            type="button"
-            variant="outline"
-            className="border-border"
-            onClick={() => onOpenChange(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            disabled={!valid}
-            onClick={() => {
-              onSubmit(href.trim());
-              onOpenChange(false);
-            }}
-          >
-            {hasLink ? 'Update' : 'Add link'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
+/* The link picker used to live here as a centred dialog. It is a
+   popover on the selected words now — see LinkPopover in
+   editor-popovers.tsx — because a box in the middle of the screen
+   covers the sentence you are linking. */
