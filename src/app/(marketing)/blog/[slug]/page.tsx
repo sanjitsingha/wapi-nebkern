@@ -24,6 +24,16 @@ const PUBLISHER = {
   url: 'https://nebkern.com/',
 };
 
+/**
+ * A title on one line.
+ *
+ * The editor lets a writer break a headline where they want it, and the
+ * h1 below honours that. Everywhere the title is data rather than
+ * display — the browser tab, the search result, the article's
+ * structured data — the break is whitespace and is collapsed away.
+ */
+const oneLine = (text: string) => text.replace(/\s+/g, ' ').trim();
+
 export async function generateMetadata({
   params,
 }: {
@@ -45,7 +55,10 @@ export async function generateMetadata({
     title: {
       absolute:
         post.metaTitle ??
-        (post.title.length > 45 ? post.title : `${post.title} — Instant blog`),
+        (() => {
+          const headline = oneLine(post.title);
+          return headline.length > 45 ? headline : `${headline} — Instant blog`;
+        })(),
     },
     description: post.excerpt ?? undefined,
     // The live, indexed post page — and since /lp-2/blog/[slug] was
@@ -54,7 +67,7 @@ export async function generateMetadata({
     // The post's one official address, matching its sitemap entry.
     alternates: { canonical: `/blog/${slug}` },
     openGraph: {
-      title: post.title,
+      title: oneLine(post.title),
       description: post.excerpt ?? undefined,
       type: 'article',
       // This openGraph replaces the root one, file-generated share image
@@ -92,7 +105,7 @@ export default async function Lp2BlogPostPage({
   const articleLd = {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
-    headline: post.title,
+    headline: oneLine(post.title),
     description: post.excerpt ?? undefined,
     image: post.coverImageUrl ? [post.coverImageUrl] : undefined,
     datePublished: post.publishedAt ?? undefined,
@@ -174,7 +187,10 @@ export default async function Lp2BlogPostPage({
             {/* 1. Title. No `text-balance`: evening up the lines pulled
                 the last one in and made the block look narrower than the
                 image, when it should fill the same measure. */}
-            <h1 className="lp2-display text-2xl leading-[1.14] font-extrabold sm:text-4xl">
+            {/* `whitespace-pre-line` keeps the line breaks the writer
+                put in the title and nothing else — runs of spaces still
+                collapse, so a stray double space cannot open a gap. */}
+            <h1 className="lp2-display text-2xl leading-[1.14] font-extrabold whitespace-pre-line sm:text-4xl">
               {post.title}
             </h1>
 

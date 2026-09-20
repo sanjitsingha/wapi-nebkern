@@ -74,3 +74,14 @@
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+
+/* …except the writing surface. The post title and the body are the
+   page, not controls on it, and ringing them in green every time the
+   caret lands draws a box around the thing being written. They are
+   exempted here rather than with `outline-none` on the element: this
+   file is unlayered, so it beats any Tailwind utility no matter how
+   specific. Both keep a visible caret, which is the real focus cue. */
+.admin-ui .blog-title:focus-visible,
+.admin-ui .post-content:focus-visible {
+  outline: none;
+}

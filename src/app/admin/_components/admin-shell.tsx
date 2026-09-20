@@ -342,7 +342,14 @@ export function AdminShell({
           </div>
         </header>
 
-        <main className="min-w-0 flex-1 space-y-4 overflow-x-hidden p-4 sm:p-6">
+        {/* `overflow-x-clip`, not `hidden`. Hiding one axis makes the
+            other compute to `auto`, which turns this into a scroll
+            container — and a sticky child then sticks to THIS box
+            rather than the window. Since the window is what scrolls,
+            every sticky header inside a page (the blog editor's action
+            bar and its title band) silently stopped sticking. `clip`
+            contains the same overflow without creating a scroller. */}
+        <main className="min-w-0 flex-1 space-y-4 overflow-x-clip p-4 sm:p-6">
           {children}
         </main>
       </div>

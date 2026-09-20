@@ -239,12 +239,15 @@ export function BlogEditor({ post }: { post: BlogPostRecord | null }) {
   return (
     // `-m-4 sm:-m-6` cancels the admin shell's padding so the rail sits
     // flush against the right edge; the writing column adds its own.
-    <div className="-m-4 flex min-h-[calc(100vh-3.5rem)] sm:-m-6">
+    // `3rem` is the admin header's own height (`h-12` in admin-shell).
+    <div className="-m-4 flex min-h-[calc(100vh-3rem)] sm:-m-6">
       {/* ── Writing column ───────────────────────────────────── */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Sticky so Publish stays reachable from anywhere in a long
-            post — the admin header above scrolls away, this doesn't. */}
-        <div className="border-border bg-background/95 sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b px-6 py-3 backdrop-blur">
+            post. `top-12` parks it directly under the admin header,
+            which is itself sticky at the top — at `top-0` this slid
+            underneath it and out of sight. */}
+        <div className="border-border bg-background/95 sticky top-12 z-20 flex flex-wrap items-center justify-between gap-3 border-b px-6 py-3 backdrop-blur">
           <Link
             href="/admin/blog"
             className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
@@ -324,13 +327,24 @@ export function BlogEditor({ post }: { post: BlogPostRecord | null }) {
               scrolls past. The white is the page's own, so the band is
               invisible at rest and only reads as one once text is
               passing under it. */}
-          <div data-editor-band className="sticky top-14 z-20 bg-white">
+          {/* `top-26` = the admin header (3rem) plus the action bar
+              above (py-3 + an h-8 button = 3.5rem). Change these
+              together if either of those changes height. */}
+          <div data-editor-band className="sticky top-26 z-20 bg-white">
             <div className="px-8 pt-12 pb-6 sm:px-12">
               <textarea
                 ref={titleRef}
                 value={title}
+                // Enter breaks the line rather than being swallowed.
+                // Newlines used to be stripped on every keystroke, on
+                // the grounds that a title is one line — but where a
+                // long headline wraps is a decision worth having, and
+                // the article renders the break (`whitespace-pre-line`
+                // on its h1). Everything that needs one line — the
+                // slug, the search title, the JSON-LD — collapses the
+                // whitespace itself.
                 onChange={(e) => {
-                  setTitle(e.target.value.replace(/\n/g, ' '));
+                  setTitle(e.target.value);
                   if (!slugDirty) setSlug(slugify(e.target.value));
                   fitTitle();
                 }}
@@ -338,8 +352,9 @@ export function BlogEditor({ post }: { post: BlogPostRecord | null }) {
                 rows={1}
                 // `overflow-hidden`: the box is sized to its content, so
                 // a scrollbar here would only ever be a wrong
-                // measurement showing through.
-                className="placeholder:text-muted-foreground/40 w-full resize-none overflow-hidden bg-transparent text-4xl leading-tight font-bold tracking-tight text-neutral-900 outline-none"
+                // measurement showing through. `blog-title` is what
+                // admin.css exempts from the green focus ring.
+                className="blog-title placeholder:text-muted-foreground/40 w-full resize-none overflow-hidden bg-transparent text-4xl leading-tight font-bold tracking-tight text-neutral-900 outline-none"
               />
             </div>
 
