@@ -1,12 +1,24 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, JetBrains_Mono } from 'next/font/google';
+import { Manrope, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/hooks/use-theme';
 import { ThemedToaster } from '@/components/themed-toaster';
 
-const inter = Inter({
+/**
+ * The single typeface for the whole product — app, marketing and
+ * docs alike (see `components/lp2/font.ts`, which loads the same
+ * family for the lp2 surfaces).
+ *
+ * A variable font, so the full 200-800 range ships in one file and
+ * every `font-*` weight class resolves without extra downloads. It
+ * has no italic: `italic` renders as a browser-synthesised slant,
+ * which is fine for the handful of places that use it (placeholders
+ * and empty states).
+ */
+const sans = Manrope({
   variable: '--font-sans',
   subsets: ['latin'],
+  display: 'swap',
 });
 
 /**
@@ -15,7 +27,7 @@ const inter = Inter({
  * a variable nothing ever defined. An undefined custom property makes
  * the whole `font-family` declaration invalid, so every `font-mono` in
  * the app — ids, API keys, code samples, the admin panel's numbers —
- * quietly rendered in Inter.
+ * quietly rendered in the body sans.
  */
 const mono = JetBrains_Mono({
   variable: '--font-mono-family',
@@ -95,7 +107,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${mono.variable} h-full antialiased`}
+      className={`${sans.variable} ${mono.variable} h-full antialiased`}
     >
       <body className="bg-background text-foreground min-h-full font-sans">
         <ThemeProvider>

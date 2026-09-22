@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Lp2Announce } from './announce';
 import { ArrowRight, ChevronDown, Menu, X } from 'lucide-react';
 
+import { Magnetic } from '@/components/ui/magnetic-button';
 import { BrandLogo } from '@/components/brand/logo';
 import { cn } from '@/lib/utils';
 import { type Lp2Hue } from './decor';
@@ -358,13 +359,15 @@ export function Lp2Nav() {
               a hard, unblurred black shadow 4px down and right.
               `lp2-hard-shadow` exempts that shadow from the WhatsApp
               design's no-shadow rule (whatsapp.css). */}
-            <Link
-              href="/signup"
-              className={hardShadowButton}
-            >
-              Start free
-              <ArrowRight className="size-4" strokeWidth={2.5} />
-            </Link>
+            <Magnetic>
+              <Link
+                href="/signup"
+                className={hardShadowButton}
+              >
+                Start free
+                <ArrowRight className="size-4" strokeWidth={2.5} />
+              </Link>
+            </Magnetic>
 
             <button
               type="button"

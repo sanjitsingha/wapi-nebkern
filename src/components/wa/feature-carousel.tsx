@@ -10,6 +10,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
+import { Magnetic } from '@/components/ui/magnetic-button';
 import { cn } from '@/lib/utils';
 import { WaRail } from './rail';
 import { WaPill, waType } from './ui';
@@ -144,12 +145,14 @@ export function WaFeatureCarousel() {
               // tallest in the row, so this keeps every button on the same
               // line however long the copy above it runs.
               <div className="mt-auto pt-6">
-                <WaPill href={f.href}>
-                  Read more
-                  {/* "Read more" on its own is the same link seven times to
-                      anyone reading the page by its links alone. */}
-                  <span className="sr-only"> about {f.term}</span>
-                </WaPill>
+                <Magnetic radius="full">
+                  <WaPill href={f.href}>
+                    Read more
+                    {/* "Read more" on its own is the same link seven times to
+                        anyone reading the page by its links alone. */}
+                    <span className="sr-only"> about {f.term}</span>
+                  </WaPill>
+                </Magnetic>
               </div>
             )}
           </div>

@@ -14,7 +14,7 @@ import { docHref, docsSiblings } from '@/lib/docs/nav';
 /**
  * Shared building blocks for every /docs/* content page.
  *
- * Same lp2 design tokens (ink/cream/paper, DM Sans) as `/`, but
+ * Same lp2 design tokens (ink/cream/paper, Manrope) as `/`, but
  * deliberately without its stickers, blobs, or hard offset shadows —
  * see docs/layout.tsx for why. The accent colour throughout is the
  * brand green (--lp2-grass), not the confetti hues the marketing page

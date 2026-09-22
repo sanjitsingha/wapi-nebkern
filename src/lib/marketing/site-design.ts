@@ -8,7 +8,7 @@
 //              400 everywhere, pill and tile radii, no shadows. The
 //              default, and what every visitor sees.
 //   playful  — the lp2 "joyful rebuild": confetti hues, sticker shadows,
-//              DM Sans at heavy weights. The previous default. Its code
+//              Manrope at heavy weights. The previous default. Its code
 //              is kept, but nothing links to it any more: the on-page
 //              switch and the route that set the cookie were removed
 //              once the WhatsApp design was chosen. To bring it back,

@@ -35,6 +35,12 @@ const FADE_MS = 300;
 // every breakpoint, and the hero's font sizes are tuned to the longest
 // line — "Turn WhatsApp chats", 10.37em in DM Sans at weight 800 with
 // this tracking. Every phrase below was measured against that budget.
+//
+// Those are DM Sans metrics, and they were NOT re-measured when the
+// site moved to Manrope: nothing links to this design any more
+// (DEFAULT_SITE_DESIGN is 'whatsapp'), and Manrope has no static
+// weight-800 cut to measure without going through HVAR. Re-measure
+// before reviving the playful design.
 // Adding a longer one doesn't overflow; it silently wraps to three
 // lines on a phone. Measure first (see hero.tsx for where the number
 // comes from), or keep new phrases under roughly 15 characters.

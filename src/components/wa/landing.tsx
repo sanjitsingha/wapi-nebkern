@@ -1,15 +1,16 @@
 import { unstable_cache } from 'next/cache';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, Check, CheckCheck, Plus, X } from 'lucide-react';
+import { ArrowRight, Check, CheckCheck, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 
 import { hardShadowButton } from '@/components/lp2/ui';
-import { MagneticButton } from '@/components/ui/magnetic-button';
+import { Magnetic, MagneticButton } from '@/components/ui/magnetic-button';
 import { formatPostDate, getPublishedPosts } from '@/lib/blog';
 import { cn } from '@/lib/utils';
 import { SAMPLE_BLOG_CARDS, WaBlogRail, type WaBlogCardItem } from './blog-rail';
 import { WaFeatureCarousel } from './feature-carousel';
 import { WaHeroChat } from './hero-chat';
+import { WaStatsTabs, type WaStat } from './stats-tabs';
 import { WaPill, waType } from './ui';
 
 // ============================================================
@@ -46,9 +47,10 @@ export function WaLanding({ hero = 'centered' }: { hero?: WaHeroVariant }) {
       <Industries />
       <WaFeatureCarousel />
       <Compare />
-      <DirectToMeta />
+      <StatsBand />
       <Maya />
       <Integrations />
+      <Showcase />
       <PricingNote />
       <Faq />
       <ClosingCta />
@@ -149,11 +151,13 @@ function Hero() {
                 column's width rather than the viewport's. */}
             <div className="@container">
               {/* "Turn @conversation" always shares one line, with "into
-                  revenue" under it. That line runs about 9.3em wide, so the
-                  font is sized in container units (10.2cqw) to fill ~96% of
-                  the column at any width, capped at 72px on large screens
-                  and floored at 24px on the narrowest phones. */}
-              <h1 className="text-[clamp(1.5rem,10.2cqw,4.5rem)] leading-[1.08] tracking-[-0.02em] text-(--wa-ink)">
+                  revenue" under it. That line runs about 8.9em wide in
+                  Manrope, so the font is sized in container units
+                  (10.7cqw) to fill ~96% of the column at any width,
+                  capped at 72px on large screens and floored at 24px on
+                  the narrowest phones. Nowrap, so re-measure if
+                  --font-sans changes. (9.3em / 10.2cqw in Inter.) */}
+              <h1 className="text-[clamp(1.5rem,10.7cqw,4.5rem)] leading-[1.08] tracking-[-0.02em] text-(--wa-ink)">
                 <span className="whitespace-nowrap">
                   Turn{' '}
                   {/* The highlighted word, styled like a mention: green text
@@ -175,9 +179,11 @@ function Hero() {
                 Automated follow-ups that keep every lead moving towards a sale.
               </p>
               <div className="mt-9 flex flex-col items-start gap-5 sm:flex-row sm:items-center">
-                <WaPill href="/signup" variant="primary">
-                  Start free — 14 days
-                </WaPill>
+                <Magnetic radius="full">
+                  <WaPill href="/signup" variant="primary">
+                    Start free — 14 days
+                  </WaPill>
+                </Magnetic>
               </div>
             </div>
 
@@ -214,15 +220,23 @@ function HeroCentered() {
       <div className="@container mx-auto flex max-w-[980px] flex-col items-center text-center">
         {/* Two lines, always: "Turn every WhatsApp", then "@conversation
             into ₹revenue" held together with whitespace-nowrap. That second
-            line runs about 13.8em, so the font is sized in container units
-            (6.9cqw) to fill ~96% of the column at any width — capped at
-            72px, floored at 20px for the narrowest phones.
+            line runs about 13.1em in Manrope, so the font is sized in
+            container units (7.3cqw) to fill ~96% of the column at any
+            width, capped at 72px and floored at 20px for the narrowest
+            phones. Re-measure both numbers if --font-sans changes: the
+            line is whitespace-nowrap, so a wider face does not wrap, it
+            overflows the column. (It was 13.8em / 6.9cqw in Inter.)
+
+            Leading is 1.45, looser than a display headline's usual ~1.1:
+            the second line's two chips carry their own padding and a 1px
+            border, so at tight leading they crowd the line above. The
+            extra air is what keeps the two rows reading as separate.
 
             Two words styled like mentions: "@conversation" in the same
             green as the live hero's, "₹revenue" in a yellow counterpart.
             Corner radii are arbitrary values on purpose — whatsapp.css
             turns the rounded-lg-style token classes into 25px tiles. */}
-        <h1 className="text-[clamp(1.25rem,6.9cqw,4.5rem)] leading-[1.25] tracking-[-0.02em] text-(--wa-ink)">
+        <h1 className="text-[clamp(1.25rem,7.3cqw,4.5rem)] leading-[1.45] tracking-[-0.02em] text-(--wa-ink)">
           Turn every WhatsApp
           <br />
           <span className="whitespace-nowrap">
@@ -241,10 +255,12 @@ function HeroCentered() {
         </p>
         <div className="mt-9">
           {/* Same button as the nav's Start free — see hardShadowButton. */}
-          <Link href="/signup" className={hardShadowButton}>
-            Start free — 14 days
-            <ArrowRight className="size-4" strokeWidth={2.5} />
-          </Link>
+          <Magnetic>
+            <Link href="/signup" className={hardShadowButton}>
+              Start free — 14 days
+              <ArrowRight className="size-4" strokeWidth={2.5} />
+            </Link>
+          </Magnetic>
         </div>
       </div>
     </section>
@@ -340,8 +356,10 @@ function Compare() {
 
 function CompareTile({ side }: { side: 'api' | 'app' }) {
   const api = side === 'api';
+  // `lp2-hard-shadow` is the opt-out from whatsapp.css's blanket
+  // `box-shadow: none !important` — without it the shadow is stripped.
   return (
-    <div className="rounded-[25px] bg-white p-7 sm:p-8">
+    <div className="lp2-hard-shadow rounded-[25px] bg-white p-7 shadow-[4px_4px_0_2px_rgba(0,0,0,0.05)] sm:p-8">
       <p className={cn(waType.caption, 'tracking-wide text-(--wa-ink-muted) uppercase')}>
         {api ? 'With Instant — growing teams' : 'The free app — small businesses'}
       </p>
@@ -378,10 +396,12 @@ function CompareTile({ side }: { side: 'api' | 'app' }) {
       {api && (
         <div className="mt-7">
           {/* Same button as the nav's Start free — see hardShadowButton. */}
-          <Link href="/signup" className={hardShadowButton}>
-            Apply for the API — free
-            <ArrowRight className="size-4" strokeWidth={2.5} />
-          </Link>
+          <Magnetic>
+            <Link href="/signup" className={hardShadowButton}>
+              Apply for the API — free
+              <ArrowRight className="size-4" strokeWidth={2.5} />
+            </Link>
+          </Magnetic>
         </div>
       )}
     </div>
@@ -390,66 +410,68 @@ function CompareTile({ side }: { side: 'api' | 'app' }) {
 
 /* ─── The black band ──────────────────────────────────────────────── */
 
-/**
- * The page's single dramatic break — pure #000, as the spec insists
- * (softening it to charcoal "removes the visual hierarchy"). On
- * whatsapp.com this band carries end-to-end encryption; here it carries
- * the equivalent promise for a business: you connect and pay Meta
- * directly, and nobody sits in the middle of your messages.
- *
- * The numbers are the structural facts from lp2/apart.tsx — true on the
- * day someone connects, not outcome claims we have no data for.
- */
-const STATS = [
-  { value: '3', label: 'Channels, one inbox', note: 'WhatsApp, Instagram, Messenger' },
-  { value: '1', label: 'Number, unlimited seats', note: 'The whole team, same thread' },
-  { value: '0%', label: 'Reseller markup', note: 'Meta bills you at Meta’s rates' },
-  { value: '14', label: 'Days free', note: 'Every feature, no card' },
+/** The structural facts from lp2/apart.tsx — true on the day someone
+ *  Each href is the closest existing page, not a dedicated one: the
+ *  billing numbers point at /pricing and the inbox numbers at
+ *  /features/shared-inbox, so two pairs share a destination.
+ *  connects, not outcome claims we have no data for. */
+const STATS: WaStat[] = [
+  {
+    value: '0%',
+    label: 'Reseller markup',
+    note: 'Meta bills you at Meta’s rates',
+    detail:
+      'You connect on your own WhatsApp Business Account, so Meta invoices you directly at its published rates. Instant never sits in the middle of a conversation and never takes a cut of one — you pay a flat plan fee and nothing per message.',
+    href: '/pricing',
+  },
+  {
+    value: '1',
+    label: 'Number, unlimited seats',
+    note: 'The whole team, same thread',
+    detail:
+      'One business number, and as many people answering it as you need. Everyone works the same conversation and sees the same history, so a customer never has to repeat themselves to the second person who picks up.',
+    href: '/features/shared-inbox',
+  },
+  {
+    value: '3',
+    label: 'Channels, one inbox',
+    note: 'WhatsApp, Instagram, Messenger',
+    detail:
+      'All three land in the same inbox, against the same contact. Someone who asks on Instagram and follows up on WhatsApp is one conversation with one history, not three strangers in three tabs.',
+    href: '/features/shared-inbox',
+  },
+  {
+    value: '14',
+    label: 'Days free',
+    note: 'Every feature, no card',
+    detail:
+      'The whole product for fourteen days — every channel, every automation, the AI agents included. No card up front, and nothing switches off mid-trial to make a point.',
+    href: '/pricing',
+  },
 ];
 
-function DirectToMeta() {
+/**
+ * The page's single pure-black band, and the numbers are all of it.
+ *
+ * It used to be the lower half of a longer band — a "direct to Meta"
+ * argument above, these figures below, a hairline between them. That
+ * argument is gone, so the hairline went with it (it was the seam
+ * between two black sections, and there is only one now) and the
+ * padding is symmetrical again rather than bottom-only.
+ *
+ * As a tab set rather than a four-up grid: each figure is a tab down
+ * the left, the detail for the selected one fills the right. The grid
+ * gave every number equal weight and room for one line; this gives the
+ * reader one at a time and room to say something about it.
+ *
+ * The tab UI itself lives in stats-tabs.tsx, which is a client
+ * component; this file stays a server one.
+ */
+function StatsBand() {
   return (
     <section className="bg-black px-6 py-20 text-white sm:py-24">
       <div className="mx-auto max-w-[1080px]">
-        <div className="grid items-center gap-12 lg:grid-cols-[1.2fr_0.8fr]">
-          <div>
-            <p className={cn(waType.caption, 'tracking-wide text-white/60 uppercase')}>
-              Official Meta Tech Provider
-            </p>
-            <h2 className={cn(waType.displayLg, 'mt-4 text-balance')}>
-              Your number. Your customers. Direct to Meta.
-            </h2>
-            <p className={cn(waType.bodyLg, 'mt-6 max-w-[560px] text-pretty text-white/75')}>
-              Most WhatsApp platforms sit between you and Meta and take a cut of
-              every conversation. Instant doesn’t sit there at all — you connect
-              on your own WhatsApp Business Account, and your messages are billed
-              by Meta, to you, at Meta’s published rates.
-            </p>
-            <div className="mt-9">
-              <WaPill href="/signup" variant="primary">
-                Start free — 14 days
-              </WaPill>
-            </div>
-          </div>
-
-          {/* The spec's mint bubble, borrowed from the product. */}
-          <div className="space-y-3 rounded-[25px] bg-[#0b141a] p-5">
-            <Bubble side="in" text="Who actually sends our messages — you, or Meta?" />
-            <Bubble side="out" text="Meta’s Cloud API, on your own account. We never touch the bill." />
-            <Bubble side="in" text="So no per-message markup?" />
-            <Bubble side="out" text="None. One flat plan fee — that’s it." />
-          </div>
-        </div>
-
-        <div className="mt-16 grid grid-cols-2 gap-y-10 border-t border-white/15 pt-12 lg:grid-cols-4">
-          {STATS.map((s) => (
-            <div key={s.label} className="pr-4">
-              <p className="text-[clamp(3rem,6vw,5rem)] leading-none tracking-[-0.02em]">{s.value}</p>
-              <p className={cn(waType.bodyLg, 'mt-4')}>{s.label}</p>
-              <p className={cn(waType.bodyMd, 'mt-1 text-white/60')}>{s.note}</p>
-            </div>
-          ))}
-        </div>
+        <WaStatsTabs stats={STATS} />
       </div>
     </section>
   );
@@ -517,9 +539,11 @@ function Maya() {
             <h3 className="mt-7 text-[24px] leading-[28px] text-(--wa-ink)">{a.title}</h3>
             <p className={cn(waType.bodyMd, 'mt-3 text-pretty text-(--wa-ink-muted)')}>{a.body}</p>
             <div className="mt-6">
-              <Link href="/ask-maya" className={hardShadowButton}>
-                {a.cta}
-              </Link>
+              <Magnetic>
+                <Link href="/ask-maya" className={hardShadowButton}>
+                  {a.cta}
+                </Link>
+              </Magnetic>
             </div>
           </div>
         ))}
@@ -561,10 +585,12 @@ function Integrations() {
             ))}
           </ul>
           <div className="mt-9">
-            <Link href="/docs/api-and-integrations" className={hardShadowButton}>
-              View all integrations
-              <ArrowRight className="size-4" strokeWidth={2.5} />
-            </Link>
+            <Magnetic>
+              <Link href="/docs/api-and-integrations" className={hardShadowButton}>
+                View all integrations
+                <ArrowRight className="size-4" strokeWidth={2.5} />
+              </Link>
+            </Magnetic>
           </div>
         </div>
         <div className="overflow-hidden rounded-[25px] bg-white">
@@ -577,6 +603,120 @@ function Integrations() {
             className="h-auto w-full"
           />
         </div>
+      </div>
+    </Section>
+  );
+}
+
+/* ─── Showcase ────────────────────────────────────────────────────── */
+
+/**
+ * The site's own words, not the customer's. Deliberately NOT a quote:
+ * putting invented words next to a real business's logo would publish
+ * an endorsement they never gave. When their actual words arrive (in
+ * writing), this becomes a quote again — restore the <blockquote> and
+ * the Quote watermark in Showcase below, both removed for the same
+ * reason.
+ */
+const SHOWCASE_COPY =
+  'Catering enquiries, menus and bookings — all on one WhatsApp number, answered by whoever on the team is free.';
+
+/**
+ * A white tile below the integrations: the catering shot on the left,
+ * a customer quote centred in the space beside it, their logo in the
+ * bottom-right corner.
+ *
+ * Fixed at 500px so the section holds its place in the scroll, and
+ * 1328px wide — the nav's column, wider than the 1080px the sections
+ * above and below use, so the tile deliberately overhangs them.
+ * `rounded-[25px]` is the same tile radius the blog cards use.
+ *
+ * The image is portrait (1086x1448), so it is sized by height and lets
+ * its width follow, which keeps it whole instead of cropping it. It is
+ * greyscaled so it reads as a backdrop for the quote rather than
+ * competing with it — and so the logo is the only colour in the tile.
+ *
+ * White reads as a raised surface here because the page canvas behind
+ * it is the spec's warm cream, not white.
+ */
+function Showcase() {
+  return (
+    <Section>
+      {/* Title left, controls right — the same header shape WaRail uses
+          for the features carousel. NOTE: the brief said "power users of
+          Gallabox"; Gallabox is a different product, so this says
+          Instant. Change it back only if naming them is deliberate. */}
+      <div className="mx-auto flex max-w-[1328px] flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
+        <div className="max-w-[720px]">
+          <h2 className={cn(waType.displayMd, 'text-balance')}>
+            Hear from the power users of Instant
+          </h2>
+          <p className={cn(waType.bodyLg, 'mt-5 max-w-[560px] text-pretty text-(--wa-ink-muted)')}>
+            Teams running their bookings, enquiries and follow-ups through one
+            shared WhatsApp number — and what changed once they did.
+          </p>
+        </div>
+
+        {/* Inert until there is more than one testimonial to move between:
+            `disabled` rather than a click that does nothing. Wire them (or
+            move this section onto WaRail) when the second one lands. */}
+        <div className="flex shrink-0 gap-3">
+          {[
+            { label: 'Previous', Icon: ChevronLeft },
+            { label: 'Next', Icon: ChevronRight },
+          ].map(({ label, Icon }) => (
+            <button
+              key={label}
+              type="button"
+              aria-label={label}
+              disabled
+              className="inline-flex size-11 items-center justify-center rounded-full border border-(--wa-ink) text-(--wa-ink) transition-colors hover:bg-(--wa-ink) hover:text-(--wa-canvas) disabled:pointer-events-none disabled:opacity-30"
+            >
+              <Icon className="size-5" />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* `relative` so the logo can hang off the bottom-right corner.
+      
+          `lp2-hard-shadow` is not a style — it is the opt-out from
+          whatsapp.css's blanket `box-shadow: none !important`, which is
+          how the design stays flat. Without it the shadow below is
+          stripped and nothing renders. */}
+      <div className="lp2-hard-shadow relative mx-auto mt-14 flex h-[500px] w-full max-w-[1328px] items-center gap-10 overflow-hidden rounded-[25px] bg-white p-2 shadow-[4px_4px_0_2px_rgba(0,0,0,0.05)]">
+        <Image
+          src="/images/showcase/rahul-catering-services.png"
+          alt="Rahul Catering Services on WhatsApp"
+          width={1086}
+          height={1448}
+          className="h-full w-auto rounded-[16px] object-contain grayscale"
+          sizes="(max-width: 640px) 60vw, 320px"
+        />
+
+        {/* The line sits in the middle of whatever width is left, not of
+            the tile, so it stays centred as the image takes its share.
+            `py-16` is symmetrical so the gap above and below matches, and
+            keeps the text clear of the logo in the corner. */}
+        <div className="relative flex flex-1 items-center justify-center px-6 py-16">
+          <p
+            className={cn(
+              waType.displayMd,
+              'max-w-[62ch] leading-[1.3] text-balance text-left text-(--wa-ink)',
+            )}
+          >
+            {SHOWCASE_COPY}
+          </p>
+        </div>
+
+        <Image
+          src="/images/showcase/rahul-catering-logo.png"
+          alt="Rahul Catering Services"
+          width={1714}
+          height={1247}
+          className="absolute right-6 bottom-5 h-14 w-auto object-contain sm:right-8 sm:bottom-6 sm:h-16"
+          sizes="180px"
+        />
       </div>
     </Section>
   );
@@ -600,10 +740,12 @@ function PricingNote() {
             your messages are billed by Meta, to you, at Meta’s rates.
           </p>
           <div className="mt-8">
-            <Link href="/pricing" className={hardShadowButton}>
-              See the plans
-              <ArrowRight className="size-4" strokeWidth={2.5} />
-            </Link>
+            <Magnetic>
+              <Link href="/pricing" className={hardShadowButton}>
+                See the plans
+                <ArrowRight className="size-4" strokeWidth={2.5} />
+              </Link>
+            </Magnetic>
           </div>
         </div>
         <div>
@@ -693,21 +835,39 @@ function ClosingCta() {
   return (
     <Section>
       <div className="mx-auto max-w-[900px] text-center">
-        <h2 className={cn(waType.displayXl, 'text-balance')}>Your customers are already typing.</h2>
+        {/* "typing" and the dots in the voltage green. The spec reserves
+            that green for the primary CTA, so this is a deliberate
+            exception — the word is the page's closing image, not a
+            control. Dots are aria-hidden: the sentence already says it. */}
+        <h2 className={cn(waType.displayXl, 'text-balance')}>
+          Your customers are already{' '}
+          <span className="text-(--wa-green)">typing</span>
+          <span aria-hidden className="wa-typing">
+            <span />
+            <span />
+            <span />
+          </span>
+        </h2>
         <p className={cn(waType.bodyLg, 'mx-auto mt-7 max-w-[560px] text-pretty text-(--wa-ink-muted)')}>
           Set up in an afternoon, free for 14 days, no card required. Worst case
           you learn what your customers have been asking all along.
         </p>
-        {/* gap-4: each button throws a 4px shadow on hover, which should
-            not touch its neighbour. */}
-        <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <Link href="/signup" className={hardShadowButton}>
-            Start free trial
-            <ArrowRight className="size-4" strokeWidth={2.5} />
-          </Link>
-          <Link href="/login" className={hardShadowButton}>
-            Log in
-          </Link>
+        {/* gap-5: each button throws a 4px shadow on hover and, now that
+            it is magnetic, can lean up to 14px toward the cursor. Only
+            the hovered one moves — the field is its own wrapper — so 20px
+            is enough to keep the leaning button clear of its neighbour. */}
+        <div className="mt-10 flex flex-col items-center justify-center gap-5 sm:flex-row">
+          <Magnetic>
+            <Link href="/signup" className={hardShadowButton}>
+              Start free trial
+              <ArrowRight className="size-4" strokeWidth={2.5} />
+            </Link>
+          </Magnetic>
+          <Magnetic>
+            <Link href="/login" className={hardShadowButton}>
+              Log in
+            </Link>
+          </Magnetic>
         </div>
       </div>
     </Section>

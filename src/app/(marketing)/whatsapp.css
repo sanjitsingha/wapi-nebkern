@@ -86,8 +86,10 @@
 /* Root only — a nested `.lp2` (the full-screen consent overlay) must not
    paint the cream floor over the page. */
 .lp2[data-design='whatsapp'] {
-  /* WhatsApp Sans Var is proprietary. Inter (already loaded by the root
-     layout as --font-sans) is the spec's named substitute. */
+  /* WhatsApp Sans Var is proprietary. --font-sans (Manrope, loaded by
+     the root layout) stands in for it. The spec names Inter as the
+     substitute; this follows the product-wide font instead, so the
+     whole site reads in one face. */
   font-family:
     var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     sans-serif;
@@ -365,5 +367,62 @@ html:has(.lp2[data-design='whatsapp']) {
     grid-template-rows: 1fr;
     opacity: 1;
     transform: none;
+  }
+}
+
+/* ── The closing headline's typing dots ───────────────────────────
+   Three dots bouncing in sequence, the way WhatsApp shows someone
+   composing a reply. Decorative only: the heading already reads
+   "already typing", so they are aria-hidden and a screen reader loses
+   nothing by never meeting them.
+
+   Sized in `em` so they scale with the headline, which is fluid from
+   2.75rem to 5rem — a px size would be a speck at one end and a blob
+   at the other. */
+@keyframes wa-typing-dot {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-0.26em);
+    opacity: 1;
+  }
+}
+
+.wa-typing {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 0.1em;
+  margin-inline-start: 0.08em;
+  /* Sits on the text baseline rather than the line box, so the dots
+     line up with the foot of "typing" instead of floating mid-word. */
+  vertical-align: baseline;
+}
+
+.wa-typing > span {
+  width: 0.15em;
+  height: 0.15em;
+  border-radius: 50%;
+  background-color: var(--wa-green);
+  animation: wa-typing-dot 1.25s ease-in-out infinite;
+}
+
+.wa-typing > span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.wa-typing > span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+/* Motion is the whole point here, so reduced motion gets the dots
+   still and at full strength rather than a gentler bounce. */
+@media (prefers-reduced-motion: reduce) {
+  .wa-typing > span {
+    animation: none;
+    opacity: 1;
   }
 }

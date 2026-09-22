@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Newspaper, Search, X } from 'lucide-react';
 
+import { Magnetic } from '@/components/ui/magnetic-button';
 import { WaPill } from '@/components/wa/ui';
 import { Sparkle } from './decor';
 import { postHue } from './blog-bits';
@@ -54,10 +55,11 @@ export function Lp2BlogBrowser({ posts }: { posts: BlogListItem[] }) {
   return (
     <>
       {/* ── 1. Header ──
-          Plain flat background (no gradient/blobs). `z-20` so the search
-          dropdown, which overflows into the white band below, paints
-          above it. No overflow-hidden here, so the dropdown can escape. */}
-      <section className="relative z-20 -mt-19 bg-(--lp2-sky-soft) pt-19 sm:-mt-20 sm:pt-20">
+          Plain flat white (no gradient/blobs), continuous with the posts
+          band below rather than a tinted strip above it. `z-20` so the
+          search dropdown, which overflows into that band, paints above
+          it. No overflow-hidden here, so the dropdown can escape. */}
+      <section className="relative z-20 -mt-19 bg-white pt-19 sm:-mt-20 sm:pt-20">
         <div className="relative mx-auto max-w-3xl px-4 pt-16 pb-16 text-center sm:px-6 sm:pt-20 sm:pb-20">
           {/* Says what the page is and stops. The longer pitch it used to
               carry lives on in the page description search results show. */}
@@ -236,12 +238,14 @@ function Card({ post }: { post: BlogListItem }) {
             across a row of cards whatever the length of the copy above:
             Read more on the left, ways to share it on the right. */}
         <div className="mt-auto flex flex-wrap items-center justify-between gap-x-4 gap-y-3 pt-6">
-          <WaPill href={href}>
-            Read more
-            {/* "Read more" on its own is the same link on every card to
-                anyone reading the page by its links alone. */}
-            <span className="sr-only">: {post.title}</span>
-          </WaPill>
+          <Magnetic radius="full">
+            <WaPill href={href}>
+              Read more
+              {/* "Read more" on its own is the same link on every card to
+                  anyone reading the page by its links alone. */}
+              <span className="sr-only">: {post.title}</span>
+            </WaPill>
+          </Magnetic>
 
           {/* `path`, not the current page: these share the post the card
               points at, not the index they sit on. */}

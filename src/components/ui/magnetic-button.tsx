@@ -74,3 +74,44 @@ export const MagneticButton = ({
     </div>
   );
 };
+
+/**
+ * The public pages' standard magnetic wrap, so the tuning lives in one
+ * place rather than being retyped at every button.
+ *
+ * `strength`/`maxDistance` are deliberately small: these buttons sit in
+ * navs, card footers and CTA rows, often shoulder to shoulder, and a
+ * 14px lean is enough to feel alive without landing on a neighbour.
+ *
+ * `w-fit` because the wrapper is a div — left block-level it runs the
+ * width of its container, and the field it paints on hover goes with
+ * it. `radius` matches the field to the button inside: `lg` for the
+ * hard-shadow buttons, `full` for the pills.
+ *
+ * `--show-color` resolves per design: the WhatsApp pages define
+ * `--wa-green`, and where they don't (the playful design, which shares
+ * this nav) it falls back to `--lp2-grass`.
+ */
+export function Magnetic({
+  children,
+  radius = 'lg',
+  className,
+}: {
+  children: React.ReactNode;
+  radius?: 'lg' | 'full';
+  className?: string;
+}) {
+  return (
+    <MagneticButton
+      strength={0.35}
+      maxDistance={14}
+      className={cn(
+        'w-fit [--show-color:var(--wa-green,var(--lp2-grass))]',
+        radius === 'full' ? 'rounded-full' : 'rounded-lg',
+        className,
+      )}
+    >
+      {children}
+    </MagneticButton>
+  );
+}

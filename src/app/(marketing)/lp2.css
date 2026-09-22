@@ -12,9 +12,10 @@
    ============================================================ */
 
 .lp2 {
-  /* Base type for the whole scope — DM Sans, loaded by the route layout
-     and exposed as --font-lp2-display. Overrides the app's inherited
-     Inter for everything under /lp-2, body copy included. */
+  /* Base type for the whole scope — Manrope, loaded by the route layout
+     and exposed as --font-lp2-display. Same family the root layout
+     loads as --font-sans, so this no longer overrides the app font;
+     the hook is kept so these surfaces can diverge again later. */
   font-family: var(--font-lp2-display), var(--font-sans), sans-serif;
 
   /* ── Surfaces & ink ── */
@@ -85,12 +86,12 @@
   --lp2-shadow-lg: 8px 8px 0 var(--lp2-ink);
 }
 
-/* Headline class. The whole scope is already DM Sans (see `.lp2`
-   above), so this only adds the display treatment: tighter tracking and
-   the font's large optical-size cut for big text. */
+/* Headline class. The whole scope is already Manrope (see `.lp2`
+   above), so this only adds the display treatment: tighter tracking.
+   Manrope has a weight axis only — no `opsz` — so the optical-size
+   cut this used to request is dropped rather than silently ignored. */
 .lp2 .lp2-display {
   font-family: var(--font-lp2-display), var(--font-sans), sans-serif;
-  font-variation-settings: 'opsz' 36;
   letter-spacing: -0.02em;
 }
 

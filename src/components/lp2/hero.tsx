@@ -257,6 +257,10 @@ function Copy() {
           each left ~8% under the width where it would wrap. It is also
           the budget every rotating phrase is checked against.
 
+          Still DM Sans numbers: this design is no longer reachable
+          (DEFAULT_SITE_DESIGN is 'whatsapp'), so the move to Manrope
+          left them alone. Re-measure before reviving it.
+
           Below `sm` the size is fluid rather than fixed, because that
           constraint is proportional: the column is `100vw - 32px`, so a
           `vw` size holds the same margin at every phone width instead

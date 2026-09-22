@@ -71,20 +71,19 @@ const COLUMNS: {
 
 export function Lp2Footer() {
   return (
-    <footer className="border-t-2 border-(--lp2-ink) bg-(--lp2-ink) text-white">
+    <footer className="bg-white text-(--lp2-ink)">
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
         {/* Five columns: the blurb takes two, then three link columns.
             Legal moved out to its own band below — see LEGAL_LINKS. */}
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-2">
-            {/* The lockup is green artwork on transparency, and this
-                panel is ink — the wordmark holds up against the dark on
-                its own, so unlike the Meta and MSME marks further down
-                it needs no white chip to sit on. */}
+            {/* The lockup is green artwork on transparency, so it sits
+                on this white panel unchanged — as it did on the ink one
+                this footer used to be. */}
             <Link href="/" className="flex items-center">
               <BrandLogo className="h-9" />
             </Link>
-            <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/65">
+            <p className="mt-4 max-w-xs text-sm leading-relaxed text-(--lp2-ink-soft)">
               The WhatsApp CRM for your whole team — shared inbox, AI agents,
               campaigns and automations on the official Business API.
             </p>
@@ -94,11 +93,11 @@ export function Lp2Footer() {
                 searches for "Instant Nebkern" and "Nebkern Technology" to
                 this product. Lives here rather than on the landing page
                 on purpose. */}
-            <p className="mt-3 max-w-xs text-sm leading-relaxed text-white/65">
+            <p className="mt-3 max-w-xs text-sm leading-relaxed text-(--lp2-ink-soft)">
               Instant is built and run by{' '}
               <a
                 href="https://nebkern.com"
-                className="text-white underline underline-offset-2 hover:text-white"
+                className="text-(--lp2-ink) underline underline-offset-2 hover:text-(--lp2-ink)"
               >
                 Nebkern Technology
               </a>
@@ -122,7 +121,7 @@ export function Lp2Footer() {
                   <li key={l.label}>
                     <Link
                       href={l.href}
-                      className="text-sm font-medium text-white/65 transition-colors hover:text-white"
+                      className="text-sm font-medium text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink)"
                     >
                       {l.label}
                     </Link>
@@ -135,7 +134,7 @@ export function Lp2Footer() {
 
         {/* Legal band. Its own row so all eleven policies fit without one
             column running three times the height of its neighbours. */}
-        <div className="mt-12 border-t border-white/15 pt-8">
+        <div className="mt-12 border-t border-(--lp2-ink)/15 pt-8">
           <p className="flex items-center gap-2 text-sm font-extrabold">
             <span
               aria-hidden
@@ -149,7 +148,7 @@ export function Lp2Footer() {
               <li key={l.href}>
                 <Link
                   href={l.href}
-                  className="text-sm font-medium text-white/65 transition-colors hover:text-white"
+                  className="text-sm font-medium text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink)"
                 >
                   {l.label}
                 </Link>
@@ -158,17 +157,17 @@ export function Lp2Footer() {
           </ul>
         </div>
 
-        {/* Credentials. White chips rather than the plain white-on-ink
-            treatment the rest of this panel uses: both lockups are
-            near-black artwork and would disappear against the ink
-            background — they need their own light surface to sit on.
+        {/* Credentials. Both lockups are near-black artwork, so on this
+            white panel they need no light surface of their own — the
+            chips are kept for grouping, and take the hairline the rest
+            of the design uses, since white on white has no edge.
 
             `items-stretch` so the two chips match heights: the MSME
             lockup is a stacked three-line mark and sets the taller of
             the two, and hard-coding a height on both would need
             revisiting every time either logo or its label changed. */}
-        <div className="mt-10 flex flex-wrap items-stretch gap-3 border-t border-white/15 pt-8">
-          <span className="flex items-center gap-2.5 rounded-xl bg-white px-4 py-2.5 text-(--lp2-ink)">
+        <div className="mt-10 flex flex-wrap items-stretch gap-3 border-t border-(--lp2-ink)/15 pt-8">
+          <span className="flex items-center gap-2.5 rounded-xl border border-(--lp2-ink)/15 bg-white px-4 py-2.5 text-(--lp2-ink)">
             {/* `alt=""` — the words beside it already say Meta, so a
                 name here makes a screen reader read the brand twice. */}
             {/* Intrinsic 4096 × 825, not the rendered 79 × 16. The
@@ -195,7 +194,7 @@ export function Lp2Footer() {
             </span>
           </span>
 
-          <span className="flex items-center gap-3 rounded-xl bg-white px-4 py-2.5 text-(--lp2-ink)">
+          <span className="flex items-center gap-3 rounded-xl border border-(--lp2-ink)/15 bg-white px-4 py-2.5 text-(--lp2-ink)">
             {/* The mark already reads "MSME · Micro, Small & Medium
                 Enterprises", so the label beside it only has to carry
                 what the artwork does not: the registration. */}
@@ -220,7 +219,7 @@ export function Lp2Footer() {
           </span>
         </div>
 
-        <div className="mt-8 flex flex-col items-center justify-between gap-2 border-t border-white/15 pt-6 text-xs font-medium text-white/55 sm:flex-row">
+        <div className="mt-8 flex flex-col items-center justify-between gap-2 border-t border-(--lp2-ink)/15 pt-6 text-xs font-medium text-(--lp2-ink-soft) sm:flex-row">
           {/* Rendered per request rather than frozen at build time —
               same as the live footer, and the page is static enough
               that a hardcoded year would go stale silently. */}

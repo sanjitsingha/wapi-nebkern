@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
+import { Magnetic } from '@/components/ui/magnetic-button';
 import { hardShadowButton } from '@/components/lp2/ui';
 import { cn } from '@/lib/utils';
 import { WaRail } from './rail';
@@ -109,11 +110,13 @@ export function WaBlogRail({ posts }: { posts: WaBlogCardItem[] }) {
             {/* mt-auto pins the button to the card's foot, so buttons line
                 up across the row whatever the length of the copy above. */}
             <div className="mt-auto pt-6">
-              <Link href={href} className={hardShadowButton}>
-                Read more
-                <span className="sr-only">: {p.title}</span>
-                <ArrowRight className="size-4" strokeWidth={2.5} />
-              </Link>
+              <Magnetic>
+                <Link href={href} className={hardShadowButton}>
+                  Read more
+                  <span className="sr-only">: {p.title}</span>
+                  <ArrowRight className="size-4" strokeWidth={2.5} />
+                </Link>
+              </Magnetic>
             </div>
           </article>
         );
@@ -127,10 +130,12 @@ export function WaBlogRail({ posts }: { posts: WaBlogCardItem[] }) {
           </Link>
         </h3>
         <div className="mt-auto pt-6">
-          <Link href="/blog" className={hardShadowButton}>
-            View all
-            <ArrowRight className="size-4" strokeWidth={2.5} />
-          </Link>
+          <Magnetic>
+            <Link href="/blog" className={hardShadowButton}>
+              View all
+              <ArrowRight className="size-4" strokeWidth={2.5} />
+            </Link>
+          </Magnetic>
         </div>
       </article>
     </WaRail>

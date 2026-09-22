@@ -22,7 +22,7 @@ import {
 // STYLING
 //
 // Deliberately the landing page's visual language, not the dashboard's:
-// ink outlines, the hard offset shadow, DM Sans. That means pulling
+// ink outlines, the hard offset shadow, Manrope. That means pulling
 // `lp2.css` and the display font into the app bundle — safe, because
 // every token and rule in that file is scoped under `.lp2`, so it
 // cannot leak into the dashboard's own styles. The wrapper below opens
