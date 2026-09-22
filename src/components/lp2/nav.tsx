@@ -8,8 +8,7 @@ import { ArrowRight, ChevronDown, Menu, X } from 'lucide-react';
 
 import { BrandLogo } from '@/components/brand/logo';
 import { cn } from '@/lib/utils';
-import { Sparkle, type Lp2Hue } from './decor';
-import { MayaLockup } from './maya-lockup';
+import { type Lp2Hue } from './decor';
 import { hardShadowButton, press } from './ui';
 
 // ============================================================
@@ -47,7 +46,6 @@ const NAV: {
   children?: { label: string; href: string }[];
 }[] = [
   { label: 'Features', href: '/#features', hue: 'lemon' },
-  { label: 'Ask Maya', href: '/ask-maya', hue: 'maya' },
   { label: 'Pricing', href: '/pricing', hue: 'sky' },
   {
     label: 'Resources',
@@ -125,68 +123,7 @@ function Logo() {
  * shape as Resources. It used to be a full-bar mega-menu with a label
  * and a one-line description per item, side by side in five columns.
  */
-/**
- * The Ask Maya link, which is not a plain nav word.
- *
- * The row above deliberately gave up per-link hover colours — five of
- * them competing was more personality than a nav bar should have. This
- * is not that: it is ONE item marked out, which is the thing five could
- * not do. Maya is the newest surface on the site and the one nobody
- * arrives already looking for, so the nav is where she gets introduced.
- *
- * Deliberately quieter than the signup button beside it — a soft tint
- * and a hairline, against that one's solid fill. Two emphatic elements
- * in the same bar would leave neither of them emphatic, and the CTA
- * still has to win.
- *
- * Her lockup rather than the words "Ask Maya": it is the one item in
- * the row that has a mark of its own, and the mark is what makes the
- * eye stop. The whole name is the artwork now — the `ask` cut, not the
- * bare one under a typed "Ask" — so the alt text is the accessible
- * name and nothing repeats it in the DOM.
- */
-function MayaNavLink({ href, active }: { href: string; active?: boolean }) {
-  return (
-    <Link
-      href={href}
-      aria-current={active ? 'page' : undefined}
-      className={cn(
-        // Height is pinned rather than left to the padding. The typed
-        // "Ask" used to set it — a 24px line box that happened to land
-        // the pill at 40px — and with the word gone the lockup alone
-        // would have collapsed it to 29px, short beside the h-10 CTA.
-        'group/maya inline-flex h-10 items-center rounded-full border-2 px-3.5 outline-none',
-        'transition-colors duration-150 hover:border-(--lp2-maya)/70 hover:bg-(--lp2-maya-soft) focus-visible:border-(--lp2-maya)/70 focus-visible:bg-(--lp2-maya-soft)',
-        // The active page wears the lit state permanently.
-        active
-          ? 'border-(--lp2-maya)/70 bg-(--lp2-maya-soft)'
-          : 'border-(--lp2-maya)/35 bg-(--lp2-maya-soft)/60',
-      )}
-    >
-      {/* The whole name in one mark, so "ask" is drawn rather than set
-          in the UI face beside a lockup that owns only half the name.
-          No separate Sparkle glyph either: the `ask` cut ends in the
-          same chartreuse cluster, and a second one hung off its right
-          edge read as a duplicate of the artwork's own.
 
-          26px, which is the compromise this cut forces. The two files
-          share a glyph scale — `maya` is 1351x493 and sits inside
-          `ask maya`'s 1697x493 unchanged — so matching the old 13px
-          would have kept "maya" identical and rendered "ask" at 3.5px,
-          since "ask" is only 27% of the box height (rows 253-385 of
-          493). Legibility there costs size here: "maya" comes out
-          twice its old height, and "ask" still only reaches ~7px.
-
-          Scale on hover instead of the sparkle's. A transform does not
-          reflow, so the row stays put while the pill's own width is
-          fixed by the padding. */}
-      <MayaLockup
-        variant="ask"
-        className="h-[26px] transition-transform duration-200 group-hover/maya:scale-105"
-      />
-    </Link>
-  );
-}
 
 /**
  * Entrance for a nav dropdown, in two beats.
@@ -374,12 +311,6 @@ export function Lp2Nav() {
                   items={item.children}
                   active={isGroupActive(item)}
                 />
-              ) : item.href === '/ask-maya' ? (
-                <MayaNavLink
-                  key={item.label}
-                  href={item.href}
-                  active={isActive(item.href)}
-                />
               ) : (
                 <Link
                   key={item.label}
@@ -471,20 +402,7 @@ export function Lp2Nav() {
                     aria-current={active ? 'page' : undefined}
                     className={cn(
                       'flex items-center gap-3 rounded-2xl px-3 py-3 text-base font-bold transition-colors hover:bg-(--lp2-cream)',
-                      // Maya gets the tint here too, so the row that is
-                      // marked out on desktop is not an ordinary row on
-                      // a phone. The sheet's bullets carry the hues, so
-                      // she keeps hers and gains a wash behind it —
-                      // enough to separate her from four plain rows
-                      // without turning the sheet into a colour chart.
-                      item.href === '/ask-maya' &&
-                        'bg-(--lp2-maya-soft)/50 hover:bg-(--lp2-maya-soft)',
-                      // Active page: a permanent wash so the current row
-                      // stands out in the list.
-                      active &&
-                        (item.href === '/ask-maya'
-                          ? 'bg-(--lp2-maya-soft)'
-                          : 'bg-(--lp2-ink)/8'),
+                      active && 'bg-(--lp2-ink)/8',
                     )}
                   >
                     <span
@@ -493,9 +411,6 @@ export function Lp2Nav() {
                       style={{ backgroundColor: `var(--lp2-${item.hue})` }}
                     />
                     {item.label}
-                    {item.href === '/ask-maya' && (
-                      <Sparkle color="lime" className="size-3.5" />
-                    )}
                   </Link>
 
                   {/* Children listed flat rather than behind a toggle.

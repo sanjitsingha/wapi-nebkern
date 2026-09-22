@@ -209,7 +209,7 @@ function Card({ side }: { side: 'api' | 'app' }) {
           : // Dashed, flat, no shadow, warm-grey ground. Nothing here is
             // broken — it is the same vocabulary with every emphatic
             // part removed, which is the argument the card is making.
-            'border-2 border-dashed border-(--lp2-ink)/25 bg-(--lp2-cream)'
+            'border-2 border-dashed border-(--lp2-ink)/25 bg-white'
       )}
     >
       {winner && (

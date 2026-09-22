@@ -284,7 +284,7 @@ function Industries() {
                 <span
                   className={cn(
                     waType.bodyMd,
-                    'block rounded-full border border-(--wa-hairline) bg-(--wa-canvas) px-4 py-2 text-(--wa-ink)',
+                    'block rounded-full border border-(--wa-hairline) bg-white px-4 py-2 text-(--wa-ink)',
                   )}
                 >
                   {name}
@@ -341,12 +341,7 @@ function Compare() {
 function CompareTile({ side }: { side: 'api' | 'app' }) {
   const api = side === 'api';
   return (
-    <div
-      className={cn(
-        'rounded-[25px] p-7 sm:p-8',
-        api ? 'bg-white' : 'border border-(--wa-hairline)',
-      )}
-    >
+    <div className="rounded-[25px] bg-white p-7 sm:p-8">
       <p className={cn(waType.caption, 'tracking-wide text-(--wa-ink-muted) uppercase')}>
         {api ? 'With Instant — growing teams' : 'The free app — small businesses'}
       </p>
