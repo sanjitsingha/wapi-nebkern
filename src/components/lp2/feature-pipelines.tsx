@@ -1,9 +1,9 @@
+import Image from 'next/image';
 import { GitBranch, MessageCircle, Target } from 'lucide-react';
 
-import { Sparkle } from './decor';
+import { Highlight, Sparkle } from './decor';
 import {
   FeatureGrid,
-  FeatureHero,
   FeatureScreen,
   FeatureSplit,
   FeatureTrio,
@@ -19,57 +19,44 @@ import {
 
 const HUE = 'grape' as const;
 
-const STAGES = [
-  { name: 'New enquiry', count: 12, hue: 'sky' },
-  { name: 'Qualified', count: 7, hue: 'grape' },
-  { name: 'Quoted', count: 4, hue: 'lemon' },
-  { name: 'Won', count: 9, hue: 'grass' },
-] as const;
-
+/**
+ * Its own hero rather than `FeatureHero`: exactly one screen tall with
+ * the navbar included, on white, no chip and no button — the headline
+ * and the product carry it. The screenshot runs on past the fold and is
+ * cropped by the section's bottom edge, which reads as "there's more
+ * board below" rather than as a picture that stops.
+ */
 export function PipelinesHero() {
   return (
-    <FeatureHero
-      eyebrow="Sales pipelines"
-      title="The chat is the deal."
-      highlight="is the deal"
-      hue={HUE}
-      body="Drag a conversation through your stages and it stays a conversation — same thread, same history, same person. Nobody retypes a WhatsApp chat into a CRM at the end of the day."
-      visual={<PipelineBoard />}
-    />
-  );
-}
+    <section className="relative -mt-19 flex h-svh min-h-[560px] flex-col overflow-hidden bg-white pt-19 sm:-mt-20 sm:pt-20">
+      <div className="relative mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col px-4 pt-10 text-center sm:px-6 sm:pt-14">
+        <h1 className="lp2-display text-5xl leading-[1.05] font-extrabold text-balance sm:text-7xl lg:text-8xl">
+          The chat <Highlight color={HUE}>is the deal</Highlight>.
+        </h1>
 
-function PipelineBoard() {
-  return (
-    <div className="mx-auto max-w-4xl overflow-x-auto">
-      <div className="flex min-w-[680px] gap-3 text-left">
-        {STAGES.map((s) => (
-          <div key={s.name} className="flex-1">
-            <div className="flex items-center justify-between rounded-t-xl border-2 border-(--lp2-ink) px-3 py-2"
-              style={{ backgroundColor: `var(--lp2-${s.hue}-soft)` }}
-            >
-              <span className="text-xs font-extrabold">{s.name}</span>
-              <span className="rounded-full border-2 border-(--lp2-ink) bg-white px-1.5 text-[10px] font-extrabold">
-                {s.count}
-              </span>
-            </div>
-            <div className="space-y-2 rounded-b-xl border-2 border-t-0 border-(--lp2-ink) bg-white p-2">
-              {/* Two cards per column is enough to read as a board;
-                  more would just be noise at this size. */}
-              {[0, 1].map((i) => (
-                <div
-                  key={i}
-                  className="rounded-lg border-2 border-(--lp2-ink)/15 bg-(--lp2-cream) p-2"
-                >
-                  <div className="h-1.5 w-2/3 rounded-full bg-(--lp2-ink)/25" />
-                  <div className="mt-1.5 h-1.5 w-1/2 rounded-full bg-(--lp2-ink)/12" />
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
+        <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-lg">
+          Drag a conversation through your stages and it stays a
+          conversation — same thread, same history, same person. Nobody
+          retypes a WhatsApp chat into a CRM at the end of the day.
+        </p>
+
+        {/* Takes whatever height is left; the section's overflow-hidden
+            crops the bottom of the screenshot at the fold. The image
+            carries its own white margin and window frame, so it sits
+            straight on the white hero. */}
+        <div className="mt-8 min-h-0 flex-1 sm:mt-10">
+          <Image
+            src="/images/features/sales-pipeline.png"
+            alt="The Instant sales pipeline board: deals in New Lead, Qualified, Proposal Sent, Negotiation and Won columns, with pipeline value and win totals above"
+            width={2152}
+            height={1052}
+            sizes="(min-width: 1024px) 1024px, 100vw"
+            preload
+            className="h-auto w-full"
+          />
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
 
