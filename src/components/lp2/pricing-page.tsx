@@ -53,6 +53,14 @@ export function PricingHero() {
           A flat platform fee, and every rupee you send to Meta goes to Meta —
           passed through at cost, with no hidden markup, ever.
         </p>
+
+        <p className="mt-5 text-base font-semibold text-(--lp2-ink-soft)">
+          New to Instant?{' '}
+          <Link href="/" className="text-(--lp2-ink) underline underline-offset-2">
+            See how the WhatsApp CRM works
+          </Link>
+          .
+        </p>
       </div>
     </section>
   );
@@ -105,6 +113,16 @@ export function MetaPricingBlock() {
         <p className="mx-auto mt-6 max-w-3xl text-center text-xs leading-relaxed text-(--lp2-ink-soft)">
           {META_PRICING.footnote} Meta bills these to your own WhatsApp Business
           Account directly — they never pass through Instant.
+        </p>
+        <p className="mt-3 text-center text-sm font-semibold text-(--lp2-ink-soft)">
+          Service messages start costing money on October 1, 2026 —{' '}
+          <Link
+            href="/blog/whatsapp-service-message-pricing-india"
+            className="text-(--lp2-ink) underline underline-offset-2"
+          >
+            what WhatsApp service messages will cost in India
+          </Link>
+          .
         </p>
       </div>
     </section>
@@ -168,7 +186,14 @@ export function HowMayaWorks() {
             make up answers, pull from the general internet, or say something
             you didn&rsquo;t authorize. If a customer asks about something
             outside your provided content, Maya politely says she doesn&rsquo;t
-            know and offers to hand off to a human agent on your team.
+            know and offers to hand off to a human agent on your team, in your{' '}
+            <Link
+              href="/features/shared-inbox"
+              className="font-bold text-(--lp2-ink) underline underline-offset-2"
+            >
+              shared WhatsApp team inbox
+            </Link>
+            .
           </p>
         </div>
 

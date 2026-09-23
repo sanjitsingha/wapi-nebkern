@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 
 import { Lp2Nav } from '@/components/lp2/nav';
 import { Lp2Footer } from '@/components/lp2/footer';
+import { KeepReading } from '@/components/lp2/keep-reading';
 import { PricingCards } from '@/components/lp2/pricing-cards';
 import {
   PricingHero,
@@ -33,11 +34,63 @@ export default function PricingPage() {
       <main>
         <PricingHero />
         <PricingCards />
+        <KeepReading
+          heading="The features behind the plans"
+          links={[
+            {
+              href: '/features/shared-inbox',
+              title: 'Shared WhatsApp team inbox',
+              blurb:
+                'One WhatsApp number your whole team can answer — assign chats, leave notes, keep history on the contact.',
+            },
+            {
+              href: '/features/campaigns',
+              title: 'WhatsApp broadcast campaigns',
+              blurb:
+                'Approved templates sent to a segment, personalised per recipient, with live delivery and read rates.',
+            },
+            {
+              href: '/features/segments',
+              title: 'Contact segments and lists',
+              blurb:
+                'Filter contacts by tag, pipeline stage, orders or last activity, and feed campaigns and automations.',
+            },
+            {
+              href: '/features/pipelines',
+              title: 'WhatsApp sales pipelines',
+              blurb:
+                'Drag conversations through your own sales stages — the chat is the deal, history and all.',
+            },
+          ]}
+        />
         <MetaPricingBlock />
         <HowMayaWorks />
         <AddonsBlock />
         <CompetitorComparison />
         <PricingFaq />
+        <KeepReading
+          padBottom
+          links={[
+            {
+              href: '/blog/whatsapp-service-message-pricing-india',
+              title: 'WhatsApp service message pricing in India',
+              blurb:
+                'The INR rate from October 1, 2026, the 1,000 free messages, and what your Meta bill will look like.',
+            },
+            {
+              href: '/blog/whatsapp-automation-the-complete-guide-for-businesses-in-2026',
+              title: 'WhatsApp automation: the complete 2026 guide',
+              blurb:
+                'What to automate, how automated messages are sent, and how to choose WhatsApp marketing software.',
+            },
+            {
+              href: '/ask-maya',
+              title: 'Maya, the AI agent in every plan',
+              blurb:
+                'See how Maya answers customers from your own catalog and FAQs, and hands off to your team.',
+            },
+          ]}
+        />
         <PricingFinalCta />
       </main>
       <Lp2Footer />
