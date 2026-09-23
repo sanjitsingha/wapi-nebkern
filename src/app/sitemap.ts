@@ -32,26 +32,29 @@ const SITE = (
  */
 export const revalidate = 3600;
 
-/** Marketing pages, most important first. */
-const MARKETING: Array<[path: string, priority: number]> = [
-  ['', 1],
-  ['/pricing', 0.9],
-  ['/ask-maya', 0.8],
-  // The feature pages. Each targets a distinct search — someone looking
-  // for "whatsapp shared inbox" is not the same visitor as one looking
-  // for "whatsapp broadcast" — so they rank alongside /pricing rather
-  // than below the blog.
-  ['/features/shared-inbox', 0.8],
-  ['/features/campaigns', 0.8],
-  ['/features/segments', 0.8],
-  ['/features/pipelines', 0.8],
-  ['/blog', 0.7],
-  // A free tool people search for by name, so it earns a high priority
-  // despite not being part of the product story.
-  ['/qr-generator', 0.8],
-  ['/contact-us', 0.7],
-  ['/newsletter', 0.6],
-  ['/contact', 0.5],
+/**
+ * Every public page outside /docs is listed at full priority. The docs
+ * sit below them: they are reference material for existing customers,
+ * and a searcher landing on /docs/billing instead of /pricing is the
+ * wrong way round.
+ */
+const TOP_PRIORITY = 1;
+const DOCS_PRIORITY = 0.5;
+
+/** Marketing pages. */
+const MARKETING = [
+  '',
+  '/pricing',
+  '/ask-maya',
+  '/features/shared-inbox',
+  '/features/campaigns',
+  '/features/segments',
+  '/features/pipelines',
+  '/blog',
+  '/qr-generator',
+  '/contact-us',
+  '/newsletter',
+  '/contact',
 ];
 
 /** Product documentation — one entry per `src/app/docs/*`. */
@@ -77,7 +80,7 @@ const DOCS = [
   '/support',
 ].map((s) => `/docs${s}`);
 
-/** Policies and legal. Indexable, rarely read, never the entry point. */
+/** Policies and legal. */
 const LEGAL = [
   '/terms',
   '/privacy',
@@ -102,20 +105,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // with no <lastmod> loses nothing; one with a lying one costs the
   // posts' real dates their credibility.
   const staticEntries: MetadataRoute.Sitemap = [
-    ...MARKETING.map(([path, priority]) => ({
+    ...MARKETING.map((path) => ({
       url: `${SITE}${path}`,
       changeFrequency: 'weekly' as const,
-      priority,
+      priority: TOP_PRIORITY,
     })),
     ...DOCS.map((path) => ({
       url: `${SITE}${path}`,
       changeFrequency: 'monthly' as const,
-      priority: 0.5,
+      priority: DOCS_PRIORITY,
     })),
     ...LEGAL.map((path) => ({
       url: `${SITE}${path}`,
       changeFrequency: 'yearly' as const,
-      priority: 0.3,
+      priority: TOP_PRIORITY,
     })),
   ];
 
@@ -142,7 +145,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // teaches Google the field is meaningless.
       lastModified: post.publishedAt ? new Date(post.publishedAt) : now,
       changeFrequency: 'monthly' as const,
-      priority: 0.6,
+      priority: TOP_PRIORITY,
     })),
   ];
 }
