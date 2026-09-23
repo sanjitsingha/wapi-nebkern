@@ -221,6 +221,23 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Static assets are not pages, and Google should not try to
+        // index them. Without this, the hashed font files Next emits a
+        // `<link rel="preload" as="font">` for get crawled, land in
+        // Search Console under "Crawled - currently not indexed", and
+        // fail every "Validate fix" run — a font can never reach the
+        // index, so the check can never pass. Worse, the filenames are
+        // content-hashed, so each build retires the old URL and adds a
+        // fresh one to be crawled.
+        //
+        // `noindex` and NOT a robots.txt disallow: this directory also
+        // holds the CSS and JS Google needs to render the pages. Block
+        // crawling here and the pages themselves render blank to the
+        // crawler, which is a far worse problem than untidy reporting.
+        source: "/_next/static/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex" }],
+      },
+      {
         source: "/api/:path*",
         headers: [{ key: "Cache-Control", value: "no-store" }],
       },
