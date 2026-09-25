@@ -8,7 +8,6 @@ import {
   PipelinesAutomation,
   PipelinesGrid,
   PipelinesHero,
-  PipelinesTrio,
 } from '@/components/lp2/feature-pipelines';
 
 export const metadata: Metadata = {
@@ -25,7 +24,6 @@ export default function PipelinesPage() {
       <Lp2Nav />
       <main>
         <PipelinesHero />
-        <PipelinesTrio />
         <PipelinesAutomation />
         <PipelinesGrid />
         <KeepReading

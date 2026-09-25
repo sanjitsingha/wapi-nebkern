@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 
 import { getPublishedPosts } from '@/lib/blog';
+import { comparisonPaths } from '@/lib/marketing/comparisons';
 
 // ============================================================
 // /sitemap.xml — the public surface of the site, and only that.
@@ -55,6 +56,7 @@ const MARKETING = [
   '/contact-us',
   '/newsletter',
   '/contact',
+  '/compare',
 ];
 
 /** Product documentation — one entry per `src/app/docs/*`. */
@@ -108,6 +110,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...MARKETING.map((path) => ({
       url: `${SITE}${path}`,
       changeFrequency: 'weekly' as const,
+      priority: TOP_PRIORITY,
+    })),
+    // Generated, not listed: a comparison is one object in
+    // lib/marketing/comparisons.ts and its sitemap row follows from
+    // it, so a new rival can never be added and left out of here.
+    ...comparisonPaths().map((path) => ({
+      url: `${SITE}${path}`,
+      changeFrequency: 'monthly' as const,
       priority: TOP_PRIORITY,
     })),
     ...DOCS.map((path) => ({
