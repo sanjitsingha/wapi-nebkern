@@ -60,7 +60,7 @@ interface Feature {
 }
 
 const FEATURES: Feature[] = [
-  { term: 'Shared team inbox', icon: MessagesSquare, href: '/features/shared-inbox', image: '/images/features/shared-team-inbox.webp', body: 'WhatsApp, Instagram and Messenger in one thread list. Assign an owner, leave notes your customer never sees, and keep the history with the contact rather than the agent.' },
+  { term: 'Shared team inbox', icon: MessagesSquare, href: '/features/shared-inbox', image: '/images/features/shared-team-inbox-v2.webp', body: 'WhatsApp, Instagram and Messenger in one thread list. Assign an owner, leave notes your customer never sees, and keep the history with the contact rather than the agent.' },
   { term: 'Broadcast campaigns', icon: Megaphone, href: '/features/campaigns', image: '/images/features/campaign-broadcast-v2.jpg', body: 'Send an approved template to thousands, filtered by tag, pipeline stage or last activity. Delivery, read and reply rates arrive live rather than in a report next week.' },
   { term: 'Pipelines & CRM', icon: SquareKanban, href: '/features/pipelines', body: 'Custom fields, tags and drag-and-drop stages wrapped around the conversation itself, so a chat becomes a deal without anyone retyping it into another system.' },
   { term: 'Flows & automations', icon: Workflow, image: '/images/features/flows-automations.jpg', body: 'No-code triggers, conditions, waits and actions. Greet, qualify, route and follow up at 3am, then hand to a human the moment it stops being routine.' },
