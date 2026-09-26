@@ -42,12 +42,15 @@ export function WaRail({
   title,
   subtitle,
   className,
+  titleClassName,
   children,
 }: {
   /** Section id, for in-page links like /#features. */
   id?: string;
   /** Extra classes for the section, e.g. its background. */
   className?: string;
+  /** Optional class overrides for the title. */
+  titleClassName?: string;
   /** Accessible name for the scrollable region. */
   label: string;
   /** A node, not just a string, so a caller can place a line break. */
@@ -96,10 +99,10 @@ export function WaRail({
       <div className="mx-auto flex max-w-[1232px] flex-col gap-8 px-6 sm:flex-row sm:items-end sm:justify-between">
         {/* Wide enough for a long title to sit on two lines at full size;
             the subtitle keeps its own shorter measure. */}
-        <div className="max-w-[900px]">
-          <h2 className={cn(waType.displayLg, 'text-balance')}>{title}</h2>
+        <div className="max-w-[1040px] flex-1">
+          <h2 className={cn(waType.displayLg, 'text-pretty', titleClassName)}>{title}</h2>
           {subtitle && (
-            <p className={cn(waType.bodyLg, 'mt-6 max-w-[640px] text-pretty text-(--wa-ink-muted)')}>
+            <p className={cn(waType.bodyLg, 'mt-6 max-w-[720px] text-pretty text-(--wa-ink-muted)')}>
               {subtitle}
             </p>
           )}

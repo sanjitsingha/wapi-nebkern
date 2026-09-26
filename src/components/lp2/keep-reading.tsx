@@ -51,9 +51,13 @@ export function KeepReading({
         >
           {links.map((l) => (
             <li key={l.href}>
+              {/* The homepage blog cards' shape: the 25px tile radius the
+                  WhatsApp design uses throughout, and their p-7/p-8 padding.
+                  Shared by every page that ends in a Keep reading block, so
+                  changing it here changes the feature pages too. */}
               <Link
                 href={l.href}
-                className="group flex h-full flex-col rounded-2xl border-2 border-(--lp2-ink) bg-white p-5 shadow-(--lp2-shadow-sm) transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--lp2-ink)"
+                className="group flex h-full flex-col rounded-[25px] border-2 border-(--lp2-ink) bg-white p-7 lg:p-8 shadow-(--lp2-shadow-sm) transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--lp2-ink)"
               >
                 <span className="text-base font-extrabold text-pretty">
                   {l.title}

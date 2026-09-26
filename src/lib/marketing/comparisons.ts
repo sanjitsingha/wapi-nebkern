@@ -39,6 +39,16 @@ export interface Comparison {
   slug: string;
   /** The rival's name as they write it. */
   rival: string;
+  /**
+   * The rival's wordmark for the table header, when we have it.
+   * Optional on purpose: a rival without one falls back to their name
+   * in text, so a new comparison never waits on an asset.
+   *
+   * `width`/`height` are the file's true pixels — next/image needs the
+   * real ratio to reserve the box before the bytes land. The header
+   * sizes by height and lets the width follow.
+   */
+  rivalLogo?: { src: string; width: number; height: number };
   /** Their pricing page — the source for every figure in `rows`. */
   source: string;
   /** ISO date those figures were last read from `source`. */
@@ -61,6 +71,11 @@ export const COMPARISONS: Comparison[] = [
   {
     slug: 'instant-vs-interakt',
     rival: 'Interakt',
+    rivalLogo: {
+      src: '/images/compare/interakt.png',
+      width: 3750,
+      height: 1249,
+    },
     source: 'https://www.interakt.shop/pricing/',
     checkedOn: '2026-09-25',
     title: 'Instant vs Interakt — WhatsApp API pricing and features compared',

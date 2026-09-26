@@ -281,9 +281,8 @@ function Copy() {
       </h1>
 
       <p className="mx-auto mt-7 max-w-3xl text-xl leading-relaxed text-pretty text-(--lp2-ink-soft) sm:mt-8 sm:text-2xl">
-        One shared inbox for the whole team. AI agents that answer in seconds.
-        Campaigns, pipelines and automations that keep every conversation moving
-        towards a sale.
+        Broadcast, automation, sales and support — manage everything with an
+        AI-powered WhatsApp automation platform, Meta&apos;s official solution provider.
       </p>
 
       {/* One button, so there is nothing to choose between — the fold

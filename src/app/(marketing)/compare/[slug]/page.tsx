@@ -3,13 +3,12 @@ import { notFound } from 'next/navigation';
 
 import { Lp2Nav } from '@/components/lp2/nav';
 import { Lp2Footer } from '@/components/lp2/footer';
-import { FeatureHero } from '@/components/lp2/feature-page';
 import {
-  ComparisonCta,
+  ComparisonHero,
   ComparisonTable,
-  ComparisonVerdict,
 } from '@/components/lp2/compare-page';
-import { KeepReading } from '@/components/lp2/keep-reading';
+import { ComparisonVerdictTabs } from '@/components/lp2/compare-verdict-tabs';
+import { WaClosingCta } from '@/components/wa/closing-cta';
 import { COMPARISONS, getComparison } from '@/lib/marketing/comparisons';
 
 // ============================================================
@@ -67,38 +66,10 @@ export default async function ComparePage({
     <>
       <Lp2Nav />
       <main>
-        <FeatureHero
-          eyebrow="Comparison"
-          title={`Instant vs ${data.rival}`}
-          highlight={data.rival}
-          hue={data.hue}
-          body={data.intro}
-        />
+        <ComparisonHero data={data} />
         <ComparisonTable data={data} />
-        <ComparisonVerdict data={data} />
-        <ComparisonCta data={data} />
-        <KeepReading
-          links={[
-            {
-              href: '/pricing',
-              title: 'What Instant costs',
-              blurb:
-                'Three plans, the whole product on each, and Meta’s conversation charges billed to you at Meta’s own rates.',
-            },
-            {
-              href: '/features/shared-inbox',
-              title: 'One number, the whole team',
-              blurb:
-                'WhatsApp, Instagram and Messenger in a single inbox, with assignment, notes and full history on the contact.',
-            },
-            {
-              href: '/ask-maya',
-              title: 'Maya answers first',
-              blurb:
-                'The AI agent replies from your own content around the clock and hands over the moment a person is needed.',
-            },
-          ]}
-        />
+        <ComparisonVerdictTabs data={data} />
+        <WaClosingCta />
       </main>
       <Lp2Footer />
     </>

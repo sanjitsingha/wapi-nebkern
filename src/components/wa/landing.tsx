@@ -10,6 +10,8 @@ import { cn } from '@/lib/utils';
 import { SAMPLE_BLOG_CARDS, WaBlogRail, type WaBlogCardItem } from './blog-rail';
 import { WaFeatureCarousel } from './feature-carousel';
 import { WaHeroChat } from './hero-chat';
+import { WaClosingCta } from './closing-cta';
+import { WaPriceCompare } from './price-compare';
 import { WaStatsTabs, type WaStat } from './stats-tabs';
 import { WaPill, waType } from './ui';
 
@@ -46,14 +48,16 @@ export function WaLanding({ hero = 'centered' }: { hero?: WaHeroVariant }) {
       {hero === 'centered' ? <HeroCentered /> : <Hero />}
       <Industries />
       <WaFeatureCarousel />
-      <Compare />
+      {/* Hidden for now: The WhatsApp Business app, or the API? */}
+      {false && <Compare />}
       <StatsBand />
       <Maya />
       <Integrations />
+      <WaPriceCompare />
       <Showcase />
       <PricingNote />
       <Faq />
-      <ClosingCta />
+      <WaClosingCta />
       {/* Last, straight above the footer: reading material for whoever
           scrolled past the call to action without taking it. */}
       <RecentPosts />
@@ -157,26 +161,19 @@ function Hero() {
                   capped at 72px on large screens and floored at 24px on
                   the narrowest phones. Nowrap, so re-measure if
                   --font-sans changes. (9.3em / 10.2cqw in Inter.) */}
-              <h1 className="text-[clamp(1.5rem,10.7cqw,4.5rem)] leading-[1.08] tracking-[-0.02em] text-(--wa-ink)">
+              <h1 className="text-[clamp(1.5rem,8.2cqw,4.25rem)] leading-[1.18] tracking-[-0.02em] text-(--wa-ink)">
+                <span className="whitespace-nowrap">Grow your business</span>
+                <br />
                 <span className="whitespace-nowrap">
-                  Turn{' '}
-                  {/* The highlighted word, styled like a mention: green text
-                      on a light mint box. Its corner radius is an arbitrary
-                      value on purpose: whatsapp.css turns the rounded-lg-style
-                      token classes into 25px tiles, far too round here. The
-                      box is a step deeper than the spec's mint (#e6ffda) so
-                      it holds its own against the cream page, edged with a
-                      1px border in a deeper green still. */}
+                  with the help of{' '}
                   <span className="rounded-[0.14em] border border-[#1fae55] bg-[#d4f5c6] px-[0.12em] text-(--wa-green)">
-                    @conversation
+                    WhatsApp
                   </span>
                 </span>
-                <br />
-                into revenue
               </h1>
               <p className={cn(waType.bodyLg, 'mt-7 max-w-[580px] text-pretty text-(--wa-ink-muted)')}>
-                One shared inbox for your team. AI that responds instantly.
-                Automated follow-ups that keep every lead moving towards a sale.
+                Broadcast, automation, sales and support — manage everything with an
+                AI-powered WhatsApp automation platform, Meta&apos;s official solution provider.
               </p>
               <div className="mt-9 flex flex-col items-start gap-5 sm:flex-row sm:items-center">
                 <Magnetic radius="full">
@@ -236,22 +233,19 @@ function HeroCentered() {
             green as the live hero's, "₹revenue" in a yellow counterpart.
             Corner radii are arbitrary values on purpose — whatsapp.css
             turns the rounded-lg-style token classes into 25px tiles. */}
-        <h1 className="text-[clamp(1.25rem,7.3cqw,4.5rem)] leading-[1.45] tracking-[-0.02em] text-(--wa-ink)">
-          Turn every WhatsApp
+        <h1 className="text-[clamp(1.25rem,7.2cqw,4.5rem)] leading-[1.45] tracking-[-0.02em] text-(--wa-ink)">
+          Grow your business
           <br />
           <span className="whitespace-nowrap">
+            with the help of{' '}
             <span className="rounded-[0.14em] border border-[#1fae55] bg-[#d4f5c6] px-[0.12em] text-(--wa-green)">
-              @conversation
-            </span>{' '}
-            into{' '}
-            <span className="rounded-[0.14em] border border-[#d9a400] bg-[#fff1b8] px-[0.12em] text-[#b27d00]">
-              ₹revenue
+              WhatsApp
             </span>
           </span>
         </h1>
         <p className={cn(waType.bodyLg, 'mt-7 max-w-[600px] text-pretty text-(--wa-ink-muted)')}>
-          One shared inbox for your team. AI that responds instantly.
-          Automated follow-ups that keep every lead moving towards a sale.
+          Broadcast, automation, sales and support — manage everything with an
+          AI-powered WhatsApp automation platform, Meta&apos;s official solution provider.
         </p>
         <div className="mt-9">
           {/* Same button as the nav's Start free — see hardShadowButton. */}
@@ -824,51 +818,6 @@ function Faq() {
             <p className={cn(waType.bodyLg, 'pr-12 pb-6 text-pretty text-(--wa-ink-muted)')}>{f.a}</p>
           </details>
         ))}
-      </div>
-    </Section>
-  );
-}
-
-/* ─── Closing CTA ─────────────────────────────────────────────────── */
-
-function ClosingCta() {
-  return (
-    <Section>
-      <div className="mx-auto max-w-[900px] text-center">
-        {/* "typing" and the dots in the voltage green. The spec reserves
-            that green for the primary CTA, so this is a deliberate
-            exception — the word is the page's closing image, not a
-            control. Dots are aria-hidden: the sentence already says it. */}
-        <h2 className={cn(waType.displayXl, 'text-balance')}>
-          Your customers are already{' '}
-          <span className="text-(--wa-green)">typing</span>
-          <span aria-hidden className="wa-typing">
-            <span />
-            <span />
-            <span />
-          </span>
-        </h2>
-        <p className={cn(waType.bodyLg, 'mx-auto mt-7 max-w-[560px] text-pretty text-(--wa-ink-muted)')}>
-          Set up in an afternoon, free for 14 days, no card required. Worst case
-          you learn what your customers have been asking all along.
-        </p>
-        {/* gap-5: each button throws a 4px shadow on hover and, now that
-            it is magnetic, can lean up to 14px toward the cursor. Only
-            the hovered one moves — the field is its own wrapper — so 20px
-            is enough to keep the leaning button clear of its neighbour. */}
-        <div className="mt-10 flex flex-col items-center justify-center gap-5 sm:flex-row">
-          <Magnetic>
-            <Link href="/signup" className={hardShadowButton}>
-              Start free trial
-              <ArrowRight className="size-4" strokeWidth={2.5} />
-            </Link>
-          </Magnetic>
-          <Magnetic>
-            <Link href="/login" className={hardShadowButton}>
-              Log in
-            </Link>
-          </Magnetic>
-        </div>
       </div>
     </Section>
   );

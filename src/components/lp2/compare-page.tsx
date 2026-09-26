@@ -1,8 +1,10 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Check, Minus } from 'lucide-react';
 
 import type { Comparison } from '@/lib/marketing/comparisons';
-import { Sparkle } from './decor';
+import { BrandLogo } from '@/components/brand/logo';
+import { Highlight } from './decor';
 import { Btn } from './ui';
 
 // ============================================================
@@ -12,6 +14,35 @@ import { Btn } from './ui';
 // is a data entry and never a new component. See comparisons.ts for the
 // rules those entries follow.
 // ============================================================
+
+/**
+ * The hero for a comparison page.
+ *
+ * Its own rather than `FeatureHero`, which the /features pages use:
+ * those carry an eyebrow chip and a hue-tinted band, and these want
+ * neither — a comparison opens on the question, not on a label.
+ * Forking it keeps the feature pages exactly as they are.
+ *
+ * `bg-[var(--wa-white,#fff)]` rather than `bg-white`, because
+ * whatsapp.css repaints `section.bg-white` to the cream canvas and
+ * the plain utility would silently render cream. The fallback keeps
+ * it white under the playful design, which has no --wa-white.
+ */
+export function ComparisonHero({ data }: { data: Comparison }) {
+  return (
+    <section className="relative -mt-19 bg-[var(--wa-white,#ffffff)] pt-19 sm:-mt-20 sm:pt-20">
+      <div className="mx-auto max-w-4xl px-4 pt-14 pb-16 text-center sm:px-6 sm:pt-20 sm:pb-20">
+        <h1 className="lp2-display text-4xl leading-[1.08] font-extrabold text-balance sm:text-6xl">
+          Instant vs <Highlight color={data.hue}>{data.rival}</Highlight>
+        </h1>
+
+        <p className="mx-auto mt-6 max-w-2xl text-xl leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-2xl">
+          {data.intro}
+        </p>
+      </div>
+    </section>
+  );
+}
 
 /**
  * The table. Two columns rather than a tick grid: a tick says "has it"
@@ -25,49 +56,76 @@ export function ComparisonTable({ data }: { data: Comparison }) {
   return (
     <section className="px-4 py-16 sm:px-6 sm:py-20">
       <div className="mx-auto max-w-5xl">
-        {/* Header row, hidden on phones where each row stacks and
-            carries its own labels instead. */}
-        <div className="hidden grid-cols-[1.1fr_1fr_1fr] gap-4 pb-4 sm:grid">
-          <span className="text-sm font-bold text-(--lp2-ink-soft)" />
-          <span className="lp2-display text-lg font-extrabold">Instant</span>
-          <span className="lp2-display text-lg font-extrabold text-(--lp2-ink-soft)">
-            {data.rival}
-          </span>
-        </div>
-
-        <div className="divide-y-2 divide-(--lp2-ink)/10 border-t-2 border-(--lp2-ink)/10">
-          {data.rows.map((row) => (
-            <div
-              key={row.feature}
-              className="grid gap-2 py-5 sm:grid-cols-[1.1fr_1fr_1fr] sm:gap-4"
-            >
-              <p className="text-sm font-bold text-(--lp2-ink)">{row.feature}</p>
-
-              <div className="flex items-start gap-2">
-                <span
-                  aria-hidden
-                  className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-(--lp2-grass)"
-                >
-                  {row.rivalBetter ? (
-                    <Minus className="size-3" strokeWidth={3} />
-                  ) : (
-                    <Check className="size-3" strokeWidth={3} />
-                  )}
+        {/* The same card the landing page's compare tiles use: white on
+            the cream canvas, a 25px tile radius, and the hard shadow.
+            `lp2-hard-shadow` carries no styling — it is the opt-out from
+            whatsapp.css's blanket `box-shadow: none !important`, without
+            which the shadow is stripped and nothing renders. */}
+        <div className="lp2-hard-shadow rounded-[25px] bg-white p-6 shadow-[4px_4px_0_2px_rgba(0,0,0,0.05)] sm:p-8">
+          {/* Header row, hidden on phones where each row stacks and
+              carries its own labels instead. */}
+          <div className="hidden grid-cols-[1.1fr_1fr_1fr] gap-4 pb-4 sm:grid">
+            <span className="text-sm font-bold text-(--lp2-ink-soft)" />
+            {/* Logos rather than names: the header is the one place the two
+                products are set against each other, and a wordmark is
+                quicker to place than a line of text. Sized by height so
+                marks of different proportions sit on one line. A rival
+                with no logo falls back to their name. */}
+            <span className="flex items-center">
+              <BrandLogo className="h-7" />
+            </span>
+            <span className="flex items-center">
+              {data.rivalLogo ? (
+                <Image
+                  src={data.rivalLogo.src}
+                  alt={data.rival}
+                  width={data.rivalLogo.width}
+                  height={data.rivalLogo.height}
+                  sizes="160px"
+                  className="h-11 w-auto"
+                />
+              ) : (
+                <span className="lp2-display text-lg font-extrabold text-(--lp2-ink-soft)">
+                  {data.rival}
                 </span>
-                <span className="text-sm leading-relaxed text-(--lp2-ink)">
-                  {/* Phones lose the header row, so each cell says whose
-                      answer it is. */}
-                  <span className="font-bold sm:hidden">Instant: </span>
-                  {row.instant}
-                </span>
+              )}
+            </span>
+          </div>
+
+          <div className="divide-y-2 divide-(--lp2-ink)/10 border-t-2 border-(--lp2-ink)/10">
+            {data.rows.map((row) => (
+              <div
+                key={row.feature}
+                className="grid gap-2 py-5 sm:grid-cols-[1.1fr_1fr_1fr] sm:gap-4"
+              >
+                <p className="text-sm font-bold text-(--lp2-ink)">{row.feature}</p>
+
+                <div className="flex items-start gap-2">
+                  <span
+                    aria-hidden
+                    className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-(--lp2-grass)"
+                  >
+                    {row.rivalBetter ? (
+                      <Minus className="size-3" strokeWidth={3} />
+                    ) : (
+                      <Check className="size-3" strokeWidth={3} />
+                    )}
+                  </span>
+                  <span className="text-sm leading-relaxed text-(--lp2-ink)">
+                    {/* Phones lose the header row, so each cell says whose
+                        answer it is. */}
+                    <span className="font-bold sm:hidden">Instant: </span>
+                    {row.instant}
+                  </span>
+                </div>
+
+                <p className="text-sm leading-relaxed text-(--lp2-ink-soft)">
+                  <span className="font-bold sm:hidden">{data.rival}: </span>
+                  {row.rival}
+                </p>
               </div>
-
-              <p className="text-sm leading-relaxed text-(--lp2-ink-soft)">
-                <span className="font-bold sm:hidden">{data.rival}: </span>
-                {row.rival}
-              </p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* Where the numbers came from and when. A comparison without
@@ -91,58 +149,6 @@ export function ComparisonTable({ data }: { data: Comparison }) {
           you decide. Meta’s own per-conversation charges are the same
           whichever platform you use.
         </p>
-      </div>
-    </section>
-  );
-}
-
-/**
- * Who each product suits. The rival column is not a courtesy: a
- * comparison that concludes "we win on everything" is an advert, and
- * the reader can tell.
- */
-export function ComparisonVerdict({ data }: { data: Comparison }) {
-  return (
-    <section className="px-4 pb-16 sm:px-6 sm:pb-20">
-      <div className="mx-auto grid max-w-5xl gap-5 lg:grid-cols-2">
-        <div className="rounded-2xl border-2 border-(--lp2-ink) bg-white p-7 sm:p-8">
-          <span className="inline-flex items-center gap-2 text-xs font-extrabold tracking-wide uppercase">
-            <Sparkle color={data.hue} className="size-3.5" />
-            Choose Instant when
-          </span>
-          <ul className="mt-5 space-y-3">
-            {data.verdict.instant.map((point) => (
-              <li key={point} className="flex items-start gap-3">
-                <Check
-                  aria-hidden
-                  className="mt-1 size-4 shrink-0"
-                  strokeWidth={3}
-                />
-                <span className="text-sm leading-relaxed">{point}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="rounded-2xl border-2 border-(--lp2-ink)/15 bg-(--lp2-cream) p-7 sm:p-8">
-          <span className="text-xs font-extrabold tracking-wide uppercase text-(--lp2-ink-soft)">
-            Choose {data.rival} when
-          </span>
-          <ul className="mt-5 space-y-3">
-            {data.verdict.rival.map((point) => (
-              <li key={point} className="flex items-start gap-3">
-                <Minus
-                  aria-hidden
-                  className="mt-1 size-4 shrink-0 text-(--lp2-ink-soft)"
-                  strokeWidth={3}
-                />
-                <span className="text-sm leading-relaxed text-(--lp2-ink-soft)">
-                  {point}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
       </div>
     </section>
   );

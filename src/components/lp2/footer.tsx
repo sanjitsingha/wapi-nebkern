@@ -1,7 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
-import { BrandLogo } from '@/components/brand/logo';
 import type { Lp2Hue } from './decor';
 import { LEGAL_LINKS } from './legal-links';
 
@@ -73,39 +72,11 @@ export function Lp2Footer() {
   return (
     <footer className="bg-white text-(--lp2-ink)">
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
-        {/* Five columns: the blurb takes two, then three link columns.
-            Legal moved out to its own band below — see LEGAL_LINKS. */}
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
-          <div className="lg:col-span-2">
-            {/* The lockup is green artwork on transparency, so it sits
-                on this white panel unchanged — as it did on the ink one
-                this footer used to be. */}
-            <Link href="/" className="flex items-center">
-              <BrandLogo className="h-9" />
-            </Link>
-            <p className="mt-4 max-w-xs text-sm leading-relaxed text-(--lp2-ink-soft)">
-              The WhatsApp CRM for your whole team — shared inbox, AI agents,
-              campaigns and automations on the official Business API.
-            </p>
-            {/* Who makes Instant, in words a search engine can read on
-                every public page. "Instant" alone is an ordinary word;
-                naming the company — and linking its site — is what ties
-                searches for "Instant Nebkern" and "Nebkern Technology" to
-                this product. Lives here rather than on the landing page
-                on purpose. */}
-            <p className="mt-3 max-w-xs text-sm leading-relaxed text-(--lp2-ink-soft)">
-              Instant is built and run by{' '}
-              <a
-                href="https://nebkern.com"
-                className="text-(--lp2-ink) underline underline-offset-2 hover:text-(--lp2-ink)"
-              >
-                Nebkern Technology
-              </a>
-              , a software company in Siliguri, West Bengal, India, and an
-              official Meta Tech Provider.
-            </p>
-          </div>
-
+        {/* Three link columns and the Product Hunt badge. The brand
+            blurb that used to take the first two columns is gone — see
+            the note in the bottom bar for where its one load-bearing
+            sentence went. */}
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           {COLUMNS.map((col) => (
             <div key={col.title}>
               <p className="flex items-center gap-2 text-sm font-extrabold">
@@ -130,6 +101,32 @@ export function Lp2Footer() {
               </ul>
             </div>
           ))}
+
+          {/* Product Hunt badge. A plain <img>, not next/image: the badge
+              is a remote SVG, and routing it through the optimiser would
+              mean adding producthunt.com to remotePatterns AND turning on
+              dangerouslyAllowSVG for the whole app — a lot of surface for
+              one 250x54 image that is already tiny and vector.
+
+              `rel` is ours, not theirs: their snippet opens a new tab with
+              no `noopener`, which hands the opened page a handle on this
+              one. */}
+          <div className="flex items-start lg:justify-end">
+            <a
+              href="https://www.producthunt.com/products/instant-whatsapp-automation-platform/reviews/new?utm_source=badge-product_review&utm_medium=badge&utm_source=badge-instant-whatsapp-automation-platform"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://api.producthunt.com/widgets/embed-image/v1/product_review.svg?product_id=1319157&theme=light"
+                alt="Instant — WhatsApp Automation Platform on Product Hunt"
+                width={250}
+                height={54}
+                className="h-[54px] w-[250px]"
+              />
+            </a>
+          </div>
         </div>
 
         {/* Legal band. Its own row so all eleven policies fit without one

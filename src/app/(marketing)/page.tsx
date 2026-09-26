@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     // with the product name, then what it does, then who makes it — the
     // brand is new, and "Instant" alone tells a stranger (and Google)
     // nothing.
-    absolute: 'Instant — WhatsApp CRM & Marketing Automation by Nebkern',
+    absolute: 'Instant — Grow your business with the help of WhatsApp',
   },
   description: DESCRIPTION,
   // One official address for the home page, whatever query string it is
@@ -164,7 +164,8 @@ export default async function Lp2Page({
             six sections read as a paid version of what they already
             own. Answer it here and they read as the fix for a ceiling
             the visitor has just been shown they are standing under. */}
-        <Lp2Compare />
+        {/* Hidden for now: The WhatsApp Business app, or the API? */}
+        {false && <Lp2Compare />}
         <Lp2Features />
         <Lp2AiPerformance />
 

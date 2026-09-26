@@ -16,7 +16,7 @@ import { WaRail } from './rail';
 import { WaPill, waType } from './ui';
 
 // ============================================================
-// "Everything your team needs to turn chats into customers" — a
+// "Powerful WhatsApp marketing features to turn chats into customers" — a
 // horizontal card rail.
 //
 // whatsapp.com lays feature stories out as a row of tall tiles you
@@ -77,14 +77,9 @@ export function WaFeatureCarousel() {
       // A white band between the cream sections around it. bg-(--wa-white)
       // rather than bg-white: whatsapp.css repaints `section.bg-white` cream.
       className="bg-(--wa-white)"
-      title={
-        <>
-          Everything your team needs
-          {/* Two lines from sm up; on a phone the words wrap as they fit. */}
-          <br className="hidden sm:block" /> to turn chats into customers
-        </>
-      }
-      subtitle="Manage conversations, qualify leads, automate follow-ups, and track every opportunity without jumping between tools."
+      title="Powerful WhatsApp marketing features to turn chats into customers"
+      titleClassName="text-[clamp(1.75rem,3.8vw,3.125rem)] leading-[1.08]"
+      subtitle="With Instant, manage conversations, qualify leads, automate follow-ups, and track every opportunity in a single window."
     >
       {FEATURES.map((f) => (
         <article
