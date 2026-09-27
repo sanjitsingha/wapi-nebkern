@@ -11,6 +11,9 @@ import {
   CampaignsTrio,
 } from '@/components/lp2/feature-campaigns';
 
+import { JsonLd } from '@/components/json-ld';
+import { getFeatureSchema } from '@/lib/marketing/schema';
+
 export const metadata: Metadata = {
   title: { absolute: 'WhatsApp Broadcast Campaigns that actually arrive — Instant' },
   description:
@@ -19,9 +22,17 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+const schema = getFeatureSchema({
+  name: 'Broadcast Campaigns',
+  description:
+    'Send approved WhatsApp templates to a segment, personalised per recipient, with live delivery and read rates — opt-outs handled, sends paced.',
+  path: '/features/campaigns',
+});
+
 export default function CampaignsPage() {
   return (
     <>
+      <JsonLd schema={schema} />
       <Lp2Nav />
       <main>
         <CampaignsHero />

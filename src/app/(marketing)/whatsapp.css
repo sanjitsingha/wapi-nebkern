@@ -406,7 +406,7 @@ html:has(.lp2[data-design='whatsapp']) {
   width: 0.15em;
   height: 0.15em;
   border-radius: 50%;
-  background-color: var(--wa-green);
+  background-color: #075e54;
   animation: wa-typing-dot 1.25s ease-in-out infinite;
 }
 

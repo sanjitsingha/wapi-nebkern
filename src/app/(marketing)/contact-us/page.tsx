@@ -40,9 +40,13 @@ const ASSURANCES = [
   },
 ] as const;
 
+import { JsonLd } from '@/components/json-ld';
+import { getContactSchema } from '@/lib/marketing/schema';
+
 export default function ContactUsPage() {
   return (
     <>
+      <JsonLd schema={getContactSchema({ isForm: true })} />
       <Lp2Nav />
 
       <main>

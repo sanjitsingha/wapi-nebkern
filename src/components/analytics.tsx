@@ -72,11 +72,11 @@ function Umami() {
     process.env.NEXT_PUBLIC_UMAMI_SRC || 'https://cloud.umami.is/script.js';
 
   return (
-    // afterInteractive: analytics must never sit on the critical path of
-    // a page someone is waiting to read.
+    // lazyOnload: analytics must never sit on the critical path of
+    // a page someone is waiting to read or block hydration / TBT.
     <Script
       defer
-      strategy="afterInteractive"
+      strategy="lazyOnload"
       src={src}
       data-website-id={websiteId}
     />
@@ -104,14 +104,14 @@ function GoogleAnalytics() {
     <>
       <Script
         async
-        strategy="afterInteractive"
+        strategy="lazyOnload"
         src={`https://www.googletagmanager.com/gtag/js?id=${id}`}
       />
       {/* Inline scripts need an `id` for Next to track and dedupe them.
           The id is interpolated into a template string, so it is kept to
           the characters a GA measurement id can contain — anything else
           would be injecting arbitrary text into a <script> body. */}
-      <Script id="ga4-init" strategy="afterInteractive">
+      <Script id="ga4-init" strategy="lazyOnload">
         {`window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());

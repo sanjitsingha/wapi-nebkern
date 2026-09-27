@@ -11,6 +11,9 @@ import {
   SegmentsTrio,
 } from '@/components/lp2/feature-segments';
 
+import { JsonLd } from '@/components/json-ld';
+import { getFeatureSchema } from '@/lib/marketing/schema';
+
 export const metadata: Metadata = {
   title: { absolute: 'Segments & Lists — target the right WhatsApp audience | Instant' },
   description:
@@ -19,9 +22,17 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+const schema = getFeatureSchema({
+  name: 'Segments & Lists',
+  description:
+    'Filter WhatsApp contacts by tag, pipeline stage, orders or last activity. Segments stay up to date, lists hold still — both feed campaigns and automations.',
+  path: '/features/segments',
+});
+
 export default function SegmentsPage() {
   return (
     <>
+      <JsonLd schema={schema} />
       <Lp2Nav />
       <main>
         <SegmentsHero />

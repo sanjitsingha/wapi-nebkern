@@ -64,9 +64,13 @@ const POINTS = [
   },
 ] as const;
 
+import { JsonLd } from '@/components/json-ld';
+import { getQrGeneratorSchema } from '@/lib/marketing/schema';
+
 export default function QrGeneratorPage() {
   return (
     <>
+      <JsonLd schema={getQrGeneratorSchema()} />
       <Lp2Nav />
       <main>
         <section className="bg-white py-16 sm:py-20">

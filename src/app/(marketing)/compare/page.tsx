@@ -6,6 +6,9 @@ import { Lp2Nav } from '@/components/lp2/nav';
 import { Lp2Footer } from '@/components/lp2/footer';
 import { COMPARISONS } from '@/lib/marketing/comparisons';
 
+import { JsonLd } from '@/components/json-ld';
+import { ORGANIZATION_SCHEMA, getBreadcrumbSchema, SITE_URL } from '@/lib/marketing/schema';
+
 // ============================================================
 // /compare — the index of every comparison page.
 //
@@ -22,9 +25,37 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+const compareIndexSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    ORGANIZATION_SCHEMA,
+    getBreadcrumbSchema([
+      { name: 'Home', path: '/' },
+      { name: 'Compare', path: '/compare' },
+    ]),
+    {
+      '@type': 'CollectionPage',
+      name: 'Compare Instant with other WhatsApp platforms',
+      description:
+        'Instant next to the other WhatsApp Business API platforms, on cost, AI, channels and trials.',
+      url: `${SITE_URL}/compare`,
+      mainEntity: {
+        '@type': 'ItemList',
+        itemListElement: COMPARISONS.map((c, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          name: `Instant vs ${c.rival}`,
+          url: `${SITE_URL}/compare/${c.slug}`,
+        })),
+      },
+    },
+  ],
+};
+
 export default function CompareIndexPage() {
   return (
     <>
+      <JsonLd schema={compareIndexSchema} />
       <Lp2Nav />
       <main>
         <section className="relative -mt-19 bg-(--lp2-sky-soft) pt-19 sm:-mt-20 sm:pt-20">

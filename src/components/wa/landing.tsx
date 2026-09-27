@@ -169,7 +169,7 @@ function Hero() {
                 <br />
                 <span className="whitespace-nowrap">
                   with the help of{' '}
-                  <span className="rounded-[0.14em] border border-[#1fae55] bg-[#d4f5c6] px-[0.12em] text-(--wa-green)">
+                  <span className="rounded-[0.14em] border border-[#1fae55] bg-[#d4f5c6] px-[0.12em] text-[#075e54]">
                     WhatsApp
                   </span>
                 </span>
@@ -241,7 +241,7 @@ function HeroCentered() {
           <br />
           <span className="whitespace-nowrap">
             with the help of{' '}
-            <span className="rounded-[0.14em] border border-[#1fae55] bg-[#d4f5c6] px-[0.12em] text-(--wa-green)">
+            <span className="rounded-[0.14em] border border-[#1fae55] bg-[#d4f5c6] px-[0.12em] text-[#075e54]">
               WhatsApp
             </span>
           </span>
@@ -514,7 +514,7 @@ function Maya() {
                 Not the solid voltage green, which the spec reserves for
                 the CTA pill. `whitespace-nowrap` keeps the handle and its
                 box on one line when the title wraps. */}
-            <span className="rounded-[0.14em] border border-[#1fae55] bg-[#d4f5c6] px-[0.12em] whitespace-nowrap text-(--wa-green)">
+            <span className="rounded-[0.14em] border border-[#1fae55] bg-[#d4f5c6] px-[0.12em] whitespace-nowrap text-[#075e54]">
               @askmaya
             </span>
           </>

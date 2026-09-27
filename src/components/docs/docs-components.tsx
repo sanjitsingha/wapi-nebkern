@@ -10,6 +10,8 @@ import {
 
 import { cn } from '@/lib/utils';
 import { docHref, docsSiblings } from '@/lib/docs/nav';
+import { JsonLd } from '@/components/json-ld';
+import { SITE_URL, ORGANIZATION_SCHEMA, getBreadcrumbSchema } from '@/lib/marketing/schema';
 
 /**
  * Shared building blocks for every /docs/* content page.
@@ -62,8 +64,29 @@ export function DocsHero({
   description: string;
   badge?: 'Beta' | 'Coming soon';
 }) {
+  const breadcrumbSchema = getBreadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Documentation', path: '/docs' },
+    { name: title, path: '/docs' },
+  ]);
+
+  const articleSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'TechArticle',
+    headline: title,
+    description: description,
+    inLanguage: 'en-IN',
+    author: {
+      '@type': 'Organization',
+      name: 'Instant',
+      url: SITE_URL,
+    },
+    publisher: ORGANIZATION_SCHEMA,
+  };
+
   return (
     <div className="max-w-3xl border-b border-(--lp2-ink)/10 pb-8">
+      <JsonLd schema={[articleSchema, breadcrumbSchema]} />
       <p className="text-sm font-bold text-(--lp2-grass-deep)">{eyebrow}</p>
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <h1 className="lp2-display text-3xl font-extrabold text-balance sm:text-4xl">

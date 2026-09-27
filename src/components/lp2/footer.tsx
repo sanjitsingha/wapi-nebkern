@@ -3,6 +3,7 @@ import Link from 'next/link';
 
 import type { Lp2Hue } from './decor';
 import { LEGAL_LINKS } from './legal-links';
+import { COMPARISONS } from '@/lib/marketing/comparisons';
 
 const META_LOGO = 'https://media.instant.nebkern.com/assets/meta-logo.png';
 
@@ -119,14 +120,40 @@ export function Lp2Footer() {
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="https://api.producthunt.com/widgets/embed-image/v1/product_review.svg?product_id=1319157&theme=light"
+                src="/images/product-hunt-review.svg"
                 alt="Instant — WhatsApp Automation Platform on Product Hunt"
                 width={250}
                 height={54}
+                loading="lazy"
+                decoding="async"
                 className="h-[54px] w-[250px]"
               />
             </a>
           </div>
+        </div>
+
+        {/* Comparisons band. Its own row after the first section. */}
+        <div className="mt-12 border-t border-(--lp2-ink)/15 pt-8">
+          <p className="flex items-center gap-2 text-sm font-extrabold">
+            <span
+              aria-hidden
+              className="size-2.5 rounded-full"
+              style={{ backgroundColor: 'var(--lp2-tangerine)' }}
+            />
+            Comparisons
+          </p>
+          <ul className="mt-4 grid gap-x-8 gap-y-2.5 sm:grid-cols-2 lg:grid-cols-4">
+            {COMPARISONS.map((c) => (
+              <li key={c.slug}>
+                <Link
+                  href={`/compare/${c.slug}`}
+                  className="text-sm font-medium text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink)"
+                >
+                  Comparison between Instant and {c.rival}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
 
         {/* Legal band. Its own row so all eleven policies fit without one

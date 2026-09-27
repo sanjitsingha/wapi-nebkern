@@ -22,7 +22,7 @@ export function AuthBrandPanel() {
         Turn every WhatsApp
         <br />
         <span className="whitespace-nowrap">
-          <span className="rounded-[0.14em] border border-[#1fae55] bg-[#d4f5c6] px-[0.12em] text-[#25d366]">
+          <span className="rounded-[0.14em] border border-[#1fae55] bg-[#d4f5c6] px-[0.12em] text-[#075e54]">
             @conversation
           </span>{' '}
           into{' '}

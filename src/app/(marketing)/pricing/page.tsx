@@ -14,6 +14,9 @@ import {
   PricingFinalCta,
 } from '@/components/lp2/pricing-page';
 
+import { JsonLd } from '@/components/json-ld';
+import { getPricingSchema } from '@/lib/marketing/schema';
+
 // The dedicated pricing page. Plan data (prices, features, add-ons, the
 // competitor comparison, FAQ) all come from src/lib/marketing/pricing-data.ts
 // so the numbers live in one place. Fully static — nothing here reads the
@@ -30,6 +33,7 @@ export const metadata: Metadata = {
 export default function PricingPage() {
   return (
     <>
+      <JsonLd schema={getPricingSchema()} />
       <Lp2Nav />
       <main>
         <PricingHero />

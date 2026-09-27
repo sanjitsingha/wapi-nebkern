@@ -6,6 +6,8 @@ import type { Lp2Hue } from './decor';
 import { Lp2Nav } from './nav';
 import { Lp2Footer } from './footer';
 import { LegalNav } from './legal-nav';
+import { JsonLd } from '@/components/json-ld';
+import { ORGANIZATION_SCHEMA, getBreadcrumbSchema } from '@/lib/marketing/schema';
 
 // ============================================================
 // Shared shell for the legal pages — the eleven policies in
@@ -150,8 +152,26 @@ export function LegalPage({
   sections: LegalSection[];
   hue?: Lp2Hue;
 }) {
+  const schema = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      ORGANIZATION_SCHEMA,
+      getBreadcrumbSchema([
+        { name: 'Home', path: '/' },
+        { name: title, path: '' },
+      ]),
+      {
+        '@type': 'WebPage',
+        name: title,
+        description: intro,
+        publisher: { '@id': 'https://nebkern.com/#organization' },
+      },
+    ],
+  };
+
   return (
     <>
+      <JsonLd schema={schema} />
       <Lp2Nav />
 
       <main>

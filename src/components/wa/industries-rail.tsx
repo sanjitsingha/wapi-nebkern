@@ -54,24 +54,28 @@ const INDUSTRIES: Industry[] = [
     name: 'Clinics & Healthcare',
     body: 'Appointment reminders that cut no-shows, reports sent to the patient rather than the front desk, and follow-ups that go out without anyone remembering to send them.',
     href: '/features/shared-inbox',
+    image: { src: '/images/industries/healthcare.avif', width: 1697, height: 1131 },
     hue: 'var(--lp2-mint)',
   },
   {
     name: 'Coaching & EdTech',
     body: 'Qualify enquiries the moment they arrive, run batch reminders to everyone enrolled, and keep the whole parent conversation on one record.',
     href: '/ask-maya',
+    image: { src: '/images/industries/coaching.jpg', width: 900, height: 600 },
     hue: 'var(--lp2-sky)',
   },
   {
     name: 'Real Estate',
     body: 'Every site-visit enquiry lands in one inbox, moves through your own stages as it warms, and carries its full chat history into the deal.',
     href: '/features/pipelines',
+    image: { src: '/images/industries/real-estate.webp', width: 1201, height: 667 },
     hue: 'var(--lp2-coral)',
   },
   {
     name: 'Restaurants & Cafés',
     body: 'Take table bookings in chat, push the weekend menu to everyone who opted in, and let the AI answer the timings question for the hundredth time.',
     href: '/features/segments',
+    image: { src: '/images/industries/restaurants.png', width: 1620, height: 1080 },
     hue: 'var(--lp2-tangerine)',
   },
 ];
@@ -128,6 +132,7 @@ export function WaIndustriesRail() {
               <Magnetic>
                 <Link href={industry.href} className={hardShadowButton}>
                   Read more
+                  <span className="sr-only"> about {industry.name}</span>
                   <ArrowRight className="size-4" strokeWidth={2.5} />
                 </Link>
               </Magnetic>
@@ -161,7 +166,13 @@ export function WaIndustriesRail() {
                 alt=""
                 fill
                 sizes="(min-width: 1280px) 840px, 60vw"
-                className="object-cover"
+                // Grey at rest, colour while the card is hovered — the same
+                // trigger as the widening, so one gesture does both.
+                //
+                // `motion-reduce:transition-none` rather than dropping the
+                // effect: someone who asked for less motion still gets the
+                // colour, it just arrives at once instead of fading in.
+                className="object-cover grayscale transition-[filter] duration-500 ease-out group-hover:grayscale-0 motion-reduce:transition-none"
               />
             )}
           </div>

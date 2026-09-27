@@ -68,6 +68,17 @@ const ORGANIZATION_ID = 'https://nebkern.com/#organization';
  *    ₹499/month figure mirrors src/lib/marketing/pricing-data.ts, as the
  *    landing page's pricing note does — change them together.
  */
+const HOMEPAGE_FAQS = [
+  { q: 'Do I need the official WhatsApp Business API?', a: 'Yes — Instant is an official Meta Tech Provider and runs on Meta’s own Cloud API, which is what keeps your number safe from bans and your messages compliant. Connecting takes a few clicks through embedded signup, and we walk you through it.' },
+  { q: 'What does “official Meta Tech Provider” actually mean?', a: 'Meta reviews and approves the companies allowed to build on the WhatsApp Business Platform, and Instant is one of them. In practice it means you connect to Meta directly — embedded signup on your own WhatsApp Business Account, direct Cloud API access, and message charges billed to you by Meta at Meta’s published rates, with no reseller sitting in the middle taking a cut.' },
+  { q: 'Can my whole team use one WhatsApp number?', a: 'That is exactly what Instant is for. Everyone works from a shared inbox on the same number, with assignments, internal notes and the full conversation history — no more forwarding screenshots.' },
+  { q: 'How does the AI agent actually learn my business?', a: 'You upload your own knowledge base — product docs, FAQs, policies. It answers routine questions instantly, writes lead details into contact fields, and hands off to a human whenever it should. Test everything in the playground before it goes anywhere near a customer.' },
+  { q: 'What happens when the free trial ends?', a: 'Your 14-day trial includes every feature. When it ends, pick a plan to keep sending — your data, contacts and history stay untouched either way.' },
+  { q: 'Can I send bulk broadcasts?', a: 'Yes — build campaigns on Meta-approved templates, target them with tags, lists and segments, and watch delivery and read stats update in real time.' },
+  { q: 'Does it connect to my other tools?', a: 'Zapier, Make and n8n via outbound webhooks (message received, contact created, deal stage changed, and more), plus a REST API for creating contacts or sending messages from any system you already run.' },
+  { q: 'Can I bring Instagram and Messenger in too?', a: 'Yes — on plans with those channels, Instagram DMs and Messenger threads land in the same shared inbox, so one team covers all three.' },
+];
+
 const STRUCTURED_DATA = {
   '@context': 'https://schema.org',
   '@graph': [
@@ -88,7 +99,11 @@ const STRUCTURED_DATA = {
       '@type': 'WebSite',
       '@id': `${SITE_URL}/#website`,
       name: 'Instant',
-      alternateName: ['Instant by Nebkern', 'Instant — WhatsApp CRM & Marketing Automation'],
+      alternateName: [
+        'Instant by Nebkern',
+        'Instant — WhatsApp CRM & Marketing Automation',
+        'Instant — Grow your business with the help of WhatsApp',
+      ],
       url: `${SITE_URL}/`,
       inLanguage: 'en-IN',
       publisher: { '@id': ORGANIZATION_ID },
@@ -103,6 +118,17 @@ const STRUCTURED_DATA = {
       description: DESCRIPTION,
       publisher: { '@id': ORGANIZATION_ID },
       offers: { '@type': 'Offer', price: '499', priceCurrency: 'INR' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: HOMEPAGE_FAQS.map((faq) => ({
+        '@type': 'Question',
+        name: faq.q,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.a,
+        },
+      })),
     },
   ],
 };

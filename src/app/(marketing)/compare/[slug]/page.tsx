@@ -53,6 +53,9 @@ export async function generateMetadata({
   };
 }
 
+import { JsonLd } from '@/components/json-ld';
+import { getComparisonPageSchema } from '@/lib/marketing/schema';
+
 export default async function ComparePage({
   params,
 }: {
@@ -64,6 +67,7 @@ export default async function ComparePage({
 
   return (
     <>
+      <JsonLd schema={getComparisonPageSchema(data)} />
       <Lp2Nav />
       <main>
         <ComparisonHero data={data} />

@@ -10,6 +10,9 @@ import {
   PipelinesHero,
 } from '@/components/lp2/feature-pipelines';
 
+import { JsonLd } from '@/components/json-ld';
+import { getFeatureSchema } from '@/lib/marketing/schema';
+
 export const metadata: Metadata = {
   title: { absolute: 'Sales Pipelines built on the conversation — Instant' },
   description:
@@ -18,9 +21,17 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+const schema = getFeatureSchema({
+  name: 'Sales Pipelines',
+  description:
+    'Drag WhatsApp conversations through your own sales stages. The chat is the deal: history, custom fields and owner on one record, with stage automations.',
+  path: '/features/pipelines',
+});
+
 export default function PipelinesPage() {
   return (
     <>
+      <JsonLd schema={schema} />
       <Lp2Nav />
       <main>
         <PipelinesHero />

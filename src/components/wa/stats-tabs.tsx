@@ -76,8 +76,8 @@ export function WaStatsTabs({ stats }: { stats: readonly WaStat[] }) {
             <span
               className={cn(
                 'block text-[clamp(2.5rem,5vw,3.75rem)] leading-none tracking-[-0.02em]',
-                'text-white/30 transition-colors group-data-[active]:text-white',
-                'group-hover:text-white/60 group-data-[active]:group-hover:text-white'
+                'text-white/50 transition-colors group-data-[active]:text-white',
+                'group-hover:text-white/70 group-data-[active]:group-hover:text-white'
               )}
             >
               {s.value}
@@ -85,8 +85,8 @@ export function WaStatsTabs({ stats }: { stats: readonly WaStat[] }) {
             <span
               className={cn(
                 waType.bodyMd,
-                'mt-3 block whitespace-nowrap text-white/40 transition-colors',
-                'group-data-[active]:text-white/80 lg:whitespace-normal'
+                'mt-3 block whitespace-nowrap text-white/60 transition-colors',
+                'group-data-[active]:text-white/90 lg:whitespace-normal'
               )}
             >
               {s.label}
@@ -122,6 +122,7 @@ export function WaStatsTabs({ stats }: { stats: readonly WaStat[] }) {
               <Magnetic radius="full">
                 <WaPill href={s.href} onDark>
                   Read more
+                  <span className="sr-only"> about {s.label}</span>
                 </WaPill>
               </Magnetic>
             </div>

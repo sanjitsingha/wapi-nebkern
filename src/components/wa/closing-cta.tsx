@@ -29,7 +29,7 @@ export function WaClosingCta() {
             control. Dots are aria-hidden: the sentence already says it. */}
         <h2 className={cn(waType.displayXl, 'text-balance')}>
           Your customers are already{' '}
-          <span className="text-(--wa-green)">typing</span>
+          <span className="text-[#075e54]">typing</span>
           <span aria-hidden className="wa-typing">
             <span />
             <span />

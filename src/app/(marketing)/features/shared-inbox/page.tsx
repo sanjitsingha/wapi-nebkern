@@ -11,6 +11,9 @@ import {
   InboxTrio,
 } from '@/components/lp2/feature-inbox';
 
+import { JsonLd } from '@/components/json-ld';
+import { getFeatureSchema } from '@/lib/marketing/schema';
+
 export const metadata: Metadata = {
   title: { absolute: 'Shared Team Inbox for WhatsApp, Instagram & Messenger — Instant' },
   description:
@@ -19,9 +22,17 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+const schema = getFeatureSchema({
+  name: 'Shared Team Inbox',
+  description:
+    'One WhatsApp number your whole team can answer. Assign chats, leave internal notes and keep history on the contact — WhatsApp, Instagram and Messenger.',
+  path: '/features/shared-inbox',
+});
+
 export default function SharedInboxPage() {
   return (
     <>
+      <JsonLd schema={schema} />
       <Lp2Nav />
       <main>
         <InboxHero />

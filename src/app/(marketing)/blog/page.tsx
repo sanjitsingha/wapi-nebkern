@@ -25,6 +25,9 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+import { JsonLd } from '@/components/json-ld';
+import { ORGANIZATION_SCHEMA, getBreadcrumbSchema, SITE_URL } from '@/lib/marketing/schema';
+
 export default async function Lp2BlogIndexPage() {
   const posts = await getPublishedPosts();
 
@@ -40,8 +43,36 @@ export default async function Lp2BlogIndexPage() {
     dateLabel: formatPostDate(p.publishedAt),
   }));
 
+  const blogIndexSchema = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      ORGANIZATION_SCHEMA,
+      getBreadcrumbSchema([
+        { name: 'Home', path: '/' },
+        { name: 'Blog', path: '/blog' },
+      ]),
+      {
+        '@type': 'Blog',
+        '@id': `${SITE_URL}/blog#blog`,
+        name: 'Instant Blog',
+        description:
+          'Insights to scale your brand with WhatsApp automation and AI-powered business intelligence.',
+        url: `${SITE_URL}/blog`,
+        publisher: { '@id': 'https://nebkern.com/#organization' },
+        blogPost: items.slice(0, 10).map((p) => ({
+          '@type': 'BlogPosting',
+          headline: p.title,
+          description: p.excerpt ?? undefined,
+          url: `${SITE_URL}/blog/${p.slug}`,
+          image: p.coverImageUrl ? [p.coverImageUrl] : undefined,
+        })),
+      },
+    ],
+  };
+
   return (
     <>
+      <JsonLd schema={blogIndexSchema} />
       <Lp2Nav />
       <main>
         <Lp2BlogBrowser posts={items} />

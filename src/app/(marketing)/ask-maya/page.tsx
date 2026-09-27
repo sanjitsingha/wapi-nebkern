@@ -12,6 +12,9 @@ import {
   MayaChooser,
 } from '@/components/lp2/ask-maya';
 
+import { JsonLd } from '@/components/json-ld';
+import { getFeatureSchema } from '@/lib/marketing/schema';
+
 export const metadata: Metadata = {
   title: { absolute: 'Ask Maya — the AI assistant, Flows & Automations behind Instant' },
   description:
@@ -24,9 +27,17 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+const schema = getFeatureSchema({
+  name: 'Ask Maya AI',
+  description:
+    'Maya, an AI assistant trained on your own knowledge base, plus visual Flows and rule-based Automations — so no WhatsApp customer waits on a sleeping team.',
+  path: '/ask-maya',
+});
+
 export default function AskMayaPage() {
   return (
     <>
+      <JsonLd schema={schema} />
       <Lp2Nav />
       <main>
         <MayaHero />

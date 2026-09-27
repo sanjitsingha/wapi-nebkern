@@ -4,14 +4,30 @@ import { ArrowRight } from 'lucide-react';
 
 import { DOCS_NAV, docHref } from '@/lib/docs/nav';
 import { cn } from '@/lib/utils';
+import { JsonLd } from '@/components/json-ld';
+import { getBreadcrumbSchema, SITE_URL } from '@/lib/marketing/schema';
 
 export const metadata: Metadata = {
   alternates: { canonical: '/docs' },
 };
 
 export default function DocsIndexPage() {
+  const breadcrumbSchema = getBreadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Documentation', path: '/docs' },
+  ]);
+
+  const collectionSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'Documentation — Instant',
+    description:
+      'Everything Instant can do — channels, the shared inbox, CRM, campaigns, automations, AI agents, billing, and the API — documented in detail.',
+    url: `${SITE_URL}/docs`,
+  };
   return (
     <div className="max-w-4xl">
+      <JsonLd schema={[collectionSchema, breadcrumbSchema]} />
       <p className="text-sm font-bold text-(--lp2-grass-deep)">Documentation</p>
       <h1 className="lp2-display mt-2 text-3xl font-extrabold text-balance sm:text-4xl">
         Everything Instant can do

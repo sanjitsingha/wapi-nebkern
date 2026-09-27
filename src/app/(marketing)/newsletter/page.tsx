@@ -6,6 +6,8 @@ import { Lp2Nav } from '@/components/lp2/nav';
 import { Lp2Footer } from '@/components/lp2/footer';
 import { Highlight } from '@/components/lp2/decor';
 import { Lp2NewsletterForm } from '@/components/lp2/newsletter-form';
+import { JsonLd } from '@/components/json-ld';
+import { getBreadcrumbSchema, SITE_URL } from '@/lib/marketing/schema';
 
 export const metadata: Metadata = {
   alternates: { canonical: '/newsletter' },
@@ -19,8 +21,23 @@ export const metadata: Metadata = {
 // wedged between eleven policy links converts like one, and this is
 // somewhere a link in an email or a social bio can point at.
 export default function NewsletterPage() {
+  const breadcrumbSchema = getBreadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Newsletter', path: '/newsletter' },
+  ]);
+
+  const pageSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: 'Newsletter — Instant',
+    description:
+      'One email a month on WhatsApp marketing, AI agents and what actually moves the needle for teams selling on chat.',
+    url: `${SITE_URL}/newsletter`,
+  };
+
   return (
     <>
+      <JsonLd schema={[pageSchema, breadcrumbSchema]} />
       <Lp2Nav />
 
       <main>
