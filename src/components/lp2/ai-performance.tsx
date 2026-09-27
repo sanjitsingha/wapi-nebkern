@@ -93,9 +93,9 @@ export function Lp2AiPerformance() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHead
           hue="coral"
-          title="10X your performance with Maya"
-          highlight="10X"
-          subtitle="Let Maya take the repetitive work off your team, so the hours they do spend on WhatsApp go into the conversations that build relationships — and revenue."
+          title="Grow your business with Maya"
+          highlight="Maya"
+          subtitle="Maya never goes offline. She answers 24/7 and turns regular chats into customers."
         />
 
         {/* `mt-20` rather than the usual 14: the stat pills hang above

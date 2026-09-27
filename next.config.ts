@@ -212,6 +212,15 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        // /compare/instant-vs-msg91 shipped and was live, so it may be
+        // crawled or linked. Retiring it to a 404 throws that away;
+        // sending it to the hub keeps whatever it earned and lands the
+        // reader on the other comparisons.
+        source: "/compare/instant-vs-msg91",
+        destination: "/compare",
+        permanent: true,
+      },
+      {
         source: "/autopilot",
         destination: "/ask-maya",
         permanent: true,

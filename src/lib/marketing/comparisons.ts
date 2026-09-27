@@ -49,6 +49,13 @@ export interface Comparison {
    * sizes by height and lets the width follow.
    */
   rivalLogo?: { src: string; width: number; height: number };
+  /**
+   * Height class for that mark. The lockups have different
+   * proportions — Interakt is about 3:1, WATI 2.9:1 — so one shared
+   * height draws them at visibly different widths. Sizing each to land
+   * near the same *width* is what reads as balanced beside ours.
+   */
+  rivalLogoClass?: string;
   /** Their pricing page — the source for every figure in `rows`. */
   source: string;
   /** ISO date those figures were last read from `source`. */
@@ -76,6 +83,7 @@ export const COMPARISONS: Comparison[] = [
       width: 3750,
       height: 1249,
     },
+    rivalLogoClass: 'h-11 w-auto',
     source: 'https://www.interakt.shop/pricing/',
     checkedOn: '2026-09-25',
     title: 'Instant vs Interakt — WhatsApp API pricing and features compared',
@@ -145,6 +153,8 @@ export const COMPARISONS: Comparison[] = [
   {
     slug: 'instant-vs-wati',
     rival: 'WATI',
+    rivalLogo: { src: '/images/compare/wati.svg', width: 1440, height: 490 },
+    rivalLogoClass: 'h-10 w-auto',
     source: 'https://www.wati.io/pricing/',
     checkedOn: '2026-09-25',
     title: 'Instant vs WATI — WhatsApp API seats, AI and trials compared',
@@ -212,66 +222,76 @@ export const COMPARISONS: Comparison[] = [
     hue: 'sky',
   },
   {
-    slug: 'instant-vs-msg91',
-    rival: 'MSG91',
-    source: 'https://msg91.com/in/pricing/whatsapp',
-    checkedOn: '2026-09-25',
-    title: 'Instant vs MSG91 — a WhatsApp CRM against a messaging API',
+    slug: 'instant-vs-aisensy',
+    rival: 'AiSensy',
+    rivalLogo: { src: '/images/compare/aisensy.webp', width: 904, height: 253 },
+    rivalLogoClass: 'h-9 w-auto',
+    source: 'https://aisensy.com/pricing/',
+    checkedOn: '2026-09-27',
+    title: 'Instant vs AiSensy — WhatsApp API pricing and AI compared',
     metaDescription:
-      'Instant and MSG91 compared on what each one actually is, what the platform fee buys, and what MSG91 publishes. Figures read from their pricing page on 25 September 2026.',
+      'Instant and AiSensy side by side on what each publishes, what the AI costs, and who each one suits. AiSensy figures read from their own pricing page on 27 September 2026.',
     intro:
-      'These are not quite the same kind of product, and the honest comparison starts there. MSG91 is a communication API platform — WhatsApp sits alongside SMS, email and voice, and you build the interface. Instant is the finished thing: an inbox your team logs into, with AI, campaigns and a pipeline already in it.',
+      'Both run on the official WhatsApp Business API, so Meta’s per-conversation charges are identical either way. The difference is what you can work out before you sign up: AiSensy publishes its add-ons and a free tier but not its paid plan prices, and its AI is billed separately from the platform.',
     rows: [
       {
-        feature: 'What you are buying',
-        instant: 'A ready-made CRM: shared inbox, AI agent, campaigns, pipeline',
-        rival: 'A messaging API platform — WhatsApp alongside SMS, email and voice',
+        feature: 'Paid plan prices',
+        instant: '₹499, ₹799 and ₹999 a month, on the pricing page',
+        rival: 'Not published on their pricing page — it asks you to compare plans',
       },
       {
-        feature: 'Platform fee',
-        instant: '₹499/mo on Starter, ₹799 on Growth, ₹999 on Business',
-        rival: '₹500/month, the first two months waived, plus 18% GST',
+        feature: 'A free tier',
+        instant: 'None — a 14-day trial, then a plan',
+        rival: 'A Free Forever plan, under their fair-use policy',
         rivalBetter: true,
       },
       {
-        feature: 'Message charges',
-        instant: 'Billed by Meta, to you, at Meta’s published rates',
-        rival: 'Billed per their rate card; the rates are not shown on that page',
-      },
-      {
-        feature: 'Shared inbox for a team',
-        instant: 'Included — assignment, notes, roles and full contact history',
-        rival: 'Not published on their WhatsApp pricing page',
-      },
-      {
         feature: 'AI replies',
-        instant: 'Maya is part of Growth. Unlimited replies, no per-message fee',
-        rival: 'Not published on their WhatsApp pricing page',
+        instant: 'Maya is part of Growth at ₹799/mo. Unlimited replies',
+        rival: 'AI Agent Builder ₹1,350/mo for 1,000 AI messages, on top of the plan',
       },
       {
-        feature: 'Knowing the bill before you commit',
-        instant: 'Plans and what is in them are on the pricing page',
-        rival: 'The page asks you to contact their team for personalised pricing',
+        feature: 'Chatbot building',
+        instant: 'Flows and automations included on Growth',
+        rival: 'Drag-and-drop builder ₹2,500/mo for 5 chatbots, or ₹2,250 billed annually',
       },
       {
-        feature: 'Getting started',
-        instant: '14 days free, every feature, no card',
-        rival: 'Two months of the platform fee waived; trial terms not published',
+        feature: 'Team members',
+        instant: 'Starter is a single user; Growth and Business add the team',
+        rival: 'Unlimited users',
+        rivalBetter: true,
+      },
+      {
+        feature: 'Channels in one inbox',
+        instant: 'WhatsApp, Instagram and Messenger',
+        rival: 'WhatsApp',
+      },
+      {
+        feature: 'Meta’s conversation charges',
+        instant: 'Billed by Meta, to you, at Meta’s rates',
+        rival: 'Meta’s own rates; conversation credits recharged separately, pre-paid',
+        rivalBetter: true,
+      },
+      {
+        feature: 'An Indian number',
+        instant: 'Use the number you already have',
+        rival: 'Virtual number add-on: ₹2,000 + GST a year, or ₹299 a quarter',
       },
     ],
     verdict: {
       instant: [
-        'You want software your team opens tomorrow, not an API to build against.',
-        'The inbox, the AI and the pipeline should be one product with one bill.',
-        'You want to see what it costs and what is included without a sales call.',
+        'You want AI answering from day one without a second subscription and a message meter — ₹799 all in, against a plan price plus ₹1,350 for a thousand AI messages.',
+        'You answer on Instagram and Messenger as well as WhatsApp.',
+        'You would rather read the price than request it.',
+        'You want the pipeline, the inbox and the AI to be one product with one bill.',
       ],
       rival: [
-        'You are a developer wiring WhatsApp into your own product, and the interface is yours to build.',
-        'You need SMS, email and voice on the same account as WhatsApp — Instant is WhatsApp, Instagram and Messenger only.',
-        'You want the lowest possible platform fee and do not need a CRM on top of it.',
+        'You want to start on a free plan and stay there — Instant has a trial, not a free tier.',
+        'You need many people in the account from the outset; their users are unlimited and Instant’s Starter is a single seat.',
+        'You prefer pre-paid conversation credits to charges landing on a card.',
       ],
     },
-    hue: 'tangerine',
+    hue: 'mint',
   },
 ];
 

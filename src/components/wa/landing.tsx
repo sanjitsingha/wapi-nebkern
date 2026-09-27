@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { SAMPLE_BLOG_CARDS, WaBlogRail, type WaBlogCardItem } from './blog-rail';
 import { WaFeatureCarousel } from './feature-carousel';
 import { WaHeroChat } from './hero-chat';
+import { WaIndustriesRail } from './industries-rail';
 import { WaClosingCta } from './closing-cta';
 import { WaPriceCompare } from './price-compare';
 import { WaStatsTabs, type WaStat } from './stats-tabs';
@@ -50,9 +51,11 @@ export function WaLanding({ hero = 'centered' }: { hero?: WaHeroVariant }) {
       <WaFeatureCarousel />
       {/* Hidden for now: The WhatsApp Business app, or the API? */}
       {false && <Compare />}
-      <StatsBand />
       <Maya />
-      <Integrations />
+      <WaIndustriesRail />
+      <StatsBand />
+      {/* Hidden for now: Connect the stack you already run */}
+      {false && <Integrations />}
       <WaPriceCompare />
       <Showcase />
       <PricingNote />
@@ -505,18 +508,18 @@ function Maya() {
         size="md"
         title={
           <>
-            10X your performance with{' '}
+            Grow your business with{' '}
             {/* The hero's green highlight box, around the assistant's
                 handle — the same device, so the two read as one page.
                 Not the solid voltage green, which the spec reserves for
                 the CTA pill. `whitespace-nowrap` keeps the handle and its
                 box on one line when the title wraps. */}
             <span className="rounded-[0.14em] border border-[#1fae55] bg-[#d4f5c6] px-[0.12em] whitespace-nowrap text-(--wa-green)">
-              @askMaya
+              @askmaya
             </span>
           </>
         }
-        subtitle="Let Maya take the repetitive work off your team, so the hours they do spend on WhatsApp go into the conversations that build relationships — and revenue."
+        subtitle="Maya never goes offline. She answers 24/7 and turns regular chats into customers."
       />
       <div className="mx-auto mt-14 grid max-w-[1080px] gap-4 md:grid-cols-2">
         {AGENTS.map((a) => (

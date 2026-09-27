@@ -172,7 +172,8 @@ export default async function Lp2Page({
         {/* Placed here on purpose: the product story ends above, and
             "does it fit the stack I already run?" is the first
             practical objection once someone believes the story. */}
-        <Lp2Integrations />
+        {/* Hidden for now: Connect the stack you already run */}
+        {false && <Lp2Integrations />}
 
         <Lp2Apart />
         {/* Still no pricing block — plans live on /pricing, linked from

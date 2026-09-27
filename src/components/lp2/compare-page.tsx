@@ -82,7 +82,11 @@ export function ComparisonTable({ data }: { data: Comparison }) {
                   width={data.rivalLogo.width}
                   height={data.rivalLogo.height}
                   sizes="160px"
-                  className="h-11 w-auto"
+                  // SVGs skip the optimiser: Next refuses them unless
+                  // the whole app opts in, and there is nothing to gain
+                  // on a vector this small.
+                  unoptimized={data.rivalLogo.src.endsWith('.svg')}
+                  className={data.rivalLogoClass ?? 'h-9 w-auto'}
                 />
               ) : (
                 <span className="lp2-display text-lg font-extrabold text-(--lp2-ink-soft)">
