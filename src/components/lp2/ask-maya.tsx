@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -75,231 +76,51 @@ export function MayaHero() {
     <section className="relative -mt-19 overflow-hidden bg-(--lp2-maya-soft) pt-19 sm:-mt-20 sm:pt-20">
       <DotField />
 
-      <div className="relative mx-auto max-w-6xl px-4 pt-14 pb-20 sm:px-6 sm:pt-20 sm:pb-28">
-        {/* The badge, paragraph and CTA that used to fill the hero are
-            gone; the window is the whole of it now. The page's h1 lives
-            inside, on the lockup — see MayaWindow. */}
-        <MayaWindow />
+      <div className="relative mx-auto max-w-6xl px-4 pt-14 pb-16 text-center sm:px-6 sm:pt-20 sm:pb-24">
+        <span
+          className="inline-flex items-center gap-2 rounded-full border-2 border-(--lp2-ink) bg-white px-3.5 py-1.5 text-xs font-bold shadow-(--lp2-shadow-sm)"
+          style={{ transform: 'rotate(-1.5deg)' }}
+        >
+          <Sparkle color="maya" className="size-3.5" />
+          AI Assistant for WhatsApp
+        </span>
+
+        <h1 className="mt-6 flex flex-col items-center justify-center gap-3">
+          <MayaLockup
+            variant="ask"
+            priority
+            className="h-[54px] sm:h-[76px] lg:h-[94px]"
+          />
+          <span className="sr-only">, the 24/7 AI Assistant for WhatsApp</span>
+        </h1>
+
+        <p className="mx-auto mt-6 max-w-2xl text-xl leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-2xl">
+          Trained on your own docs, catalogues, and FAQs. Answers customer
+          questions in your voice 24/7, qualifies leads, and hands over the
+          moment a person is needed.
+        </p>
+
+        <div className="mt-8 flex justify-center">
+          <Btn href="/signup">
+            Start free trial — 14 days
+            <ArrowRight className="size-5" strokeWidth={2.75} />
+          </Btn>
+        </div>
+
+        {/* Hero cover image card */}
+        <div className="relative mx-auto mt-12 overflow-hidden rounded-2xl border-2 border-(--lp2-ink) bg-white shadow-(--lp2-shadow-lg) sm:mt-16 sm:rounded-3xl">
+          <Image
+            src="/images/features/maya-ai-agent-cover-image.png"
+            alt="Maya AI Agent — The AI assistant, Flows & Automations for WhatsApp"
+            width={3168}
+            height={1344}
+            priority
+            className="w-full h-auto object-cover"
+            sizes="(min-width: 1280px) 1152px, (min-width: 640px) 90vw, 100vw"
+          />
+        </div>
       </div>
     </section>
-  );
-}
-
-/** The exchange inside the window.
- *
- *  A different question from the one MayaChatCard answers further down.
- *  Both are good demonstrations, but running the same shipping-and-COD
- *  exchange twice on one page makes the second read as a repeat rather
- *  than a second proof.
- *
- *  Three turns, ending on the customer — so the typing indicator that
- *  follows has someone to be waiting for, and the conversation reads as
- *  still running rather than stopped. */
-const HERO_THREAD = [
-  { side: 'in', text: 'My order says delivered but nothing arrived 😕' },
-  {
-    side: 'out',
-    text: "I can see it was left with your building's reception at 2:14pm. If it isn't there, I'll raise a claim now — shall I?",
-  },
-  { side: 'in', text: 'Yes please, go ahead 🙏' },
-] as const;
-
-/** Each bubble waits this much longer than the one before it. */
-const STAGGER_MS = 550;
-
-/**
- * The hero's window — a plain white panel, no browser chrome.
- *
- * Same handwriting as every other large surface on the site — 2px ink
- * outline plus the hard offset shadow — sized up to `shadow-lg` for the
- * reason apart.tsx gives: under a box this big the 4px offset stops
- * reading as solid and starts looking like a misprint.
- *
- * Height comes from `aspect-video` on desktop, but a fixed minimum on
- * phones: 16:9 across a 350px screen is under 200px tall, which the
- * lockup and two bubbles do not fit inside. The ratio is a nice-to-have
- * for the window's proportion; legible content is not, so the ratio is
- * what gives way at the narrow end.
- */
-function MayaWindow() {
-  return (
-    <div className="flex min-h-[30rem] w-full flex-col rounded-2xl border-2 border-(--lp2-ink) bg-white px-5 pt-7 pb-5 shadow-(--lp2-shadow-lg) sm:aspect-video sm:min-h-0 sm:rounded-3xl sm:px-8 sm:pt-8 sm:pb-6">
-      {/* The lockup is the page's h1: it spells the page's name, and
-          its alt text ("ask maya") is what a screen reader announces
-          and what a search result shows. Nothing else on the page is
-          a heading of this rank.
-
-          Stepped by height at each breakpoint rather than set as a
-          percentage of the panel — MayaLockup sizes by height so its
-          width can stay `auto`, which is what keeps the true aspect
-          ratio and stops Next warning about a modified dimension. The
-          three steps track how much room the window actually has:
-          small on a phone, largest once the panel is at full width. */}
-      <h1 className="flex shrink-0 justify-center self-center">
-        <MayaLockup
-          variant="ask"
-          priority
-          className="h-[54px] sm:h-[72px] lg:h-[92px]"
-        />
-        {/* The lockup's alt alone gave the page's only h1 the two words
-            "ask maya", which says nothing about what the page is. This
-            finishes the sentence for search and screen readers — the
-            heading reads "ask maya, the AI assistant for WhatsApp" —
-            without changing what a sighted visitor sees. */}
-        <span className="sr-only">, the AI assistant for WhatsApp</span>
-      </h1>
-
-      {/* Status line under the mark. Fills the gap the lockup used to
-          leave and does a job while it is there: it says the thing a
-          hero paragraph would have said, in the register of a chat
-          window rather than a pitch. */}
-      <p className="mt-3 flex shrink-0 items-center justify-center gap-2 self-center text-[11px] font-bold text-(--lp2-ink-soft) sm:text-xs">
-        <span className="size-2 rounded-full bg-(--lp2-maya)" />
-        Trained on your docs · replies in seconds · never off duty
-      </p>
-
-      {/* The conversation, in the same speech-bubble vocabulary as the
-          "10X your performance with Maya" cards on the landing page —
-          see HeroBubble for why it is a copy rather than a shared
-          import.
-
-          `flex-1` + `justify-end` is what stops the window looking
-          half-empty: the thread grows from the composer upward, the way
-          a real chat does, so any leftover height collects between the
-          mark and the first bubble instead of pooling at the bottom. */}
-      <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-end gap-3.5 py-6 sm:gap-4">
-        {HERO_THREAD.map((m, i) => (
-          // Staggered so the turns land in sequence and read as a
-          // question ANSWERED, not three boxes appearing at once. Each
-          // waits long enough to feel like a reply — but well short of
-          // a real pause, since nobody watches a hero for that long.
-          <HeroBubble
-            key={m.text}
-            side={m.side}
-            text={m.text}
-            delayMs={i * STAGGER_MS}
-          />
-        ))}
-
-        {/* Maya starting her next reply. The conversation is left
-            running rather than finished, which is the point of the
-            whole panel — and it gives the eye something moving to land
-            on after the entrance animations have all played out. */}
-        <TypingBubble delayMs={HERO_THREAD.length * STAGGER_MS} />
-      </div>
-
-      {/* A composer, greyed and inert. Not a real input: there is
-          nothing on this page for a typed message to go to, and a box
-          that accepts text and does nothing is worse than one that
-          plainly does not. `aria-hidden` for the same reason — it is a
-          picture of an input, so a screen reader should not offer it as
-          one. It anchors the bottom edge the way a titlebar would have
-          anchored the top. */}
-      <div
-        aria-hidden
-        className="mx-auto flex w-full max-w-xl shrink-0 items-center gap-3 rounded-full border-2 border-(--lp2-ink)/15 bg-(--lp2-cream) px-4 py-2.5 sm:px-5 sm:py-3"
-      >
-        <span className="flex-1 truncate text-[13px] font-medium text-(--lp2-ink-soft)/60 sm:text-sm">
-          Ask Maya anything…
-        </span>
-        {/* Ink glyph, not white: white on `--lp2-maya` is 2.46:1 and
-            the arrow disappears into the button. Ink is 7.13:1 there —
-            the same reason lp2.css says ink on the greens, never
-            white. */}
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-full border-2 border-(--lp2-ink) bg-(--lp2-maya) sm:size-8">
-          <Send className="size-3.5 text-(--lp2-ink)" strokeWidth={2.75} />
-        </span>
-      </div>
-    </div>
-  );
-}
-
-/** Maya composing — the three-dot indicator, using the `lp2-typing-dot`
- *  keyframe that has been sitting in lp2.css unused. Shaped as a bubble
- *  on her side of the thread so it reads as her turn, not a spinner. */
-function TypingBubble({ delayMs }: { delayMs: number }) {
-  return (
-    <div
-      className="lp2-bubble-in flex justify-end"
-      style={{ animationDelay: `${delayMs}ms` }}
-    >
-      <span
-        className="flex items-center gap-1.5 rounded-2xl rounded-br-md border-2 border-(--lp2-ink) bg-(--lp2-mint) px-4 py-3 shadow-[3px_3px_0_var(--lp2-ink)]"
-        // Announced as a status rather than read as three empty spans.
-        role="status"
-        aria-label="Maya is typing"
-      >
-        {[0, 1, 2].map((i) => (
-          <span
-            key={i}
-            className="lp2-typing-dot size-1.5 rounded-full bg-(--lp2-maya-deep)"
-            // The three dots run the same 1.4s loop a beat apart, which
-            // is what makes it a wave rather than a blink.
-            style={{ animationDelay: `${delayMs + i * 160}ms` }}
-          />
-        ))}
-      </span>
-    </div>
-  );
-}
-
-/**
- * A speech bubble, matching Lp2AiPerformance's `Bubble` exactly — the
- * squared-off corner on the speaker's side, the ink outline, the 2px
- * offset shadow, mint for Maya and white for the customer.
- *
- * Deliberately a copy rather than an import: that one is a private
- * helper inside ai-performance.tsx, and its badge reads "AI" where this
- * page names her outright. Two small components that happen to look
- * alike is the cheaper mistake here; exporting it would tie a landing
- * page section's internals to this page's hero. If a third caller ever
- * wants it, that is the point to lift it into decor.tsx properly.
- */
-function HeroBubble({
-  side,
-  text,
-  delayMs = 0,
-}: {
-  side: 'in' | 'out';
-  text: string;
-  /** Staggers the entrance. The CSS uses `backwards` fill, so the
-   *  bubble stays invisible through the delay rather than flashing. */
-  delayMs?: number;
-}) {
-  const out = side === 'out';
-  return (
-    <div
-      className={cn(
-        'lp2-bubble-in flex',
-        out ? 'justify-end' : 'justify-start',
-      )}
-      style={delayMs ? { animationDelay: `${delayMs}ms` } : undefined}
-    >
-      <div
-        className={cn(
-          'max-w-[88%] rounded-2xl border-2 border-(--lp2-ink) px-4 py-3 text-sm leading-relaxed font-medium shadow-[3px_3px_0_var(--lp2-ink)] sm:px-5 sm:py-3.5 sm:text-base',
-          out ? 'rounded-br-md bg-(--lp2-mint)' : 'rounded-bl-md bg-white',
-        )}
-      >
-        {out && (
-          // Her actual mark, not her name set in type. The chip is
-          // sized off the lockup's own ratio (1351 × 493 ≈ 2.74:1), so
-          // the pill hugs it instead of leaving air either side.
-          //
-          // White backing, NOT the lime the text chip used: the lockup
-          // is `--lp2-maya` green, which lands at 1.69:1 against lime —
-          // the mark all but vanishes into its own chip. White gives it
-          // 2.46:1, the most any backing in this palette offers a green
-          // logo. It stays legible because it is a shape at 12px with
-          // an ink-outlined pill around it rather than body text, but
-          // do not push it smaller, and do not put it back on a green.
-          <span className="mb-2 inline-flex items-center rounded-full border-2 border-(--lp2-ink) bg-white px-2.5 py-1">
-            <MayaLockup variant="bare" className="h-[12px]" />
-          </span>
-        )}
-        <p className="leading-snug">{text}</p>
-      </div>
-    </div>
   );
 }
 
