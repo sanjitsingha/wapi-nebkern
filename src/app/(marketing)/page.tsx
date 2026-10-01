@@ -99,11 +99,11 @@ const STRUCTURED_DATA = {
       '@type': 'WebSite',
       '@id': `${SITE_URL}/#website`,
       name: 'Instant',
-      alternateName: [
-        'Instant by Nebkern',
-        'Instant — WhatsApp CRM & Marketing Automation',
-        'Instant — Grow your business with the help of WhatsApp',
-      ],
+      // Names only. The two page titles that used to sit here are
+      // slogans, and Google's site-name guide asks for alternate names
+      // of the site ("a commonly recognized acronym or shorter name"),
+      // not taglines — a list padded with them is weaker evidence.
+      alternateName: ['Instant by Nebkern'],
       url: `${SITE_URL}/`,
       inLanguage: 'en-IN',
       publisher: { '@id': ORGANIZATION_ID },
