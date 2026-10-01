@@ -72,11 +72,29 @@ const OVERVIEW = [
 /* ═══════════════════════════ Hero ═══════════════════════════════ */
 
 export function MayaHero() {
+  // The cover art is the hero now, not a card below it. `min-h`
+  // rather than a fixed height: 80vh is the floor, and the section
+  // still grows if the copy needs more room on a narrow screen.
+  //
+  // The maya-soft fill stays as the backdrop — it shows while the
+  // image loads, and fills any edge object-cover cannot reach.
   return (
-    <section className="relative -mt-19 overflow-hidden bg-(--lp2-maya-soft) pt-19 sm:-mt-20 sm:pt-20">
+    <section className="relative -mt-19 flex min-h-[80vh] items-center overflow-hidden bg-(--lp2-maya-soft) pt-19 sm:-mt-20 sm:pt-20">
+      {/* `alt=""`: as a backdrop it carries no information the copy in
+          front of it does not already say. `priority` because it is
+          the largest thing above the fold. */}
+      <Image
+        src="/images/features/maya-ai-agent-cover-image.png"
+        alt=""
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover"
+      />
+
       <DotField />
 
-      <div className="relative mx-auto max-w-6xl px-4 pt-14 pb-16 text-center sm:px-6 sm:pt-20 sm:pb-24">
+      <div className="relative mx-auto w-full max-w-6xl px-4 pt-14 pb-16 text-center sm:px-6 sm:pt-20 sm:pb-24">
         <span
           className="inline-flex items-center gap-2 rounded-full border-2 border-(--lp2-ink) bg-white px-3.5 py-1.5 text-xs font-bold shadow-(--lp2-shadow-sm)"
           style={{ transform: 'rotate(-1.5deg)' }}
@@ -107,18 +125,6 @@ export function MayaHero() {
           </Btn>
         </div>
 
-        {/* Hero cover image card */}
-        <div className="relative mx-auto mt-12 overflow-hidden rounded-2xl border-2 border-(--lp2-ink) bg-white shadow-(--lp2-shadow-lg) sm:mt-16 sm:rounded-3xl">
-          <Image
-            src="/images/features/maya-ai-agent-cover-image.png"
-            alt="Maya AI Agent — The AI assistant, Flows & Automations for WhatsApp"
-            width={3168}
-            height={1344}
-            priority
-            className="w-full h-auto object-cover"
-            sizes="(min-width: 1280px) 1152px, (min-width: 640px) 90vw, 100vw"
-          />
-        </div>
       </div>
     </section>
   );

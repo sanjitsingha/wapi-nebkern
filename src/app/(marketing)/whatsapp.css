@@ -426,3 +426,15 @@ html:has(.lp2[data-design='whatsapp']) {
     opacity: 1;
   }
 }
+
+/* ── Industry pages run white throughout ──────────────────────────
+   The shared feature blocks paint `section.bg-white`, which the rule
+   above repaints to the cream canvas — so those sections render cream
+   wherever they are used. The industry pages want white end to end,
+   and editing the blocks would change the four /features/* pages too.
+
+   Scoped to the wrapper rather than global: this is a decision about
+   these pages, not about the design. */
+.lp2[data-design='whatsapp'] .industry-white section[class~='bg-white'] {
+  background-color: var(--wa-white) !important;
+}

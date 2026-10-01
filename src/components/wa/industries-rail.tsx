@@ -46,8 +46,8 @@ const INDUSTRIES: Industry[] = [
   {
     name: 'D2C & eCommerce',
     body: 'Recover the carts people abandon, confirm orders in the thread they were bought in, and answer "where is my parcel" before it becomes a support ticket.',
-    href: '/features/campaigns',
-    image: { src: '/images/industries/d2c.jpg', width: 806, height: 475 },
+    href: '/industries/d2c-ecommerce',
+    image: { src: '/images/industries/d2c-hero.jpg', width: 1600, height: 600 },
     hue: 'var(--lp2-lemon)',
   },
   {
@@ -60,7 +60,7 @@ const INDUSTRIES: Industry[] = [
   {
     name: 'Coaching & EdTech',
     body: 'Qualify enquiries the moment they arrive, run batch reminders to everyone enrolled, and keep the whole parent conversation on one record.',
-    href: '/ask-maya',
+    href: '/industries/education',
     image: { src: '/images/industries/coaching.jpg', width: 900, height: 600 },
     hue: 'var(--lp2-sky)',
   },

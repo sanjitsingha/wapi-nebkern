@@ -57,6 +57,8 @@ const MARKETING = [
   '/newsletter',
   '/contact',
   '/compare',
+  '/industries/d2c-ecommerce',
+  '/industries/education',
 ];
 
 /** Product documentation — one entry per `src/app/docs/*`. */

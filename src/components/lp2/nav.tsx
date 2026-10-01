@@ -30,13 +30,31 @@ import { hardShadowButton, press } from './ui';
  * first thing anyone touches, and one that answers back in a different
  * colour every time sets the tone for the whole page.
  */
-// Anchors are absolute (`/#features`) because this nav also renders on
-// the legal and blog pages, where a bare `#features` goes nowhere.
-//
+// Anchors are absolute (`/#industries`) because this nav also renders
+// on the legal and blog pages, where a bare `#industries` goes nowhere.
+
+/**
+ * The Solutions dropdown — one entry per industry page.
+ *
+ * This replaced a Features menu that listed the five product pages.
+ * Those pages still exist and are still linked from the footer and
+ * from Keep reading blocks; they stopped being the nav's top level.
+ *
+ * Two entries, not six. Real Estate, Travel, Healthcare and
+ * Automotive are planned, and each goes in here the day its page
+ * ships — not before. A menu that 404s is worse than a short menu,
+ * and the primary nav is the one place a dead link is certain to be
+ * found.
+ */
+const SOLUTIONS_MENU: { label: string; href: string }[] = [
+  { label: 'Education', href: '/industries/education' },
+  { label: 'D2C & eCommerce', href: '/industries/d2c-ecommerce' },
+];
+
 // Two entries are special-cased on desktop, where they open a panel
-// instead of navigating: `Features` (the mega-menu) and `Resources`
+// instead of navigating: `Solutions` (the mega-menu) and `Resources`
 // (the small dropdown). Both stay in this array because the mobile
-// sheet still renders them — Features as a plain link to the section,
+// sheet still renders them — Solutions with its children listed,
 // Resources with its children listed underneath, since a phone has no
 // room for a hover panel but does have room for three more rows.
 const NAV: {
@@ -46,7 +64,15 @@ const NAV: {
   /** Rendered as a dropdown on desktop, indented rows on mobile. */
   children?: { label: string; href: string }[];
 }[] = [
-  { label: 'Features', href: '/#features', hue: 'lemon' },
+  {
+    label: 'Solutions',
+    // A real destination, not a dead label: the homepage industries
+    // rail. A dropdown whose trigger goes nowhere traps anyone
+    // navigating by keyboard or touch.
+    href: '/#industries',
+    hue: 'lemon',
+    children: SOLUTIONS_MENU,
+  },
   { label: 'Pricing', href: '/pricing', hue: 'sky' },
   {
     label: 'Resources',
@@ -66,33 +92,6 @@ const NAV: {
   { label: 'Contact us', href: '/contact-us', hue: 'mint' },
 ];
 
-/**
- * The Features dropdown.
- *
- * Five entries, not eight, and every one goes to a page written to sell
- * that surface. It used to list eight and send most of them into
- * /docs/* — documentation, which answers "how do I configure this" for
- * someone who already bought. A visitor in the nav has not bought yet,
- * and eight choices where three are near-synonyms ("Multi-channel" vs
- * "Shared Team Inbox", "Contacts & CRM" vs "Sales Pipelines") is a menu
- * that makes them work out our product structure before they can click.
- *
- * The cut ones are not gone from the site — multi-channel is the first
- * thing the inbox page argues, CRM is the record under the pipelines
- * page. They stopped being separate doors.
- *
- * Automations & Flows points at /ask-maya rather than a page of its
- * own: that page already covers both in full, and a second one would
- * compete with it for the same search.
- */
-const FEATURE_MENU: { label: string; href: string }[] = [
-  { label: 'Shared Team Inbox', href: '/features/shared-inbox' },
-  { label: 'Broadcast Campaigns', href: '/features/campaigns' },
-  { label: 'Automations & Flows', href: '/ask-maya' },
-  { label: 'Segments & Lists', href: '/features/segments' },
-  { label: 'Sales Pipelines', href: '/features/pipelines' },
-];
-
 function Logo() {
   return (
     <Link href="/" className="group flex items-center">
@@ -106,7 +105,7 @@ function Logo() {
 }
 
 /**
- * Features trigger + hover/focus dropdown.
+ * Solutions trigger + hover/focus dropdown.
  *
  * CSS-only, driven by `group-hover` and `group-focus-within` on the
  * wrapper — no state, and it opens on keyboard focus too. Two details
@@ -152,7 +151,7 @@ function Logo() {
 const DROPDOWN_CARD_MOTION =
   'invisible -translate-y-4 opacity-0 transition-[opacity,translate,visibility] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:translate-y-0 motion-reduce:transition-none';
 
-const FEATURES_CARD_OPEN =
+const SOLUTIONS_CARD_OPEN =
   'group-hover/feat:visible group-hover/feat:translate-y-0 group-hover/feat:opacity-100 group-hover/feat:duration-350 group-focus-within/feat:visible group-focus-within/feat:translate-y-0 group-focus-within/feat:opacity-100 group-focus-within/feat:duration-350';
 
 const RESOURCES_CARD_OPEN =
@@ -161,7 +160,7 @@ const RESOURCES_CARD_OPEN =
 const DROPDOWN_LIST_MOTION =
   'translate-y-5 opacity-0 transition-[opacity,translate] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:translate-y-0 motion-reduce:transition-none';
 
-const FEATURES_LIST_OPEN =
+const SOLUTIONS_LIST_OPEN =
   'group-hover/feat:translate-y-0 group-hover/feat:opacity-100 group-hover/feat:duration-700 group-hover/feat:delay-250 group-focus-within/feat:translate-y-0 group-focus-within/feat:opacity-100 group-focus-within/feat:duration-700 group-focus-within/feat:delay-250';
 
 const RESOURCES_LIST_OPEN =
@@ -172,7 +171,7 @@ const RESOURCES_LIST_OPEN =
 const DROPDOWN_ROW =
   'block rounded-xl px-3 py-3 text-base font-bold transition-colors hover:bg-(--lp2-cream)';
 
-function FeaturesMenu() {
+function SolutionsMenu() {
   return (
     <div className="group/feat relative">
       <button
@@ -182,14 +181,14 @@ function FeaturesMenu() {
         // same as the plain nav links beside it.
         className="flex items-center gap-1 rounded-lg px-3 py-2 text-base font-semibold transition-colors duration-150 outline-none group-focus-within/feat:bg-(--lp2-ink)/5 group-hover/feat:bg-(--lp2-ink)/5"
       >
-        Features
+        Solutions
         <ChevronDown
           className="size-4 transition-transform duration-200 group-focus-within/feat:rotate-180 group-hover/feat:rotate-180"
           strokeWidth={2.25}
         />
       </button>
 
-      {/* Left-aligned to the trigger rather than centred on it: Features
+      {/* Left-aligned to the trigger rather than centred on it: Solutions
           is the first item in the row, and a wide panel centred on it
           would push out past the logo. The pt-2 is a transparent bridge
           across the visible gap. */}
@@ -197,7 +196,7 @@ function FeaturesMenu() {
         className={cn(
           'absolute top-full left-0 z-40 w-64 pt-2',
           DROPDOWN_CARD_MOTION,
-          FEATURES_CARD_OPEN,
+          SOLUTIONS_CARD_OPEN,
         )}
       >
         {/* A hairline border and a white card with a soft, blurred drop
@@ -205,8 +204,8 @@ function FeaturesMenu() {
             hard offset shadow. `lp2-dropdown` exempts it from the
             WhatsApp design's no-shadow rule (whatsapp.css). */}
         <div className="lp2-dropdown overflow-hidden rounded-2xl border border-(--lp2-ink)/12 bg-white p-2.5 shadow-[0_16px_40px_-12px_rgba(28,30,33,0.22),0_2px_8px_rgba(28,30,33,0.06)]">
-          <div className={cn('flex flex-col gap-1.5', DROPDOWN_LIST_MOTION, FEATURES_LIST_OPEN)}>
-            {FEATURE_MENU.map((it) => (
+          <div className={cn('flex flex-col gap-1.5', DROPDOWN_LIST_MOTION, SOLUTIONS_LIST_OPEN)}>
+            {SOLUTIONS_MENU.map((it) => (
               <Link key={it.label} href={it.href} className={DROPDOWN_ROW}>
                 {it.label}
               </Link>
@@ -221,11 +220,11 @@ function FeaturesMenu() {
 /**
  * The Resources dropdown.
  *
- * Same CSS-only mechanism as FeaturesMenu — `group-hover` plus
+ * Same CSS-only mechanism as SolutionsMenu — `group-hover` plus
  * `group-focus-within`, with a transparent `pt-2` bridge so the pointer
  * can cross the visible gap without the panel closing under it.
  *
- * Unlike Features this one is `relative` and narrow: three links do not
+ * Unlike Solutions this one is `relative` and narrow: three links do not
  * want the full width of the bar, and a full-bleed panel hanging off a
  * short word looks like a mistake.
  */
@@ -261,7 +260,7 @@ function ResourcesMenu({
           RESOURCES_CARD_OPEN,
         )}
       >
-        {/* Same card and shadow as the Features dropdown. */}
+        {/* Same card and shadow as the Solutions dropdown. */}
         <div className="lp2-dropdown overflow-hidden rounded-2xl border border-(--lp2-ink)/12 bg-white p-2.5 shadow-[0_16px_40px_-12px_rgba(28,30,33,0.22),0_2px_8px_rgba(28,30,33,0.06)]">
           <div className={cn('flex flex-col gap-1.5', DROPDOWN_LIST_MOTION, RESOURCES_LIST_OPEN)}>
             {items.map((it) => (
@@ -295,8 +294,8 @@ export function Lp2Nav() {
     <>
       <header className="sticky top-0 z-50 border-b border-(--lp2-ink)/12 bg-(--lp2-cream)/85 backdrop-blur-md">
         <Lp2Announce />
-        {/* `relative` is the positioning anchor the full-width Features
-          mega-menu resolves its `inset-x-0` against — see FeaturesMenu. */}
+        {/* `relative` is the positioning anchor the full-width Solutions
+          mega-menu resolves its `inset-x-0` against — see SolutionsMenu. */}
         <div className="relative mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
           <div>
             <Logo />
@@ -304,8 +303,8 @@ export function Lp2Nav() {
 
           <nav className="hidden items-center gap-3 lg:flex">
             {NAV.map((item) =>
-              item.label === 'Features' ? (
-                <FeaturesMenu key="features" />
+              item.label === 'Solutions' ? (
+                <SolutionsMenu key="solutions" />
               ) : item.children ? (
                 <ResourcesMenu
                   key={item.label}
