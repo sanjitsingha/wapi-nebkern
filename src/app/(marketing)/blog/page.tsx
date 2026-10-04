@@ -19,7 +19,7 @@ export const revalidate = 300;
 // the only page these posts render on.
 export const metadata: Metadata = {
   alternates: { canonical: '/blog' },
-  title: { absolute: 'Blog — Instant' },
+  title: { absolute: 'Blog — Instant for WhatsApp Business' },
   description:
     'Insights to scale your brand with WhatsApp automation and AI-powered business intelligence.',
   robots: { index: true, follow: true },

@@ -74,14 +74,14 @@ export function EducationHero() {
           </span>
 
           <h1 className="lp2-display mt-6 text-4xl leading-[1.08] font-extrabold text-balance sm:text-5xl">
-            Every enquiry answered, every parent kept in the loop
+            Instant for Coaching &amp; Education
           </h1>
 
           <p className="mt-6 text-lg leading-relaxed text-pretty text-white/80 sm:text-xl">
-            Admissions enquiries arrive at nine at night and go cold by
-            morning. Instant answers them while you sleep, keeps the whole
-            conversation on one record, and sends the batch and fee
-            reminders nobody has time to type.
+            Admissions enquiries arrive at ten at night and go cold by
+            morning. Instant answers them while you sleep, moves each one
+            through your own admission stages, and sends the batch, exam
+            and fee reminders nobody has time to type.
           </p>
 
           <div className="mt-9">
@@ -97,21 +97,16 @@ export function EducationHero() {
 }
 
 /**
- * The three-up, in the landing page's card rather than the shared
- * FeatureTrio.
+ * The three-up, flat on white.
  *
- * Forked rather than restyled: FeatureTrio is what the four
- * /features/* pages use, and changing it to suit this page would
- * restyle all of them.
+ * No card, no border, no shadow: the icon, the heading and the
+ * measure do the separating. Cards earn their keep when items sit on
+ * a tinted band or need a hit area — neither is true here, and the
+ * borders were competing with the heading above them.
  *
- * `bg-[var(--wa-white,#fff)]` and not `bg-white`, because whatsapp.css
- * repaints `section.bg-white` to the cream canvas — the plain utility
- * renders cream here. The fallback keeps it white under the playful
- * design, which has no --wa-white.
- *
- * `lp2-hard-shadow` carries no styling of its own. It is the opt-out
- * from that same file's blanket `box-shadow: none !important`, and
- * without it the shadow is stripped with nothing to explain why.
+ * Green only on the icon and on the heading's first clause. It is the
+ * accent that marks what the section is about; spreading it further
+ * would make it decoration rather than emphasis.
  */
 export function EducationTrio() {
   const points = [
@@ -133,28 +128,35 @@ export function EducationTrio() {
   ];
 
   return (
-    <section className="bg-[var(--wa-white,#ffffff)] py-16 sm:py-20">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="grid gap-5 sm:grid-cols-3">
+    <section className="bg-[var(--wa-white,#ffffff)] py-20 sm:py-28">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <h2 className="lp2-display mx-auto max-w-4xl text-center text-4xl leading-[1.1] font-extrabold text-balance sm:text-[3.25rem]">
+          <span className="text-[var(--wa-green,var(--lp2-grass))]">
+            Answer faster
+          </span>
+          , enrol more, and keep everyone told
+        </h2>
+
+        <div className="mt-14 grid gap-x-10 gap-y-12 sm:mt-16 sm:grid-cols-3">
           {points.map((p) => (
-            <div
-              key={p.title}
-              className="lp2-hard-shadow flex flex-col rounded-[25px] bg-white p-7 shadow-[4px_4px_0_2px_rgba(0,0,0,0.05)] sm:p-8"
-            >
-              <span
-                className="flex size-11 items-center justify-center rounded-xl"
-                style={{ backgroundColor: 'var(--lp2-sky-soft)' }}
-              >
-                <p.icon
-                  className="size-5"
-                  style={{ color: 'var(--lp2-sky)' }}
-                  strokeWidth={2.5}
-                />
-              </span>
-              <p className="lp2-display mt-5 text-lg font-extrabold">
+            <div key={p.title}>
+              <p.icon
+                className="size-7 text-[var(--wa-green,var(--lp2-grass))]"
+                strokeWidth={2}
+              />
+              {/* `wa-weight-700`, not `font-extrabold`. This design flattens
+                  every element to 400 with an !important rule (whatsapp.css),
+                  so the Tailwind weight utilities are inert here — the class
+                  looked like it was doing something and was not. That class is
+                  the sanctioned way out of the rule.
+
+                  It replaced a `-webkit-text-stroke` that was thickening the
+                  glyphs to fake what the weight could not do. Real weight is
+                  better: strokes close up the counters and smear at size. */}
+              <h3 className="lp2-display wa-weight-700 mt-5 text-2xl text-(--lp2-ink)">
                 {p.title}
-              </p>
-              <p className="mt-2.5 flex-1 text-base leading-relaxed text-(--lp2-ink-soft)">
+              </h3>
+              <p className="mt-3 text-base leading-relaxed text-(--lp2-ink-soft)">
                 {p.body}
               </p>
             </div>

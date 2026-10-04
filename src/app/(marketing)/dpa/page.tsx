@@ -10,7 +10,7 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // the part most template DPAs forget.
 export const metadata: Metadata = {
   alternates: { canonical: '/dpa' },
-  title: { absolute: 'Data Processing Agreement — Instant' },
+  title: { absolute: 'Data Processing Agreement — Instant for WhatsApp Business' },
   description:
     "Instant's Data Processing Agreement: processor obligations, subprocessors, international transfers, security, breach notification and deletion.",
   robots: { index: true, follow: true },

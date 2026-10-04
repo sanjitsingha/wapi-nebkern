@@ -9,7 +9,7 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // promising one on a legal page would be a promise we'd break.
 export const metadata: Metadata = {
   alternates: { canonical: '/data-retention' },
-  title: { absolute: 'Data Retention & Deletion Policy — Instant' },
+  title: { absolute: 'Data Retention & Deletion — Instant for WhatsApp Business' },
   description:
     'How long Instant keeps each kind of data, what happens when you delete a record or close an account, backup expiry, and what we must retain by law.',
   robots: { index: true, follow: true },

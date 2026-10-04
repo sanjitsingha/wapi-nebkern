@@ -15,7 +15,7 @@ import { JsonLd } from '@/components/json-ld';
 import { getFeatureSchema } from '@/lib/marketing/schema';
 
 export const metadata: Metadata = {
-  title: { absolute: 'Shared Team Inbox for WhatsApp, Instagram & Messenger — Instant' },
+  title: { absolute: 'Shared Team Inbox — Instant for WhatsApp Business' },
   description:
     'One WhatsApp number your whole team can answer. Assign chats, leave internal notes and keep history on the contact — WhatsApp, Instagram and Messenger.',
   alternates: { canonical: '/features/shared-inbox' },

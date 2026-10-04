@@ -10,7 +10,7 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // than one that visibly needs filling in.
 export const metadata: Metadata = {
   alternates: { canonical: '/subprocessors' },
-  title: { absolute: 'Subprocessor List — Instant' },
+  title: { absolute: 'Subprocessor List — Instant for WhatsApp Business' },
   description:
     'The third-party providers Instant uses to process personal data for customers — what each does, what data it sees, and how we notify you of changes.',
   robots: { index: true, follow: true },

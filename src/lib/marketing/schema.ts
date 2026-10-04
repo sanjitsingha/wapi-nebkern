@@ -7,6 +7,22 @@ export const SITE_URL = (
 
 export const ORGANIZATION_ID = 'https://nebkern.com/#organization';
 
+/**
+ * The product's full name, as it should appear in metadata, schema and
+ * anywhere Google reads a brand.
+ *
+ * "WhatsApp" is Meta's own capitalisation and the rest of the site
+ * already uses it; spelling it "Whatsapp" in the one place search
+ * engines read the brand would be the wrong half to be casual about.
+ *
+ * BRAND_SHORT is not a fallback — it is the name used in running prose
+ * ("Instant answers them while you sleep"), where the full one would
+ * read as an advert. Both are declared to search engines: the full name
+ * as `name`, the short one as `alternateName`.
+ */
+export const BRAND = 'Instant for WhatsApp Business';
+export const BRAND_SHORT = 'Instant';
+
 export const ORGANIZATION_SCHEMA = {
   '@type': 'Organization',
   '@id': ORGANIZATION_ID,
@@ -32,12 +48,11 @@ export const ORGANIZATION_SCHEMA = {
 export const WEBSITE_SCHEMA = {
   '@type': 'WebSite',
   '@id': `${SITE_URL}/#website`,
-  name: 'Instant',
-  alternateName: [
-    'Instant by Nebkern',
-    'Instant — WhatsApp CRM & Marketing Automation',
-    'Instant — Grow your business with the help of WhatsApp',
-  ],
+  name: BRAND,
+  // Names only. A tagline in alternateName tells Google the brand is
+  // called "Grow your business with the help of WhatsApp", which it is
+  // not — these are the other things people actually type.
+  alternateName: [BRAND_SHORT, 'Instant WhatsApp', 'Instant by Nebkern'],
   url: `${SITE_URL}/`,
   inLanguage: 'en-IN',
   publisher: { '@id': ORGANIZATION_ID },
@@ -84,13 +99,13 @@ export function getPricingSchema() {
       {
         '@type': 'Product',
         '@id': `${SITE_URL}/pricing#product`,
-        name: 'Instant — WhatsApp CRM & Marketing Automation',
+        name: BRAND,
         description:
           'Flat monthly plans with Maya AI included and Meta charges at zero markup on the official WhatsApp Business API.',
         url: `${SITE_URL}/pricing`,
         brand: {
           '@type': 'Brand',
-          name: 'Instant',
+          name: BRAND,
         },
         publisher: { '@id': ORGANIZATION_ID },
         offers: {
@@ -101,7 +116,7 @@ export function getPricingSchema() {
           offerCount: PLANS.length,
           offers: PLANS.map((plan) => ({
             '@type': 'Offer',
-            name: `Instant ${plan.name} Plan`,
+            name: `${BRAND_SHORT} ${plan.name} Plan`,
             price: plan.monthlyPrice.toString(),
             priceCurrency: 'INR',
             priceValidUntil: '2027-12-31',
@@ -137,7 +152,7 @@ export function getFeatureSchema({
       ]),
       {
         '@type': 'SoftwareApplication',
-        name: `Instant — ${name}`,
+        name: `${BRAND} — ${name}`,
         applicationCategory: 'BusinessApplication',
         operatingSystem: 'Web',
         url: `${SITE_URL}${path}`,
@@ -187,7 +202,7 @@ export function getQrGeneratorSchema() {
       ]),
       {
         '@type': 'WebApplication',
-        name: 'Free WhatsApp QR Code Generator — Instant',
+        name: `Free WhatsApp QR Code Generator — ${BRAND_SHORT}`,
         description:
           'Create free, custom WhatsApp QR codes that open directly into chat with pre-filled messages. Download in print-ready PNG and vector SVG.',
         applicationCategory: 'UtilityApplication',
@@ -217,7 +232,9 @@ export function getContactSchema({ isForm = false }: { isForm?: boolean } = {}) 
       ]),
       {
         '@type': 'ContactPage',
-        name: isForm ? 'Contact Instant' : 'Contact Details & Grievance Officer — Instant',
+        name: isForm
+          ? `Contact ${BRAND_SHORT}`
+          : `Contact Details & Grievance Officer — ${BRAND_SHORT}`,
         url: `${SITE_URL}${path}`,
         mainEntity: ORGANIZATION_SCHEMA,
       },

@@ -9,7 +9,7 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // specific about opt-in and opt-out rather than gesturing at "misuse".
 export const metadata: Metadata = {
   alternates: { canonical: '/acceptable-use' },
-  title: { absolute: 'Acceptable Use Policy — Instant' },
+  title: { absolute: 'Acceptable Use Policy — Instant for WhatsApp Business' },
   description:
     'The messaging rules for Instant — opt-in requirements, honouring opt-outs, prohibited content and conduct, and how we enforce them.',
   robots: { index: true, follow: true },

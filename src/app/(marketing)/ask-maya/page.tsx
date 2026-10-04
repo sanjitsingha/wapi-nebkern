@@ -16,7 +16,7 @@ import { JsonLd } from '@/components/json-ld';
 import { getFeatureSchema } from '@/lib/marketing/schema';
 
 export const metadata: Metadata = {
-  title: { absolute: 'Ask Maya — the AI assistant, Flows & Automations behind Instant' },
+  title: { absolute: 'Ask Maya, the AI agent — Instant for WhatsApp Business' },
   description:
     'Maya, an AI assistant trained on your own knowledge base, plus visual Flows and rule-based Automations — so no WhatsApp customer waits on a sleeping team.',
   // The page moved from /autopilot; without this, the old URL and the

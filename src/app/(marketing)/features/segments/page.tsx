@@ -15,7 +15,7 @@ import { JsonLd } from '@/components/json-ld';
 import { getFeatureSchema } from '@/lib/marketing/schema';
 
 export const metadata: Metadata = {
-  title: { absolute: 'Segments & Lists — target the right WhatsApp audience | Instant' },
+  title: { absolute: 'Segments & Lists — Instant for WhatsApp Business' },
   description:
     'Filter WhatsApp contacts by tag, pipeline stage, orders or last activity. Segments stay up to date, lists hold still — both feed campaigns and automations.',
   alternates: { canonical: '/features/segments' },

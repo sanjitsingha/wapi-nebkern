@@ -11,7 +11,7 @@ import { getBreadcrumbSchema, SITE_URL } from '@/lib/marketing/schema';
 
 export const metadata: Metadata = {
   alternates: { canonical: '/newsletter' },
-  title: { absolute: 'Newsletter — Instant' },
+  title: { absolute: 'Newsletter — Instant for WhatsApp Business' },
   description:
     'One email a month on WhatsApp marketing, AI agents and what actually moves the needle for teams selling on chat.',
   robots: { index: true, follow: true },
@@ -29,7 +29,7 @@ export default function NewsletterPage() {
   const pageSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'Newsletter — Instant',
+    name: 'Newsletter — Instant for WhatsApp Business',
     description:
       'One email a month on WhatsApp marketing, AI agents and what actually moves the needle for teams selling on chat.',
     url: `${SITE_URL}/newsletter`,

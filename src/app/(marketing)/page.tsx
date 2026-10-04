@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     // with the product name, then what it does, then who makes it — the
     // brand is new, and "Instant" alone tells a stranger (and Google)
     // nothing.
-    absolute: 'Instant — Grow your business with the help of WhatsApp',
+    absolute: 'Instant for WhatsApp Business — WhatsApp CRM & Automation',
   },
   description: DESCRIPTION,
   // One official address for the home page, whatever query string it is
@@ -98,12 +98,12 @@ const STRUCTURED_DATA = {
     {
       '@type': 'WebSite',
       '@id': `${SITE_URL}/#website`,
-      name: 'Instant',
+      name: 'Instant for WhatsApp Business',
       // Names only. The two page titles that used to sit here are
       // slogans, and Google's site-name guide asks for alternate names
       // of the site ("a commonly recognized acronym or shorter name"),
       // not taglines — a list padded with them is weaker evidence.
-      alternateName: ['Instant by Nebkern'],
+      alternateName: ['Instant', 'Instant WhatsApp', 'Instant by Nebkern'],
       url: `${SITE_URL}/`,
       inLanguage: 'en-IN',
       publisher: { '@id': ORGANIZATION_ID },
@@ -111,7 +111,7 @@ const STRUCTURED_DATA = {
     {
       '@type': 'SoftwareApplication',
       '@id': `${SITE_URL}/#software`,
-      name: 'Instant',
+      name: 'Instant for WhatsApp Business',
       applicationCategory: 'BusinessApplication',
       operatingSystem: 'Web',
       url: `${SITE_URL}/`,

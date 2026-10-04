@@ -14,7 +14,7 @@ import { JsonLd } from '@/components/json-ld';
 import { getFeatureSchema } from '@/lib/marketing/schema';
 
 export const metadata: Metadata = {
-  title: { absolute: 'Sales Pipelines built on the conversation — Instant' },
+  title: { absolute: 'Sales Pipelines — Instant for WhatsApp Business' },
   description:
     'Drag WhatsApp conversations through your own sales stages. The chat is the deal: history, custom fields and owner on one record, with stage automations.',
   alternates: { canonical: '/features/pipelines' },

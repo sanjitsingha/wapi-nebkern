@@ -20,7 +20,7 @@ export default function DocsIndexPage() {
   const collectionSchema = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
-    name: 'Documentation — Instant',
+    name: 'Documentation — Instant for WhatsApp Business',
     description:
       'Everything Instant can do — channels, the shared inbox, CRM, campaigns, automations, AI agents, billing, and the API — documented in detail.',
     url: `${SITE_URL}/docs`,

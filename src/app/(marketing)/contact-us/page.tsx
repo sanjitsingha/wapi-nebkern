@@ -9,7 +9,7 @@ import { Lp2ContactForm } from '@/components/lp2/contact-form';
 
 export const metadata: Metadata = {
   alternates: { canonical: '/contact-us' },
-  title: { absolute: 'Contact us — Instant' },
+  title: { absolute: 'Contact us — Instant for WhatsApp Business' },
   description:
     'Send us a message and a human will reply within one business day — questions about the product, pricing, migrating a number, or anything else.',
   robots: { index: true, follow: true },

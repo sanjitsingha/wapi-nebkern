@@ -438,3 +438,23 @@ html:has(.lp2[data-design='whatsapp']) {
 .lp2[data-design='whatsapp'] .industry-white section[class~='bg-white'] {
   background-color: var(--wa-white) !important;
 }
+
+/* ── Deliberate exceptions to the single-weight rule ──────────────
+   The rule above flattens every element to 400, which is the spec:
+   one weight everywhere. It is also absolute, so `font-bold` and
+   `font-extrabold` are silently inert anywhere in this design — a
+   component can look like it sets weight and not.
+
+   These two classes are the way to opt a specific element out, named
+   for what they do rather than for a component, so the exception is
+   visible at the call site instead of hidden in a utility that looks
+   like it should already work. */
+.lp2[data-design='whatsapp'] .wa-weight-600,
+.lp2[data-design='whatsapp'] .wa-weight-600 * {
+  font-weight: 600 !important;
+}
+
+.lp2[data-design='whatsapp'] .wa-weight-700,
+.lp2[data-design='whatsapp'] .wa-weight-700 * {
+  font-weight: 700 !important;
+}

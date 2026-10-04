@@ -10,7 +10,7 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // so the "what we do not claim" section stays until it is untrue.
 export const metadata: Metadata = {
   alternates: { canonical: '/security' },
-  title: { absolute: 'Security Policy — Instant' },
+  title: { absolute: 'Security Policy — Instant for WhatsApp Business' },
   description:
     'How Instant protects your data: encryption, tenant isolation, access control, webhook verification, backups, incident response and vulnerability reports.',
   robots: { index: true, follow: true },

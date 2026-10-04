@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
@@ -18,7 +19,7 @@ import { ORGANIZATION_SCHEMA, getBreadcrumbSchema, SITE_URL } from '@/lib/market
 // ============================================================
 
 export const metadata: Metadata = {
-  title: { absolute: 'Compare Instant with other WhatsApp platforms — Instant' },
+  title: { absolute: 'Compare WhatsApp platforms — Instant for WhatsApp Business' },
   description:
     'Instant next to the other WhatsApp Business API platforms, on cost, AI, channels and trials — every rival figure taken from their own pricing page and dated.',
   alternates: { canonical: '/compare' },
@@ -35,7 +36,7 @@ const compareIndexSchema = {
     ]),
     {
       '@type': 'CollectionPage',
-      name: 'Compare Instant with other WhatsApp platforms',
+      name: 'Compare Instant for WhatsApp Business with other WhatsApp platforms',
       description:
         'Instant next to the other WhatsApp Business API platforms, on cost, AI, channels and trials.',
       url: `${SITE_URL}/compare`,
@@ -72,24 +73,45 @@ export default function CompareIndexPage() {
           </div>
         </section>
 
-        <section className="bg-white px-4 py-16 sm:px-6 sm:py-20">
+        {/* `bg-[var(--wa-white,#fff)]`, not `bg-white`: whatsapp.css
+            repaints `section.bg-white` to the cream canvas, so the plain
+            utility renders cream here and looks like it is doing nothing.
+            The fallback keeps it white under the playful design, which
+            never defines --wa-white. */}
+        <section className="bg-[var(--wa-white,#ffffff)] px-4 py-16 sm:px-6 sm:py-20">
           <ul className="mx-auto grid max-w-5xl gap-5 sm:grid-cols-2">
             {COMPARISONS.map((c) => (
               <li key={c.slug}>
                 <Link
                   href={`/compare/${c.slug}`}
-                  className="group flex h-full flex-col rounded-2xl border-2 border-(--lp2-ink)/15 bg-white p-7 transition-transform duration-200 hover:-translate-y-1"
+                  className="group flex h-full flex-col rounded-2xl border-2 border-(--lp2-ink)/15 overflow-hidden bg-white transition-transform duration-200 hover:-translate-y-1"
                 >
-                  <h2 className="lp2-display text-2xl font-extrabold">
-                    Instant vs {c.rival}
-                  </h2>
-                  <p className="mt-3 flex-1 text-sm leading-relaxed text-(--lp2-ink-soft)">
-                    {c.metaDescription}
-                  </p>
-                  <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-bold">
-                    Read the comparison
-                    <ArrowRight className="size-4" strokeWidth={2.75} />
-                  </span>
+                  {/* Full-bleed to the card edges: the art is the two lockups on
+                      a cream field, and insetting it would put a white margin
+                      around a cream rectangle. Cards without art start at the
+                      heading instead. */}
+                  {c.cover && (
+                    <Image
+                      src={c.cover.src}
+                      alt=""
+                      width={c.cover.width}
+                      height={c.cover.height}
+                      sizes="(min-width: 640px) 420px, 92vw"
+                      className="h-auto w-full"
+                    />
+                  )}
+                  <div className="flex flex-1 flex-col p-7">
+                    <h2 className="lp2-display text-2xl font-extrabold">
+                      Instant vs {c.rival}
+                    </h2>
+                    <p className="mt-3 flex-1 text-sm leading-relaxed text-(--lp2-ink-soft)">
+                      {c.metaDescription}
+                    </p>
+                    <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-bold">
+                      Read the comparison
+                      <ArrowRight className="size-4" strokeWidth={2.75} />
+                    </span>
+                  </div>
                 </Link>
               </li>
             ))}

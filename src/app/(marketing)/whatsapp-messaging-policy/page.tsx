@@ -9,7 +9,7 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // Meta's Tech Provider review looks for exactly this document.
 export const metadata: Metadata = {
   alternates: { canonical: '/whatsapp-messaging-policy' },
-  title: { absolute: 'WhatsApp Messaging Policy — Instant' },
+  title: { absolute: 'Messaging Policy — Instant for WhatsApp Business' },
   description:
     'How messaging works on the WhatsApp Business Platform through Instant: the 24-hour window, template approval, quality ratings and messaging limits.',
   robots: { index: true, follow: true },

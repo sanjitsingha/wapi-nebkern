@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   // Distinct from /contact-us (the form), which already owns
   // "Contact us — Instant": two pages sharing a title compete with each
   // other in search.
-  title: { absolute: 'Contact details & grievance officer — Instant' },
+  title: { absolute: 'Contact & grievance officer — Instant for WhatsApp Business' },
   description:
     'How to reach Instant — support, billing, privacy and grievance contacts, registered address and response times.',
   robots: { index: true, follow: true },

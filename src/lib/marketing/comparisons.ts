@@ -56,6 +56,12 @@ export interface Comparison {
    * near the same *width* is what reads as balanced beside ours.
    */
   rivalLogoClass?: string;
+  /**
+   * Card art for the /compare index — the two lockups side by side.
+   * Optional: a comparison without one shows the heading alone, so a
+   * new rival never waits on a designer.
+   */
+  cover?: { src: string; width: number; height: number };
   /** Their pricing page — the source for every figure in `rows`. */
   source: string;
   /** ISO date those figures were last read from `source`. */
@@ -78,6 +84,7 @@ export const COMPARISONS: Comparison[] = [
   {
     slug: 'instant-vs-interakt',
     rival: 'Interakt',
+    cover: { src: '/images/compare/vs-interakt.png', width: 800, height: 400 },
     rivalLogo: {
       src: '/images/compare/interakt.png',
       width: 3750,
@@ -86,7 +93,7 @@ export const COMPARISONS: Comparison[] = [
     rivalLogoClass: 'h-11 w-auto',
     source: 'https://www.interakt.shop/pricing/',
     checkedOn: '2026-09-25',
-    title: 'Instant vs Interakt — WhatsApp API pricing and features compared',
+    title: 'Instant vs Interakt — pricing, AI and channels compared',
     metaDescription:
       'Instant and Interakt side by side: monthly cost, AI replies, channels and trials. Interakt figures read from their own pricing page on 25 September 2026.',
     intro:
@@ -153,11 +160,12 @@ export const COMPARISONS: Comparison[] = [
   {
     slug: 'instant-vs-wati',
     rival: 'WATI',
+    cover: { src: '/images/compare/vs-wati.jpg', width: 800, height: 400 },
     rivalLogo: { src: '/images/compare/wati.svg', width: 1440, height: 490 },
     rivalLogoClass: 'h-10 w-auto',
     source: 'https://www.wati.io/pricing/',
     checkedOn: '2026-09-25',
-    title: 'Instant vs WATI — WhatsApp API seats, AI and trials compared',
+    title: 'Instant vs WATI — seats, AI and trials compared',
     metaDescription:
       'Instant and WATI side by side on users per plan, AI add-ons, channels and trial length. WATI figures read from their own pricing page on 25 September 2026.',
     intro:
@@ -224,11 +232,12 @@ export const COMPARISONS: Comparison[] = [
   {
     slug: 'instant-vs-aisensy',
     rival: 'AiSensy',
+    cover: { src: '/images/compare/vs-aisensy.png', width: 800, height: 400 },
     rivalLogo: { src: '/images/compare/aisensy.webp', width: 904, height: 253 },
     rivalLogoClass: 'h-9 w-auto',
     source: 'https://aisensy.com/pricing/',
     checkedOn: '2026-09-27',
-    title: 'Instant vs AiSensy — WhatsApp API pricing and AI compared',
+    title: 'Instant vs AiSensy — pricing and AI compared',
     metaDescription:
       'Instant and AiSensy side by side on what each publishes, what the AI costs, and who each one suits. AiSensy figures read from their own pricing page on 27 September 2026.',
     intro:

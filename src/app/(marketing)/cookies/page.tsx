@@ -9,7 +9,7 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // its own kind of misleading — and reviewers do read it.
 export const metadata: Metadata = {
   alternates: { canonical: '/cookies' },
-  title: { absolute: 'Cookie Policy — Instant' },
+  title: { absolute: 'Cookie Policy — Instant for WhatsApp Business' },
   description:
     'The cookies and local storage Instant uses — what each one is for, how long it lasts, and how to control them.',
   robots: { index: true, follow: true },

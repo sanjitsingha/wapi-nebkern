@@ -44,7 +44,7 @@ export async function generateMetadata({
     // Root openGraph is replaced wholesale, not merged, so siteName has
     // to be repeated here or the card loses the product's name.
     openGraph: {
-      siteName: 'Instant',
+      siteName: 'Instant for WhatsApp Business',
       title: data.title,
       description: data.metaDescription,
       url: `/compare/${data.slug}`,

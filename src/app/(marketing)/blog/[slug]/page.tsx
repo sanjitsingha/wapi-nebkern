@@ -41,7 +41,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const post = await getPostBySlug(slug);
-  if (!post) return { title: 'Post not found — Instant' };
+  if (!post) return { title: 'Post not found — Instant for WhatsApp Business' };
 
   return {
     // A `meta_title` set in the admin wins outright, suffix included:

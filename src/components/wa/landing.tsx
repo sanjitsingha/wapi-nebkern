@@ -113,30 +113,6 @@ function Heading({
   );
 }
 
-/** Outgoing bubbles are the spec's mint; incoming are white. */
-function Bubble({ side, text, time }: { side: 'in' | 'out'; text: string; time?: string }) {
-  const out = side === 'out';
-  return (
-    <div className={cn('flex', out ? 'justify-end' : 'justify-start')}>
-      <div
-        className={cn(
-          waType.bodyMd,
-          'max-w-[85%] rounded-[20px] px-3.5 py-2 text-(--wa-ink)',
-          out ? 'bg-(--wa-mint)' : 'bg-white',
-        )}
-      >
-        <p className="text-pretty">{text}</p>
-        {time && (
-          <p className={cn(waType.caption, 'mt-1 flex items-center justify-end gap-1 text-(--wa-ink-muted)')}>
-            {time}
-            {out && <CheckCheck className="size-3.5 text-[#53bdeb]" aria-label="Read" />}
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
 /* ─── Hero ────────────────────────────────────────────────────────── */
 
 function Hero() {
@@ -213,8 +189,11 @@ function Hero() {
  * and there is no Meta credential line.
  */
 function HeroCentered() {
+  // Pure #000, the same black as the stats band further down, so the
+  // page opens and closes on the same note. The cream canvas picks up
+  // again at the industries strip below.
   return (
-    <section className="px-6 pt-24 pb-24 sm:pt-36 sm:pb-32">
+    <section className="bg-black px-6 pt-24 pb-24 sm:pt-36 sm:pb-32">
       {/* A size container, so the headline can be sized against this
           column's width rather than the viewport's. */}
       <div className="@container mx-auto flex max-w-[980px] flex-col items-center text-center">
@@ -236,7 +215,7 @@ function HeroCentered() {
             green as the live hero's, "₹revenue" in a yellow counterpart.
             Corner radii are arbitrary values on purpose — whatsapp.css
             turns the rounded-lg-style token classes into 25px tiles. */}
-        <h1 className="text-[clamp(1.25rem,7.2cqw,4.5rem)] leading-[1.45] tracking-[-0.02em] text-(--wa-ink)">
+        <h1 className="text-[clamp(1.25rem,7.2cqw,4.5rem)] leading-[1.45] tracking-[-0.02em] text-white">
           Grow your business
           <br />
           <span className="whitespace-nowrap">
@@ -246,14 +225,22 @@ function HeroCentered() {
             </span>
           </span>
         </h1>
-        <p className={cn(waType.bodyLg, 'mt-7 max-w-[600px] text-pretty text-(--wa-ink-muted)')}>
+        <p className={cn(waType.bodyLg, 'mt-7 max-w-[600px] text-pretty text-white/70')}>
           Broadcast, automation, sales and support — manage everything with an
           AI-powered WhatsApp automation platform, Meta&apos;s official solution provider.
         </p>
         <div className="mt-9">
           {/* Same button as the nav's Start free — see hardShadowButton. */}
           <Magnetic>
-            <Link href="/signup" className={hardShadowButton}>
+            {/* The outline button is ink on transparent, which is invisible
+                on black. Only the resting state needs flipping: the hover
+                fills voltage green, and the spec is explicit that green
+                takes ink text, never white — so the hover colour is set
+                back rather than inherited from the white above. */}
+            <Link
+              href="/signup"
+              className={cn(hardShadowButton, 'border-white text-white hover:text-(--lp2-ink)')}
+            >
               Start free — 14 days
               <ArrowRight className="size-4" strokeWidth={2.5} />
             </Link>
@@ -275,9 +262,9 @@ const INDUSTRIES = [
 
 function Industries() {
   return (
-    <Section className="pt-6 sm:pt-8">
+    <Section className="bg-black pt-6 text-white sm:pt-8">
       <div className="mx-auto max-w-[1080px] text-center">
-        <p className={cn(waType.bodyLg, 'text-(--wa-ink-muted)')}>
+        <p className={cn(waType.bodyLg, 'text-white/60')}>
           Built for every business that sells over chat
         </p>
         <ul className="mt-7 flex flex-wrap justify-center gap-2.5">
@@ -297,7 +284,11 @@ function Industries() {
                 <span
                   className={cn(
                     waType.bodyMd,
-                    'block rounded-full border border-(--wa-hairline) bg-white px-4 py-2 text-(--wa-ink)',
+                    // Cream rather than pure white: a solid white chip on
+                    // #000 is the harshest contrast on the page, and these
+                    // sit sixteen across. The canvas colour keeps them
+                    // legible without competing with the headline.
+                    'block rounded-full bg-(--wa-canvas) px-4 py-2 text-(--wa-ink)'
                   )}
                 >
                   {name}
@@ -476,31 +467,6 @@ function StatsBand() {
 
 /* ─── Maya ────────────────────────────────────────────────────────── */
 
-const AGENTS = [
-  {
-    stat: '24/7',
-    statLabel: 'Qualifying and converting',
-    title: 'Maya qualifies your leads',
-    body: 'She works out who is serious, scores them, and writes the details straight into your CRM — while the enquiry is still warm.',
-    cta: 'Meet Maya',
-    thread: [
-      { side: 'in' as const, text: "Hi — we're comparing tools for a 12-person team." },
-      { side: 'out' as const, text: 'Happy to help. What matters most — the shared inbox, campaigns, or automations?' },
-    ],
-  },
-  {
-    stat: '6s',
-    statLabel: 'Average first reply',
-    title: 'Maya answers your customers',
-    body: 'She handles the questions that fill an inbox — delivery, returns, sizing, hours — and hands over the moment a person is genuinely needed.',
-    cta: 'Train Maya',
-    thread: [
-      { side: 'in' as const, text: 'Do you deliver on Sundays?' },
-      { side: 'out' as const, text: 'Yes — orders placed before 2pm Saturday arrive Sunday.' },
-    ],
-  },
-];
-
 function Maya() {
   return (
     <Section>
@@ -521,29 +487,78 @@ function Maya() {
         }
         subtitle="Maya never goes offline. She answers 24/7 and turns regular chats into customers."
       />
-      <div className="mx-auto mt-14 grid max-w-[1080px] gap-4 md:grid-cols-2">
-        {AGENTS.map((a) => (
-          <div key={a.title} className="flex flex-col rounded-[25px] bg-white p-7 sm:p-8">
-            <p className="flex items-baseline gap-3">
-              <span className="text-[48px] leading-none tracking-[-0.02em] text-(--wa-ink)">{a.stat}</span>
-              <span className={cn(waType.bodyMd, 'text-(--wa-ink-muted)')}>{a.statLabel}</span>
-            </p>
-            <div className="mt-6 flex-1 space-y-2.5 rounded-[20px] bg-(--wa-canvas) p-4">
-              {a.thread.map((m) => (
-                <Bubble key={m.text} side={m.side} text={m.text} />
-              ))}
-            </div>
-            <h3 className="mt-7 text-[24px] leading-[28px] text-(--wa-ink)">{a.title}</h3>
-            <p className={cn(waType.bodyMd, 'mt-3 text-pretty text-(--wa-ink-muted)')}>{a.body}</p>
-            <div className="mt-6">
-              <Magnetic>
-                <Link href="/ask-maya" className={hardShadowButton}>
-                  {a.cta}
-                </Link>
-              </Magnetic>
-            </div>
-          </div>
-        ))}
+      {/* A plain <img>, not next/image: the optimiser flattens an
+          animated GIF to its first frame unless told otherwise, and
+          going through it buys nothing here. The dimensions are the
+          file's real ones, so the box is reserved before it loads and
+          the section does not jump. `eager` because it now leads the
+          section rather than sitting below the fold of it.
+
+          `lp2-hard-shadow` carries no styling — it is the opt-out from
+          whatsapp.css's blanket `box-shadow: none !important`, without
+          which the shadow is stripped and nothing renders. */}
+      <div className="lp2-hard-shadow mx-auto mt-14 max-w-[1232px] overflow-hidden rounded-[25px] bg-white shadow-[4px_4px_0_2px_rgba(0,0,0,0.05)] sm:mt-16">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/images/maya/maya-enabled.gif"
+          alt="Maya answering a customer in the Instant inbox"
+          width={1920}
+          height={1040}
+          loading="eager"
+          decoding="async"
+          className="h-auto w-full"
+        />
+      </div>
+
+      {/* Stacked, not side by side: the clip is 1920 wide and a column
+          layout shrank it to roughly a third of that, which is the one
+          thing a screen recording cannot afford. Full width above the
+          copy, it renders near its native size.
+
+          This replaced two cards that each held a stat, a canned thread
+          and a button — three competing things twice over, where the
+          clip now shows the product doing the thing instead. */}
+      <div className="mx-auto mt-14 max-w-[1000px] text-center sm:mt-16">
+        <h3 className={cn(waType.displayMd, 'text-balance')}>
+          She answers before you have read the message
+        </h3>
+        <p className={cn(waType.bodyLg, 'mx-auto mt-6 max-w-[760px] text-pretty text-(--wa-ink-muted)')}>
+          Maya works from your own catalogue, prices and policies — not
+          generic answers. She replies in seconds, at any hour, in the thread
+          the customer is already in, and hands over the moment it needs a
+          person.
+        </p>
+
+        {/* Inline rather than a stacked list: centred bullets with a lot
+            of white either side read as a ragged column. */}
+        <ul className="mt-8 flex flex-wrap justify-center gap-x-7 gap-y-3">
+          {[
+            'Trained on your own content',
+            'Qualifies and writes it onto the contact',
+            'Hands off when a person is needed',
+            'No per-message AI fee',
+          ].map((point) => (
+            <li key={point} className="flex items-center gap-2">
+              <Check
+                aria-hidden
+                className="size-4 shrink-0 text-(--wa-green)"
+                strokeWidth={3}
+              />
+              <span className={cn(waType.bodyMd, 'wa-weight-600 text-(--wa-ink)')}>
+                {point}
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-9 flex justify-center">
+          <Magnetic>
+            <Link href="/ask-maya" className={hardShadowButton}>
+              See what Maya can do
+              <ArrowRight className="size-4" strokeWidth={2.5} />
+            </Link>
+          </Magnetic>
+        </div>
       </div>
     </Section>
   );
@@ -676,7 +691,7 @@ function Showcase() {
       </div>
 
       {/* `relative` so the logo can hang off the bottom-right corner.
-      
+
           `lp2-hard-shadow` is not a style — it is the opt-out from
           whatsapp.css's blanket `box-shadow: none !important`, which is
           how the design stays flat. Without it the shadow below is

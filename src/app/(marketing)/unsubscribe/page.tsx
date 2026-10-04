@@ -8,7 +8,7 @@ import { UnsubscribeConfirm } from '@/components/lp2/unsubscribe-confirm';
 import { verifyUnsubscribe } from '@/lib/newsletter-unsubscribe';
 
 export const metadata: Metadata = {
-  title: { absolute: 'Unsubscribe — Instant' },
+  title: { absolute: 'Unsubscribe — Instant for WhatsApp Business' },
   // Never indexed: every valid URL here contains somebody's email
   // address, and a search engine holding a list of them is exactly the
   // leak the signature is meant to prevent.

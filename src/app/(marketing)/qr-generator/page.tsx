@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   alternates: { canonical: '/qr-generator' },
   robots: { index: true, follow: true },
   openGraph: {
-    siteName: 'Instant',
+    siteName: 'Instant for WhatsApp Business',
     type: 'website',
     title: 'Free WhatsApp QR Code Generator',
     description:

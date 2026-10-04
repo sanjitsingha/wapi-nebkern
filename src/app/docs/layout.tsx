@@ -16,6 +16,10 @@ export const metadata: Metadata = {
   // '%s — Instant' template still wraps it, so it must not say
   // "— Instant" itself — that is how the index read
   // "Documentation — Instant — Instant".
+  // Deliberately the short name: '%s — Instant for WhatsApp Business
+  // docs' spends 40 characters on the suffix before the page name is
+  // counted, and docs pages are read by people who already know the
+  // product. The full brand is still declared in the schema below.
   title: { template: '%s — Instant docs', default: 'Documentation' },
   description:
     'Everything Instant can do — channels, the shared inbox, CRM, campaigns, automations, AI agents, billing, and the API — documented in detail.',

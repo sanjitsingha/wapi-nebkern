@@ -46,8 +46,8 @@ export const metadata: Metadata = {
   title: {
     // What a browser tab and a Google result say. `default` is the
     // homepage; `template` wraps every page that sets its own title.
-    default: 'Instant — WhatsApp CRM & Marketing Automation by Nebkern',
-    template: '%s — Instant',
+    default: 'Instant for WhatsApp Business — WhatsApp CRM & Automation',
+    template: '%s — Instant for WhatsApp Business',
   },
   description:
     'Instant by Nebkern Technology — WhatsApp marketing automation with a shared team inbox, AI agents, campaigns and pipelines, on the official WhatsApp Business API.',
@@ -69,7 +69,7 @@ export const metadata: Metadata = {
   // Without it, scrapers use the address they fetched, and the canonical
   // (`alternates.canonical` per page) stays the one authoritative URL.
   openGraph: {
-    siteName: 'Instant',
+    siteName: 'Instant for WhatsApp Business',
     type: 'website',
     locale: 'en_IN',
   },
