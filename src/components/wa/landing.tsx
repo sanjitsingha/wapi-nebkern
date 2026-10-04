@@ -12,7 +12,7 @@ import { WaFeatureCarousel } from './feature-carousel';
 import { WaHeroChat } from './hero-chat';
 import { WaIndustriesRail } from './industries-rail';
 import { WaClosingCta } from './closing-cta';
-import { WaPriceCompare } from './price-compare';
+import { WaComparisonRail, WaPriceCompare } from './price-compare';
 import { WaStatsTabs, type WaStat } from './stats-tabs';
 import { WaPill, waType } from './ui';
 
@@ -57,6 +57,7 @@ export function WaLanding({ hero = 'centered' }: { hero?: WaHeroVariant }) {
       {/* Hidden for now: Connect the stack you already run */}
       {false && <Integrations />}
       <WaPriceCompare />
+      <WaComparisonRail />
       <Showcase />
       <PricingNote />
       <Faq />
@@ -659,8 +660,11 @@ function Showcase() {
           Gallabox"; Gallabox is a different product, so this says
           Instant. Change it back only if naming them is deliberate. */}
       <div className="mx-auto flex max-w-[1328px] flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
-        <div className="max-w-[720px]">
-          <h2 className={cn(waType.displayMd, 'text-balance')}>
+        {/* 820px, not 720: this line measures 764px in Manrope at the
+            clamp's 48px cap, so the old width was 44px short and broke it
+            over two. The arrows beside it still fit the 1328px row. */}
+        <div className="max-w-[820px]">
+          <h2 className={cn(waType.displayMd, 'text-pretty')}>
             Hear from the power users of Instant
           </h2>
           <p className={cn(waType.bodyLg, 'mt-5 max-w-[560px] text-pretty text-(--wa-ink-muted)')}>

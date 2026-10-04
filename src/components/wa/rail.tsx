@@ -53,8 +53,15 @@ export function WaRail({
   titleClassName?: string;
   /** Accessible name for the scrollable region. */
   label: string;
-  /** A node, not just a string, so a caller can place a line break. */
-  title: React.ReactNode;
+  /**
+   * A node, not just a string, so a caller can place a line break.
+   *
+   * Optional: a rail that continues the section above it has no
+   * heading of its own, and an empty <h2> would be worse than none —
+   * it announces a nameless section to a screen reader and gives
+   * Google a blank heading to read.
+   */
+  title?: React.ReactNode;
   subtitle?: string;
   children: React.ReactNode;
 }) {
@@ -98,15 +105,21 @@ export function WaRail({
     <section id={id} className={cn('scroll-mt-24 py-20 sm:py-24', className)}>
       <div className="mx-auto flex max-w-[1232px] flex-col gap-8 px-6 sm:flex-row sm:items-end sm:justify-between">
         {/* Wide enough for a long title to sit on two lines at full size;
-            the subtitle keeps its own shorter measure. */}
-        <div className="max-w-[1040px] flex-1">
-          <h2 className={cn(waType.displayLg, 'text-pretty', titleClassName)}>{title}</h2>
-          {subtitle && (
-            <p className={cn(waType.bodyLg, 'mt-6 max-w-[720px] text-pretty text-(--wa-ink-muted)')}>
-              {subtitle}
-            </p>
-          )}
-        </div>
+            the subtitle keeps its own shorter measure. Without a title
+            the whole block goes, and the arrows are pushed right by the
+            row's `justify-between` with nothing to sit against. */}
+        {title ? (
+          <div className="max-w-[1040px] flex-1">
+            <h2 className={cn(waType.displayLg, 'text-pretty', titleClassName)}>{title}</h2>
+            {subtitle && (
+              <p className={cn(waType.bodyLg, 'mt-6 max-w-[720px] text-pretty text-(--wa-ink-muted)')}>
+                {subtitle}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="flex-1" />
+        )}
 
         <div className="flex shrink-0 gap-3">
           <ArrowButton label="Previous" disabled={!canPrev} onClick={() => step(-1)}>

@@ -1,7 +1,13 @@
 import Image from 'next/image';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 
 import { BrandLogo } from '@/components/brand/logo';
+import { hardShadowButton } from '@/components/lp2/ui';
+import { Magnetic } from '@/components/ui/magnetic-button';
+import { COMPARISONS } from '@/lib/marketing/comparisons';
 import { cn } from '@/lib/utils';
+import { WaRail } from './rail';
 import { waType } from './ui';
 
 // ============================================================
@@ -123,16 +129,24 @@ const COLS: Col[] = [
  * reflowed into four stacked blocks that lose the comparison.
  */
 export function WaPriceCompare() {
+  // White, and `bg-[var(--wa-white,#fff)]` rather than `bg-white`,
+  // which whatsapp.css repaints to the cream canvas. Paired with the
+  // comparison rail below — the two make one white band, which is why
+  // this one keeps its top padding and the rail drops its.
   return (
-    <section className="scroll-mt-24 px-6 py-20 sm:py-24">
-      <div className="mx-auto max-w-[1080px]">
-        <h2 className={cn(waType.displayMd, 'max-w-[760px] text-balance')}>
+    <section className="scroll-mt-24 bg-[var(--wa-white,#ffffff)] px-6 pt-20 pb-0 sm:pt-24">
+      <div className="mx-auto max-w-[1232px]">
+        {/* 840px, not 760: at the clamp's 48px cap this line measures
+            784px in Manrope, so the old cap was 24px short and broke it
+            over two lines. Below ~714px of viewport the clamp floors at
+            30px and it wraps again, which is right on a phone. */}
+        <h2 className={cn(waType.displayMd, 'max-w-[840px]')}>
           What the software costs, side by side
         </h2>
         <p
           className={cn(
             waType.bodyLg,
-            'mt-6 max-w-[680px] text-pretty text-(--wa-ink-muted)',
+            'mt-6 max-w-[760px] text-pretty text-(--wa-ink-muted)',
           )}
         >
           Every platform here runs on the same official WhatsApp Business API,
@@ -204,5 +218,93 @@ export function WaPriceCompare() {
         </p>
       </div>
     </section>
+  );
+}
+
+/**
+ * The full comparisons, as a rail directly under the price table.
+ *
+ * A short heading and no standfirst. The cards need something to sit
+ * under, but this is still the same argument continuing — so the
+ * heading is set at displayMd rather than the rail's usual displayLg,
+ * which would make it compete with the section's own h2 above it.
+ *
+ * Top padding stays tight for the same reason: the pair reads as one
+ * block, closed by the section's own bottom padding.
+ *
+ * Driven by COMPARISONS, so a new rival appears here the moment its
+ * page ships — there is no second list to remember to update.
+ */
+export function WaComparisonRail() {
+  return (
+    <WaRail
+      id="compare"
+      label="Comparisons"
+      title="See the full comparisons"
+      titleClassName={waType.displayMd}
+      // `bg-[var(--wa-white,#fff)]`, not `bg-white`: WaRail renders a
+      // <section>, and whatsapp.css repaints `section.bg-white` to the
+      // cream canvas — the plain utility would render cream here.
+      className="bg-[var(--wa-white,#ffffff)] pt-10 sm:pt-12"
+    >
+      {COMPARISONS.map((c) => (
+        <article
+          key={c.slug}
+          data-card
+          className={cn(
+            // `lp2-hard-shadow` carries no styling — it is the opt-out
+            // from whatsapp.css's blanket `box-shadow: none !important`.
+            'lp2-hard-shadow group flex shrink-0 snap-start flex-col overflow-hidden rounded-[25px] bg-white',
+            'shadow-[4px_4px_0_2px_rgba(0,0,0,0.05)]',
+            // Narrower than the industry cards: these are a lockup and
+            // two lines, not a paragraph beside artwork.
+            //   phone ~1.15   tablet ~2.2   laptop+ ~3.2
+            'w-[84%]',
+            'sm:w-[calc((100vw-56px)/2.2)]',
+            'lg:w-[calc((100vw-72px)/3.2)]',
+            'xl:w-[calc(((100vw+1232px)/2-48px)/3.2)]',
+          )}
+        >
+          {/* Full-bleed: the art is the two lockups on a cream field,
+              and insetting it would put a white margin around a cream
+              rectangle. */}
+          {c.cover && (
+            <Image
+              src={c.cover.src}
+              alt=""
+              width={c.cover.width}
+              height={c.cover.height}
+              sizes="(min-width: 1280px) 380px, (min-width: 640px) 45vw, 84vw"
+              className="h-auto w-full"
+            />
+          )}
+
+          <div className="flex flex-1 flex-col p-7">
+            <h3 className="text-[22px] leading-[26px] text-(--wa-ink)">
+              Instant vs {c.rival}
+            </h3>
+            <p
+              className={cn(
+                waType.bodyMd,
+                'mt-3 flex-1 text-pretty text-(--wa-ink-muted)',
+              )}
+            >
+              {c.intro.split('. ')[0]}.
+            </p>
+            <div className="mt-6">
+              <Magnetic>
+                <Link
+                  href={`/compare/${c.slug}`}
+                  className={hardShadowButton}
+                >
+                  Read the comparison
+                  <ArrowRight className="size-4" strokeWidth={2.5} />
+                </Link>
+              </Magnetic>
+            </div>
+          </div>
+        </article>
+      ))}
+    </WaRail>
   );
 }
