@@ -38,7 +38,15 @@ export const metadata: Metadata = {
   robots: { index: false, follow: true },
 };
 
-/** The real listings, each linking to the profile it stands for. */
+/**
+ * The real listings, each linking to the profile it stands for.
+ *
+ * `size` is per-logo because these marks are nothing like each other
+ * in proportion — Crunchbase is a 6.5:1 wordmark, G2 is square. Sized
+ * to one width they would be wildly different heights; sized to one
+ * height the square one looks tiny beside the wordmarks. So each is
+ * set by height and nudged until they carry about the same weight.
+ */
 const LISTINGS = [
   {
     name: 'Crunchbase',
@@ -48,6 +56,23 @@ const LISTINGS = [
     src: '/images/brands/crunchbase.png',
     width: 2326,
     height: 359,
+    size: 'h-6 sm:h-7',
+  },
+  {
+    name: 'Product Hunt',
+    href: 'https://www.producthunt.com/products/instant-whatsapp-automation-platform',
+    src: '/images/brands/product-hunt.avif',
+    width: 1224,
+    height: 440,
+    size: 'h-8 sm:h-9',
+  },
+  {
+    name: 'G2',
+    href: 'https://www.g2.com/products/instant-for-whatsapp-business/reviews',
+    src: '/images/brands/g2.png',
+    width: 557,
+    height: 578,
+    size: 'h-11 sm:h-12',
   },
 ];
 
@@ -94,8 +119,8 @@ export default function BrandsPage() {
                     alt={`${l.name} — opens in a new tab`}
                     width={l.width}
                     height={l.height}
-                    sizes="(min-width: 1024px) 200px, 45vw"
-                    className="h-auto w-[150px] brightness-0 invert sm:w-[180px]"
+                    sizes="200px"
+                    className={`w-auto brightness-0 invert ${l.size}`}
                   />
                 </a>
               </li>
