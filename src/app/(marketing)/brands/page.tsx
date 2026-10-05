@@ -38,14 +38,13 @@ export const metadata: Metadata = {
   robots: { index: false, follow: true },
 };
 
-/**
- * The real listings. `href` is left out until the profile URL is
- * confirmed — a logo linking to the wrong place is worse than one that
- * does not link at all.
- */
+/** The real listings, each linking to the profile it stands for. */
 const LISTINGS = [
   {
     name: 'Crunchbase',
+    // The company profile, not a product one — Crunchbase lists
+    // Nebkern Technology, which is who builds Instant.
+    href: 'https://www.crunchbase.com/organization/nebkern-technology',
     src: '/images/brands/crunchbase.png',
     width: 2326,
     height: 359,
@@ -77,22 +76,29 @@ export default function BrandsPage() {
         <section className="bg-[var(--wa-white,#ffffff)] px-4 py-16 sm:px-6 sm:py-24">
           <ul className="mx-auto grid max-w-5xl grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {LISTINGS.map((l) => (
-              <li
-                key={l.name}
-                className="flex aspect-[3/2] items-center justify-center rounded-2xl border-2 border-(--lp2-ink)/10 bg-(--lp2-cream) p-6"
-              >
-                {/* Greyscale, as the rest of the row will be: a wall of
-                    logos in their own brand colours fights itself, and
-                    these are evidence rather than decoration. The filter
-                    leaves the file untouched. */}
-                <Image
-                  src={l.src}
-                  alt={l.name}
-                  width={l.width}
-                  height={l.height}
-                  sizes="(min-width: 1024px) 240px, 40vw"
-                  className="h-auto w-full max-w-[160px] grayscale"
-                />
+              <li key={l.name}>
+                {/* `rel` is ours: `target="_blank"` without `noopener`
+                    hands the opened page a handle on this one.
+
+                    Greyscale at rest, colour on hover — a wall of marks
+                    in their own brand colours fights itself, and the
+                    hover makes the tile feel like the link it is. The
+                    filter leaves the file untouched. */}
+                <a
+                  href={l.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex aspect-[3/2] items-center justify-center rounded-2xl border-2 border-(--lp2-ink)/10 bg-(--lp2-cream) p-6 transition-transform duration-200 hover:-translate-y-1"
+                >
+                  <Image
+                    src={l.src}
+                    alt={`${l.name} — opens in a new tab`}
+                    width={l.width}
+                    height={l.height}
+                    sizes="(min-width: 1024px) 240px, 40vw"
+                    className="h-auto w-full max-w-[160px] grayscale transition-[filter] duration-300 group-hover:grayscale-0 motion-reduce:transition-none"
+                  />
+                </a>
               </li>
             ))}
 
