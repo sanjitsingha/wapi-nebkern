@@ -51,9 +51,6 @@ const LISTINGS = [
   },
 ];
 
-/** Slots still to fill. Count, not invented names. */
-const SLOTS = Array.from({ length: 11 }, (_, i) => i + 1);
-
 export default function BrandsPage() {
   return (
     <>
@@ -70,55 +67,43 @@ export default function BrandsPage() {
           </div>
         </section>
 
-        {/* `bg-[var(--wa-white,#fff)]`, not `bg-white`: whatsapp.css
-            repaints `section.bg-white` to the cream canvas, so the plain
-            utility renders cream and looks like it is doing nothing. */}
-        <section className="bg-[var(--wa-white,#ffffff)] px-4 py-16 sm:px-6 sm:py-24">
-          <ul className="mx-auto grid max-w-5xl grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        {/* A black band, and the marks reversed out of it rather than
+            each sitting in its own tile. Tiles gave twelve boxes equal
+            weight whether or not they held anything; on black the logos
+            are the only thing there is.
+
+            `brightness-0 invert` is what makes them white: brightness(0)
+            flattens every colour to black, invert(1) flips that to
+            white, and the transparent background is untouched — so this
+            works for any logo supplied as a PNG with alpha, whatever
+            colour it arrives in. */}
+        <section className="bg-black px-4 py-20 sm:px-6 sm:py-28">
+          <ul className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-16 gap-y-12">
             {LISTINGS.map((l) => (
               <li key={l.name}>
                 {/* `rel` is ours: `target="_blank"` without `noopener`
-                    hands the opened page a handle on this one.
-
-                    Greyscale at rest, colour on hover — a wall of marks
-                    in their own brand colours fights itself, and the
-                    hover makes the tile feel like the link it is. The
-                    filter leaves the file untouched. */}
+                    hands the opened page a handle on this one. */}
                 <a
                   href={l.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex aspect-[3/2] items-center justify-center rounded-2xl border-2 border-(--lp2-ink)/10 bg-(--lp2-cream) p-6 transition-transform duration-200 hover:-translate-y-1"
+                  className="block opacity-80 transition-opacity duration-200 hover:opacity-100"
                 >
                   <Image
                     src={l.src}
                     alt={`${l.name} — opens in a new tab`}
                     width={l.width}
                     height={l.height}
-                    sizes="(min-width: 1024px) 240px, 40vw"
-                    className="h-auto w-full max-w-[160px] grayscale transition-[filter] duration-300 group-hover:grayscale-0 motion-reduce:transition-none"
+                    sizes="(min-width: 1024px) 200px, 45vw"
+                    className="h-auto w-[150px] brightness-0 invert sm:w-[180px]"
                   />
                 </a>
               </li>
             ))}
-
-            {SLOTS.map((n) => (
-              <li
-                key={n}
-                className="flex aspect-[3/2] items-center justify-center rounded-2xl border-2 border-dashed border-(--lp2-ink)/15 bg-(--lp2-cream)"
-              >
-                {/* Dashed and unmistakably empty. A filled grey block
-                    reads as a logo that failed to load; a dashed box
-                    reads as a slot waiting for one. */}
-                <span className="text-xs font-bold tracking-wide text-(--lp2-ink-soft) uppercase">
-                  Logo {n}
-                </span>
-              </li>
-            ))}
           </ul>
 
-          <p className="mx-auto mt-10 max-w-2xl text-center text-sm leading-relaxed text-(--lp2-ink-soft)">
-            More listings to come. Each slot is filled only once we are
+          <p className="mx-auto mt-14 max-w-2xl text-center text-sm leading-relaxed text-white/50">
+            More listings as they go live. Each one is added only once we are
             genuinely on that platform.
           </p>
         </section>
