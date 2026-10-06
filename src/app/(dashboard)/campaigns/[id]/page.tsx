@@ -48,6 +48,7 @@ import {
   getRecipientStatus,
 } from '@/lib/broadcast-status';
 import { DeleteCampaignDialog } from '@/components/broadcasts/delete-campaign-dialog';
+import { AiOverviewCard } from '@/components/broadcasts/ai-overview-card';
 import {
   Cell,
   Pie,
@@ -974,6 +975,28 @@ export default function BroadcastDetailPage() {
         onConfirm={handleDelete}
         deleting={deleting}
       />
+
+      {/* AI overview — only once something has gone out; a draft or a
+          scheduled campaign has no results to read. */}
+      {(broadcast.sent_count > 0 || broadcast.failed_count > 0) && (
+        <section className="space-y-3">
+          <SectionHeading>Overview</SectionHeading>
+          <AiOverviewCard
+            broadcastId={broadcastId}
+            initialOverview={broadcast.ai_overview ?? null}
+            initialGeneratedAt={broadcast.ai_overview_at ?? null}
+            current={{
+              total: totalR,
+              sent: clamp(broadcast.sent_count, totalR),
+              delivered: deliveredM,
+              read: readM,
+              replied: repliedM,
+              failed: failedM,
+            }}
+            sending={broadcast.status === 'sending'}
+          />
+        </section>
+      )}
 
       {/* Performance — the headline conversion rates. */}
       <section className="space-y-3">

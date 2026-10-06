@@ -10,6 +10,35 @@ export interface ProviderArgs {
   systemPrompt: string
   messages: ChatMessage[]
   timeoutMs: number
+  /** Output cap for this call; MAX_OUTPUT_TOKENS when omitted. */
+  maxOutputTokens?: number
+}
+
+/**
+ * The error for a 200 with no text in it, saying why when the provider
+ * told us.
+ *
+ * `length` is the case worth naming: a reasoning model (DeepSeek R1,
+ * gpt-oss, the GPT-5 family…) spends its output allowance thinking
+ * before it writes, and when the allowance runs out first the answer is
+ * simply blank. "Empty response" alone sent people looking for an
+ * outage that wasn't there.
+ */
+export function emptyResponseError(
+  provider: string,
+  model: string,
+  finishReason: string | null | undefined,
+): AiError {
+  if (finishReason === 'length' || finishReason === 'max_tokens') {
+    return new AiError(
+      `${provider} (${model}) used its whole output allowance before writing an answer, usually by reasoning at length. Try again, or pick a model without built-in reasoning in Maya settings.`,
+      { code: 'output_limit' },
+    )
+  }
+  return new AiError(
+    `${provider} (${model}) returned an empty response${finishReason ? ` (finish reason: ${finishReason})` : ''}. Free models often do this when they are busy; try again in a minute.`,
+    { code: 'empty_response' },
+  )
 }
 
 /** Map a fetch rejection (timeout / DNS / offline) to a typed AiError. */

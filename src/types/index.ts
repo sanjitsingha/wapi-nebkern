@@ -725,6 +725,43 @@ export interface Broadcast {
   replied_count: number;
   failed_count: number;
   created_at: string;
+  /** Saved AI overview (migration 105). Null until someone generates one. */
+  ai_overview?: CampaignAiOverview | null;
+  ai_overview_at?: string | null;
+}
+
+/** The campaign counters an AI overview was written from. */
+export interface CampaignOverviewBasis {
+  total: number;
+  sent: number;
+  delivered: number;
+  read: number;
+  replied: number;
+  failed: number;
+}
+
+/**
+ * An AI-written read of one campaign's results, as saved on the row.
+ * Written by POST /api/broadcasts/[id]/ai-overview on the account's own
+ * AI provider; see src/lib/ai/campaign-overview.ts.
+ */
+export interface CampaignAiOverview {
+  /** One sentence: the verdict. */
+  headline: string;
+  /** One paragraph: what worked and what didn't, together. */
+  summary: string;
+  suggestions: string[];
+  /** @deprecated The first version's two lists, before they became
+   *  `summary`. Only on overviews saved by that version; the card folds
+   *  them into a paragraph. */
+  wentWell?: string[];
+  /** @deprecated See `wentWell`. */
+  wentWrong?: string[];
+  /** The counters at the moment it was written, so the page can tell
+   *  when the campaign has moved on since. */
+  basis: CampaignOverviewBasis;
+  provider: string;
+  model: string;
 }
 
 export interface BroadcastRecipient {

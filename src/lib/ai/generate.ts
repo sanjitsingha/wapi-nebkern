@@ -15,6 +15,10 @@ export interface GenerateArgs {
   systemPrompt: string;
   /** Recent conversation turns, oldest first. */
   messages: ChatMessage[];
+  /** Output cap; MAX_OUTPUT_TOKENS (sized for a chat reply) when omitted. */
+  maxOutputTokens?: number;
+  /** Request timeout; AI_REQUEST_TIMEOUT_MS / 30s when omitted. */
+  timeoutMs?: number;
 }
 
 /**
@@ -25,35 +29,42 @@ export interface GenerateArgs {
 export async function generateReply(
   args: GenerateArgs
 ): Promise<GenerateResult> {
-  const { config, systemPrompt, messages } = args;
-  const timeoutMs = aiRequestTimeoutMs();
+  return parseGeneration(await generateText(args));
+}
+
+/**
+ * The provider's raw output, with none of the chat-reply cleanup.
+ *
+ * For callers that want structured output (the campaign overview asks
+ * for JSON): `collapseRepetition` drops paragraphs that look like
+ * restatements, which is right for a customer reply and wrong for a
+ * document whose sections are meant to share vocabulary.
+ */
+export async function generateText(args: GenerateArgs): Promise<string> {
+  const { config, systemPrompt, messages, maxOutputTokens } = args;
+  const timeoutMs = args.timeoutMs ?? aiRequestTimeoutMs();
   const providerArgs = {
     apiKey: config.apiKey,
     model: config.model,
     systemPrompt,
     messages,
     timeoutMs,
+    maxOutputTokens,
   };
 
-  let raw: string;
   switch (config.provider) {
     case 'openai':
-      raw = await generateOpenAi(providerArgs);
-      break;
+      return generateOpenAi(providerArgs);
     case 'anthropic':
-      raw = await generateAnthropic(providerArgs);
-      break;
+      return generateAnthropic(providerArgs);
     case 'openrouter':
-      raw = await generateOpenRouter(providerArgs);
-      break;
+      return generateOpenRouter(providerArgs);
     default:
       throw new AiError(`Unsupported AI provider: ${config.provider}`, {
         code: 'unsupported_provider',
         status: 400,
       });
   }
-
-  return parseGeneration(raw);
 }
 
 /**

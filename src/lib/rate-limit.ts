@@ -150,6 +150,11 @@ export const RATE_LIMITS = {
    *  the shared BYO provider key so one workspace can't spike its own
    *  bill (or hit the provider's rate limit) via many agents at once. */
   aiDraftAccount: { limit: 60, windowMs: 60_000 },
+  /** Campaign AI overview, per account. Each one reads the whole
+   *  recipient list and spends a longer generation on the BYO key, and
+   *  the result is saved — so a refresh is a deliberate act, not
+   *  something a team needs dozens of an hour. */
+  aiOverview: { limit: 10, windowMs: 10 * 60_000 },
   /** Public QR generator log (per IP). The tool itself is unlimited —
    *  it runs entirely in the browser and this budget never blocks a
    *  code from being generated, only the row that records it. 20/min

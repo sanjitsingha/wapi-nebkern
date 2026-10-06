@@ -1,6 +1,6 @@
-import { AiError } from '../types'
 import { MAX_OUTPUT_TOKENS } from '../defaults'
 import {
+  emptyResponseError,
   mergeConsecutive,
   providerHttpError,
   toNetworkError,
@@ -10,7 +10,7 @@ import {
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 
 interface OpenAiResponse {
-  choices?: { message?: { content?: string } }[]
+  choices?: { message?: { content?: string | null }; finish_reason?: string | null }[]
 }
 
 /**
@@ -19,7 +19,7 @@ interface OpenAiResponse {
  * `generateReply`).
  */
 export async function generateOpenAi(args: ProviderArgs): Promise<string> {
-  const { apiKey, model, systemPrompt, messages, timeoutMs } = args
+  const { apiKey, model, systemPrompt, messages, timeoutMs, maxOutputTokens } = args
 
   let res: Response
   try {
@@ -35,7 +35,7 @@ export async function generateOpenAi(args: ProviderArgs): Promise<string> {
           { role: 'system', content: systemPrompt },
           ...mergeConsecutive(messages),
         ],
-        max_completion_tokens: MAX_OUTPUT_TOKENS,
+        max_completion_tokens: maxOutputTokens ?? MAX_OUTPUT_TOKENS,
       }),
       signal: AbortSignal.timeout(timeoutMs),
     })
@@ -48,11 +48,10 @@ export async function generateOpenAi(args: ProviderArgs): Promise<string> {
   }
 
   const data = (await res.json().catch(() => null)) as OpenAiResponse | null
-  const text = data?.choices?.[0]?.message?.content
+  const choice = data?.choices?.[0]
+  const text = choice?.message?.content
   if (!text || typeof text !== 'string' || !text.trim()) {
-    throw new AiError('OpenAI returned an empty response.', {
-      code: 'empty_response',
-    })
+    throw emptyResponseError('OpenAI', model, choice?.finish_reason)
   }
   return text
 }

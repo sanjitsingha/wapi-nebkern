@@ -1,6 +1,7 @@
 import { AiError } from '../types'
 import { MAX_OUTPUT_TOKENS } from '../defaults'
 import {
+  emptyResponseError,
   mergeConsecutive,
   providerHttpError,
   toNetworkError,
@@ -14,7 +15,7 @@ import {
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
 interface OpenRouterResponse {
-  choices?: { message?: { content?: string } }[]
+  choices?: { message?: { content?: string | null }; finish_reason?: string | null }[]
   // OpenRouter surfaces upstream failures in a top-level `error` even on
   // some 200s (e.g. a free model's provider is momentarily down).
   error?: { message?: string } | string
@@ -26,7 +27,7 @@ interface OpenRouterResponse {
  * `generateReply`).
  */
 export async function generateOpenRouter(args: ProviderArgs): Promise<string> {
-  const { apiKey, model, systemPrompt, messages, timeoutMs } = args
+  const { apiKey, model, systemPrompt, messages, timeoutMs, maxOutputTokens } = args
 
   let res: Response
   try {
@@ -46,7 +47,7 @@ export async function generateOpenRouter(args: ProviderArgs): Promise<string> {
           { role: 'system', content: systemPrompt },
           ...mergeConsecutive(messages),
         ],
-        max_tokens: MAX_OUTPUT_TOKENS,
+        max_tokens: maxOutputTokens ?? MAX_OUTPUT_TOKENS,
       }),
       signal: AbortSignal.timeout(timeoutMs),
     })
@@ -71,11 +72,10 @@ export async function generateOpenRouter(args: ProviderArgs): Promise<string> {
     )
   }
 
-  const text = data?.choices?.[0]?.message?.content
+  const choice = data?.choices?.[0]
+  const text = choice?.message?.content
   if (!text || typeof text !== 'string' || !text.trim()) {
-    throw new AiError('OpenRouter returned an empty response.', {
-      code: 'empty_response',
-    })
+    throw emptyResponseError('OpenRouter', model, choice?.finish_reason)
   }
   return text
 }
