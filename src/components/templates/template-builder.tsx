@@ -20,6 +20,8 @@ import {
 } from '@/components/ui/select';
 import { CampaignPreview } from '@/components/campaign-preview';
 import { CarouselEditor } from '@/components/templates/carousel-editor';
+import { MayaTemplateWriter } from '@/components/templates/maya-template-writer';
+import type { TemplateDraftResult } from '@/lib/ai/template-draft';
 import { useWhatsAppInfo } from '@/hooks/use-whatsapp-info';
 import type {
   MessageTemplate,
@@ -406,6 +408,34 @@ export function TemplateBuilder({
     }
   }
 
+  /**
+   * Fill the form from Maya's draft. Everything stays editable, and the
+   * toast's Undo puts back whatever was typed before — a second "Write
+   * template" shouldn't silently cost the user their own edits.
+   */
+  function applyMayaDraft({ draft }: TemplateDraftResult) {
+    const before = form;
+    setForm((prev) => ({
+      ...prev,
+      name: draft.name,
+      category: draft.category,
+      language: draft.language,
+      template_type: 'standard',
+      carousel_cards: [],
+      header_format: draft.header_format,
+      header_content: draft.header_content,
+      header_media_url: '',
+      header_sample: draft.header_sample,
+      body_text: draft.body_text,
+      body_samples: draft.body_samples,
+      footer_text: draft.footer_text,
+      buttons: draft.category === 'Authentication' ? [] : draft.buttons,
+    }));
+    toast.success('Maya filled in the template. Review it before submitting.', {
+      action: { label: 'Undo', onClick: () => setForm(before) },
+    });
+  }
+
   type ButtonPatch = {
     text?: string;
     url?: string;
@@ -500,6 +530,11 @@ export function TemplateBuilder({
 
       <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[6fr_4fr] lg:gap-14">
         <div className="min-w-0 space-y-4">
+          {/* ── Write with Maya (new templates only) ─────────────────── */}
+          {!isEdit && (
+            <MayaTemplateWriter language={form.language} onDraft={applyMayaDraft} />
+          )}
+
           {/* ── Name + Type ───────────────────────────────────────────── */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_11rem]">
             <div className="space-y-2">

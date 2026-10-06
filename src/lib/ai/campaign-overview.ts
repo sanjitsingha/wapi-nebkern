@@ -5,6 +5,7 @@ import type {
   MessageTemplate,
 } from '@/types';
 import { AiError, type ChatMessage } from './types';
+import { STRUCTURED_MAX_OUTPUT_TOKENS, STRUCTURED_TIMEOUT_MS } from './defaults';
 
 // ============================================================
 // The AI overview on /campaigns/[id].
@@ -292,21 +293,11 @@ Reply with JSON only, with no code fence, in exactly this shape:
 - summary: one paragraph of 3 to 5 sentences covering what worked and what did not, together, with the figures that show it. Lead with what matters most, good or bad.
 - suggestions: 2 to 4 items, each one or two sentences.`;
 
-/**
- * Output allowance for an overview. The answer itself is ~500 tokens,
- * but a reasoning model (DeepSeek R1, gpt-oss, the GPT-5 family) thinks
- * first out of the same allowance, and the chat-reply cap of 1024 left
- * it with nothing to write in. Billing is for tokens used, not this cap.
- */
-export const OVERVIEW_MAX_OUTPUT_TOKENS = 4096;
-
-/**
- * Wait for the provider. Longer than a chat draft's 30s because the
- * answer is longer, but under nginx's default 60s proxy_read_timeout in
- * front of the app — past that the browser gets nginx's 504 instead of
- * our error, and the tokens are spent either way.
- */
-export const OVERVIEW_TIMEOUT_MS = 55_000;
+/** See STRUCTURED_MAX_OUTPUT_TOKENS — an overview is ~500 tokens of
+ *  answer after however long a reasoning model thinks. */
+export const OVERVIEW_MAX_OUTPUT_TOKENS = STRUCTURED_MAX_OUTPUT_TOKENS;
+/** See STRUCTURED_TIMEOUT_MS. */
+export const OVERVIEW_TIMEOUT_MS = STRUCTURED_TIMEOUT_MS;
 
 export function buildOverviewMessages(facts: CampaignFacts): ChatMessage[] {
   return [

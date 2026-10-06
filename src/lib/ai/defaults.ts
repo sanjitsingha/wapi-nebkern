@@ -30,6 +30,23 @@ export const HANDOFF_SENTINEL = '[[HANDOFF]]';
  *  bounds token spend on the caller's own key. */
 export const MAX_OUTPUT_TOKENS = 1024;
 
+/**
+ * Output allowance for the structured, one-shot generations (campaign
+ * overview, template drafts). The answer is a few hundred tokens, but a
+ * reasoning model (DeepSeek R1, gpt-oss, the GPT-5 family) thinks first
+ * out of the same allowance, and the chat cap above left it nothing to
+ * write in. Billing is for tokens used, not this cap.
+ */
+export const STRUCTURED_MAX_OUTPUT_TOKENS = 4096;
+
+/**
+ * Timeout for those same generations: longer than a chat draft's 30s,
+ * but under nginx's default 60s proxy_read_timeout in front of the app —
+ * past that the browser gets nginx's 504 instead of our error, and the
+ * tokens are spent either way.
+ */
+export const STRUCTURED_TIMEOUT_MS = 55_000;
+
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
 const DEFAULT_CONTEXT_MESSAGE_LIMIT = 20;
 
