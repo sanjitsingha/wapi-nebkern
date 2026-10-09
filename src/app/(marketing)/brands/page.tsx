@@ -64,7 +64,7 @@ const LISTINGS = [
     src: '/images/brands/product-hunt.avif',
     width: 1224,
     height: 440,
-    size: 'h-8 sm:h-9',
+    size: 'h-14 sm:h-16',
   },
   {
     name: 'G2',
@@ -72,6 +72,18 @@ const LISTINGS = [
     src: '/images/brands/g2.png',
     width: 557,
     height: 578,
+    size: 'h-11 sm:h-12',
+  },
+  {
+    name: 'Stork',
+    href: 'https://www.stork.ai/en/instant-whatsapp-automation-platform',
+    // Supplied already white on transparency, unlike the others. The
+    // filter is a no-op on it and is left on anyway: it costs nothing,
+    // and it means a coloured replacement would still reverse out
+    // correctly instead of arriving in its own brand colours.
+    src: '/images/brands/stork.png',
+    width: 350,
+    height: 256,
     size: 'h-11 sm:h-12',
   },
 ];
