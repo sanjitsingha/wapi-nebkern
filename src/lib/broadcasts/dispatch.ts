@@ -128,6 +128,7 @@ export async function dispatchScheduledBroadcast(
   if (rows.length === 0) {
     // Nothing left to send (already dispatched, or empty) — settle it.
     await admin.from('broadcasts').update({ status: 'sent' }).eq('id', broadcast.id);
+    await markSendingFinished(admin, broadcast.id);
     return { id: broadcast.id, sent: 0, failed: 0, skipped: 0 };
   }
 
@@ -262,10 +263,27 @@ export async function dispatchScheduledBroadcast(
     .from('broadcasts')
     .update({ status: finalStatus })
     .eq('id', broadcast.id);
+  await markSendingFinished(admin, broadcast.id);
 
   return { id: broadcast.id, sent, failed, skipped };
 }
 
 async function failBroadcast(admin: SupabaseClient, id: string) {
   await admin.from('broadcasts').update({ status: 'failed' }).eq('id', id);
+  await markSendingFinished(admin, id);
+}
+
+/**
+ * Stamp when sending ended (migration 106) — the Google Sheets export
+ * writes a campaign's results a day after this.
+ *
+ * Its own update, and its error ignored, on purpose: if this code runs
+ * before migration 106 is applied, the unknown column must not take the
+ * status update down with it and leave the campaign stuck in "sending".
+ */
+async function markSendingFinished(admin: SupabaseClient, id: string) {
+  await admin
+    .from('broadcasts')
+    .update({ sending_finished_at: new Date().toISOString() })
+    .eq('id', id);
 }

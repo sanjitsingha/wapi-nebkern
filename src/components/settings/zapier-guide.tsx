@@ -14,6 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import type { ReactNode } from 'react';
+import type { ConnectCardArgs } from './integrations-catalog';
 
 // ============================================================
 // Settings → Integrations → Zapier.
@@ -32,11 +34,20 @@ import {
 // that, and skips getting it wrong.
 // ============================================================
 
-export function ZapierConnect() {
+export function ZapierConnect({
+  renderCard,
+}: {
+  /** Draw this card instead of the grid card; see ConnectCardArgs. */
+  renderCard?: (card: ConnectCardArgs) => ReactNode;
+} = {}) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
+      {/* The integration page draws its own card (a connect hero, or a
+          status card) and keeps this component for its dialog and its
+          connection state. The grid uses the card below. */}
+      {renderCard ? renderCard({ connected: false, loading: false, open: () => setOpen(true) }) : (
       <div className="border-border bg-card hover:border-foreground/20 flex flex-col rounded-xl border p-4 transition-colors">
         <span className="flex size-11 items-center justify-center rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400">
           <Zap className="size-5" />
@@ -56,6 +67,7 @@ export function ZapierConnect() {
           Setup guide
         </Button>
       </div>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         {/* `*:min-w-0` — DialogContent is a CSS grid; without it the wide

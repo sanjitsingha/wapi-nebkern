@@ -25,6 +25,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import type { ReactNode } from 'react';
+import type { ConnectCardArgs } from './integrations-catalog';
 
 const ZOHO_LOGO = 'https://media.instant.nebkern.com/assets/zoho-crm-logo.svg';
 
@@ -74,7 +76,12 @@ function GuideStep({ n, children }: { n: number; children: React.ReactNode }) {
   );
 }
 
-export function ZohoConnect() {
+export function ZohoConnect({
+  renderCard,
+}: {
+  /** Draw this card instead of the grid card; see ConnectCardArgs. */
+  renderCard?: (card: ConnectCardArgs) => ReactNode;
+} = {}) {
   const [status, setStatus] = useState<ZohoConnection | null | undefined>(
     undefined,
   );
@@ -216,6 +223,10 @@ export function ZohoConnect() {
 
   return (
     <>
+      {/* The integration page draws its own card (a connect hero, or a
+          status card) and keeps this component for its dialog and its
+          connection state. The grid uses the card below. */}
+      {renderCard ? renderCard({ connected, loading: status === undefined, open: () => setOpen(true) }) : (
       <div className="border-border bg-card hover:border-foreground/20 flex flex-col rounded-xl border p-4 transition-colors">
         <div className="flex items-start justify-between">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -254,6 +265,7 @@ export function ZohoConnect() {
           )}
         </Button>
       </div>
+      )}
 
       <Dialog open={open} onOpenChange={(v) => !busy && setOpen(v)}>
         {/* Both views earn the width. The setup form is two columns;

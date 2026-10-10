@@ -22,6 +22,7 @@ import {
   sectionHref,
   type SettingsSection,
 } from './settings-sections';
+import { INTEGRATION_RAIL_LINKS } from './integrations-catalog';
 
 /**
  * Sections that exist only on plans with the matching feature flag.
@@ -42,8 +43,10 @@ const RAIL_DESKTOP_MIN_PX = 1024;
 
 // Which rail entry is current. Sub-pages (Instagram, Messenger) have no
 // row of their own, so they resolve to the parent row that owns them.
+// Only the first segment names the section: /settings/integrations/zapier
+// is still the integrations section.
 function getActiveSection(pathname: string): SettingsSection {
-  const segment = pathname.replace(/^\/settings\/?/, '');
+  const segment = pathname.replace(/^\/settings\/?/, '').split('/')[0];
   return railSection(isSection(segment) ? segment : DEFAULT_SECTION);
 }
 
@@ -80,7 +83,7 @@ export function SettingsRail() {
         'lg:flex-col lg:overflow-visible lg:pb-0',
       )}
     >
-      {RAIL_GROUPS.map(({ label, group }, groupIndex) => {
+      {RAIL_GROUPS.map(({ label, group, icon: GroupIcon }, groupIndex) => {
         const items = RAIL_SECTIONS.filter(
           (s) => SECTION_META[s].group === group,
         );
@@ -88,7 +91,7 @@ export function SettingsRail() {
           <div
             key={group}
             className={cn(
-              'flex shrink-0 gap-1 lg:flex-col lg:gap-2',
+              'flex shrink-0 gap-1 lg:flex-col lg:gap-0.5',
               // Mobile hides the group headings, so without this the four
               // groups run together as one long strip of chips. The rule
               // is the only thing marking where one ends. Desktop has the
@@ -96,8 +99,12 @@ export function SettingsRail() {
               groupIndex > 0 && 'ml-1 border-l border-border pl-2 lg:ml-0 lg:border-l-0 lg:pl-0',
             )}
           >
+            {/* Desktop: the heading carries the group's glyph and the rows
+                under it are plain, indented text — a settings index, not
+                a second app sidebar. */}
             {label ? (
-              <div className="hidden px-3 pt-4 pb-2 text-[11px] font-semibold tracking-[0.09em] text-muted-foreground uppercase lg:block">
+              <div className="hidden items-center gap-2 px-3 pt-4 pb-1 text-[15px] font-medium text-muted-foreground lg:flex">
+                {GroupIcon && <GroupIcon className="size-4 shrink-0" />}
                 {label}
               </div>
             ) : null}
@@ -132,7 +139,9 @@ export function SettingsRail() {
                     </span>
                   ) : (
                     <>
-                      {Icon && <Icon className="size-5 shrink-0" />}
+                      {/* Phone only: the chip strip has no headings, so
+                          each chip keeps its glyph. */}
+                      {Icon && <Icon className="size-5 shrink-0 lg:hidden" />}
                       <span className="flex-1">{meta.label}</span>
                     </>
                   )}
@@ -152,11 +161,16 @@ export function SettingsRail() {
               );
 
               const shell = cn(
-                'flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[15px] font-medium whitespace-nowrap transition-colors',
-                'lg:w-full',
+                'flex shrink-0 items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium whitespace-nowrap transition-colors',
+                'lg:py-1.5 lg:text-[15px]',
+                // Indented under a heading so the text lines up with the
+                // heading's label, past its glyph. Maya's row has no
+                // heading and sits flush.
+                label && 'lg:ml-6',
+                meta.mobileOnly && 'lg:hidden',
                 isActive
-                  ? 'bg-primary-soft text-primary'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                  ? 'bg-muted text-primary'
+                  : 'text-foreground/80 hover:bg-muted/60 hover:text-foreground',
                 locked && 'opacity-55 hover:opacity-80',
               );
 
@@ -196,6 +210,37 @@ export function SettingsRail() {
                 </Link>
               );
             })}
+
+            {/* One row per integration, each opening its own page.
+                Desktop only: on a phone the chip strip stays short, and
+                its Integrations chip opens the grid of all of them. */}
+            {group === 'integrations' &&
+              INTEGRATION_RAIL_LINKS.map((link) => {
+                const isActive = pathname === link.href;
+                const locked = isLocked('integrations');
+                return (
+                  <Link
+                    key={link.id}
+                    href={link.href}
+                    aria-current={isActive ? 'page' : undefined}
+                    title={
+                      locked
+                        ? `${link.label} — upgrade your plan to unlock`
+                        : undefined
+                    }
+                    className={cn(
+                      'hidden shrink-0 items-center gap-3 rounded-lg px-3 py-1.5 text-left text-[15px] font-medium whitespace-nowrap transition-colors lg:ml-6 lg:flex',
+                      isActive
+                        ? 'bg-muted text-primary'
+                        : 'text-foreground/80 hover:bg-muted/60 hover:text-foreground',
+                      locked && 'opacity-55 hover:opacity-80',
+                    )}
+                  >
+                    <span className="flex-1">{link.label}</span>
+                    {locked && <Lock className="size-3.5 shrink-0 opacity-70" />}
+                  </Link>
+                );
+              })}
           </div>
         );
       })}

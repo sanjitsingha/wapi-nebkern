@@ -19,6 +19,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import type { ReactNode } from 'react';
+import type { ConnectCardArgs } from './integrations-catalog';
 
 interface ConnectionStatus {
   storeUrl: string;
@@ -33,7 +35,12 @@ interface ConnectionStatus {
  * paste the store URL + REST API key/secret, and connects (which verifies
  * the creds and auto-registers the order webhooks server-side).
  */
-export function WooCommerceConnect() {
+export function WooCommerceConnect({
+  renderCard,
+}: {
+  /** Draw this card instead of the grid card; see ConnectCardArgs. */
+  renderCard?: (card: ConnectCardArgs) => ReactNode;
+} = {}) {
   const [status, setStatus] = useState<ConnectionStatus | null | undefined>(
     undefined,
   );
@@ -109,6 +116,10 @@ export function WooCommerceConnect() {
 
   return (
     <>
+      {/* The integration page draws its own card (a connect hero, or a
+          status card) and keeps this component for its dialog and its
+          connection state. The grid uses the card below. */}
+      {renderCard ? renderCard({ connected, loading: status === undefined, open: () => setOpen(true) }) : (
       <div className="flex flex-col rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/20">
         <div className="flex items-start justify-between">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -147,6 +158,7 @@ export function WooCommerceConnect() {
           )}
         </Button>
       </div>
+      )}
 
       <Dialog open={open} onOpenChange={(v) => !busy && setOpen(v)}>
         <DialogContent className="max-w-md">

@@ -1,9 +1,12 @@
 import {
   AtSign,
+  Building2,
   Camera,
+  CodeXml,
   KeyRound,
   MessageCircle,
   MessageSquareCode,
+  MessagesSquare,
   Phone,
   PlugZap,
   ScrollText,
@@ -11,6 +14,7 @@ import {
   Store,
   Tags,
   User,
+  UserCog,
   UsersRound,
   Wallet,
   Webhook,
@@ -45,6 +49,7 @@ export const SETTINGS_SECTIONS = [
   'activity-log',
   'billing',
   'customization',
+  'developer-hub',
   // Channels — every way a conversation can reach the inbox.
   'whatsapp',
   'calling',
@@ -52,10 +57,10 @@ export const SETTINGS_SECTIONS = [
   'instagram',
   'messenger',
   'widget',
-  // Developers — credentials and wiring to other software.
-  'api-access',
+  // Integrations — wiring to other software. The rail adds a row per
+  // integration after these (see INTEGRATION_RAIL_LINKS).
   'integrations',
-  'developer-hub',
+  'api-access',
 ] as const;
 
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
@@ -78,7 +83,7 @@ export interface SectionMeta {
    * what the lock and coming-soon tooltips quote.
    */
   mark?: 'maya';
-  group: 'assistant' | 'account' | 'workspace' | 'channels' | 'developers';
+  group: 'assistant' | 'account' | 'workspace' | 'channels' | 'integrations';
   /**
    * Shelved channel: the rail shows the entry with a "Soon" badge and
    * makes it non-navigable, and the section's page renders the
@@ -97,6 +102,12 @@ export interface SectionMeta {
    * other, so the deeper one hides behind its parent instead.
    */
   hiddenUnder?: SettingsSection;
+  /**
+   * A row for the phone chip strip only. On desktop the rail lists what
+   * the page holds row by row instead, so a row for the page as a whole
+   * would only repeat them.
+   */
+  mobileOnly?: boolean;
 }
 
 /**
@@ -171,6 +182,16 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     icon: Tags,
     group: 'workspace',
   },
+  // "Developer hub" said where it sat, not what it held: the page is the
+  // AI provider, its credentials and the model behind the agent. A
+  // workspace setting — the whole team's Maya runs on it — rather than
+  // an integration. The route id stays `developer-hub`.
+  'developer-hub': {
+    id: 'developer-hub',
+    label: 'AI & models',
+    icon: Sparkles,
+    group: 'workspace',
+  },
 
   /* ── Channels ────────────────────────────────────────────────────── */
   whatsapp: {
@@ -224,40 +245,43 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
   },
 
   /* ── Developers ──────────────────────────────────────────────────── */
-  'api-access': {
-    id: 'api-access',
-    label: 'API access',
-    icon: KeyRound,
-    group: 'developers',
-  },
+  /* ── Integrations ────────────────────────────────────────────────── */
+  // The overview grid. On desktop the rail lists each integration under
+  // the heading instead, each jumping to its card on this page, so this
+  // row is the phone's way in only.
   // Its own glyph rather than another PlugZap — WhatsApp already wears
   // that one, and two identical icons in one rail read as a mistake.
   integrations: {
     id: 'integrations',
     label: 'Integrations',
     icon: Webhook,
-    group: 'developers',
+    group: 'integrations',
+    mobileOnly: true,
   },
-  // "Developer hub" said where it sat, not what it held: the page is the
-  // AI provider, its credentials and the model behind the agent.
-  'developer-hub': {
-    id: 'developer-hub',
-    label: 'AI & models',
-    icon: Sparkles,
-    group: 'developers',
+  'api-access': {
+    id: 'api-access',
+    label: 'API access',
+    icon: KeyRound,
+    group: 'integrations',
   },
 };
 
+/**
+ * The rail's headings. Each carries the glyph for the whole group: the
+ * rows under a heading are plain text, so the heading is where the
+ * group is recognised at a glance.
+ */
 export const RAIL_GROUPS: {
   label: string | null;
   group: SectionMeta['group'];
+  icon?: LucideIcon;
 }[] = [
   // Headingless, and first. See SECTION_META.maya.
   { label: null, group: 'assistant' },
-  { label: 'Account', group: 'account' },
-  { label: 'Workspace', group: 'workspace' },
-  { label: 'Channels', group: 'channels' },
-  { label: 'Developers', group: 'developers' },
+  { label: 'Account', group: 'account', icon: UserCog },
+  { label: 'Workspace', group: 'workspace', icon: Building2 },
+  { label: 'Channels', group: 'channels', icon: MessagesSquare },
+  { label: 'Integrations', group: 'integrations', icon: CodeXml },
 ];
 
 export function isSection(value: string | null): value is SettingsSection {

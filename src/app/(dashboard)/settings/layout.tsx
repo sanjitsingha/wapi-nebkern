@@ -21,7 +21,7 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
           plus their headings outgrow a laptop viewport, and the panel
           around it is `overflow-hidden`, so anything the aside doesn't
           scroll itself gets clipped off the bottom. */}
-      <aside className="shrink-0 overflow-y-auto border-b border-border bg-muted/40 px-4 pt-4 pb-2 lg:w-60 lg:border-r lg:border-b-0 lg:px-3 lg:py-6">
+      <aside className="shrink-0 overflow-y-auto border-b border-border bg-card px-4 pt-4 pb-2 lg:w-60 lg:border-r lg:border-b-0 lg:px-3 lg:py-6">
         <div className="mb-3 px-1 lg:px-3">
           <h1 className="text-lg font-bold tracking-tight text-foreground">
             Settings

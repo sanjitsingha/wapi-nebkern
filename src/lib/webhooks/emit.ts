@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabaseAdmin } from './admin-client';
 import type { WebhookEventType } from './events';
+import { enqueueSheetEvent } from '@/lib/google-sheets/sync';
 
 /**
  * Fan an event out to the account's subscribed webhook endpoints by
@@ -18,6 +19,11 @@ export async function emitWebhookEvent(
   data: Record<string, unknown>,
   db: SupabaseClient = supabaseAdmin(),
 ): Promise<void> {
+  // The connected Google Sheet, if any, gets the same events. Before the
+  // endpoint lookup because most accounts with a sheet have no webhook
+  // endpoints, and that lookup returns early. Never throws.
+  await enqueueSheetEvent(db, accountId, eventType, data);
+
   try {
     const { data: endpoints, error } = await db
       .from('webhook_endpoints')
