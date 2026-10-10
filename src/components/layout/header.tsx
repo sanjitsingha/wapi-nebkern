@@ -13,10 +13,12 @@ import {
 // Phosphor, matching the sidebar it sits above — see the note there on
 // why the nav chrome moved off Lucide.
 import {
+  BookOpen,
   Gauge,
   Gear,
   Headset,
   List as MenuIcon,
+  Question,
   ShieldCheck,
   SignOut,
   WhatsappLogo,
@@ -91,6 +93,51 @@ export function Header({ onOpenSidebar }: HeaderProps) {
             on a paid account — so the icons keep their usual positions
             for everyone past the trial. */}
         <TrialStatusChip />
+
+        {/* Help — the docs and the support desk, one click from any page.
+            Support was only reachable from inside the account menu. The
+            dot mirrors that menu item: an unread reply from the team. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            aria-label={supportUnread > 0 ? 'Help (new support reply)' : 'Help'}
+            title="Help"
+            className="text-muted-foreground hover:bg-muted hover:text-foreground data-popup-open:bg-muted data-popup-open:text-foreground relative flex h-10 items-center justify-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition-colors focus:outline-none"
+          >
+            <span className="relative flex">
+              <Question className="h-5 w-5" />
+              {supportUnread > 0 && (
+                <span className="bg-primary ring-background absolute -top-0.5 -right-0.5 size-2 rounded-full ring-2" />
+              )}
+            </span>
+            <span className="hidden sm:inline">Help</span>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            sideOffset={8}
+            className="bg-popover text-popover-foreground ring-border min-w-56 p-1.5"
+          >
+            <DropdownMenuItem
+              render={<Link href="/docs" target="_blank" rel="noopener noreferrer" />}
+              className="gap-2.5 rounded-lg px-3 py-2.5 text-[15px] font-medium cursor-pointer text-foreground hover:bg-muted"
+            >
+              <BookOpen className="h-4.5 w-4.5 text-muted-foreground" />
+              Help center
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setSupportOpen(true)}
+              className="gap-2.5 rounded-lg px-3 py-2.5 text-[15px] font-medium cursor-pointer text-foreground hover:bg-muted"
+            >
+              <Headset className="h-4.5 w-4.5 text-muted-foreground" />
+              Contact support
+              {supportUnread > 0 && (
+                <span className="bg-primary-soft text-primary ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums">
+                  {supportUnread > 99 ? '99+' : supportUnread}
+                </span>
+              )}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         <NotificationsBell />
 
 
