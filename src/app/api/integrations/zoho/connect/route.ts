@@ -29,7 +29,6 @@ import { supabaseAdmin } from '@/lib/billing/admin-client';
 import {
   platformZohoCredentials,
   usesLegacyZohoApp,
-  zohoRedirectUri,
 } from '@/lib/zoho/client';
 import { logAudit } from '@/lib/audit/log';
 import { AUDIT } from '@/lib/audit/events';
@@ -73,16 +72,7 @@ export async function GET(request: Request) {
     const hasOwnApp = usesLegacyZohoApp(data);
     const configured = hasOwnApp || !!platformZohoCredentials();
 
-    // Computed HERE rather than in the browser, so what the dialog
-    // tells you to register is the exact string the start route will
-    // send — including any ZOHO_REDIRECT_URI override, which the
-    // browser cannot see. A displayed value that merely resembles the
-    // sent one is worse than none: it sends people to compare two
-    // things that were never the same.
-    const redirectUri = zohoRedirectUri(new URL(request.url).origin);
-
-    if (!data)
-      return NextResponse.json({ connection: null, configured, redirectUri });
+    if (!data) return NextResponse.json({ connection: null, configured });
 
     const base = siteBaseUrl(request);
 
@@ -98,7 +88,6 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       configured,
-      redirectUri,
       connection: {
         orgName: data.org_name,
         orgId: data.org_id,

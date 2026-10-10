@@ -1,9 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   ZOHO_SCOPES,
   accountsUrlFromCallback,
   buildZohoAuthorizeUrl,
+  zohoRedirectUri,
 } from './client';
 
 // A malformed scope is invisible until a user reaches Zoho's consent
@@ -149,5 +150,49 @@ describe('accountsUrlFromCallback', () => {
     expect(
       accountsUrlFromCallback('in', 'https://accounts.zoho.eu'),
     ).toBe('https://accounts.zoho.in');
+  });
+});
+
+describe('zohoRedirectUri', () => {
+  const env = { ...process.env };
+  afterEach(() => {
+    process.env = { ...env };
+  });
+
+  it('is the SITE url, not the origin the admin is browsing', () => {
+    // The bug this pins: deriving it from the request origin meant
+    // connecting from a dev server sent Zoho a localhost callback that
+    // was not registered, and that Zoho could never have reached.
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://instant.example.com';
+    delete process.env.ZOHO_REDIRECT_URI;
+    expect(zohoRedirectUri('http://localhost:3000')).toBe(
+      'https://instant.example.com/api/integrations/zoho/oauth/callback',
+    );
+  });
+
+  it('does not double up a slash when the site url has a trailing one', () => {
+    // Zoho matches byte for byte, so "…com//api/…" is a different URI
+    // and is refused with no indication of why.
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://instant.example.com/';
+    delete process.env.ZOHO_REDIRECT_URI;
+    expect(zohoRedirectUri()).toBe(
+      'https://instant.example.com/api/integrations/zoho/oauth/callback',
+    );
+  });
+
+  it('lets ZOHO_REDIRECT_URI win outright', () => {
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://instant.example.com';
+    process.env.ZOHO_REDIRECT_URI = 'https://other.example.net/cb';
+    expect(zohoRedirectUri('http://localhost:3000')).toBe(
+      'https://other.example.net/cb',
+    );
+  });
+
+  it('falls back to the request origin only when no site url is set', () => {
+    delete process.env.NEXT_PUBLIC_SITE_URL;
+    delete process.env.ZOHO_REDIRECT_URI;
+    expect(zohoRedirectUri('https://fallback.example.org')).toBe(
+      'https://fallback.example.org/api/integrations/zoho/oauth/callback',
+    );
   });
 });

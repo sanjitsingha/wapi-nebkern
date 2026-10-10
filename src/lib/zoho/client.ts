@@ -86,25 +86,51 @@ export function platformZohoCredentials():
  * handshake fails.
  *
  * Zoho compares it to the Authorized Redirect URI in the API console
- * BYTE FOR BYTE. A different scheme, a different port, a trailing
- * slash, or http where https was registered, and the consent screen
- * refuses with "Redirect URI passed does not match with the one
- * configured" — naming neither value, so there is nothing to compare.
+ * BYTE FOR BYTE. A different scheme, a different port or a trailing
+ * slash, and the consent screen refuses with "Redirect URI passed does
+ * not match with the one configured" — naming neither value, so there
+ * is nothing to compare.
  *
- * Two places must agree on it or the exchange fails after the user has
- * already consented: the authorize URL and the token exchange. Hence
- * one function, called by both.
+ * ── It is the SITE's address, not the browser's ──
  *
- * By default it follows the origin the admin is actually on, which is
- * what makes localhost, a tunnel and production each work against their
- * own registered entry. ZOHO_REDIRECT_URI overrides that outright, for
- * when the app sits behind something that rewrites the origin and the
- * derived value is not what the browser would have sent.
+ * This followed the request origin at first, so that localhost, a
+ * tunnel and production would each work against their own console
+ * entry. That is the wrong trade for a product with one address: it
+ * made the registered URL depend on where the admin happened to be
+ * sitting, and connecting from a dev server duly sent Zoho a
+ * localhost callback that nobody had registered — or could, since
+ * Zoho cannot reach it.
+ *
+ * NEXT_PUBLIC_SITE_URL is the deployment's canonical address and is
+ * already set in every environment, so the value is now constant:
+ * ONE URL to register, and connecting from a dev server still
+ * completes against the live site. ZOHO_REDIRECT_URI overrides it
+ * outright if a deployment ever needs something else.
+ *
+ * Both the authorize URL and the token exchange call this. They must
+ * agree, or the exchange fails after the user has already consented.
  */
-export function zohoRedirectUri(origin: string): string {
+export function zohoRedirectUri(origin?: string): string {
   const override = process.env.ZOHO_REDIRECT_URI?.trim();
-  if (override) return override.replace(/\/+$/, '');
-  return `${origin}/api/integrations/zoho/oauth/callback`;
+  if (override) return stripSlash(override);
+
+  // The canonical site, so the value is the same no matter where the
+  // admin happens to be browsing from.
+  const site = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (site) return `${stripSlash(site)}${ZOHO_CALLBACK_PATH}`;
+
+  // Only when the site URL is unset — a bare checkout with no env. Not
+  // the normal path, and it is the case that produced a localhost
+  // redirect URI nobody had registered.
+  return origin
+    ? `${stripSlash(origin)}${ZOHO_CALLBACK_PATH}`
+    : ZOHO_CALLBACK_PATH;
+}
+
+const ZOHO_CALLBACK_PATH = '/api/integrations/zoho/oauth/callback';
+
+function stripSlash(value: string): string {
+  return value.replace(/\/+$/, '');
 }
 
 /**
