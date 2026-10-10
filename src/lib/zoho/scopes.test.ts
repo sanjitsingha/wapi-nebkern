@@ -34,11 +34,34 @@ describe('ZOHO_SCOPES', () => {
   });
 
   it('asks for nothing beyond what the code actually calls', () => {
-    // The only Zoho API call in this integration is /crm/v5/org. A
-    // module scope would grant read+write on every CRM record to
-    // satisfy no call at all — if a scope is added here, a call using
-    // it should be added in the same change.
-    expect(ZOHO_SCOPES).toEqual(['ZohoCRM.org.READ']);
+    // Each of these is paid for by a call somewhere. If a scope is
+    // added here, the call that needs it belongs in the same change —
+    // otherwise it is access to a customer's CRM for nothing.
+    expect(ZOHO_SCOPES).toEqual([
+      'ZohoCRM.org.READ',
+      'ZohoCRM.modules.contacts.ALL',
+      'ZohoCRM.modules.leads.ALL',
+      'ZohoCRM.modules.deals.READ',
+      'ZohoCRM.modules.notes.CREATE',
+    ]);
+  });
+
+  it('never asks for the blanket modules scope', () => {
+    // ZohoCRM.modules.ALL covers everything these name individually,
+    // and also grants write and delete on Tasks, Calls, Campaigns and
+    // every other module we do not touch. Naming modules keeps a bug
+    // here from reaching them.
+    expect(ZOHO_SCOPES).not.toContain('ZohoCRM.modules.ALL');
+  });
+
+  it('keeps write access to the two modules that are synced', () => {
+    // deals is READ and notes is CREATE on purpose: nothing writes a
+    // Deal, and logging a conversation appends notes rather than
+    // editing what someone else wrote.
+    expect(ZOHO_SCOPES).toContain('ZohoCRM.modules.deals.READ');
+    expect(ZOHO_SCOPES).not.toContain('ZohoCRM.modules.deals.ALL');
+    expect(ZOHO_SCOPES).toContain('ZohoCRM.modules.notes.CREATE');
+    expect(ZOHO_SCOPES).not.toContain('ZohoCRM.modules.notes.ALL');
   });
 });
 

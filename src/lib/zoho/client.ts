@@ -34,25 +34,53 @@ const ACCOUNTS_BY_LOCATION: Record<string, string> = {
 /**
  * Scopes requested at connect.
  *
- * ONE scope, and the narrowest one that works.
+ * ── The rule ──
  *
- * This integration never reads a CRM record: a Workflow Rule webhook
- * arrives carrying its own payload, which is the whole point of the
- * design. The only Zoho API call in the codebase is `/crm/v5/org`, once
- * at connect time, to name the organisation in Settings — and
- * `ZohoCRM.org.READ` is exactly that.
+ * Every scope here exists because code calls something that needs it.
+ * A scope without a call is a request for access to a customer's CRM
+ * to satisfy nothing, and an admin reading that consent screen is
+ * right to refuse it. The test file asserts this list against the
+ * features below; adding a scope without its call fails it.
  *
- * An earlier version asked for `ZohoCRM.modules.ALL` as well. That
- * would have granted read AND write on every record in the CRM to
- * satisfy no call at all, which is the kind of consent screen an admin
- * is right to refuse.
+ * It is still deliberately narrower than it could be. `ZohoCRM.modules.ALL`
+ * would cover all of this in one line and also grant write and delete
+ * on every module in the CRM, including ones we never touch. Naming
+ * modules individually means a bug here cannot reach Tasks, Calls,
+ * Campaigns or anything else.
  *
- * Note the grammar if this ever needs extending:
- * `Service.Resource.Operation`. `ZohoCRM.modules.ALL.READ` is a fourth
- * segment that does not parse — Zoho answers "Invalid OAuth Scope —
- * Scope does not exist", with no hint as to which one.
+ * ── What each one is for ──
+ *
+ *   org.READ              the organisation's name, shown in Settings so
+ *                         you can see which Zoho is connected. The only
+ *                         scope this integration had while events were
+ *                         one-way pushes carrying their own payload.
+ *
+ *   contacts.ALL          two-way contact sync, so read AND write.
+ *   leads.ALL             a Workflow Rule usually fires on a Lead, and
+ *                         sync has to write back to it.
+ *
+ *   deals.READ            READ only, deliberately. Deal events are
+ *                         fetched to fill in stage and amount; nothing
+ *                         writes a Deal, and nothing should be able to.
+ *
+ *   notes.CREATE          CREATE only. Logging a WhatsApp conversation
+ *                         onto a record appends notes; it never edits
+ *                         or deletes what someone else wrote there.
+ *
+ * ── Grammar, if this is extended ──
+ *
+ * `Service.Resource.Operation`, three or four segments.
+ * `ZohoCRM.modules.ALL.READ` is a segment too many — ALL is already the
+ * operation — and Zoho answers "Invalid OAuth Scope — Scope does not
+ * exist" without naming which one.
  */
-export const ZOHO_SCOPES = ['ZohoCRM.org.READ'] as const;
+export const ZOHO_SCOPES = [
+  'ZohoCRM.org.READ',
+  'ZohoCRM.modules.contacts.ALL',
+  'ZohoCRM.modules.leads.ALL',
+  'ZohoCRM.modules.deals.READ',
+  'ZohoCRM.modules.notes.CREATE',
+] as const;
 
 /**
  * The ONE Zoho application this deployment connects through.

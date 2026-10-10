@@ -21,6 +21,7 @@ import { supabaseAdmin } from '@/lib/billing/admin-client';
 import { runAutomationsForTrigger } from '@/lib/automations/engine';
 import { normalizeZohoPayload } from '@/lib/zoho/payload';
 import { upsertContactFromZoho } from '@/lib/zoho/ingest';
+import { enrichZohoRecord } from '@/lib/zoho/enrich';
 
 /** Refuse a payload bigger than this. A Zoho record is a few KB; a
  *  megabyte of JSON is a misconfiguration or an attack, and parsing it
@@ -80,7 +81,7 @@ export async function POST(
 
   const payload: Record<string, unknown> = { ...queryParams, ...bodyPayload };
 
-  const record = normalizeZohoPayload(payload);
+  const parsed = normalizeZohoPayload(payload);
   const accountId = conn.account_id as string;
 
   const { data: account } = await db
@@ -90,6 +91,13 @@ export async function POST(
     .maybeSingle();
   const ownerUserId = account?.owner_user_id as string | undefined;
   if (!ownerUserId) return NextResponse.json({ ok: true });
+
+  // Read the record the event points at, so a Workflow Rule can carry
+  // an id and a module and nothing else. Soft in every failure case —
+  // see lib/zoho/enrich.ts — so an event that arrived complete, or a
+  // module we hold no scope for, proceeds exactly as it used to.
+  const enrichment = await enrichZohoRecord(db, accountId, parsed);
+  const record = enrichment.record;
 
   const ingest = await upsertContactFromZoho(
     db,
@@ -109,7 +117,14 @@ export async function POST(
     contact_id: ingest.contactId,
     matched: !!ingest.contactId,
     skip_reason: ingest.skippedReason ?? null,
+    // The payload AS RECEIVED, not the enriched one. This column is the
+    // debugging surface for "why did my rule not work", and the answer
+    // is almost always something the rule did or did not send — which
+    // storing our own additions on top of would hide. What enrichment
+    // contributed is recorded beside it instead.
     payload: payload as Record<string, unknown>,
+    enriched: enrichment.enriched,
+    enrich_skipped: enrichment.skipped ?? null,
   });
 
   await db
