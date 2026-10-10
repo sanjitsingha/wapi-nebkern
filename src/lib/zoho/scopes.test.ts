@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { ZOHO_SCOPES, buildZohoAuthorizeUrl } from './client';
+import {
+  ZOHO_SCOPES,
+  accountsUrlFromCallback,
+  buildZohoAuthorizeUrl,
+} from './client';
 
 // A malformed scope is invisible until a user reaches Zoho's consent
 // screen, where it fails as "Invalid OAuth Scope — Scope does not
@@ -52,6 +56,17 @@ describe('buildZohoAuthorizeUrl', () => {
     expect(url.startsWith('https://accounts.zoho.in/oauth/v2/auth')).toBe(true);
   });
 
+  it('defaults to the multi-DC entry point', () => {
+    // Nobody picks a region any more. accounts.zoho.com is where every
+    // new connection starts: Zoho recognises the user's home data
+    // centre from their login and forwards them to it. Defaulting to
+    // any OTHER host would refuse everyone not in that one region.
+    const url = buildZohoAuthorizeUrl(base);
+    expect(url.startsWith('https://accounts.zoho.com/oauth/v2/auth')).toBe(
+      true,
+    );
+  });
+
   it('requests offline access, or there is no refresh token', () => {
     // Without this the connection dies silently an hour after it is
     // made — the single easiest way to get Zoho OAuth wrong.
@@ -75,5 +90,64 @@ describe('buildZohoAuthorizeUrl', () => {
   it('sends the scopes comma-separated, as Zoho expects', () => {
     const url = new URL(buildZohoAuthorizeUrl(base));
     expect(url.searchParams.get('scope')).toBe(ZOHO_SCOPES.join(','));
+  });
+});
+
+describe('accountsUrlFromCallback', () => {
+  it('maps the location code Zoho returns to its data centre', () => {
+    expect(accountsUrlFromCallback('in', null)).toBe(
+      'https://accounts.zoho.in',
+    );
+    expect(accountsUrlFromCallback('eu', null)).toBe(
+      'https://accounts.zoho.eu',
+    );
+    expect(accountsUrlFromCallback('AU', null)).toBe(
+      'https://accounts.zoho.com.au',
+    );
+  });
+
+  it('falls back to a known host when only accounts-server is given', () => {
+    expect(
+      accountsUrlFromCallback(null, 'https://accounts.zoho.jp'),
+    ).toBe('https://accounts.zoho.jp');
+    // Trailing slashes are Zoho's, not a different host.
+    expect(
+      accountsUrlFromCallback(null, 'https://accounts.zoho.jp/'),
+    ).toBe('https://accounts.zoho.jp');
+  });
+
+  it('never returns a host it was not already compiled with', () => {
+    // This is the security property, not a nicety. These values arrive
+    // on an attacker-reachable callback URL and decide where the token
+    // exchange POSTs our client secret. Anything unrecognised has to
+    // land on a known host, never on what the query string asked for.
+    const hostile = [
+      'https://accounts.zoho.in.evil.test',
+      'https://evil.test',
+      'https://accounts.zoho.in@evil.test',
+      '//evil.test',
+      'javascript:alert(1)',
+    ];
+    for (const server of hostile) {
+      expect(accountsUrlFromCallback(null, server)).toBe(
+        'https://accounts.zoho.com',
+      );
+    }
+    // Same for a location code that is not one of Zoho's.
+    expect(accountsUrlFromCallback('evil', null)).toBe(
+      'https://accounts.zoho.com',
+    );
+    expect(accountsUrlFromCallback(null, null)).toBe(
+      'https://accounts.zoho.com',
+    );
+  });
+
+  it('prefers location over accounts-server when both are present', () => {
+    // Both are attacker-reachable, so this is not about trust between
+    // them — it is that `location` is matched against a fixed map and
+    // is the value Zoho documents as authoritative.
+    expect(
+      accountsUrlFromCallback('in', 'https://accounts.zoho.eu'),
+    ).toBe('https://accounts.zoho.in');
   });
 });

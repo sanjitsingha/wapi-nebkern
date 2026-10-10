@@ -1,96 +1,37 @@
 // ============================================================
 // /api/integrations/zoho/connect
 //
-//   POST   — save this account's own Zoho client id + secret, and mint
-//            the webhook token. Creates the half-made connection row
-//            that the OAuth round trip then completes.
 //   GET    — connection status, including the webhook URL to paste
 //            into a Zoho Workflow Rule.
 //   DELETE — disconnect.
 //
-// Credentials are PER ACCOUNT, the way woocommerce_connections stores
-// consumer_key / consumer_secret — not one platform-wide app in the
-// server environment. Every organisation using this tool registers its
-// own Zoho application, which is also the only way this works across
-// Zoho's data centres: a client registered on .com is unknown to .in.
+// ── There is no POST any more ──
 //
-// The OAuth handshake itself lives in ../oauth/.
+// There used to be one, and it was the first half of connecting: it
+// saved the account's own Zoho client id and secret, which the admin
+// had gone off to api-console.zoho.com to create, and only then could
+// the OAuth round trip start.
+//
+// That is gone. The application belongs to this deployment now
+// (ZOHO_CLIENT_ID / ZOHO_CLIENT_SECRET), Zoho's multi-DC support means
+// the data centre resolves itself, and connecting is a single trip to
+// ../oauth/start — which also creates the row it needs. Nothing is left
+// for the browser to save first.
+//
+// Accounts that connected under the old design keep their own
+// credentials on the row and keep using them; see migration 108.
 // ============================================================
 
-import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 
 import { requireRole, toErrorResponse } from '@/lib/auth/account';
 import { supabaseAdmin } from '@/lib/billing/admin-client';
-import { encrypt } from '@/lib/whatsapp/encryption';
-import { accountsUrlForLocation } from '@/lib/zoho/client';
+import {
+  platformZohoCredentials,
+  usesLegacyZohoApp,
+} from '@/lib/zoho/client';
 import { logAudit } from '@/lib/audit/log';
 import { AUDIT } from '@/lib/audit/events';
-
-export async function POST(request: Request) {
-  try {
-    const ctx = await requireRole('admin');
-
-    const body = (await request.json().catch(() => null)) as {
-      clientId?: unknown;
-      clientSecret?: unknown;
-      region?: unknown;
-    } | null;
-
-    const clientId =
-      typeof body?.clientId === 'string' ? body.clientId.trim() : '';
-    const clientSecret =
-      typeof body?.clientSecret === 'string' ? body.clientSecret.trim() : '';
-    const region = typeof body?.region === 'string' ? body.region : 'us';
-
-    if (!clientId || !clientSecret) {
-      return NextResponse.json(
-        { error: 'Client ID and client secret are both required.' },
-        { status: 400 },
-      );
-    }
-
-    const db = supabaseAdmin();
-    const { data: existing } = await db
-      .from('zoho_connections')
-      .select('webhook_token')
-      .eq('account_id', ctx.accountId)
-      .maybeSingle();
-
-    // Keep the receiver URL across a re-entry of credentials, so the
-    // Workflow Rules already configured in Zoho keep working.
-    const webhookToken =
-      (existing?.webhook_token as string) ??
-      crypto.randomBytes(24).toString('hex');
-
-    const { error } = await db.from('zoho_connections').upsert(
-      {
-        account_id: ctx.accountId,
-        client_id: clientId,
-        client_secret: encrypt(clientSecret),
-        accounts_url: accountsUrlForLocation(region),
-        webhook_token: webhookToken,
-        // Not live until OAuth completes — the webhook receiver checks
-        // this, so a half-made connection cannot accept events.
-        is_active: false,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'account_id' },
-    );
-
-    if (error) {
-      console.error('[zoho/connect] save failed:', error);
-      return NextResponse.json(
-        { error: 'Could not save the credentials.' },
-        { status: 500 },
-      );
-    }
-
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    return toErrorResponse(err);
-  }
-}
 
 function siteBaseUrl(request: Request): string {
   const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim();
@@ -110,12 +51,28 @@ export async function GET(request: Request) {
     const { data } = await ctx.supabase
       .from('zoho_connections')
       .select(
-        'org_name, org_id, api_domain, is_active, connected_at, last_event_at, webhook_token, client_id',
+        'org_name, org_id, api_domain, is_active, connected_at, last_event_at, webhook_token, client_id, refresh_token',
       )
       .eq('account_id', ctx.accountId)
       .maybeSingle();
 
-    if (!data) return NextResponse.json({ connection: null });
+    // Whether connecting is possible at all on this server. The dialog
+    // shows a plain "not configured" state rather than a Connect button
+    // that would walk the admin into a Zoho error page.
+    //
+    // A legacy row counts as configured on its own: it carries the
+    // application it connected with, so it needs nothing from the
+    // environment.
+    //
+    // Only one that actually connected, though. A half-made row left
+    // over from the old design has credentials that were never used,
+    // and counting it here reports the integration as configured on a
+    // server that cannot connect anything — which puts an enabled
+    // button in front of someone it is going to fail.
+    const hasOwnApp = usesLegacyZohoApp(data);
+    const configured = hasOwnApp || !!platformZohoCredentials();
+
+    if (!data) return NextResponse.json({ connection: null, configured });
 
     const base = siteBaseUrl(request);
 
@@ -130,18 +87,17 @@ export async function GET(request: Request) {
       .limit(5);
 
     return NextResponse.json({
+      configured,
       connection: {
         orgName: data.org_name,
         orgId: data.org_id,
         apiDomain: data.api_domain,
         isActive: data.is_active,
-        // Credentials saved but OAuth not finished. The UI shows "Sign
-        // in to Zoho" rather than a Connect form the admin has already
-        // filled in once.
-        hasCredentials: !!data.client_id,
-        // Never returned, even to an admin: it is write-only from the
-        // browser's point of view, the way every other stored secret in
-        // this codebase behaves.
+        // True only for a connection made under the old per-account
+        // design. Surfaced so Settings can say so — those accounts are
+        // still tied to a Zoho application someone there has to keep
+        // alive, where everyone else is not.
+        usesOwnApp: hasOwnApp,
         connectedAt: data.connected_at,
         lastEventAt: data.last_event_at,
         // The whole point of the settings card: this is what the admin

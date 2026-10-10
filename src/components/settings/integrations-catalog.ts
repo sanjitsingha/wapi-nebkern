@@ -181,7 +181,20 @@ export const INTEGRATIONS: Integration[] = [
     group: 'builtin',
     href: '#',
     cta: 'Connect',
-    logo: 'https://media.instant.nebkern.com/assets/zoho-crm-logo.svg',
+    // The four-square mark alone, where the media host carries the
+    // full lockup — mark PLUS the word ZOHO. That matters because the
+    // grid contains every logo in a square 40px box: the lockup fits
+    // to 40px of WIDTH, and the squares, being a third of it, come out
+    // about 14px across. The mark on its own gets the full 40 and the
+    // name is already printed under the card.
+    //
+    // Trimmed to its bounding box first — the supplied file kept the
+    // lockup canvas, so a quarter of its height was the empty strip
+    // where the wordmark used to be, and object-contain would have
+    // scaled the mark down to fit that too.
+    //
+    // Served from public/ for the same reason Google Sheets is.
+    logo: '/images/integrations/zoho-crm.png',
   },
   {
     id: 'hubspot',

@@ -9,6 +9,12 @@
 //      authorize response tells us which one, and every later call is
 //      built from the stored domain rather than a hardcoded .com.
 //
+//      We no longer ASK which region. Zoho's multi-DC support lets one
+//      client serve every data centre: the consent flow always starts
+//      at accounts.zoho.com, Zoho sends the user on to their own DC,
+//      and the callback comes back carrying `location` ("in", "eu")
+//      plus `accounts-server`. See accountsUrlFromCallback.
+//
 //   2. SHORT ACCESS TOKENS. They expire in an hour. The refresh token
 //      is the durable one and is what the connection actually holds; an
 //      access token is minted from it on demand.
@@ -48,6 +54,64 @@ const ACCOUNTS_BY_LOCATION: Record<string, string> = {
  */
 export const ZOHO_SCOPES = ['ZohoCRM.org.READ'] as const;
 
+/**
+ * The ONE Zoho application this deployment connects through.
+ *
+ * This reverses the original design, where every account registered its
+ * own Zoho client and pasted the id and secret into Settings. That was
+ * chosen because Zoho is region-partitioned and a client registered on
+ * .com is unknown to .in — but Zoho's multi-DC support solves exactly
+ * that, and asking each customer to register a server-based application
+ * before they can connect a CRM is a wall most of them will not climb.
+ *
+ * Register it once at api-console.zoho.com as a Server-based
+ * Application with "Use the same OAuth credentials for all data
+ * centers" enabled, then set ZOHO_CLIENT_ID and ZOHO_CLIENT_SECRET.
+ *
+ * Returns null when unset, so the UI can say the integration is not
+ * configured on this server rather than sending someone to a consent
+ * screen that will refuse them.
+ */
+export function platformZohoCredentials():
+  | { clientId: string; clientSecret: string }
+  | null {
+  const clientId = process.env.ZOHO_CLIENT_ID?.trim();
+  const clientSecret = process.env.ZOHO_CLIENT_SECRET?.trim();
+  if (!clientId || !clientSecret) return null;
+  return { clientId, clientSecret };
+}
+
+/**
+ * Whether a connection row must keep going through its OWN Zoho
+ * application rather than this deployment's.
+ *
+ * The test is NOT "does it have a client_id". It is "did that client
+ * ever actually mint us a token" — which is what refresh_token proves.
+ *
+ * The distinction matters because a half-made row is ordinary debris:
+ * someone pasted credentials under the old design, never finished the
+ * consent, and left a row behind. Treating that as a legacy connection
+ * pins the account to an application nothing depends on, and there is
+ * no way to clear it from the UI because Disconnect only appears once
+ * a connection is live. Requiring the refresh token means only a
+ * connection that genuinely works keeps its own app — which is the
+ * whole and only reason legacy rows get special treatment, since a
+ * refresh token can only be refreshed by the client that minted it.
+ *
+ * Start and callback MUST agree on this. If start sends the user to
+ * Zoho with one client and the callback exchanges the code with
+ * another, Zoho answers invalid_client and the consent is wasted.
+ */
+export function usesLegacyZohoApp(
+  row: {
+    client_id?: unknown;
+    client_secret?: unknown;
+    refresh_token?: unknown;
+  } | null,
+): boolean {
+  return !!(row?.client_id && row?.client_secret && row?.refresh_token);
+}
+
 export interface ZohoTokens {
   accessToken: string;
   refreshToken?: string;
@@ -62,8 +126,16 @@ export function buildZohoAuthorizeUrl(input: {
   clientId: string;
   redirectUri: string;
   state: string;
-  /** Which data centre to start at. Users on a non-US Zoho must pick
-   *  theirs, or the consent screen refuses them. */
+  /**
+   * Where to begin. Defaults to accounts.zoho.com, which is the
+   * multi-DC entry point: Zoho recognises the signed-in user's home
+   * data centre and forwards them to it, then names it on the way back.
+   * Nobody has to pick a region.
+   *
+   * Still overridable, because a connection made under the old
+   * per-account design is pinned to the DC its client was registered
+   * in and has to be refreshed there.
+   */
   accountsUrl?: string;
 }): string {
   const base = input.accountsUrl ?? ACCOUNTS_BY_LOCATION.us;
@@ -90,17 +162,43 @@ export function accountsUrlForLocation(location: string | null): string {
   return ACCOUNTS_BY_LOCATION[location.toLowerCase()] ?? ACCOUNTS_BY_LOCATION.us;
 }
 
-/** All the data centres, for the connect dialog's picker. */
-export const ZOHO_REGIONS: { value: string; label: string; accountsUrl: string }[] =
-  [
-    { value: 'us', label: 'United States (.com)', accountsUrl: ACCOUNTS_BY_LOCATION.us },
-    { value: 'eu', label: 'Europe (.eu)', accountsUrl: ACCOUNTS_BY_LOCATION.eu },
-    { value: 'in', label: 'India (.in)', accountsUrl: ACCOUNTS_BY_LOCATION.in },
-    { value: 'au', label: 'Australia (.com.au)', accountsUrl: ACCOUNTS_BY_LOCATION.au },
-    { value: 'jp', label: 'Japan (.jp)', accountsUrl: ACCOUNTS_BY_LOCATION.jp },
-    { value: 'ca', label: 'Canada (.ca)', accountsUrl: ACCOUNTS_BY_LOCATION.ca },
-    { value: 'sa', label: 'Saudi Arabia (.sa)', accountsUrl: ACCOUNTS_BY_LOCATION.sa },
-  ];
+/**
+ * Which data centre to exchange the code at, from what the callback said.
+ *
+ * ── Why this is safe to read off the URL ──
+ *
+ * The region used to be pinned in a cookie at start time, deliberately,
+ * because the returning URL is attacker-controlled and the token
+ * exchange carries our client secret — posting it to a host of
+ * someone else's choosing would hand it over.
+ *
+ * Multi-DC means we no longer know the DC at start time, so it HAS to
+ * come back with the user. What keeps that safe is that neither value
+ * is ever used as a URL: `location` is a short code looked up in
+ * ACCOUNTS_BY_LOCATION above, and `accounts-server` is only ever
+ * compared for equality against those same known hosts. Anything
+ * unrecognised falls back to the US DC. The return value is therefore
+ * always one of our own constants, whatever Zoho — or anyone else —
+ * puts in the query string.
+ */
+export function accountsUrlFromCallback(
+  location: string | null,
+  accountsServer: string | null,
+): string {
+  if (location && ACCOUNTS_BY_LOCATION[location.toLowerCase()]) {
+    return ACCOUNTS_BY_LOCATION[location.toLowerCase()];
+  }
+  // No `location`: match the server Zoho named against the ones we know.
+  // Compared, never dereferenced — see above.
+  if (accountsServer) {
+    const normalised = accountsServer.trim().replace(/\/+$/, '');
+    const known = Object.values(ACCOUNTS_BY_LOCATION).find(
+      (host) => host === normalised,
+    );
+    if (known) return known;
+  }
+  return ACCOUNTS_BY_LOCATION.us;
+}
 
 interface ZohoTokenResponse {
   access_token?: string;

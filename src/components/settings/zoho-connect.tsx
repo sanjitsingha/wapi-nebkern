@@ -2,21 +2,20 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Check, CheckCircle2, Copy, Loader2 } from 'lucide-react';
+import {
+  Check,
+  CheckCircle2,
+  Copy,
+  Loader2,
+  MessageSquareText,
+  ShieldCheck,
+  TriangleAlert,
+} from 'lucide-react';
 
 import { openOAuthTab } from '@/lib/oauth/tab';
-import { ZOHO_REGIONS } from '@/lib/zoho/client';
 import { Button } from '@/components/ui/button';
 import { InfoHint } from '@/components/ui/info-hint';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -25,29 +24,73 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { BrandLogo } from '@/components/brand/logo';
+import { SyncArrows } from './integration-visuals';
 import type { ReactNode } from 'react';
 import type { ConnectCardArgs } from './integrations-catalog';
 
-const ZOHO_LOGO = 'https://media.instant.nebkern.com/assets/zoho-crm-logo.svg';
+// The four-square mark. Note it is the mark ALONE, where the media
+// host carries the full lockup with the word ZOHO in it — so anywhere
+// this is drawn now needs the name in text beside it.
+const ZOHO_LOGO = '/images/integrations/zoho-crm.png';
 
 // ============================================================
 // Settings → Integrations → Zoho CRM.
 //
-// Connecting is only half the job here, and the smaller half. Once the
-// OAuth handshake is done nothing happens until the admin creates a
-// Workflow Rule in Zoho pointed at our receiver URL — so this card's
-// real work is showing that URL and saying what to do with it.
+// ── Connecting is one click ──
 //
-// That is why it keeps showing setup instructions after connecting,
-// where the Shopify and WooCommerce cards go quiet.
+// It used to be a form. Each account registered its own Zoho
+// server-based application at api-console.zoho.com, pasted a client id
+// and secret in here, and picked its data centre from a dropdown,
+// because a Zoho client registered on .com is unknown to .in.
+//
+// All of that is gone. The application belongs to this deployment, and
+// Zoho's multi-DC support resolves the data centre by itself — the
+// consent flow starts at accounts.zoho.com and Zoho forwards the user
+// to their own. What is left is a button.
+//
+// ── Connecting is still only half the job ──
+//
+// That part has NOT changed, and this dialog is honest about it. Once
+// OAuth is done nothing happens until a Workflow Rule in Zoho is
+// pointed at our receiver URL, so the dialog keeps showing setup
+// instructions after connecting, where the Shopify and WooCommerce
+// cards go quiet.
+//
+// ── Deferred: automatic webhook setup ──
+//
+// Competitors create the webhook for you at connect time and offer a
+// "Skip automatic two-way sync" checkbox to opt out of it (needed on
+// free Zoho editions, which have no webhooks at all). This dialog does
+// not, and that is a decision rather than an omission — revisit it
+// before adding the checkbox, because the checkbox is the easy half.
+//
+// The mechanism would be Zoho's Notification API,
+// `POST {api_domain}/crm/v5/actions/watch`. Two costs come with it:
+//
+//   1. A channel expires after SEVEN DAYS at most, and defaults to one
+//      hour if channel_expiry is unset. It has to be renewed on a
+//      schedule. `npm run cron` exists but nothing has been pinging it
+//      since the VPS move — the same reason scheduled campaigns stopped
+//      firing. Without that renewal the integration goes dead a week
+//      after each customer connects, silently, which is worse than
+//      asking them to add one Workflow Rule that never expires.
+//
+//   2. It needs `ZohoCRM.notifications.ALL` on the consent screen, on
+//      top of the single read-only scope asked for today. See
+//      ZOHO_SCOPES in lib/zoho/client.ts, which is deliberately as
+//      narrow as it is.
+//
+// Weighed and deferred on 2026-10-10. The blocker is the scheduler,
+// not the Zoho side.
 // ============================================================
 
 interface ZohoConnection {
   orgName: string | null;
   apiDomain: string;
   isActive: boolean;
-  /** Credentials saved, OAuth not yet completed. */
-  hasCredentials: boolean;
+  /** Connected under the old per-account-application design. */
+  usesOwnApp: boolean;
   connectedAt: string | null;
   lastEventAt: string | null;
   webhookUrl: string | null;
@@ -62,16 +105,49 @@ interface ZohoEvent {
   created_at: string;
 }
 
-/** One numbered step in the right-hand guide. The number is a chip
- *  rather than a list marker so a step can wrap to three lines without
- *  its text sliding under the digit. */
-function GuideStep({ n, children }: { n: number; children: React.ReactNode }) {
+/** One numbered step. The number is a chip rather than a list marker so
+ *  a step can wrap to three lines without its text sliding under the
+ *  digit. */
+function GuideStep({ n, children }: { n: number; children: ReactNode }) {
   return (
-    <li className="flex gap-2">
-      <span className="bg-background border-border text-foreground mt-px flex size-4 shrink-0 items-center justify-center rounded-full border text-[9px] font-semibold">
+    <li className="flex gap-2.5">
+      <span className="bg-background border-border text-foreground mt-px flex size-4.5 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold">
         {n}
       </span>
       <span className="min-w-0 flex-1">{children}</span>
+    </li>
+  );
+}
+
+/**
+ * One line of the consent summary: what Zoho is being asked for, and
+ * what it actually means in plain words.
+ *
+ * This exists so the dialog says the same thing Zoho's own consent
+ * screen will a moment later. Someone who reads "required" here and
+ * then sees a different list at Zoho has every reason to back out.
+ */
+function Permission({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: typeof ShieldCheck;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <li className="flex gap-3">
+      <Icon className="text-muted-foreground mt-0.5 size-4 shrink-0" />
+      <div className="min-w-0 flex-1">
+        <p className="text-foreground text-sm font-medium">
+          {title}{' '}
+          <span className="text-muted-foreground font-normal">(required)</span>
+        </p>
+        <div className="text-muted-foreground mt-1 space-y-1 text-xs leading-relaxed">
+          {children}
+        </div>
+      </div>
     </li>
   );
 }
@@ -83,26 +159,16 @@ export function ZohoConnect({
   renderCard?: (card: ConnectCardArgs) => ReactNode;
 } = {}) {
   const [status, setStatus] = useState<ZohoConnection | null | undefined>(
-    undefined,
+    undefined
   );
+  // Whether this server has a Zoho application at all. Starts true so
+  // the dialog does not flash a "not configured" warning during the
+  // first load.
+  const [configured, setConfigured] = useState(true);
   const [events, setEvents] = useState<ZohoEvent[]>([]);
   const [open, setOpen] = useState(false);
-  const [region, setRegion] = useState('in');
-  const [clientId, setClientId] = useState('');
-  const [clientSecret, setClientSecret] = useState('');
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [copiedRedirect, setCopiedRedirect] = useState(false);
-
-  // Shown so the admin can paste it into the Zoho console. Read off the
-  // browser rather than an env var: it has to be the origin they are
-  // actually on, which differs between a tunnel, staging and
-  // production, and a mismatch is the single most common way this
-  // handshake fails.
-  const redirectUri =
-    typeof window === 'undefined'
-      ? ''
-      : `${window.location.origin}/api/integrations/zoho/oauth/callback`;
 
   const load = useCallback(() => {
     fetch('/api/integrations/zoho/connect', { cache: 'no-store' })
@@ -110,6 +176,7 @@ export function ZohoConnect({
       .then((d) => {
         setStatus(d?.connection ?? null);
         setEvents(d?.recentEvents ?? []);
+        if (typeof d?.configured === 'boolean') setConfigured(d.configured);
       })
       .catch(() => setStatus(null));
   }, []);
@@ -117,45 +184,22 @@ export function ZohoConnect({
   useEffect(load, [load]);
 
   /**
-   * Two steps, in one click.
+   * The whole of connecting: one trip to Zoho and back.
    *
-   * The credentials are saved first, then the OAuth tab opens — the
-   * start route reads the client id off the stored row rather than a
-   * query parameter, so a secret never travels in a URL that ends up in
-   * a browser history or a server log.
+   * No credentials are saved first — the start route owns the row it
+   * needs, and the application is this deployment's.
    */
   const connect = async () => {
-    if (!clientId.trim() || !clientSecret.trim()) {
-      toast.error('Enter the client ID and client secret from Zoho.');
-      return;
-    }
     setBusy(true);
     try {
-      const save = await fetch('/api/integrations/zoho/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientId: clientId.trim(),
-          clientSecret: clientSecret.trim(),
-          region,
-        }),
-      });
-      const saved = await save.json().catch(() => ({}));
-      if (!save.ok) {
-        toast.error(saved.error || 'Could not save the credentials.');
-        return;
-      }
-      // Not kept in component state a moment longer than needed.
-      setClientSecret('');
-
       const outcome = await openOAuthTab(
         '/api/integrations/zoho/oauth/start?tab=1',
-        { name: 'zoho-oauth' },
+        { name: 'zoho-oauth' }
       );
 
       if (outcome.status === 'blocked') {
         toast.error(
-          'Your browser blocked the Zoho window. Allow pop-ups and try again.',
+          'Your browser blocked the Zoho window. Allow pop-ups and try again.'
         );
         return;
       }
@@ -166,7 +210,6 @@ export function ZohoConnect({
         return;
       }
       toast.success(`Connected to ${outcome.params.org ?? 'Zoho CRM'}`);
-      setOpen(false);
       load();
     } finally {
       setBusy(false);
@@ -176,7 +219,7 @@ export function ZohoConnect({
   const disconnect = async () => {
     if (
       !confirm(
-        'Disconnect Zoho? Workflow Rules in Zoho will keep firing at a URL that no longer works.',
+        'Disconnect Zoho? Workflow Rules in Zoho will keep firing at a URL that no longer works.'
       )
     )
       return;
@@ -209,16 +252,6 @@ export function ZohoConnect({
     }
   };
 
-  const copyRedirect = async () => {
-    try {
-      await navigator.clipboard.writeText(redirectUri);
-      setCopiedRedirect(true);
-      setTimeout(() => setCopiedRedirect(false), 2000);
-    } catch {
-      toast.error('Could not copy — select the URL and copy it manually.');
-    }
-  };
-
   const connected = !!status?.isActive;
 
   return (
@@ -226,73 +259,98 @@ export function ZohoConnect({
       {/* The integration page draws its own card (a connect hero, or a
           status card) and keeps this component for its dialog and its
           connection state. The grid uses the card below. */}
-      {renderCard ? renderCard({ connected, loading: status === undefined, open: () => setOpen(true) }) : (
-      <div className="border-border bg-card hover:border-foreground/20 flex flex-col rounded-xl border p-4 transition-colors">
-        <div className="flex items-start justify-between">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={ZOHO_LOGO}
-            alt="Zoho CRM"
-            className="h-11 w-auto max-w-[150px] object-contain object-left"
-          />
-          {connected && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 className="size-3" />
-              Connected
-            </span>
-          )}
-        </div>
-        <h4 className="text-foreground mt-3 text-sm font-semibold">Zoho CRM</h4>
-        <p className="text-muted-foreground mt-1 flex-1 text-xs leading-relaxed">
-          {connected && status
-            ? `${status.orgName ?? 'Your Zoho org'} — CRM events can trigger WhatsApp messages.`
-            : 'Let Zoho events send WhatsApp messages — a deal stage change, a new lead, an overdue invoice.'}
-        </p>
+      {renderCard ? (
+        renderCard({
+          connected,
+          loading: status === undefined,
+          open: () => setOpen(true),
+        })
+      ) : (
+        <div className="border-border bg-card hover:border-foreground/20 flex flex-col rounded-xl border p-4 transition-colors">
+          <div className="flex items-start justify-between">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={ZOHO_LOGO}
+              alt="Zoho CRM"
+              className="h-8 w-auto max-w-[150px] object-contain object-left"
+            />
+            {connected && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="size-3" />
+                Connected
+              </span>
+            )}
+          </div>
+          <h4 className="text-foreground mt-3 text-sm font-semibold">
+            Zoho CRM
+          </h4>
+          <p className="text-muted-foreground mt-1 flex-1 text-xs leading-relaxed">
+            {connected && status
+              ? `${status.orgName ?? 'Your Zoho org'} — CRM events can trigger WhatsApp messages.`
+              : 'Let Zoho events send WhatsApp messages — a deal stage change, a new lead, an overdue invoice.'}
+          </p>
 
-        <Button
-          type="button"
-          size="sm"
-          variant={connected ? 'outline' : 'default'}
-          className="mt-4 w-full"
-          onClick={() => setOpen(true)}
-        >
-          {status === undefined ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : connected ? (
-            'Manage'
-          ) : (
-            'Connect'
-          )}
-        </Button>
-      </div>
+          <Button
+            type="button"
+            size="sm"
+            variant={connected ? 'outline' : 'default'}
+            className="mt-4 w-full"
+            onClick={() => setOpen(true)}
+          >
+            {status === undefined ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : connected ? (
+              'Manage'
+            ) : (
+              'Connect'
+            )}
+          </Button>
+        </div>
       )}
 
       <Dialog open={open} onOpenChange={(v) => !busy && setOpen(v)}>
-        {/* Both views earn the width. The setup form is two columns;
-            the connected view carries a long webhook URL, a five-step
-            Workflow Rule guide and the recent-events list, all of which
-            were being squeezed at max-w-lg. */}
-        {/* `*:min-w-0` — DialogContent is a CSS grid; without this a wide
-            child (the long webhook URL) keeps its min-content width and
-            spills outside the modal's background. */}
-        <DialogContent className="sm:max-w-4xl *:min-w-0">
+        {/* The connected view carries a long webhook URL, a five-step
+            Workflow Rule guide and the recent-events list, which were
+            being squeezed at max-w-lg. The pre-connect view is a single
+            readable column and is capped narrower from the inside.
+
+            `*:min-w-0` — DialogContent is a CSS grid; without this a
+            wide child (the long webhook URL) keeps its min-content
+            width and spills outside the modal's background. */}
+        <DialogContent
+          className={
+            connected ? '*:min-w-0 sm:max-w-4xl' : '*:min-w-0 sm:max-w-xl'
+          }
+        >
           <DialogHeader>
-            {/* Logo-only — the SVG already spells out "Zoho CRM", so a
-                text title beside it would just repeat the wordmark. alt
-                carries the accessible name for the dialog title. */}
-            <DialogTitle className="flex items-center gap-4">
+            {/* The title is TEXT. It was the logo alone while ZOHO_LOGO
+                was the wordmark, which spelled the name itself; the mark
+                that replaced it spells nothing, and a dialog whose
+                heading is four coloured squares has no heading.
+
+                alt is empty — the text carries the name, and repeating
+                it would have screen readers say it twice. */}
+            <DialogTitle className="flex items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={ZOHO_LOGO} alt="Zoho CRM" className="h-10 w-auto object-contain" />
-              <InfoHint label="Zoho CRM setup" docs="/docs/api-and-integrations">
-                Read the step-by-step guide: connect Zoho, add the Workflow
-                Rule webhook, and build the automation that sends the WhatsApp
+              <img
+                src={ZOHO_LOGO}
+                alt=""
+                className="h-5 w-auto object-contain"
+              />
+              <span>{connected ? 'Zoho CRM' : 'Connect to Zoho CRM'}</span>
+              <InfoHint
+                label="Zoho CRM setup"
+                docs="/docs/api-and-integrations"
+              >
+                Read the step-by-step guide: connect Zoho, add the Workflow Rule
+                webhook, and build the automation that sends the WhatsApp
                 message.
               </InfoHint>
             </DialogTitle>
             <DialogDescription>
               {connected
                 ? 'Point a Zoho Workflow Rule at the URL below to start firing automations.'
-                : 'Sign in to Zoho and approve read access. Nothing is written to your CRM.'}
+                : 'Sign in to Zoho and approve access. Nothing is ever written to your CRM.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -314,6 +372,22 @@ export function ZohoConnect({
                   </span>
                 </div>
               </div>
+
+              {/* Only ever true for a connection made before the shared
+                  application existed. Said plainly because it is a
+                  liability those accounts carry and nobody else does:
+                  if that Zoho app is deleted in their API console, this
+                  connection dies and no amount of reconnecting here
+                  fixes it. */}
+              {status.usesOwnApp && (
+                <p className="text-muted-foreground border-border rounded-lg border border-dashed p-3 text-[11px] leading-relaxed">
+                  This connection uses a Zoho application registered in your own
+                  API console, from before Instant had a shared one. It keeps
+                  working as it is. To hand that over to us instead, disconnect
+                  and connect again — you will not be asked for a client ID or a
+                  data centre.
+                </p>
+              )}
 
               {/* The actual setup. Connecting alone does nothing — this
                   URL in a Workflow Rule is what makes events arrive. */}
@@ -358,8 +432,9 @@ export function ZohoConnect({
                     → paste this URL, method POST.
                   </li>
                   <li>
-                    Set <span className="text-foreground font-medium">Body</span>{' '}
-                    → Raw (JSON) and include at least the phone — e.g.{' '}
+                    Set{' '}
+                    <span className="text-foreground font-medium">Body</span> →
+                    Raw (JSON) and include at least the phone — e.g.{' '}
                     <code className="text-foreground">
                       {'{ "phone": "${Leads.Phone}" }'}
                     </code>{' '}
@@ -410,166 +485,135 @@ export function ZohoConnect({
               )}
             </div>
           ) : (
-            // Two columns: what to fill in on the left, what to go and do
-            // in Zoho on the right. Stacked below `sm` — side by side on
-            // a phone would give each half about 160px, which fits
-            // neither a client id nor a sentence.
-            //
-            // The guide stays visible rather than behind a link, because
-            // it describes work in ANOTHER tab: someone registering the
-            // app in Zoho needs the redirect URI in front of them while
-            // they do it.
-            <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              {/* ── Left: the form ── */}
-              <div className="space-y-3">
-                <div className="space-y-1.5">
-                  <Label className="text-foreground flex items-center gap-1 text-xs">
-                    Your Zoho data centre
-                    <InfoHint label="Data centre" side="right">
-                      Zoho runs separate, unconnected regions. A client
-                      registered on <code>zoho.com</code> does not exist on{' '}
-                      <code>zoho.in</code>, and signing in with the wrong one
-                      fails with an error that does not explain why. Check the
-                      address bar when you are signed in to Zoho.
-                    </InfoHint>
-                  </Label>
-                  <Select
-                    items={ZOHO_REGIONS.map((r) => ({ value: r.value, label: r.label }))}
-                    value={region}
-                    onValueChange={(v) => setRegion(v ?? region)}
-                    disabled={busy}
-                  >
-                    <SelectTrigger className="bg-muted w-full data-[size=default]:h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ZOHO_REGIONS.map((r) => (
-                        <SelectItem key={r.value} value={r.value}>
-                          {r.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+            <div className="space-y-5">
+              {/* The two products and the direction data moves. Same
+                  lockup the integration page's connect hero uses, so
+                  arriving here from there is continuous. */}
+              <div className="flex items-center justify-center gap-5 py-2 sm:gap-8">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="flex h-8 items-center">
+                    <BrandLogo className="h-6" />
+                  </div>
+                  <span className="text-foreground text-xs font-medium">
+                    Instant
+                  </span>
                 </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-foreground text-xs">Client ID</Label>
-                  <Input
-                    value={clientId}
-                    onChange={(e) => setClientId(e.target.value)}
-                    placeholder="1000.XXXXXXXXXXXX"
-                    className="font-mono text-xs"
-                    disabled={busy}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-foreground flex items-center gap-1 text-xs">
-                    Client Secret
-                    <InfoHint label="Client secret" side="right">
-                      Encrypted before it is stored, and never sent back to the
-                      browser again — the same way every other credential in
-                      this app is held. Re-enter it if you ever need to change
-                      it.
-                    </InfoHint>
-                  </Label>
-                  <Input
-                    type="password"
-                    value={clientSecret}
-                    onChange={(e) => setClientSecret(e.target.value)}
-                    placeholder="••••••••••••••••"
-                    className="font-mono text-xs"
-                    disabled={busy}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') void connect();
-                    }}
-                  />
+                <SyncArrows className="text-muted-foreground/60 h-7 w-20 shrink-0" />
+                <div className="flex flex-col items-center gap-2">
+                  <div className="flex h-8 items-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={ZOHO_LOGO}
+                      alt=""
+                      className="h-6 w-auto object-contain"
+                    />
+                  </div>
+                  <span className="text-foreground text-xs font-medium">
+                    Zoho CRM
+                  </span>
                 </div>
               </div>
 
-              {/* ── Right: what to do in Zoho ── */}
-              <div className="border-border bg-muted/30 space-y-2.5 rounded-lg border p-3">
-                <p className="text-foreground flex items-center gap-1 text-xs font-medium">
-                  Get these from Zoho
-                  <InfoHint label="Why your own app?" side="left">
-                    Each organisation registers its own Zoho application rather
-                    than sharing ours. Zoho is region-partitioned, so one shared
-                    client could not serve customers across data centres — and
-                    a single registration would put every tenant behind one
-                    revocation and one rate limit.
-                  </InfoHint>
-                </p>
+              {/* Flat, not collapsed.
 
-                <ol className="text-muted-foreground space-y-2.5 text-[11px] leading-relaxed">
+                  This was two accordion panels. It is the wrong control
+                  for the content: this is what someone is about to
+                  grant a third party against their CRM, and a summary
+                  you have to click to open is one most people approve
+                  without reading. The cost of showing it is a taller
+                  dialog, which is cheap; the cost of hiding it is
+                  uninformed consent, which is not.
+
+                  Kept short instead — one sentence per permission,
+                  three steps, no second paragraphs. */}
+              <section className="border-border space-y-3.5 border-t pt-4">
+                <h3 className="text-foreground text-sm font-medium">
+                  What this integration can do
+                </h3>
+                <ul className="space-y-3.5">
+                  <Permission
+                    icon={ShieldCheck}
+                    title="View your Zoho organisation's name"
+                  >
+                    <p>
+                      The name and ID only, shown in Settings so you can tell
+                      which Zoho is connected. This is the single permission
+                      Instant asks for —{' '}
+                      <code className="text-foreground">ZohoCRM.org.READ</code>.
+                      Your contacts, deals and leads are never read, and nothing
+                      is ever written to your CRM.
+                    </p>
+                  </Permission>
+
+                  <Permission
+                    icon={MessageSquareText}
+                    title="Send WhatsApp messages when Zoho events fire"
+                  >
+                    <p>
+                      A Workflow Rule in Zoho posts the event to Instant — a
+                      deal stage change, a new lead, an overdue invoice — and
+                      Instant matches the phone number in it to a contact and
+                      runs your automation. Zoho pushes to us; we never pull
+                      from Zoho, which is why the one permission above covers
+                      it.
+                    </p>
+                  </Permission>
+                </ul>
+              </section>
+
+              <section className="border-border space-y-3 border-t pt-4">
+                <h3 className="text-foreground text-sm font-medium">
+                  How it works
+                </h3>
+                <ol className="text-muted-foreground space-y-2.5 text-xs leading-relaxed">
                   <GuideStep n={1}>
-                    Open{' '}
+                    Press{' '}
+                    <span className="text-foreground font-medium">
+                      Connect to Zoho CRM
+                    </span>{' '}
+                    below. Zoho opens in a new window.
+                  </GuideStep>
+                  <GuideStep n={2}>
+                    Sign in and approve the access above. No client ID, no
+                    secret, no data centre to pick — Zoho knows your region and
+                    sends you straight back.
+                  </GuideStep>
+                  <GuideStep n={3}>
+                    Copy the webhook URL we then show you into a Zoho Workflow
+                    Rule. That step is what makes events actually arrive, so the
+                    instructions stay on this page afterwards.
+                  </GuideStep>
+                </ol>
+              </section>
+
+              {/* Nothing to connect THROUGH. Shown instead of letting
+                  someone press a button that walks them into a Zoho
+                  error page they cannot act on. */}
+              {!configured && (
+                <div className="flex gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                  <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                  <p className="text-[11px] leading-relaxed text-amber-900 dark:text-amber-200">
+                    Zoho is not configured on this server yet. An administrator
+                    needs to register the Instant application at{' '}
                     <a
                       href="https://api-console.zoho.com"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-primary hover:underline"
+                      className="font-medium underline underline-offset-2"
                     >
                       api-console.zoho.com
                     </a>{' '}
-                    in the region you picked, then{' '}
-                    <span className="text-foreground font-medium">
-                      Add Client
-                    </span>{' '}
-                    →{' '}
-                    <span className="text-foreground font-medium">
-                      Server-based Applications
-                    </span>
-                    .
-                  </GuideStep>
-
-                  <GuideStep n={2}>
-                    Name it anything. For{' '}
-                    <span className="text-foreground font-medium">
-                      Authorized Redirect URI
-                    </span>
-                    , paste exactly this — a trailing slash or the wrong host
-                    and Zoho refuses the sign-in:
-                    <span className="mt-1 flex items-center gap-1">
-                      <code className="bg-background border-border text-foreground min-w-0 flex-1 truncate rounded border px-1.5 py-1 font-mono text-[10px]">
-                        {redirectUri}
-                      </code>
-                      <button
-                        type="button"
-                        onClick={copyRedirect}
-                        aria-label="Copy redirect URI"
-                        className="text-muted-foreground hover:bg-muted hover:text-foreground flex size-6 shrink-0 items-center justify-center rounded transition-colors"
-                      >
-                        {copiedRedirect ? (
-                          <Check className="size-3" />
-                        ) : (
-                          <Copy className="size-3" />
-                        )}
-                      </button>
-                    </span>
-                  </GuideStep>
-
-                  <GuideStep n={3}>
-                    Copy the{' '}
-                    <span className="text-foreground font-medium">
-                      Client ID
-                    </span>{' '}
-                    and{' '}
-                    <span className="text-foreground font-medium">
-                      Client Secret
-                    </span>{' '}
-                    it shows you into the fields on the left.
-                  </GuideStep>
-
-                  <GuideStep n={4}>
-                    Press Continue — you will sign in to Zoho and approve
-                    read-only access. Nothing is ever written to your CRM.
-                  </GuideStep>
-                </ol>
-              </div>
+                    and set <code className="font-mono">ZOHO_CLIENT_ID</code>{' '}
+                    and <code className="font-mono">ZOHO_CLIENT_SECRET</code>.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
-          <DialogFooter className={connected ? 'sm:justify-between' : undefined}>
+          <DialogFooter
+            className={connected ? 'sm:justify-between' : undefined}
+          >
             {connected ? (
               <>
                 <Button
@@ -599,11 +643,15 @@ export function ZohoConnect({
                 >
                   Cancel
                 </Button>
-                <Button type="button" onClick={connect} disabled={busy}>
+                <Button
+                  type="button"
+                  onClick={connect}
+                  disabled={busy || !configured}
+                >
                   {busy ? (
                     <Loader2 className="size-4 animate-spin" />
                   ) : (
-                    'Continue to Zoho'
+                    'Connect to Zoho CRM'
                   )}
                 </Button>
               </>

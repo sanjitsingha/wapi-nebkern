@@ -6,7 +6,13 @@ import { supabaseAdmin } from '@/lib/billing/admin-client';
 import { decrypt, encrypt } from '@/lib/whatsapp/encryption';
 import { logAudit } from '@/lib/audit/log';
 import { AUDIT } from '@/lib/audit/events';
-import { exchangeZohoCode, fetchZohoOrg } from '@/lib/zoho/client';
+import {
+  accountsUrlFromCallback,
+  exchangeZohoCode,
+  fetchZohoOrg,
+  platformZohoCredentials,
+  usesLegacyZohoApp,
+} from '@/lib/zoho/client';
 import {
   ZOHO_OAUTH_COOKIE_PATH,
   ZOHO_OAUTH_REGION_COOKIE,
@@ -78,43 +84,81 @@ export async function GET(request: Request) {
       return fail('That connect link has expired. Start again from Settings.');
     }
 
-    const accountsUrl = readCookie(ZOHO_OAUTH_REGION_COOKIE);
-    if (!accountsUrl) {
-      return fail('That connect link has expired. Start again from Settings.');
-    }
-
     const code = url.searchParams.get('code');
     if (!code) return fail('Zoho sent no authorization code.');
 
     const ctx = await requireRole('admin');
 
-    // The customer's own Zoho application, from the row the connect
-    // route wrote before sending them away. Not a platform-wide client
-    // in the environment — every account registers its own.
     const db = supabaseAdmin();
     const { data: pending } = await db
       .from('zoho_connections')
-      .select('client_id, client_secret, webhook_token')
+      .select('client_id, client_secret, refresh_token, webhook_token')
       .eq('account_id', ctx.accountId)
       .maybeSingle();
 
-    if (!pending?.client_id || !pending?.client_secret) {
-      return fail('Add your Zoho client ID and secret first, then connect.');
+    // The start route created this row on the way out. If it is gone,
+    // the connection was removed in another tab while this admin was at
+    // Zoho's consent screen.
+    //
+    // Checked rather than tolerated, because the save at the end of
+    // this handler is an UPDATE ... WHERE account_id: with no row it
+    // matches nothing, returns no error, and this would report a
+    // connection that does not exist.
+    if (!pending) {
+      return fail(
+        'That connection was removed while you were at Zoho. Start again from Settings.',
+      );
     }
 
+    // Which application minted this code — the account's own, if it
+    // connected under the old design, otherwise this deployment's. A
+    // refresh token belongs to the client that minted it, so a legacy
+    // row must keep going through its own.
+    let clientId: string;
     let clientSecret: string;
-    try {
-      clientSecret = decrypt(pending.client_secret as string);
-    } catch {
-      return fail('Stored Zoho credentials could not be read. Re-enter them.');
+
+    if (usesLegacyZohoApp(pending)) {
+      try {
+        clientSecret = decrypt(pending.client_secret as string);
+      } catch {
+        return fail(
+          'Stored Zoho credentials could not be read. Disconnect and connect again.',
+        );
+      }
+      clientId = pending.client_id as string;
+    } else {
+      const platform = platformZohoCredentials();
+      if (!platform) {
+        return fail(
+          'Zoho is not configured on this server. Set ZOHO_CLIENT_ID and ZOHO_CLIENT_SECRET.',
+        );
+      }
+      clientId = platform.clientId;
+      clientSecret = platform.clientSecret;
     }
+
+    // Which data centre to exchange at.
+    //
+    // A legacy connection pinned this in a cookie at start time, since
+    // its client only exists in one DC. The platform app is multi-DC,
+    // so the DC is not known until the user has signed in — Zoho names
+    // it here, on the way back. accountsUrlFromCallback only ever
+    // returns one of our own known hosts, never a URL off the query
+    // string; see that function for why that distinction matters.
+    const pinned = readCookie(ZOHO_OAUTH_REGION_COOKIE);
+    const accountsUrl = pinned
+      ? decodeURIComponent(pinned)
+      : accountsUrlFromCallback(
+          url.searchParams.get('location'),
+          url.searchParams.get('accounts-server'),
+        );
 
     const { tokens, error: exErr } = await exchangeZohoCode({
       code,
-      clientId: pending.client_id as string,
+      clientId,
       clientSecret,
       redirectUri: `${url.origin}/api/integrations/zoho/oauth/callback`,
-      accountsUrl: decodeURIComponent(accountsUrl),
+      accountsUrl,
     });
     if (!tokens) return fail(exErr ?? 'Could not complete the connection.');
 
@@ -130,13 +174,14 @@ export async function GET(request: Request) {
     // already configured in Zoho keep working. Minting a new token here
     // would silently break every rule the admin had set up.
     const webhookToken =
-      (pending.webhook_token as string) ??
+      (pending.webhook_token as string | null) ??
       crypto.randomBytes(24).toString('hex');
 
-    // UPDATE, not upsert: the row already exists — the connect route
-    // created it to hold the credentials across the round trip. An
-    // upsert would work but would need to restate client_id and
-    // client_secret, which is how one of them ends up nulled.
+    // UPDATE, not upsert: the row already exists — the start route
+    // created it on the way out, to carry the webhook token across the
+    // round trip. An upsert would work but would need to restate
+    // client_id and client_secret, which is how a legacy account's own
+    // credentials end up nulled and its connection broken.
     const { error } = await db
       .from('zoho_connections')
       .update({
