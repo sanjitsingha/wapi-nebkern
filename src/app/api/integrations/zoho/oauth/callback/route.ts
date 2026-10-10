@@ -117,7 +117,11 @@ export async function GET(request: Request) {
     let clientId: string;
     let clientSecret: string;
 
-    if (usesLegacyZohoApp(pending)) {
+    // Captured, because the save at the end needs to know which app
+    // minted the token it is about to store.
+    const legacyApp = usesLegacyZohoApp(pending);
+
+    if (legacyApp) {
       try {
         clientSecret = decrypt(pending.client_secret as string);
       } catch {
@@ -197,6 +201,21 @@ export async function GET(request: Request) {
         connected_by: ctx.userId,
         connected_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        // Clear any leftover per-account credentials when the token we
+        // just stored was minted by the PLATFORM app.
+        //
+        // This is not tidiness. usesLegacyZohoApp asks whether a row has
+        // client_id, client_secret AND a refresh token — so a row that
+        // still carried stale credentials from an abandoned attempt
+        // would, the moment this write gave it a refresh token, start
+        // reporting itself as a legacy connection. The next refresh
+        // would then present the OLD client against a token the NEW one
+        // minted, and Zoho answers invalid_client.
+        //
+        // Writing NULL makes the row unambiguous: platform token,
+        // platform client. A genuine legacy connection takes the branch
+        // above and keeps its own, which is why this is conditional.
+        ...(legacyApp ? {} : { client_id: null, client_secret: null }),
       })
       .eq('account_id', ctx.accountId);
     if (error) {
