@@ -8,6 +8,7 @@ import {
   buildZohoAuthorizeUrl,
   platformZohoCredentials,
   usesLegacyZohoApp,
+  zohoRedirectUri,
 } from '@/lib/zoho/client';
 import {
   ZOHO_OAUTH_COOKIE_PATH,
@@ -141,7 +142,7 @@ export async function GET(request: Request) {
       }
     }
 
-    const redirectUri = `${url.origin}/api/integrations/zoho/oauth/callback`;
+    const redirectUri = zohoRedirectUri(url.origin);
     const state = buildOAuthState(tab);
 
     const response = NextResponse.redirect(

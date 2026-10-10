@@ -169,6 +169,12 @@ export function ZohoConnect({
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copiedRedirect, setCopiedRedirect] = useState(false);
+  // What the server will actually send to Zoho. Read from the API
+  // rather than built from window.location, because a ZOHO_REDIRECT_URI
+  // override is invisible to the browser and showing a value that
+  // merely resembles the real one is worse than showing none.
+  const [redirectUri, setRedirectUri] = useState('');
 
   const load = useCallback(() => {
     fetch('/api/integrations/zoho/connect', { cache: 'no-store' })
@@ -177,6 +183,7 @@ export function ZohoConnect({
         setStatus(d?.connection ?? null);
         setEvents(d?.recentEvents ?? []);
         if (typeof d?.configured === 'boolean') setConfigured(d.configured);
+        if (typeof d?.redirectUri === 'string') setRedirectUri(d.redirectUri);
       })
       .catch(() => setStatus(null));
   }, []);
@@ -238,6 +245,17 @@ export function ZohoConnect({
       setOpen(false);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const copyRedirect = async () => {
+    if (!redirectUri) return;
+    try {
+      await navigator.clipboard.writeText(redirectUri);
+      setCopiedRedirect(true);
+      setTimeout(() => setCopiedRedirect(false), 2000);
+    } catch {
+      toast.error('Could not copy — select the URL and copy it manually.');
     }
   };
 
@@ -561,6 +579,54 @@ export function ZohoConnect({
                 </ul>
               </section>
 
+              {/* The exact string Zoho must have on file.
+
+                  Zoho compares this byte for byte against the Authorized
+                  Redirect URI in the API console, and when it does not
+                  match it says so without printing either value — so
+                  there is nothing to compare and no way to tell whether
+                  the difference is the scheme, the port or a slash.
+                  Showing the real one, copyable, is the only way to make
+                  that failure diagnosable.
+
+                  It is origin-derived, so it differs between localhost,
+                  a tunnel and production — each needs its own entry in
+                  the console, and Zoho accepts several. */}
+              {redirectUri && (
+                <section className="border-border space-y-2 border-t pt-4">
+                  <h3 className="text-foreground text-sm font-medium">
+                    Before you connect
+                  </h3>
+                  <p className="text-muted-foreground text-xs leading-relaxed">
+                    This exact URL must be listed under{' '}
+                    <span className="text-foreground font-medium">
+                      Authorized Redirect URIs
+                    </span>{' '}
+                    in your Zoho API console. Zoho matches it character for
+                    character.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <code className="bg-muted/50 border-border min-w-0 flex-1 truncate rounded-lg border px-3 py-2 font-mono text-[11px]">
+                      {redirectUri}
+                    </code>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={copyRedirect}
+                      aria-label="Copy redirect URI"
+                      className="size-9 shrink-0"
+                    >
+                      {copiedRedirect ? (
+                        <Check className="size-4" />
+                      ) : (
+                        <Copy className="size-4" />
+                      )}
+                    </Button>
+                  </div>
+                </section>
+              )}
+
               <section className="border-border space-y-3 border-t pt-4">
                 <h3 className="text-foreground text-sm font-medium">
                   How it works
@@ -576,7 +642,11 @@ export function ZohoConnect({
                   <GuideStep n={2}>
                     Sign in and approve the access above. No client ID, no
                     secret, no data centre to pick — Zoho knows your region and
-                    sends you straight back.
+                    sends you straight back. If it says{' '}
+                    <span className="text-foreground font-medium">
+                      Invalid Redirect Uri
+                    </span>{' '}
+                    instead, the URL above is not in your console yet.
                   </GuideStep>
                   <GuideStep n={3}>
                     Copy the webhook URL we then show you into a Zoho Workflow

@@ -12,6 +12,7 @@ import {
   fetchZohoOrg,
   platformZohoCredentials,
   usesLegacyZohoApp,
+  zohoRedirectUri,
 } from '@/lib/zoho/client';
 import {
   ZOHO_OAUTH_COOKIE_PATH,
@@ -161,7 +162,9 @@ export async function GET(request: Request) {
       code,
       clientId,
       clientSecret,
-      redirectUri: `${url.origin}/api/integrations/zoho/oauth/callback`,
+      // Must be byte-identical to the one the authorize URL carried,
+      // or Zoho rejects the exchange after the consent is already given.
+      redirectUri: zohoRedirectUri(url.origin),
       accountsUrl,
     });
     if (!tokens) return fail(exErr ?? 'Could not complete the connection.');

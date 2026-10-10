@@ -82,6 +82,32 @@ export function platformZohoCredentials():
 }
 
 /**
+ * The redirect URI sent to Zoho, and the single most common way this
+ * handshake fails.
+ *
+ * Zoho compares it to the Authorized Redirect URI in the API console
+ * BYTE FOR BYTE. A different scheme, a different port, a trailing
+ * slash, or http where https was registered, and the consent screen
+ * refuses with "Redirect URI passed does not match with the one
+ * configured" — naming neither value, so there is nothing to compare.
+ *
+ * Two places must agree on it or the exchange fails after the user has
+ * already consented: the authorize URL and the token exchange. Hence
+ * one function, called by both.
+ *
+ * By default it follows the origin the admin is actually on, which is
+ * what makes localhost, a tunnel and production each work against their
+ * own registered entry. ZOHO_REDIRECT_URI overrides that outright, for
+ * when the app sits behind something that rewrites the origin and the
+ * derived value is not what the browser would have sent.
+ */
+export function zohoRedirectUri(origin: string): string {
+  const override = process.env.ZOHO_REDIRECT_URI?.trim();
+  if (override) return override.replace(/\/+$/, '');
+  return `${origin}/api/integrations/zoho/oauth/callback`;
+}
+
+/**
  * Whether a connection row must keep going through its OWN Zoho
  * application rather than this deployment's.
  *
