@@ -45,8 +45,13 @@ export function messagingTierLabel(
       return '100K / 24h';
     case 'TIER_UNLIMITED':
       return 'Unlimited';
-    default:
-      return null;
+    default: {
+      // Meta's steps are now 250 → 2,000 → 10K → 100K → unlimited; the
+      // 1K step is gone. Read any TIER_<n>[K] generically so a new step
+      // (TIER_2K) shows as a label instead of the row vanishing.
+      const m = /^TIER_(\d+)(K?)$/.exec(tier ?? '');
+      return m ? `${m[1]}${m[2]} / 24h` : null;
+    }
   }
 }
 
