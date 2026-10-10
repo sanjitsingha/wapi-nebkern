@@ -1,27 +1,111 @@
 // ============================================================
 // What Instant writes to a connected Google Sheet, cell by cell.
 //
+// Each sheet receives ONE kind of entry (its event type), so each is a
+// single clean table: one tab, one header row.
+//
 // Pure: no Google, no database. The queue drain hands each function the
 // event as it was queued plus whatever it looked up (stage names, the
-// contact), and gets back the row in its tab's column order. The tests
-// pin the shape, because a column that moves breaks every customer's
-// formulas and filters that point at it.
+// contact, the agent), and gets back the row in its header's column
+// order. The tests pin the shape, because a column that moves breaks
+// every customer's formulas and filters that point at it.
 // ============================================================
 
-export type SheetTab = 'Contacts' | 'Deals' | 'Campaigns';
+export type SheetEventType = 'contacts' | 'messages' | 'assignments' | 'deals' | 'campaigns';
 
 /** Instant's customers are in India; the column headers say so. */
 export const SHEET_TIMEZONE = 'Asia/Kolkata';
 const TZ_LABEL = 'IST';
 
 /**
- * Header row per tab. Append-only by design: new columns go on the end,
- * never in the middle, so a customer's existing formulas keep pointing
- * at the same data.
+ * The entry types a sheet can subscribe to, in the order the picker
+ * shows them. `webhookEvent` is the app event that produces the entry;
+ * campaign results have none — they are swept a day after sending.
  */
-export const TAB_HEADERS: Record<SheetTab, string[]> = {
-  Contacts: [`Added (${TZ_LABEL})`, 'Name', 'Phone', 'Email', 'Tags', 'Contact ID'],
-  Deals: [
+export const SHEET_EVENT_TYPES: {
+  type: SheetEventType;
+  label: string;
+  description: string;
+  /** The spreadsheet's single tab. */
+  tab: string;
+  webhookEvent: string | null;
+}[] = [
+  {
+    type: 'contacts',
+    label: 'New contacts',
+    description: 'A row for every contact added, from WhatsApp, the API or by hand.',
+    tab: 'Contacts',
+    webhookEvent: 'contact.created',
+  },
+  {
+    type: 'messages',
+    label: 'Incoming messages',
+    description: 'A row for every WhatsApp message a customer sends you.',
+    tab: 'Messages',
+    webhookEvent: 'message.received',
+  },
+  {
+    type: 'assignments',
+    label: 'Conversation assignments',
+    description: 'A row each time a conversation is assigned to an agent.',
+    tab: 'Assignments',
+    webhookEvent: 'conversation.assigned',
+  },
+  {
+    type: 'deals',
+    label: 'Deal stage changes',
+    description: 'A row each time a deal moves to another pipeline stage.',
+    tab: 'Deals',
+    webhookEvent: 'deal.stage_changed',
+  },
+  {
+    type: 'campaigns',
+    label: 'Campaign results',
+    description:
+      'A row per recipient — delivered, read, replied or failed — a day after a campaign finishes sending.',
+    tab: 'Campaign results',
+    webhookEvent: null,
+  },
+];
+
+export function isSheetEventType(value: unknown): value is SheetEventType {
+  return SHEET_EVENT_TYPES.some((e) => e.type === value);
+}
+
+export function eventMeta(type: SheetEventType) {
+  return SHEET_EVENT_TYPES.find((e) => e.type === type)!;
+}
+
+/** The sheet event type an app event feeds, if any. */
+export function sheetTypeForWebhookEvent(event: string): SheetEventType | null {
+  return SHEET_EVENT_TYPES.find((e) => e.webhookEvent === event)?.type ?? null;
+}
+
+/**
+ * Header row per entry type. Append-only by design: new columns go on
+ * the end, never in the middle, so a customer's existing formulas keep
+ * pointing at the same data.
+ */
+export const TAB_HEADERS: Record<SheetEventType, string[]> = {
+  contacts: [`Added (${TZ_LABEL})`, 'Name', 'Phone', 'Email', 'Tags', 'Contact ID'],
+  messages: [
+    `Received (${TZ_LABEL})`,
+    'Contact',
+    'Phone',
+    'Type',
+    'Message',
+    'Conversation ID',
+    'Message ID',
+  ],
+  assignments: [
+    `Assigned (${TZ_LABEL})`,
+    'Contact',
+    'Phone',
+    'Assigned to',
+    'Agent email',
+    'Conversation ID',
+  ],
+  deals: [
     `Changed (${TZ_LABEL})`,
     'Deal',
     'Value',
@@ -33,7 +117,7 @@ export const TAB_HEADERS: Record<SheetTab, string[]> = {
     'Contact phone',
     'Deal ID',
   ],
-  Campaigns: [
+  campaigns: [
     'Campaign',
     'Template',
     `Sent (${TZ_LABEL})`,
@@ -46,8 +130,6 @@ export const TAB_HEADERS: Record<SheetTab, string[]> = {
     'Error',
   ],
 };
-
-export const SHEET_TABS = Object.keys(TAB_HEADERS) as SheetTab[];
 
 /**
  * A timestamp as "2026-10-10 16:41:05" in India time — the shape Google
@@ -108,6 +190,53 @@ export function contactRow(c: ContactRowInput): string[] {
   ];
 }
 
+export interface MessageRowInput {
+  receivedAt: string | null;
+  contactName: string | null;
+  phone: string | null;
+  /** text, image, document, … */
+  type: string | null;
+  text: string | null;
+  conversationId: string | null;
+  messageId: string | null;
+}
+
+/** Longest message text written to a cell; Sheets caps a cell at 50,000. */
+const MAX_MESSAGE_CHARS = 5000;
+
+export function messageRow(m: MessageRowInput): string[] {
+  const text = m.text ?? '';
+  return [
+    sheetTime(m.receivedAt),
+    literal(m.contactName),
+    literal(m.phone),
+    m.type ?? '',
+    literal(text.length > MAX_MESSAGE_CHARS ? `${text.slice(0, MAX_MESSAGE_CHARS)}…` : text),
+    m.conversationId ?? '',
+    m.messageId ?? '',
+  ];
+}
+
+export interface AssignmentRowInput {
+  assignedAt: string | null;
+  contactName: string | null;
+  phone: string | null;
+  agentName: string | null;
+  agentEmail: string | null;
+  conversationId: string | null;
+}
+
+export function assignmentRow(a: AssignmentRowInput): string[] {
+  return [
+    sheetTime(a.assignedAt),
+    literal(a.contactName),
+    literal(a.phone),
+    literal(a.agentName),
+    a.agentEmail ?? '',
+    a.conversationId ?? '',
+  ];
+}
+
 export interface DealRowInput {
   changedAt: string;
   dealId: string;
@@ -162,4 +291,62 @@ export function campaignRow(r: CampaignRowInput): string[] {
     sheetTime(r.repliedAt),
     literal(r.error),
   ];
+}
+
+/**
+ * A clearly-labelled row for "Send a test row": the sheet's own columns,
+ * so it lands where real entries will and shows the shape they take.
+ */
+export function sampleRow(type: SheetEventType, now: Date = new Date()): string[] {
+  const at = now.toISOString();
+  const label = 'Test row from Instant';
+  switch (type) {
+    case 'contacts':
+      return contactRow({ createdAt: at, contactId: 'test', name: label, phone: null, email: null, tags: [] });
+    case 'messages':
+      return messageRow({
+        receivedAt: at,
+        contactName: label,
+        phone: null,
+        type: 'text',
+        text: 'If you can read this, Instant can write to this sheet.',
+        conversationId: 'test',
+        messageId: 'test',
+      });
+    case 'assignments':
+      return assignmentRow({
+        assignedAt: at,
+        contactName: label,
+        phone: null,
+        agentName: null,
+        agentEmail: null,
+        conversationId: 'test',
+      });
+    case 'deals':
+      return dealRow({
+        changedAt: at,
+        dealId: 'test',
+        title: label,
+        value: null,
+        currency: null,
+        pipeline: null,
+        fromStage: null,
+        toStage: null,
+        contactName: null,
+        contactPhone: null,
+      });
+    case 'campaigns':
+      return campaignRow({
+        campaign: label,
+        template: '',
+        sentAt: at,
+        contactName: null,
+        phone: null,
+        status: 'test',
+        deliveredAt: null,
+        readAt: null,
+        repliedAt: null,
+        error: null,
+      });
+  }
 }

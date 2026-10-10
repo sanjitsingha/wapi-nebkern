@@ -1,5 +1,3 @@
-import { SHEET_TABS, TAB_HEADERS, type SheetTab } from './rows';
-
 // ============================================================
 // Google OAuth + the two Sheets calls Instant makes.
 //
@@ -52,7 +50,9 @@ export function buildGoogleAuthorizeUrl(opts: {
   // offline + consent: Google only hands out a refresh token on a fresh
   // consent, and without one the connection dies after an hour.
   u.searchParams.set('access_type', 'offline');
-  u.searchParams.set('prompt', 'consent');
+  // select_account: always show Google's account chooser, so "Add
+  // another account" can pick a different one than the signed-in one.
+  u.searchParams.set('prompt', 'select_account consent');
   u.searchParams.set('include_granted_scopes', 'true');
   u.searchParams.set('state', opts.state);
   return u.toString();
@@ -190,13 +190,13 @@ async function sheetsRequest<T>(
 }
 
 /**
- * Create the spreadsheet with one tab per kind of data and a frozen,
- * bold header row on each — so it is readable the moment it is opened,
- * before a single row has arrived.
+ * Create a spreadsheet with a single tab and a frozen, bold header row —
+ * readable the moment it is opened, before a single row has arrived.
+ * One tab because each sheet receives one kind of entry.
  */
 export async function createSpreadsheet(
   accessToken: string,
-  title: string,
+  opts: { title: string; tab: string; headers: string[] },
 ): Promise<{ id: string; url: string; title: string }> {
   const created = await sheetsRequest<{
     spreadsheetId: string;
@@ -206,38 +206,28 @@ export async function createSpreadsheet(
   }>(accessToken, '', {
     method: 'POST',
     body: {
-      properties: { title },
-      sheets: SHEET_TABS.map((tab, index) => ({
-        properties: {
-          title: tab,
-          index,
-          gridProperties: { frozenRowCount: 1 },
-        },
-      })),
+      properties: { title: opts.title },
+      sheets: [
+        { properties: { title: opts.tab, index: 0, gridProperties: { frozenRowCount: 1 } } },
+      ],
     },
   });
 
-  await sheetsRequest(accessToken, `/${created.spreadsheetId}/values:batchUpdate`, {
-    method: 'POST',
-    body: {
-      valueInputOption: 'RAW',
-      data: SHEET_TABS.map((tab) => ({
-        range: `'${tab}'!A1`,
-        values: [TAB_HEADERS[tab]],
-      })),
-    },
-  });
+  await appendRows(accessToken, created.spreadsheetId, [opts.headers], 'RAW');
 
+  const tabId = created.sheets[0]?.properties.sheetId ?? 0;
   await sheetsRequest(accessToken, `/${created.spreadsheetId}:batchUpdate`, {
     method: 'POST',
     body: {
-      requests: created.sheets.map((s) => ({
-        repeatCell: {
-          range: { sheetId: s.properties.sheetId, startRowIndex: 0, endRowIndex: 1 },
-          cell: { userEnteredFormat: { textFormat: { bold: true } } },
-          fields: 'userEnteredFormat.textFormat.bold',
+      requests: [
+        {
+          repeatCell: {
+            range: { sheetId: tabId, startRowIndex: 0, endRowIndex: 1 },
+            cell: { userEnteredFormat: { textFormat: { bold: true } } },
+            fields: 'userEnteredFormat.textFormat.bold',
+          },
         },
-      })),
+      ],
     },
   });
 
@@ -249,21 +239,24 @@ export async function createSpreadsheet(
 }
 
 /**
- * Append rows to a tab. USER_ENTERED so timestamps and amounts arrive
- * as real dates and numbers; cells that must stay text (phones) are
+ * Append rows below whatever the sheet already holds.
+ *
+ * The range is a bare "A1", which Sheets resolves to the FIRST tab —
+ * not a tab name, so a customer renaming "Contacts" to "Leads" doesn't
+ * break the connection. USER_ENTERED so timestamps and amounts arrive as
+ * real dates and numbers; cells that must stay text (phones) are
  * already escaped by `literal()` in rows.ts.
  */
 export async function appendRows(
   accessToken: string,
   spreadsheetId: string,
-  tab: SheetTab,
   rows: string[][],
+  valueInputOption: 'USER_ENTERED' | 'RAW' = 'USER_ENTERED',
 ): Promise<void> {
   if (rows.length === 0) return;
-  const range = encodeURIComponent(`'${tab}'!A1`);
   await sheetsRequest(
     accessToken,
-    `/${spreadsheetId}/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+    `/${spreadsheetId}/values/A1:append?valueInputOption=${valueInputOption}&insertDataOption=INSERT_ROWS`,
     { method: 'POST', body: { values: rows } },
   );
 }

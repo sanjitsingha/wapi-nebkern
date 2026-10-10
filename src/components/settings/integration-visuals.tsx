@@ -1,12 +1,13 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { ArrowUpRight, Loader2 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { BrandLogo } from '@/components/brand/logo';
-import type { Integration } from './integrations-catalog';
+import { INTEGRATIONS_DOCS_HREF, type Integration } from './integrations-catalog';
 
 // The pieces an integration page and its dialogs share: the tool's mark,
 // the two-way arrows, and the "connect" hero built from them.
@@ -113,6 +114,44 @@ export function ConnectHero({
           {note}
         </p>
       )}
+    </div>
+  );
+}
+
+/**
+ * The top of an integration page: name, what it does, the docs, and
+ * any actions the page adds beside them (Google Sheets' "Add New Sheet").
+ */
+export function IntegrationHeader({
+  item,
+  subtitle,
+  actions,
+}: {
+  item: Integration;
+  /** Defaults to "Connect WhatsApp to <name>". */
+  subtitle?: string;
+  actions?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
+      <div className="min-w-0">
+        <h2 className="text-xl font-semibold tracking-tight text-foreground">{item.name}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {subtitle ?? `Connect WhatsApp to ${item.name}`}
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Link
+          href={INTEGRATIONS_DOCS_HREF}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(buttonVariants({ variant: 'outline' }), 'h-9 px-3')}
+        >
+          Go to documentation
+          <ArrowUpRight className="size-4" />
+        </Link>
+        {actions}
+      </div>
     </div>
   );
 }

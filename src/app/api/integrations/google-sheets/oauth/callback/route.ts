@@ -22,9 +22,8 @@ import { isTabState } from '@/lib/oauth/state';
  * GET /api/integrations/google-sheets/oauth/callback
  *
  * Google sends the admin back here. Checks the state cookie, swaps the
- * code for tokens, and stores them encrypted. The connection is active
- * from here, but writes nothing until "Add new sheet" creates the
- * spreadsheet (spreadsheet_id stays null until then).
+ * code for tokens, and stores them encrypted as one of the workspace's
+ * Google accounts. Nothing is written until a sheet is added through it.
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -96,10 +95,18 @@ export async function GET(request: Request) {
       );
     }
     const email = await fetchGoogleEmail(tokens.accessToken);
+    if (!email) {
+      // The email is how accounts are told apart in the dropdown and
+      // de-duplicated on reconnect; without it the row is unusable.
+      return fail('Google did not say which account you signed in with. Please try again.');
+    }
 
+    // One row per Google account: authorising the same account again
+    // refreshes its tokens (and revives it if it had been revoked);
+    // a different account is added alongside.
     const now = new Date().toISOString();
-    const { error } = await supabaseAdmin()
-      .from('google_sheets_connections')
+    const { data: saved, error } = await supabaseAdmin()
+      .from('google_accounts')
       .upsert(
         {
           account_id: ctx.accountId,
@@ -114,9 +121,11 @@ export async function GET(request: Request) {
           last_error_at: null,
           updated_at: now,
         },
-        { onConflict: 'account_id' },
-      );
-    if (error) {
+        { onConflict: 'account_id,google_email' },
+      )
+      .select('id')
+      .single();
+    if (error || !saved) {
       console.error('[google-sheets/oauth/callback] save failed:', error);
       return fail('Connected to Google, but saving failed. Please retry.');
     }
@@ -130,7 +139,7 @@ export async function GET(request: Request) {
       metadata: { google_email: email },
     });
 
-    return finish({ connected: '1', email: email ?? 'Google' });
+    return finish({ connected: '1', email, accountId: saved.id as string });
   } catch (err) {
     return fail(
       err instanceof Error

@@ -1,16 +1,14 @@
 'use client';
 
-import Link from 'next/link';
-import { ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 
-import { cn } from '@/lib/utils';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { ShopifyConnect } from './shopify-connect';
 import { WooCommerceConnect } from './woocommerce-connect';
 import { ZohoConnect } from './zoho-connect';
 import { ZapierConnect } from './zapier-guide';
 import { WebhooksPanel } from './webhooks-panel';
-import { ConnectHero, ToolMark } from './integration-visuals';
+import { ConnectHero, IntegrationHeader, ToolMark } from './integration-visuals';
 import { GoogleSheetsConnect } from './google-sheets-connect';
 import {
   INTEGRATIONS,
@@ -76,34 +74,21 @@ export function IntegrationPage({ id }: { id: string }) {
   if (!item) return null;
   const kind = connectKind(item.id);
 
+  // Google Sheets draws its own header: its "Add New Sheet" button sits
+  // beside the docs link and drives dialogs that live in that component.
+  if (item.id === 'google-sheets') return <GoogleSheetsConnect item={item} />;
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
-        <div className="min-w-0">
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">
-            {item.name}
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {kind === 'panel' ? item.description : `Connect WhatsApp to ${item.name}`}
-          </p>
-        </div>
-        <Link
-          href={INTEGRATIONS_DOCS_HREF}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(buttonVariants({ variant: 'outline' }), 'h-9 px-3')}
-        >
-          Go to documentation
-          <ArrowUpRight className="size-4" />
-        </Link>
-      </div>
+      <IntegrationHeader
+        item={item}
+        subtitle={kind === 'panel' ? item.description : undefined}
+      />
 
       {kind === 'panel' && <WebhooksPanel />}
 
       {kind === 'native' &&
-        (item.id === 'google-sheets' ? (
-          <GoogleSheetsConnect item={item} />
-        ) : item.id === 'shopify' ? (
+        (item.id === 'shopify' ? (
           <ShopifyConnect renderCard={nativeCard(item)} />
         ) : item.id === 'woocommerce' ? (
           <WooCommerceConnect renderCard={nativeCard(item)} />

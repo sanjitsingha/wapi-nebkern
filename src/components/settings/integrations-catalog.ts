@@ -158,7 +158,7 @@ export const INTEGRATIONS: Integration[] = [
     id: 'google-sheets',
     name: 'Google Sheets',
     description:
-      'Write new contacts, deal changes and campaign results to a spreadsheet in your Google Drive.',
+      'Send new contacts, messages, assignments, deal changes or campaign results to spreadsheets in your Google Drive.',
     icon: Sheet,
     tone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
     group: 'builtin',
