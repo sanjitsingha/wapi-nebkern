@@ -455,28 +455,6 @@ export function Sidebar({
             </button>
           </div>
 
-          {/* Desktop collapse toggle. Left-aligned on purpose: `nav`
-              keeps its full 256px width and the <aside> clips it, so
-              anything right-aligned would be clipped away in the 64px
-              rail — exactly when you need this button to un-collapse. */}
-          {onToggleCollapse && (
-            <div className="mb-2 hidden lg:flex">
-              <button
-                type="button"
-                onClick={onToggleCollapse}
-                aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                aria-expanded={!isCollapsed}
-                title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                className="text-muted-foreground hover:bg-muted hover:text-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors"
-              >
-                {isCollapsed ? (
-                  <SidebarSimple className="h-5 w-5" />
-                ) : (
-                  <SidebarSimple className="h-5 w-5" />
-                )}
-              </button>
-            </div>
-          )}
           <ul className="flex flex-col gap-1.5">
             <li>{renderLink(homeLink)}</li>
           </ul>
@@ -525,6 +503,36 @@ export function Sidebar({
           </ul>
         </nav>
 
+        {/* Desktop collapse toggle, pinned to the bottom.
+
+            Deliberately NOT inside <nav>: that element is a fixed 256px
+            wide and the <aside> clips it, so `justify-end` there would
+            put the button at x=256 and the 64px rail would hide it —
+            exactly when it is needed to un-collapse. This footer takes
+            the aside's real width instead, so right-aligned means the
+            right edge whatever that currently is.
+
+            It also centres rather than right-aligns while collapsed: in
+            a 64px rail there is no meaningful right to align to. */}
+        {onToggleCollapse && (
+          <div
+            className={cn(
+              'border-border hidden shrink-0 border-t px-3 py-3 lg:flex',
+              isCollapsed ? 'lg:justify-center' : 'lg:justify-end'
+            )}
+          >
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-expanded={!isCollapsed}
+              title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              className="text-muted-foreground hover:bg-muted hover:text-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors"
+            >
+              <SidebarSimple className="h-5 w-5" />
+            </button>
+          </div>
+        )}
       </aside>
     </>
   );
