@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getAdminUser } from '../_lib/auth';
 import { getAccountsIndex } from '../_lib/admin-data';
 import { AdminShell } from '../_components/admin-shell';
+import { AppFont } from '@/components/app-font';
 import '../admin.css';
 
 // The gate reads the session cookie, so this segment must never be
@@ -23,8 +24,11 @@ export default async function ProtectedAdminLayout({
   const accounts = await getAccountsIndex();
 
   return (
-    <AdminShell email={user.email ?? null} accounts={accounts}>
-      {children}
-    </AdminShell>
+    <>
+      <AppFont />
+      <AdminShell email={user.email ?? null} accounts={accounts}>
+        {children}
+      </AdminShell>
+    </>
   );
 }
