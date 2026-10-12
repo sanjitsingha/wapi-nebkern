@@ -59,9 +59,13 @@ const ACCOUNTS_BY_LOCATION: Record<string, string> = {
  *   leads.ALL             a Workflow Rule usually fires on a Lead, and
  *                         sync has to write back to it.
  *
- *   deals.READ            READ only, deliberately. Deal events are
- *                         fetched to fill in stage and amount; nothing
- *                         writes a Deal, and nothing should be able to.
+ *   deals.READ/CREATE/    read to fill in deal events; create and
+ *   UPDATE                update to push Instant deals and their stage
+ *                         changes (lib/zoho/push.ts). Never DELETE:
+ *                         removing a deal in Instant only unlinks it.
+ *
+ *   settings.fields.READ  the org's Deal Stage picklist, so an Instant
+ *                         stage is mapped to a value Zoho accepts.
  *
  *   notifications.ALL     automatic sync: subscribe, renew and remove
  *                         the Notification API channel that delivers
@@ -84,8 +88,11 @@ export const ZOHO_SCOPES = [
   'ZohoCRM.modules.contacts.ALL',
   'ZohoCRM.modules.leads.ALL',
   'ZohoCRM.modules.deals.READ',
+  'ZohoCRM.modules.deals.CREATE',
+  'ZohoCRM.modules.deals.UPDATE',
   'ZohoCRM.modules.notes.CREATE',
   'ZohoCRM.notifications.ALL',
+  'ZohoCRM.settings.fields.READ',
 ] as const;
 
 /**

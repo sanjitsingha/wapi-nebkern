@@ -42,8 +42,11 @@ describe('ZOHO_SCOPES', () => {
       'ZohoCRM.modules.contacts.ALL',
       'ZohoCRM.modules.leads.ALL',
       'ZohoCRM.modules.deals.READ',
+      'ZohoCRM.modules.deals.CREATE',
+      'ZohoCRM.modules.deals.UPDATE',
       'ZohoCRM.modules.notes.CREATE',
       'ZohoCRM.notifications.ALL',
+      'ZohoCRM.settings.fields.READ',
     ]);
   });
 
@@ -55,11 +58,13 @@ describe('ZOHO_SCOPES', () => {
     expect(ZOHO_SCOPES).not.toContain('ZohoCRM.modules.ALL');
   });
 
-  it('keeps write access to the two modules that are synced', () => {
-    // deals is READ and notes is CREATE on purpose: nothing writes a
-    // Deal, and logging a conversation appends notes rather than
-    // editing what someone else wrote.
-    expect(ZOHO_SCOPES).toContain('ZohoCRM.modules.deals.READ');
+  it('can write deals but never delete them', () => {
+    // Deals are pushed (create, update) but removing one in Instant
+    // only unlinks it, so DELETE — and ALL, which includes it — is
+    // never asked for. Notes stay append-only.
+    expect(ZOHO_SCOPES).toContain('ZohoCRM.modules.deals.CREATE');
+    expect(ZOHO_SCOPES).toContain('ZohoCRM.modules.deals.UPDATE');
+    expect(ZOHO_SCOPES).not.toContain('ZohoCRM.modules.deals.DELETE');
     expect(ZOHO_SCOPES).not.toContain('ZohoCRM.modules.deals.ALL');
     expect(ZOHO_SCOPES).toContain('ZohoCRM.modules.notes.CREATE');
     expect(ZOHO_SCOPES).not.toContain('ZohoCRM.modules.notes.ALL');

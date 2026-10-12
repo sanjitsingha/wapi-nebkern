@@ -344,6 +344,7 @@ async function findOrCreateMessengerContact(
       // profile endpoint) — fall back to the raw id, same as the
       // Instagram webhook does with an IGSID.
       name: messengerId,
+      created_via: 'conversation',
     })
     .select()
     .single()

@@ -8,6 +8,7 @@ import {
   Copy,
   Loader2,
   RefreshCw,
+  Upload,
   Zap,
   MessageSquareText,
   ShieldCheck,
@@ -99,6 +100,23 @@ interface ZohoConnection {
   webhookUrl: string | null;
 }
 
+interface PushStatus {
+  contacts: boolean;
+  deals: boolean;
+  linkedContacts: number;
+  linkedDeals: number;
+  pending: number;
+  failed: number;
+  recent: {
+    id: string;
+    entity: 'contact' | 'deal';
+    name: string;
+    status: 'pending' | 'done' | 'failed' | 'skipped';
+    message: string;
+    at: string;
+  }[];
+}
+
 interface AutoSync {
   enabled: boolean;
   /** Zoho watch keys, e.g. Leads.create. */
@@ -180,6 +198,8 @@ export function ZohoConnect({
   const [configured, setConfigured] = useState(true);
   const [events, setEvents] = useState<ZohoEvent[]>([]);
   const [autoSync, setAutoSync] = useState<AutoSync | null>(null);
+  const [push, setPush] = useState<PushStatus | null>(null);
+  const [pushBusy, setPushBusy] = useState(false);
   const [savingSync, setSavingSync] = useState(false);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -195,6 +215,7 @@ export function ZohoConnect({
           setStatus(connection);
           setEvents(d?.recentEvents ?? []);
           setAutoSync(d?.autoSync ?? null);
+          setPush(d?.push ?? null);
           if (typeof d?.configured === 'boolean') setConfigured(d.configured);
           return connection;
         })
@@ -330,6 +351,38 @@ export function ZohoConnect({
     } finally {
       await load();
       setSavingSync(false);
+    }
+  };
+
+  /** Instant → Zoho: a switch, or one of the one-off actions. */
+  const savePush = async (
+    patch: { pushContacts?: boolean; pushDeals?: boolean; action?: 'backfill' | 'retry' },
+  ) => {
+    if (patch.action === 'backfill' &&
+      !confirm('Send every existing contact and deal to Zoho? People already in Zoho are matched by phone and linked, not duplicated.')) {
+      return;
+    }
+    setPushBusy(true);
+    if (push && patch.pushContacts !== undefined) setPush({ ...push, contacts: patch.pushContacts });
+    if (push && patch.pushDeals !== undefined) setPush({ ...push, deals: patch.pushDeals });
+    try {
+      const res = await fetch('/api/integrations/zoho/connect', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string; queued?: number };
+      if (!res.ok) toast.error(data.error || 'Could not update Zoho sync.');
+      else if (patch.action === 'backfill') {
+        toast.success(
+          `${data.queued ?? 0} records queued. They reach Zoho over the next few minutes.`,
+        );
+      } else if (patch.action === 'retry') toast.success('Retrying failed records.');
+    } catch {
+      toast.error('Could not update Zoho sync.');
+    } finally {
+      await load();
+      setPushBusy(false);
     }
   };
 
@@ -587,6 +640,136 @@ export function ZohoConnect({
                 </section>
               )}
 
+              {push && (
+                <section className="border-border space-y-3 rounded-lg border p-3">
+                  <div className="flex gap-2.5">
+                    <Upload className="text-primary mt-0.5 size-4 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-foreground text-sm font-medium">
+                        Send Instant to Zoho
+                      </p>
+                      <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
+                        Matched by phone, so nobody is created twice. Nothing in
+                        Zoho is ever deleted.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="divide-border border-border divide-y rounded-md border">
+                    <label className="flex items-start justify-between gap-3 p-2.5">
+                      <span className="min-w-0">
+                        <span className="text-foreground block text-xs font-medium">
+                          Contacts and leads
+                        </span>
+                        <span className="text-muted-foreground block text-[11px] leading-relaxed">
+                          New people who message you become Leads. Contacts you
+                          add or import become Contacts. Edits keep them in step.
+                        </span>
+                      </span>
+                      <Switch
+                        checked={push.contacts}
+                        disabled={pushBusy}
+                        onCheckedChange={(v) => void savePush({ pushContacts: v })}
+                        aria-label="Send contacts and leads to Zoho"
+                      />
+                    </label>
+                    <label className="flex items-start justify-between gap-3 p-2.5">
+                      <span className="min-w-0">
+                        <span className="text-foreground block text-xs font-medium">
+                          Deals
+                        </span>
+                        <span className="text-muted-foreground block text-[11px] leading-relaxed">
+                          New deals, stage moves, won and lost. A deal for a
+                          Lead converts it into a Contact in Zoho.
+                        </span>
+                      </span>
+                      <Switch
+                        checked={push.deals}
+                        disabled={pushBusy}
+                        onCheckedChange={(v) => void savePush({ pushDeals: v })}
+                        aria-label="Send deals to Zoho"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-muted-foreground text-[11px]">
+                      {push.linkedContacts} contacts · {push.linkedDeals} deals in
+                      sync
+                      {push.pending > 0 && ` · ${push.pending} waiting`}
+                      {push.failed > 0 && (
+                        <span className="text-red-600 dark:text-red-400">
+                          {' '}· {push.failed} failed
+                        </span>
+                      )}
+                    </p>
+                    <div className="flex gap-2">
+                      {push.failed > 0 && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          disabled={pushBusy}
+                          onClick={() => void savePush({ action: 'retry' })}
+                        >
+                          <RefreshCw className="mr-1.5 size-3" />
+                          Retry failed
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        disabled={pushBusy || (!push.contacts && !push.deals)}
+                        onClick={() => void savePush({ action: 'backfill' })}
+                      >
+                        Sync existing records
+                      </Button>
+                    </div>
+                  </div>
+
+                  {push.recent.some((r) => /scope|permission|OAUTH/i.test(r.message)) && (
+                    <div className="flex items-center justify-between gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 text-[11px] text-amber-900 dark:text-amber-200">
+                      <span>Zoho needs one more permission to receive deals.</span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={connect}
+                        disabled={busy}
+                      >
+                        Reconnect Zoho
+                      </Button>
+                    </div>
+                  )}
+
+                  {push.recent.length > 0 && (
+                    <ul className="border-border divide-border divide-y overflow-hidden rounded-md border text-[11px]">
+                      {push.recent.map((r) => (
+                        <li key={r.id} className="flex items-start gap-2 px-2.5 py-1.5">
+                          <span
+                            className={
+                              r.status === 'failed'
+                                ? 'mt-1 size-1.5 shrink-0 rounded-full bg-red-500'
+                                : r.status === 'pending'
+                                  ? 'mt-1 size-1.5 shrink-0 rounded-full bg-amber-500'
+                                  : 'mt-1 size-1.5 shrink-0 rounded-full bg-emerald-500'
+                            }
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="text-foreground font-medium">{r.name}</span>
+                            <span className="text-muted-foreground"> — {r.message}</span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              )}
+
               {/* Manual setup. Still how custom events (an overdue
                   invoice, a field change on another module) reach us,
                   so it stays — folded away when automatic sync runs. */}
@@ -747,12 +930,14 @@ export function ZohoConnect({
                 <ul className="space-y-3.5">
                   <Permission
                     icon={ShieldCheck}
-                    title="Read your leads, contacts and deals"
+                    title="Read and update your leads, contacts and deals"
                   >
                     <p>
-                      To find the phone number and details behind each event
-                      and keep contacts in step. Deals are read-only, notes can
-                      only be added, and no other module is touched.
+                      To keep both sides in step: Zoho events come into
+                      Instant, and the people and deals you work on in Instant
+                      go to Zoho. Matched by phone, never duplicated, never
+                      deleted. Notes can only be added, and no other module is
+                      touched.
                     </p>
                   </Permission>
 

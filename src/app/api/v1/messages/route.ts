@@ -219,7 +219,7 @@ async function recordOutboundTemplate(args: RecordOutboundArgs): Promise<string 
   if (!contactId) {
     const { data: created, error } = await db
       .from('contacts')
-      .insert({ account_id: accountId, user_id: userId, phone, name: phone })
+      .insert({ account_id: accountId, user_id: userId, phone, name: phone, created_via: 'api' })
       .select('id')
       .single();
     if (error) {

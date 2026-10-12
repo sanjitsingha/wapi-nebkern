@@ -22,7 +22,8 @@ import { supabaseAdmin } from '@/lib/billing/admin-client';
 import { runAutomationsForTrigger } from '@/lib/automations/engine';
 import { normalizeZohoPayload } from '@/lib/zoho/payload';
 import { upsertContactFromZoho } from '@/lib/zoho/ingest';
-import { enrichZohoRecord } from '@/lib/zoho/enrich';
+import { enrichZohoRecord, fetchableModule } from '@/lib/zoho/enrich';
+import { contactHash, saveLink, type ContactRow } from '@/lib/zoho/push';
 import {
   notificationRecord,
   parseZohoNotification,
@@ -38,6 +39,10 @@ const MAX_BODY_BYTES = 256 * 1024;
  *  change at once (an import); each costs a read and an automation run,
  *  and Zoho times the delivery out if we take too long. */
 const MAX_NOTIFICATION_IDS = 25;
+
+/** A Zoho event for a record Instant wrote within this window is our
+ *  own change coming back, not something a person did in Zoho. */
+const ECHO_WINDOW_MS = 3 * 60_000;
 
 export async function POST(
   request: Request,
@@ -191,6 +196,25 @@ async function handleRecord(
   const enrichment = await enrichZohoRecord(db, accountId, parsed);
   const record = enrichment.record;
 
+  // Was this Instant's own push echoing back? Then it is logged, but
+  // runs no automations — creating a contact in Instant must not fire
+  // a "new Zoho lead" welcome message at them.
+  let echo = false;
+  if (record.recordId) {
+    const { data: link } = await db
+      .from('zoho_record_links')
+      .select('pushed_at')
+      .eq('account_id', accountId)
+      .eq('zoho_id', record.recordId)
+      .not('pushed_at', 'is', null)
+      .order('pushed_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    echo =
+      !!link?.pushed_at &&
+      Date.now() - Date.parse(link.pushed_at as string) < ECHO_WINDOW_MS;
+  }
+
   const ingest = await upsertContactFromZoho(
     db,
     accountId,
@@ -208,7 +232,7 @@ async function handleRecord(
     record_id: record.recordId,
     contact_id: ingest.contactId,
     matched: !!ingest.contactId,
-    skip_reason: ingest.skippedReason ?? null,
+    skip_reason: ingest.skippedReason ?? (echo ? 'own_change' : null),
     // The payload AS RECEIVED, not the enriched one. This column is the
     // debugging surface for "why did my rule not work", and the answer
     // is almost always something the rule did or did not send — which
@@ -222,6 +246,42 @@ async function handleRecord(
   // No contact means nothing to message. The event is stored, so the
   // admin can see the payload and fix the Workflow Rule's field list.
   if (!ingest.contactId) return;
+
+  // Remember which Zoho record this person is, so Instant → Zoho sync
+  // updates it instead of searching (or creating a second one). Only
+  // when they have no link yet: a person can sit in Zoho twice, and
+  // the record they are already synced with stays the one.
+  const zohoModule = fetchableModule(record.module);
+  if (record.recordId && (zohoModule === 'Leads' || zohoModule === 'Contacts')) {
+    const { data: existingLink } = await db
+      .from('zoho_record_links')
+      .select('id')
+      .eq('account_id', accountId)
+      .eq('entity', 'contact')
+      .eq('local_id', ingest.contactId)
+      .maybeSingle();
+    if (!existingLink) {
+      const { data: contact } = await db
+        .from('contacts')
+        .select('id, account_id, name, phone, email, company, instagram_id, messenger_id, created_via')
+        .eq('id', ingest.contactId)
+        .maybeSingle();
+      if (contact) {
+        await saveLink(
+          db,
+          accountId,
+          'contact',
+          ingest.contactId,
+          zohoModule,
+          record.recordId,
+          contactHash(contact as ContactRow),
+          false,
+        );
+      }
+    }
+  }
+
+  if (echo) return;
 
   await runAutomationsForTrigger({
     accountId,

@@ -868,6 +868,30 @@ function DetailsTab({
     return { label: 'Unassigned', icon: UserRound };
   })();
 
+  // Which Zoho record this person is synced with, when Zoho is
+  // connected. Keyed by contact so a fast switch never shows the
+  // previous person's link.
+  const [zoho, setZoho] = useState<{
+    contactId: string;
+    connected: boolean;
+    link: { module: 'Leads' | 'Contacts'; url: string | null } | null;
+  } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/integrations/zoho/link?contact_id=${contact.id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d) {
+          setZoho({ contactId: contact.id, connected: !!d.connected, link: d.link ?? null });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [contact.id]);
+  const zohoHere = zoho?.contactId === contact.id ? zoho : null;
+
   // Ticks once a minute so the reply-window countdown stays current.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -996,6 +1020,26 @@ function DetailsTab({
         </DetailRow>
       )}
       {address && <DetailRow label="Address">{address}</DetailRow>}
+
+      {zohoHere?.connected && (
+        <DetailRow label="Zoho CRM">
+          {zohoHere.link ? (
+            zohoHere.link.url ? (
+              <a
+                href={zohoHere.link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-primary hover:underline underline-offset-2"
+              >
+                {zohoHere.link.module === 'Leads' ? 'Lead' : 'Contact'}
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            ) : zohoHere.link.module === 'Leads' ? 'Lead' : 'Contact'
+          ) : (
+            'Not synced yet'
+          )}
+        </DetailRow>
+      )}
 
       <DetailGroup label="Preferences" />
       <DetailRow label="Marketing">

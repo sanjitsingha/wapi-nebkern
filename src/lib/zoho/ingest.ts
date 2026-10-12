@@ -62,6 +62,7 @@ export async function upsertContactFromZoho(
       phone,
       name: record.name,
       email: record.email,
+      created_via: 'zoho',
     })
     .select('id')
     .single();

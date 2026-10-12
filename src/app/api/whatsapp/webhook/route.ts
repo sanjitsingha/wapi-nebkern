@@ -1441,6 +1441,8 @@ async function findOrCreateContact(
       user_id: configOwnerUserId,
       phone,
       name: name || phone,
+      // They reached us first — a prospect. Zoho sync makes these Leads.
+      created_via: 'conversation',
     })
     .select()
     .single()

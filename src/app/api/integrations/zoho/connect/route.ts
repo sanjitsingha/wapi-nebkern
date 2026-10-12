@@ -5,6 +5,8 @@
 //            into a Zoho Workflow Rule and the automatic-sync state.
 //   PATCH  — automatic sync: switch it on or off, or change which
 //            events it watches. Re-syncs the Zoho channel at once.
+//            Also Instant → Zoho: the push switches, "sync existing"
+//            (backfill) and "retry failed".
 //   DELETE — disconnect (removes the Zoho channel first).
 //
 // ── There is no POST any more ──
@@ -59,7 +61,7 @@ export async function GET(request: Request) {
     const { data } = await ctx.supabase
       .from('zoho_connections')
       .select(
-        'org_name, org_id, api_domain, is_active, connected_at, last_event_at, webhook_token, client_id, refresh_token, auto_sync, watch_events, watch_channel_id, watch_expires_at, watch_error',
+        'org_name, org_id, api_domain, is_active, connected_at, last_event_at, webhook_token, client_id, refresh_token, auto_sync, watch_events, watch_channel_id, watch_expires_at, watch_error, push_contacts, push_deals',
       )
       .eq('account_id', ctx.accountId)
       .maybeSingle();
@@ -122,11 +124,79 @@ export async function GET(request: Request) {
         error: data.watch_error,
       },
       watchEvents: ZOHO_WATCH_EVENTS,
+      push: await pushStatus(data, ctx.accountId),
       recentEvents: events ?? [],
     });
   } catch (err) {
     return toErrorResponse(err);
   }
+}
+
+/** Instant → Zoho at a glance: switches, how much is linked, what is
+ *  waiting, and the latest things that went wrong (or worth a note). */
+async function pushStatus(
+  conn: { push_contacts?: boolean | null; push_deals?: boolean | null },
+  accountId: string,
+) {
+  const db = supabaseAdmin();
+  const count = async (q: PromiseLike<{ count: number | null }>) => (await q).count ?? 0;
+  const [contacts, deals, pending, failed, problems] = await Promise.all([
+    count(
+      db.from('zoho_record_links').select('id', { count: 'exact', head: true })
+        .eq('account_id', accountId).eq('entity', 'contact'),
+    ),
+    count(
+      db.from('zoho_record_links').select('id', { count: 'exact', head: true })
+        .eq('account_id', accountId).eq('entity', 'deal'),
+    ),
+    count(
+      db.from('zoho_sync_queue').select('id', { count: 'exact', head: true })
+        .eq('account_id', accountId).eq('status', 'pending'),
+    ),
+    count(
+      db.from('zoho_sync_queue').select('id', { count: 'exact', head: true })
+        .eq('account_id', accountId).eq('status', 'failed'),
+    ),
+    db.from('zoho_sync_queue')
+      .select('id, entity, local_id, status, last_error, updated_at')
+      .eq('account_id', accountId)
+      .not('last_error', 'is', null)
+      .order('updated_at', { ascending: false })
+      .limit(6),
+  ]);
+
+  // Name each record, so a problem says WHO rather than an id.
+  const rows = problems.data ?? [];
+  const contactIds = rows.filter((r) => r.entity === 'contact').map((r) => r.local_id);
+  const dealIds = rows.filter((r) => r.entity === 'deal').map((r) => r.local_id);
+  const [cn, dn] = await Promise.all([
+    contactIds.length
+      ? db.from('contacts').select('id, name, phone').in('id', contactIds)
+      : Promise.resolve({ data: [] as { id: string; name: string | null; phone: string | null }[] }),
+    dealIds.length
+      ? db.from('deals').select('id, title').in('id', dealIds)
+      : Promise.resolve({ data: [] as { id: string; title: string }[] }),
+  ]);
+  const names = new Map<string, string>();
+  for (const c of cn.data ?? []) names.set(c.id, c.name || c.phone || 'Contact');
+  for (const d of dn.data ?? []) names.set(d.id, d.title);
+
+  return {
+    contacts: conn.push_contacts !== false,
+    deals: conn.push_deals !== false,
+    linkedContacts: contacts,
+    linkedDeals: deals,
+    pending,
+    failed,
+    recent: rows.map((r) => ({
+      id: r.id,
+      entity: r.entity,
+      name: names.get(r.local_id) ?? (r.entity === 'deal' ? 'Deal' : 'Contact'),
+      status: r.status,
+      message: r.last_error,
+      at: r.updated_at,
+    })),
+  };
 }
 
 export async function PATCH(request: Request) {
@@ -137,10 +207,37 @@ export async function PATCH(request: Request) {
     const body = (await request.json().catch(() => ({}))) as {
       enabled?: unknown;
       events?: unknown;
+      pushContacts?: unknown;
+      pushDeals?: unknown;
+      action?: unknown;
     };
+
+    // Instant → Zoho one-off actions.
+    if (body.action === 'backfill') {
+      const { data: queued, error } = await db.rpc('zoho_backfill', {
+        p_account: ctx.accountId,
+        p_deals: true,
+      });
+      if (error) {
+        return NextResponse.json({ error: 'Could not queue existing records.' }, { status: 500 });
+      }
+      return NextResponse.json({ ok: true, queued: queued ?? 0 });
+    }
+    if (body.action === 'retry') {
+      await db
+        .from('zoho_sync_queue')
+        .update({ status: 'pending', attempts: 0, next_retry_at: new Date().toISOString() })
+        .eq('account_id', ctx.accountId)
+        .eq('status', 'failed');
+      return NextResponse.json({ ok: true });
+    }
+
     const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (typeof body.enabled === 'boolean') patch.auto_sync = body.enabled;
     if (body.events !== undefined) patch.watch_events = sanitizeWatchEvents(body.events);
+    if (typeof body.pushContacts === 'boolean') patch.push_contacts = body.pushContacts;
+    if (typeof body.pushDeals === 'boolean') patch.push_deals = body.pushDeals;
+    const touchesWatch = body.enabled !== undefined || body.events !== undefined;
 
     const { data: updated, error } = await db
       .from('zoho_connections')
@@ -152,6 +249,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Zoho is not connected.' }, { status: 404 });
     }
 
+    if (!touchesWatch) return NextResponse.json({ ok: true });
     const result = await syncZohoWatch(db, ctx.accountId);
     return NextResponse.json({ ok: true, autoSync: result });
   } catch (err) {

@@ -324,6 +324,7 @@ async function findOrCreateInstagramContact(
       // call (out of scope for MVP) — fall back to the raw id, same
       // as the WhatsApp webhook falling back to the raw phone.
       name: instagramId,
+      created_via: 'conversation',
     })
     .select()
     .single()

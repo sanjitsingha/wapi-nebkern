@@ -5,6 +5,7 @@ import { supabaseAdmin } from '@/lib/webhooks/admin-client';
 import { dispatchDueDeliveries } from '@/lib/webhooks/dispatch';
 import { recordCronHeartbeat } from '@/lib/system/cron-heartbeat';
 import { drainSheetQueue, exportFinishedCampaigns } from '@/lib/google-sheets/sync';
+import { drainZohoQueue } from '@/lib/zoho/push';
 
 /**
  * Drain the outbound webhook delivery queue.
@@ -50,12 +51,22 @@ export async function GET(request: Request) {
       sheets = { error: err instanceof Error ? err.message : String(err) };
     }
 
+    // Instant → Zoho pushes, same minute and same isolation. A time
+    // budget keeps the whole run inside the scheduler's 55s timeout.
+    let zoho: Record<string, unknown> = {};
+    try {
+      zoho = { ...(await drainZohoQueue(admin, { budgetMs: 30_000 })) };
+    } catch (err) {
+      console.error('[webhooks-cron] zoho push failed:', err);
+      zoho = { error: err instanceof Error ? err.message : String(err) };
+    }
+
     await recordCronHeartbeat(admin, 'webhooks_dispatch', {
       status: 'ok',
       durationMs: Date.now() - started,
-      detail: { ...(result as Record<string, unknown>), sheets },
+      detail: { ...(result as Record<string, unknown>), sheets, zoho },
     });
-    return NextResponse.json({ ...result, sheets });
+    return NextResponse.json({ ...result, sheets, zoho });
   } catch (err) {
     console.error('[webhooks-cron] dispatch failed:', err);
     await recordCronHeartbeat(admin, 'webhooks_dispatch', {
