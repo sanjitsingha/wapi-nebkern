@@ -18,7 +18,15 @@
 //
 // Contract with the server side (see tab-response.ts): the callback
 // route renders a tiny page that postMessages `{ source, params }` back
-// to its opener and closes itself.
+// to its opener — and broadcasts the same on a BroadcastChannel named
+// OAUTH_MESSAGE_SOURCE — then closes itself.
+//
+// Why both: a provider page that sends Cross-Origin-Opener-Policy (as
+// sign-in pages increasingly do) moves the tab into a new browsing
+// context group. From then on `window.opener` is null on the callback
+// page AND our handle reports `tab.closed === true` while the login is
+// still going on. Trusting either alone meant a successful connect
+// read as "cancelled": no toast, dialog unchanged.
 // ============================================================
 
 /** Marks a postMessage as ours. Anything else on the bus is ignored. */
@@ -68,12 +76,11 @@ export function openOAuthTab(
     tab.focus();
 
     let settled = false;
-    let closedTimer: ReturnType<typeof setTimeout> | null = null;
 
     function cleanup() {
       window.removeEventListener('message', onMessage);
       window.clearInterval(pollId);
-      if (closedTimer) clearTimeout(closedTimer);
+      channel?.close();
     }
 
     function settle(outcome: OAuthTabOutcome) {
@@ -88,7 +95,11 @@ export function openOAuthTab(
       // anything from elsewhere (including facebook.com's own chatter)
       // has no business being read here.
       if (event.origin !== window.location.origin) return;
-      const data = event.data as
+      onPayload(event.data);
+    }
+
+    function onPayload(raw: unknown) {
+      const data = raw as
         | { source?: unknown; params?: unknown }
         | null
         | undefined;
@@ -108,15 +119,32 @@ export function openOAuthTab(
 
     window.addEventListener('message', onMessage);
 
-    // `tab.closed` is the only reliable signal that someone closed it:
-    // there is no cross-origin unload event to listen for. The grace
-    // delay covers the ordinary success path, where the callback page
-    // posts its message and closes itself in the same tick — without it
-    // we would race our own success and report "cancelled".
+    // BroadcastChannel is same-origin by construction, so no origin
+    // check is needed here.
+    const channel =
+      typeof BroadcastChannel !== 'undefined'
+        ? new BroadcastChannel(OAUTH_MESSAGE_SOURCE)
+        : null;
+    if (channel) channel.onmessage = (event) => onPayload(event.data);
+
+    // Cancellation. `tab.closed` cannot be trusted on its own: once the
+    // provider's COOP severs the tab it reads true while the user is
+    // still signing in. So "closed" only counts as cancelled once the
+    // user is back on THIS page (visible and focused) and a grace
+    // period has passed with no outcome — long enough for the callback
+    // page's message, which is sent just before it closes, to land.
+    let backSince: number | null = null;
     const pollId = window.setInterval(() => {
-      if (settled || !tab.closed) return;
-      window.clearInterval(pollId);
-      closedTimer = setTimeout(() => settle({ status: 'cancelled' }), 600);
-    }, 400);
+      if (settled) return;
+      const back = document.visibilityState === 'visible' && document.hasFocus();
+      if (!back) {
+        backSince = null;
+        return;
+      }
+      backSince ??= Date.now();
+      if (tab.closed && Date.now() - backSince >= 1200) {
+        settle({ status: 'cancelled' });
+      }
+    }, 300);
   });
 }

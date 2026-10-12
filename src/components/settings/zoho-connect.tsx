@@ -14,7 +14,6 @@ import {
 
 import { openOAuthTab } from '@/lib/oauth/tab';
 import { Button } from '@/components/ui/button';
-import { InfoHint } from '@/components/ui/info-hint';
 import { Label } from '@/components/ui/label';
 import {
   Dialog,
@@ -170,18 +169,53 @@ export function ZohoConnect({
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const load = useCallback(() => {
-    fetch('/api/integrations/zoho/connect', { cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        setStatus(d?.connection ?? null);
-        setEvents(d?.recentEvents ?? []);
-        if (typeof d?.configured === 'boolean') setConfigured(d.configured);
-      })
-      .catch(() => setStatus(null));
-  }, []);
+  /** Fetch the connection; resolves to it (null when there is none). */
+  const load = useCallback(
+    (): Promise<ZohoConnection | null> =>
+      fetch('/api/integrations/zoho/connect', { cache: 'no-store' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          const connection: ZohoConnection | null = d?.connection ?? null;
+          setStatus(connection);
+          setEvents(d?.recentEvents ?? []);
+          if (typeof d?.configured === 'boolean') setConfigured(d.configured);
+          return connection;
+        })
+        .catch(() => {
+          setStatus(null);
+          return null;
+        }),
+    []
+  );
 
-  useEffect(load, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const connected = !!status?.isActive;
+
+  // Safety net for a connect whose outcome message never arrived (the
+  // Zoho tab can lose its link to this one — see lib/oauth/tab.ts).
+  // While the dialog is open and not yet connected, re-check whenever
+  // the admin comes back to this page, and announce the connection if
+  // it landed.
+  useEffect(() => {
+    if (!open || connected) return;
+    const recheck = () => {
+      if (document.visibilityState !== 'visible') return;
+      void load().then((c) => {
+        if (c?.isActive) {
+          toast.success(`Connected to ${c.orgName ?? 'Zoho CRM'}`, { id: 'zoho-connected' });
+        }
+      });
+    };
+    window.addEventListener('focus', recheck);
+    document.addEventListener('visibilitychange', recheck);
+    return () => {
+      window.removeEventListener('focus', recheck);
+      document.removeEventListener('visibilitychange', recheck);
+    };
+  }, [open, connected, load]);
 
   /**
    * The whole of connecting: one trip to Zoho and back.
@@ -203,14 +237,22 @@ export function ZohoConnect({
         );
         return;
       }
-      if (outcome.status === 'cancelled') return;
+      if (outcome.status === 'cancelled') {
+        // "Cancelled" only means no message reached us. The connection
+        // may still have been made, so check before staying quiet.
+        const c = await load();
+        if (c?.isActive) {
+          toast.success(`Connected to ${c.orgName ?? 'Zoho CRM'}`, { id: 'zoho-connected' });
+        }
+        return;
+      }
 
       if (outcome.params.error) {
         toast.error(outcome.params.error);
         return;
       }
-      toast.success(`Connected to ${outcome.params.org ?? 'Zoho CRM'}`);
-      load();
+      toast.success(`Connected to ${outcome.params.org ?? 'Zoho CRM'}`, { id: 'zoho-connected' });
+      await load();
     } finally {
       setBusy(false);
     }
@@ -251,8 +293,6 @@ export function ZohoConnect({
       toast.error('Could not copy — select the URL and copy it manually.');
     }
   };
-
-  const connected = !!status?.isActive;
 
   return (
     <>
@@ -338,19 +378,13 @@ export function ZohoConnect({
                 className="h-5 w-auto object-contain"
               />
               <span>{connected ? 'Zoho CRM' : 'Connect to Zoho CRM'}</span>
-              <InfoHint
-                label="Zoho CRM setup"
-                docs="/docs/api-and-integrations"
-              >
-                Read the step-by-step guide: connect Zoho, add the Workflow Rule
-                webhook, and build the automation that sends the WhatsApp
-                message.
-              </InfoHint>
             </DialogTitle>
-            <DialogDescription>
+            {/* Before connecting the description is for screen readers
+                only — the dialog body already explains the sign-in. */}
+            <DialogDescription className={connected ? undefined : 'sr-only'}>
               {connected
                 ? 'Point a Zoho Workflow Rule at the URL below to start firing automations.'
-                : 'Sign in to Zoho and approve access. Nothing is ever written to your CRM.'}
+                : 'Sign in to Zoho and approve access to connect Zoho CRM.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -489,7 +523,7 @@ export function ZohoConnect({
               {/* The two products and the direction data moves. Same
                   lockup the integration page's connect hero uses, so
                   arriving here from there is continuous. */}
-              <div className="flex items-center justify-center gap-5 py-2 sm:gap-8">
+              <div className="flex items-center justify-center gap-5 py-6 sm:gap-8">
                 <div className="flex flex-col items-center gap-2">
                   <div className="flex h-8 items-center">
                     <BrandLogo className="h-6" />

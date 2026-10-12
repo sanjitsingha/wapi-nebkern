@@ -83,9 +83,21 @@ export function oauthTabResponse(
           window.opener.postMessage(payload, window.location.origin);
         }
       } catch (e) {
-        // Opener gone or navigated away - the fallback text stands in.
+        // Opener gone or navigated away - the channel below covers it.
       }
-      window.close();
+      // Also broadcast to every same-origin tab. A provider page that
+      // sends Cross-Origin-Opener-Policy severs this tab from its
+      // opener mid-flow, so window.opener is null by the time we get
+      // here; a BroadcastChannel does not depend on that link.
+      try {
+        if (typeof BroadcastChannel !== 'undefined') {
+          var bc = new BroadcastChannel(payload.source);
+          bc.postMessage(payload);
+          bc.close();
+        }
+      } catch (e) {}
+      // A beat before closing, so the broadcast is dispatched first.
+      setTimeout(function () { window.close(); }, 150);
     })();
   </script>
 </body>
