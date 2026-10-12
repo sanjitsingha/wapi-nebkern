@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 
 import '../(marketing)/lp2.css';
 import '../(marketing)/whatsapp.css';
+import './docs.css';
 
-import { lp2Display } from '@/components/lp2/font';
+import { AppFont } from '@/components/app-font';
 import { Lp2Nav } from '@/components/lp2/nav';
 import { Lp2Footer } from '@/components/lp2/footer';
 import { DocsShell } from '@/components/docs/docs-shell';
@@ -37,17 +38,25 @@ export default async function DocsLayout({ children }: { children: React.ReactNo
   const { design } = await getSiteDesign();
 
   return (
-    <div
-      data-design={design}
-      className={`lp2 ${lp2Display.variable} min-h-screen bg-(--lp2-cream) text-(--lp2-ink) antialiased`}
-    >
-      <Lp2Nav />
-      <main>
-        <DocsShell>{children}</DocsShell>
-      </main>
-      <Lp2Footer />
-      {/* Docs are public, so they count towards the funnel. */}
-      <Analytics />
-    </div>
+    <>
+      <AppFont />
+      <div
+        data-design={design}
+        className="lp2 docs-layout min-h-screen bg-white text-(--lp2-ink) antialiased font-sans"
+        style={{
+          backgroundColor: '#ffffff',
+          '--wa-canvas': '#ffffff',
+          '--lp2-cream': '#ffffff',
+        } as React.CSSProperties}
+      >
+        <Lp2Nav />
+        <main>
+          <DocsShell>{children}</DocsShell>
+        </main>
+        <Lp2Footer />
+        {/* Docs are public, so they count towards the funnel. */}
+        <Analytics />
+      </div>
+    </>
   );
 }

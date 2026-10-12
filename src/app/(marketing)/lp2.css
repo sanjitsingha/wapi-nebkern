@@ -226,3 +226,9 @@
     transform: translateX(0);
   }
 }
+
+/* ── Docs shell override ── */
+.lp2.docs-layout {
+  background-color: #ffffff !important;
+  --lp2-cream: #ffffff !important;
+}

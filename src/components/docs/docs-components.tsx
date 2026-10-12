@@ -37,14 +37,14 @@ export function DocsArticle({ children }: { children: React.ReactNode }) {
     <div
       className={cn(
         'max-w-3xl',
-        '[&>h2]:mt-14 [&>h2]:scroll-mt-24 [&>h2]:text-2xl [&>h2]:font-bold [&>h2]:tracking-tight [&>h2]:text-(--lp2-ink) [&>h2:first-child]:mt-0',
-        '[&>h3]:mt-10 [&>h3]:scroll-mt-24 [&>h3]:text-lg [&>h3]:font-bold [&>h3]:text-(--lp2-ink)',
+        '[&>h2]:mt-14 [&>h2]:scroll-mt-36 [&>h2]:text-2xl [&>h2]:font-bold [&>h2]:tracking-tight [&>h2]:text-(--lp2-ink) [&>h2:first-child]:mt-0',
+        '[&>h3]:mt-10 [&>h3]:scroll-mt-36 [&>h3]:text-lg [&>h3]:font-bold [&>h3]:text-(--lp2-ink)',
         '[&>p]:mt-4 [&>p]:text-[15px] [&>p]:leading-relaxed [&>p]:text-(--lp2-ink-soft)',
         '[&>ul]:mt-4 [&>ul]:space-y-2 [&>ul]:pl-5 [&>ul]:text-[15px] [&>ul]:text-(--lp2-ink-soft) [&>ul]:list-disc',
         '[&>ol]:mt-4 [&>ol]:space-y-2 [&>ol]:pl-5 [&>ol]:text-[15px] [&>ol]:text-(--lp2-ink-soft) [&>ol]:list-decimal',
         '[&_li>ul]:mt-2 [&_li>ul]:mb-0',
         '[&_strong]:font-bold [&_strong]:text-(--lp2-ink)',
-        '[&_code]:rounded [&_code]:bg-(--lp2-cream) [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[13px] [&_code]:text-(--lp2-ink)',
+        '[&_code]:rounded [&_code]:bg-(--lp2-ink)/5 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[13px] [&_code]:text-(--lp2-ink)',
         '[&_a]:font-semibold [&_a]:text-(--lp2-grass-deep) [&_a]:underline [&_a]:decoration-(--lp2-grass)/30 [&_a]:underline-offset-2 [&_a]:hover:decoration-(--lp2-grass-deep)',
       )}
     >
@@ -116,7 +116,7 @@ const CALLOUT_STYLE: Record<
   'info' | 'tip' | 'warning',
   { icon: LucideIcon; classes: string }
 > = {
-  info: { icon: Info, classes: 'border-(--lp2-ink)/10 bg-(--lp2-cream) text-(--lp2-ink)' },
+  info: { icon: Info, classes: 'border-(--lp2-ink)/10 bg-(--lp2-ink)/5 text-(--lp2-ink)' },
   tip: {
     icon: Lightbulb,
     classes: 'border-(--lp2-grass)/20 bg-(--lp2-mint)/50 text-(--lp2-ink)',
@@ -173,7 +173,7 @@ export function DocsSteps({
           </span>
           <div>
             <p className="text-sm font-bold text-(--lp2-ink)">{step.title}</p>
-            <div className="mt-1 text-sm leading-relaxed text-(--lp2-ink-soft) [&_code]:rounded [&_code]:bg-(--lp2-cream) [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[13px] [&_code]:text-(--lp2-ink)">
+            <div className="mt-1 text-sm leading-relaxed text-(--lp2-ink-soft) [&_code]:rounded [&_code]:bg-(--lp2-ink)/5 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[13px] [&_code]:text-(--lp2-ink)">
               {step.description}
             </div>
           </div>
@@ -197,7 +197,7 @@ export function DocsFieldTable({
     <div className="mt-6 overflow-x-auto rounded-xl border border-(--lp2-ink)/10">
       <table className="w-full border-collapse text-left text-sm">
         <thead>
-          <tr className="border-b border-(--lp2-ink)/10 bg-(--lp2-cream)">
+          <tr className="border-b border-(--lp2-ink)/10 bg-(--lp2-ink)/5">
             {columns.map((col) => (
               <th
                 key={col}
@@ -246,7 +246,7 @@ export function DocsCode({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mt-6 overflow-x-auto rounded-xl border border-(--lp2-ink)/10 bg-(--lp2-cream)">
+    <div className="mt-6 overflow-x-auto rounded-xl border border-(--lp2-ink)/10 bg-(--lp2-ink)/5">
       {label && (
         <div className="border-b border-(--lp2-ink)/10 px-4 py-2 text-xs font-bold tracking-wide text-(--lp2-ink-soft) uppercase">
           {label}

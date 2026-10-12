@@ -97,6 +97,16 @@
   color: var(--wa-ink);
 }
 
+/* ── Docs shell: pure white background ───────────────────────────
+   The documentation pages use a pure white background (#ffffff) rather
+   than the cream marketing canvas. */
+.lp2.docs-layout,
+.lp2[data-design='whatsapp'].docs-layout {
+  background-color: #ffffff !important;
+  --wa-canvas: #ffffff !important;
+  --lp2-cream: #ffffff !important;
+}
+
 /* ── Typography: one weight ──────────────────────────────────────
    "The system's emphasis mechanism is size, not weight." Every playful
    component leans on font-bold / font-extrabold; all of it resolves to
@@ -274,8 +284,8 @@
 }
 
 /* White section bands sit on the cream floor instead; white is kept for
-   the tiles on top of them. */
-.lp2[data-design='whatsapp'] section[class~='bg-white'] {
+   the tiles on top of them. Docs layout stays pure white. */
+.lp2[data-design='whatsapp']:not(.docs-layout) section[class~='bg-white'] {
   background-color: var(--wa-canvas) !important;
 }
 

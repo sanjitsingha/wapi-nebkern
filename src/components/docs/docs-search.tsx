@@ -146,7 +146,8 @@ export function DocsSearch() {
           aria-expanded={open && results.length > 0}
           aria-controls="docs-search-results"
           aria-autocomplete="list"
-          className="h-11 w-full rounded-xl border-2 border-(--lp2-ink) bg-white pr-9 pl-10 text-sm font-medium text-(--lp2-ink) outline-none placeholder:text-(--lp2-ink-soft) focus:shadow-(--lp2-shadow-sm)"
+          className="h-11 w-full !rounded-md border border-gray-200 bg-white pr-9 pl-10 text-sm font-medium text-(--lp2-ink) outline-none placeholder:text-(--lp2-ink-soft) focus:outline-none focus:ring-0"
+          style={{ borderRadius: 6, borderColor: '#e5e7eb' }}
         />
         {query ? (
           <button
@@ -156,12 +157,12 @@ export function DocsSearch() {
               inputRef.current?.focus();
             }}
             aria-label="Clear search"
-            className="absolute top-1/2 right-3 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-(--lp2-ink-soft) hover:bg-(--lp2-cream)"
+            className="absolute top-1/2 right-3 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-(--lp2-ink-soft) hover:bg-(--lp2-ink)/5"
           >
             <X className="size-3.5" />
           </button>
         ) : (
-          <kbd className="absolute top-1/2 right-3 -translate-y-1/2 rounded-md border border-(--lp2-ink)/15 bg-(--lp2-cream) px-1.5 py-0.5 text-[10px] font-bold text-(--lp2-ink-soft)">
+          <kbd className="absolute top-1/2 right-3 -translate-y-1/2 rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] font-bold text-(--lp2-ink-soft)">
             /
           </kbd>
         )}
@@ -171,7 +172,8 @@ export function DocsSearch() {
         <div
           id="docs-search-results"
           role="listbox"
-          className="absolute top-full left-0 z-30 mt-2 w-full overflow-hidden rounded-xl border-2 border-(--lp2-ink) bg-white shadow-(--lp2-shadow-sm)"
+          className="absolute top-full left-0 z-30 mt-2 w-full overflow-hidden !rounded-md border border-gray-200 bg-white shadow-lg"
+          style={{ borderRadius: 6, borderColor: '#e5e7eb' }}
         >
           {results.length === 0 ? (
             <p className="px-4 py-4 text-sm text-(--lp2-ink-soft)">
@@ -189,7 +191,7 @@ export function DocsSearch() {
                     onClick={() => goTo(entry)}
                     className={cn(
                       'flex w-full flex-col gap-0.5 px-4 py-2.5 text-left transition-colors',
-                      i === activeIndex ? 'bg-(--lp2-cream)' : 'bg-transparent',
+                      i === activeIndex ? 'bg-(--lp2-ink)/5' : 'bg-transparent',
                     )}
                   >
                     <span className="flex items-center gap-2">
