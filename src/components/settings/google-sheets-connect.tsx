@@ -291,33 +291,33 @@ export function GoogleSheetsConnect({ item }: { item: Integration }) {
 
   const authorizeDialog = (
     <Dialog open={authorizeOpen} onOpenChange={(v) => !authorizing && setAuthorizeOpen(v)}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="flex flex-col gap-4 sm:max-w-xl sm:min-h-[500px]">
         <DialogHeader>
           <DialogTitle>Authorize Google Sheets</DialogTitle>
           <DialogDescription className="sr-only">
             Sign in with Google to let Instant create and write to spreadsheets.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex items-start gap-2.5 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2.5 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+        <div className="flex items-start gap-2.5 rounded-lg border border-amber-300/60 bg-amber-50 px-3.5 py-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
           <AlertCircle className="mt-0.5 size-4 shrink-0" />
           <span>
             Instant creates new spreadsheets in the Google Drive of the account you
             authorize. Sign in with the Google account you want them in.
           </span>
         </div>
-        <div className="flex items-center justify-center gap-6 py-4">
-          <BrandLogo className="h-6" />
-          <SyncArrows className="h-7 w-20 shrink-0 text-muted-foreground/60" />
+        <div className="my-auto flex items-center justify-center gap-7 py-6">
+          <BrandLogo className="h-7" />
+          <SyncArrows className="h-8 w-24 shrink-0 text-muted-foreground/60" />
           <div className="flex flex-col items-center gap-1.5">
-            <ToolMark item={item} size="sm" />
-            <span className="text-sm text-foreground">{item.name}</span>
+            <ToolMark item={item} size="lg" />
+            <span className="text-sm font-medium text-foreground">{item.name}</span>
           </div>
         </div>
         <p className="text-sm leading-relaxed text-muted-foreground">
           You&rsquo;ll go to Google&rsquo;s sign-in page in a new tab. After you grant
           access you&rsquo;ll come back here to set up your sheet.
         </p>
-        <DialogFooter>
+        <DialogFooter className="mt-auto">
           <Button variant="outline" onClick={() => setAuthorizeOpen(false)} disabled={authorizing}>
             Cancel
           </Button>
@@ -332,7 +332,7 @@ export function GoogleSheetsConnect({ item }: { item: Integration }) {
 
   const addDialog = (
     <Dialog open={addOpen} onOpenChange={(v) => !creating && !authorizing && setAddOpen(v)}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle className="text-sm font-normal text-muted-foreground">
             Connect Google Sheets — Step {step}
@@ -451,7 +451,7 @@ export function GoogleSheetsConnect({ item }: { item: Integration }) {
 
   const manageDialog = (
     <Dialog open={manageOpen} onOpenChange={setManageOpen}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Manage Google accounts</DialogTitle>
           <DialogDescription>
@@ -562,12 +562,9 @@ export function GoogleSheetsConnect({ item }: { item: Integration }) {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-sm font-semibold text-foreground">Connected Google Sheets</h3>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          Not receiving data?
-          <Button variant="outline" size="sm" onClick={() => setManageOpen(true)} className="h-8">
-            Manage Accounts
-          </Button>
-        </div>
+        <Button variant="outline" size="sm" onClick={() => setManageOpen(true)} className="h-8">
+          Manage Accounts
+        </Button>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-border bg-card">
