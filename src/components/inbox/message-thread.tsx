@@ -33,6 +33,8 @@ import {
   Sparkles,
   MoreVertical,
   Trash2,
+  ShieldAlert,
+  ShieldCheck,
 } from "lucide-react";
 import { format, isToday, isYesterday, differenceInHours } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -120,6 +122,9 @@ interface MessageThreadProps {
   /** Fired after this conversation is deleted, so the parent can remove it
    *  from the list and deselect it. */
   onDeleted?: (conversationId: string) => void;
+  /** Fired after a contact field changes here (today: spam), so the
+   *  parent can swap in the updated contact for the list and panel. */
+  onContactChange?: (contact: Contact) => void;
 }
 
 function formatDateSeparator(dateStr: string): string {
@@ -195,6 +200,7 @@ export function MessageThread({
   contactPanelOpen,
   onOpenContactPanel,
   onDeleted,
+  onContactChange,
 }: MessageThreadProps) {
   const { user } = useAuth();
   const { getPresence, getRow, now } = usePresence();
@@ -952,6 +958,23 @@ export function MessageThread({
     }
   }, [conversation, onDeleted]);
 
+  const isSpam = !!contact?.is_spam;
+  const toggleSpam = useCallback(async () => {
+    if (!contact) return;
+    const next = !contact.is_spam;
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("contacts")
+      .update({ is_spam: next })
+      .eq("id", contact.id);
+    if (error) {
+      toast.error("Couldn't update spam status. Please try again.");
+      return;
+    }
+    onContactChange?.({ ...contact, is_spam: next });
+    toast.success(next ? "Contact marked as spam" : "Contact removed from spam");
+  }, [contact, onContactChange]);
+
   // Empty state — same WhatsApp-style doodle background as the active
   // thread below, so swapping between empty/selected doesn't change the
   // pattern under the user's eye.
@@ -1277,6 +1300,15 @@ export function MessageThread({
               <MoreVertical className="h-4 w-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="border-border bg-popover">
+              <DropdownMenuItem onClick={() => void toggleSpam()} className="text-sm">
+                {isSpam ? (
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                ) : (
+                  <ShieldAlert className="mr-2 h-4 w-4" />
+                )}
+                {isSpam ? "Unmark as spam" : "Mark as spam"}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => setConfirmDeleteOpen(true)}
                 className="text-sm text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"

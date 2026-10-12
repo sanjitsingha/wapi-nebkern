@@ -583,6 +583,17 @@ function InboxPageInner() {
 
   // A chat was deleted from the thread — drop it from the list and, if it
   // was open, close the thread.
+  // A contact field changed from the thread (spam toggle): swap the
+  // fresh object into the active contact and the list's copy.
+  const handleContactChange = useCallback((updated: Contact) => {
+    setActiveContact(updated);
+    setConversations((prev) =>
+      prev.map((c) =>
+        c.contact_id === updated.id ? { ...c, contact: updated } : c,
+      ),
+    );
+  }, []);
+
   const handleDeleteConversation = useCallback(
     (conversationId: string) => {
       setConversations((prev) => prev.filter((c) => c.id !== conversationId));
@@ -721,6 +732,7 @@ function InboxPageInner() {
             contactPanelOpen={contactPanelOpen}
             onOpenContactPanel={handleToggleContactPanel}
             onDeleted={handleDeleteConversation}
+            onContactChange={handleContactChange}
           />
         </div>
 
@@ -732,6 +744,7 @@ function InboxPageInner() {
           <div className="hidden lg:block">
             <ContactSidebar
               contact={activeContact}
+              conversation={activeConversation}
               onTogglePanel={handleToggleContactPanel}
             />
           </div>
