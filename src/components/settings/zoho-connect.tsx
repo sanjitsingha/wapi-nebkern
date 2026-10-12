@@ -386,6 +386,17 @@ export function ZohoConnect({
     }
   };
 
+  const failures = (push?.recent ?? []).filter((r) => r.status === 'failed');
+
+  // Keep the bar moving: re-read every few seconds while the dialog is
+  // open and records are still on their way.
+  const syncing = open && (push?.pending ?? 0) > 0;
+  useEffect(() => {
+    if (!syncing) return;
+    const id = setInterval(() => void load(), 5000);
+    return () => clearInterval(id);
+  }, [syncing, load]);
+
   const toggleWatchEvent = (key: string) => {
     if (!autoSync) return;
     const next = autoSync.events.includes(key)
@@ -692,11 +703,41 @@ export function ZohoConnect({
                     </label>
                   </div>
 
+                  {/* While records are on their way: a bar, not a list of
+                      what happened to each one. */}
+                  {push.pending > 0 && (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-foreground inline-flex items-center gap-1.5 font-medium">
+                          <Loader2 className="size-3 animate-spin" />
+                          Syncing to Zoho
+                        </span>
+                        <span className="text-muted-foreground">
+                          {push.pending} left
+                        </span>
+                      </div>
+                      <div className="bg-muted h-1.5 overflow-hidden rounded-full">
+                        <div
+                          className="bg-primary h-full rounded-full transition-[width] duration-700"
+                          style={{
+                            width: `${Math.max(
+                              4,
+                              Math.round(
+                                ((push.linkedContacts + push.linkedDeals) /
+                                  Math.max(1, push.linkedContacts + push.linkedDeals + push.pending)) *
+                                  100,
+                              ),
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-muted-foreground text-[11px]">
                       {push.linkedContacts} contacts · {push.linkedDeals} deals in
                       sync
-                      {push.pending > 0 && ` · ${push.pending} waiting`}
                       {push.failed > 0 && (
                         <span className="text-red-600 dark:text-red-400">
                           {' '}· {push.failed} failed
@@ -730,7 +771,12 @@ export function ZohoConnect({
                     </div>
                   </div>
 
-                  {push.recent.some((r) => /scope|permission|OAUTH/i.test(r.message)) && (
+                  {/* Checked across everything still retrying too, not
+                      only final failures: a missing permission will fail
+                      every attempt, so say so on the first one. */}
+                  {push.recent.some(
+                    (r) => r.status !== 'done' && /scope|permission|reconnect/i.test(r.message ?? ''),
+                  ) && (
                     <div className="flex items-center justify-between gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 text-[11px] text-amber-900 dark:text-amber-200">
                       <span>Zoho needs one more permission to receive deals.</span>
                       <Button
@@ -746,9 +792,11 @@ export function ZohoConnect({
                     </div>
                   )}
 
-                  {push.recent.length > 0 && (
+                  {/* Only what needs someone's attention. Routine outcomes
+                      ("linked to an existing Contact") are not news. */}
+                  {failures.length > 0 && (
                     <ul className="border-border divide-border divide-y overflow-hidden rounded-md border text-[11px]">
-                      {push.recent.map((r) => (
+                      {failures.map((r) => (
                         <li key={r.id} className="flex items-start gap-2 px-2.5 py-1.5">
                           <span
                             className={

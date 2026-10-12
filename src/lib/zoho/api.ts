@@ -221,9 +221,21 @@ export async function zohoApiFetch<T = unknown>(
       return { error: 'Could not reach Zoho.' };
     }
 
-    // The token was wrong despite the clock. Worth exactly one retry
-    // with a freshly minted one — see the note at the top.
-    if (res.status === 401 && !force) return 'retry';
+    // Zoho answers 401 for two different things. A bad token is worth
+    // exactly one retry with a freshly minted one — see the note at the
+    // top. A missing SCOPE is not: a new token has the same scopes, and
+    // minting one per call trips Zoho's token rate limit ("Access
+    // Denied"), which then takes the whole connection down for minutes.
+    if (res.status === 401 && !force) {
+      const peek = (await res.clone().json().catch(() => null)) as { code?: string } | null;
+      if (peek?.code === 'OAUTH_SCOPE_MISMATCH') {
+        return {
+          error:
+            'Zoho has not granted Instant this permission yet. Reconnect Zoho in Settings to approve it.',
+        };
+      }
+      return 'retry';
+    }
 
     // 204 is success with nothing to say: a delete, or a query that
     // matched no records. Returning an error here would turn "no
