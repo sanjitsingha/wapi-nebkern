@@ -2,8 +2,10 @@
 // /api/integrations/zoho/connect
 //
 //   GET    — connection status, including the webhook URL to paste
-//            into a Zoho Workflow Rule.
-//   DELETE — disconnect.
+//            into a Zoho Workflow Rule and the automatic-sync state.
+//   PATCH  — automatic sync: switch it on or off, or change which
+//            events it watches. Re-syncs the Zoho channel at once.
+//   DELETE — disconnect (removes the Zoho channel first).
 //
 // ── There is no POST any more ──
 //
@@ -31,6 +33,12 @@ import {
   usesLegacyZohoApp,
 } from '@/lib/zoho/client';
 import { logAudit } from '@/lib/audit/log';
+import {
+  ZOHO_WATCH_EVENTS,
+  sanitizeWatchEvents,
+  syncZohoWatch,
+  unsubscribeZohoWatch,
+} from '@/lib/zoho/watch';
 import { AUDIT } from '@/lib/audit/events';
 
 function siteBaseUrl(request: Request): string {
@@ -51,7 +59,7 @@ export async function GET(request: Request) {
     const { data } = await ctx.supabase
       .from('zoho_connections')
       .select(
-        'org_name, org_id, api_domain, is_active, connected_at, last_event_at, webhook_token, client_id, refresh_token',
+        'org_name, org_id, api_domain, is_active, connected_at, last_event_at, webhook_token, client_id, refresh_token, auto_sync, watch_events, watch_channel_id, watch_expires_at, watch_error',
       )
       .eq('account_id', ctx.accountId)
       .maybeSingle();
@@ -106,8 +114,46 @@ export async function GET(request: Request) {
           ? `${base}/api/integrations/zoho/webhook/${data.webhook_token}`
           : null,
       },
+      autoSync: {
+        enabled: data.auto_sync !== false,
+        events: sanitizeWatchEvents(data.watch_events ?? []),
+        active: !!data.watch_channel_id,
+        expiresAt: data.watch_expires_at,
+        error: data.watch_error,
+      },
+      watchEvents: ZOHO_WATCH_EVENTS,
       recentEvents: events ?? [],
     });
+  } catch (err) {
+    return toErrorResponse(err);
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const ctx = await requireRole('admin');
+    const db = supabaseAdmin();
+
+    const body = (await request.json().catch(() => ({}))) as {
+      enabled?: unknown;
+      events?: unknown;
+    };
+    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (typeof body.enabled === 'boolean') patch.auto_sync = body.enabled;
+    if (body.events !== undefined) patch.watch_events = sanitizeWatchEvents(body.events);
+
+    const { data: updated, error } = await db
+      .from('zoho_connections')
+      .update(patch)
+      .eq('account_id', ctx.accountId)
+      .select('id')
+      .maybeSingle();
+    if (error || !updated) {
+      return NextResponse.json({ error: 'Zoho is not connected.' }, { status: 404 });
+    }
+
+    const result = await syncZohoWatch(db, ctx.accountId);
+    return NextResponse.json({ ok: true, autoSync: result });
   } catch (err) {
     return toErrorResponse(err);
   }
@@ -117,6 +163,22 @@ export async function DELETE() {
   try {
     const ctx = await requireRole('admin');
     const db = supabaseAdmin();
+
+    // Remove the Zoho channel while we still hold the token to do it.
+    // Best effort: one we cannot reach lapses within a week, and the
+    // webhook it points at stops answering once the row is gone.
+    const { data: existing } = await db
+      .from('zoho_connections')
+      .select('watch_channel_id')
+      .eq('account_id', ctx.accountId)
+      .maybeSingle();
+    if (existing?.watch_channel_id) {
+      await unsubscribeZohoWatch(
+        db,
+        ctx.accountId,
+        existing.watch_channel_id as string,
+      ).catch(() => {});
+    }
 
     const { error } = await db
       .from('zoho_connections')

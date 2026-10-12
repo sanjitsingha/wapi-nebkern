@@ -21,6 +21,7 @@ import {
 } from '@/lib/zoho/oauth-cookie';
 import { oauthTabResponse } from '@/lib/oauth/tab-response';
 import { isTabState } from '@/lib/oauth/state';
+import { syncZohoWatch } from '@/lib/zoho/watch';
 
 /**
  * GET /api/integrations/zoho/oauth/callback
@@ -235,7 +236,21 @@ export async function GET(request: Request) {
       metadata: { org_name: org.name ?? null, api_domain: tokens.apiDomain },
     });
 
-    return finish({ connected: '1', org: org.name ?? 'Zoho CRM' });
+    // Automatic sync: subscribe the Notification API channel now, so
+    // events start arriving without a Workflow Rule. Soft — a Zoho
+    // edition without notifications, or any other refusal, leaves a
+    // working connection and the reason on the row for Settings to
+    // show; the manual Workflow Rule path is still there.
+    const watch = await syncZohoWatch(db, ctx.accountId).catch(() => ({
+      state: 'error' as const,
+      error: 'Could not set up automatic sync.',
+    }));
+
+    return finish({
+      connected: '1',
+      org: org.name ?? 'Zoho CRM',
+      autosync: watch.state,
+    });
   } catch (err) {
     return fail(
       err instanceof Error

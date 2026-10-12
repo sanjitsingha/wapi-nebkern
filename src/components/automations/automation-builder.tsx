@@ -1,5 +1,6 @@
 "use client"
 
+import { ZOHO_WATCH_EVENTS } from "@/lib/zoho/watch-events"
 import {
   createContext,
   useContext,
@@ -263,7 +264,7 @@ const TRIGGER_OPTIONS: { value: AutomationTriggerType; label: string; hint: stri
   {
     value: "zoho_event",
     label: "Zoho CRM Event",
-    hint: "When a Zoho workflow rule fires — a deal stage change, a new lead, an overdue invoice. You choose which events in Zoho.",
+    hint: "When something happens in Zoho CRM — a new lead or contact, a deal update, or any Workflow Rule you point at Instant.",
   },
   { value: "time_based", label: "Time-Based", hint: "On a recurring schedule" },
 ]
@@ -1454,6 +1455,12 @@ function TriggerCard({
                 />
               </div>
             )}
+            {type === "zoho_event" && (
+              <ZohoEventsConfig
+                value={Array.isArray(config.events) ? (config.events as string[]) : []}
+                onChange={(events) => onConfigChange({ ...config, events })}
+              />
+            )}
             {type === "time_based" && (
               <Input
                 placeholder="Cron expression or HH:mm"
@@ -1467,6 +1474,57 @@ function TriggerCard({
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+/** Which Zoho events run this automation. Nothing ticked means every
+ *  event — the behaviour before this filter existed, and the right one
+ *  for Workflow Rule events, whose names are whatever the rule sends. */
+function ZohoEventsConfig({
+  value,
+  onChange,
+}: {
+  value: string[]
+  onChange: (events: string[]) => void
+}) {
+  const toggle = (eventType: string) =>
+    onChange(
+      value.includes(eventType)
+        ? value.filter((e) => e !== eventType)
+        : [...value, eventType],
+    )
+  return (
+    <div>
+      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+        Run on
+      </label>
+      <div className="flex flex-wrap gap-1.5">
+        {ZOHO_WATCH_EVENTS.map((e) => {
+          const on = value.includes(e.eventType)
+          return (
+            <button
+              key={e.eventType}
+              type="button"
+              onClick={() => toggle(e.eventType)}
+              aria-pressed={on}
+              className={cn(
+                "rounded-full border px-2.5 py-1 text-xs transition-colors",
+                on
+                  ? "border-primary/40 bg-primary-soft text-primary"
+                  : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+            >
+              {e.label}
+            </button>
+          )
+        })}
+      </div>
+      <p className="mt-1.5 text-[11px] text-muted-foreground">
+        {value.length === 0
+          ? "Every Zoho event, including Workflow Rule webhooks."
+          : "Only the selected events from automatic sync."}
+      </p>
     </div>
   )
 }

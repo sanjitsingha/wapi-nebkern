@@ -43,6 +43,7 @@ describe('ZOHO_SCOPES', () => {
       'ZohoCRM.modules.leads.ALL',
       'ZohoCRM.modules.deals.READ',
       'ZohoCRM.modules.notes.CREATE',
+      'ZohoCRM.notifications.ALL',
     ]);
   });
 

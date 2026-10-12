@@ -63,6 +63,11 @@ const ACCOUNTS_BY_LOCATION: Record<string, string> = {
  *                         fetched to fill in stage and amount; nothing
  *                         writes a Deal, and nothing should be able to.
  *
+ *   notifications.ALL     automatic sync: subscribe, renew and remove
+ *                         the Notification API channel that delivers
+ *                         record events without a Workflow Rule. See
+ *                         lib/zoho/watch.ts.
+ *
  *   notes.CREATE          CREATE only. Logging a WhatsApp conversation
  *                         onto a record appends notes; it never edits
  *                         or deletes what someone else wrote there.
@@ -80,6 +85,7 @@ export const ZOHO_SCOPES = [
   'ZohoCRM.modules.leads.ALL',
   'ZohoCRM.modules.deals.READ',
   'ZohoCRM.modules.notes.CREATE',
+  'ZohoCRM.notifications.ALL',
 ] as const;
 
 /**

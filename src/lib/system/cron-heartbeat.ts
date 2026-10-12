@@ -52,6 +52,11 @@ export const KNOWN_CRONS = {
     // costs an hour; the "overdue" threshold is generous to match.
     intervalSeconds: 86_400,
   },
+  zoho_watch: {
+    label: 'Zoho sync renewal',
+    description: 'Renews Zoho notification channels before they lapse',
+    intervalSeconds: 3_600,
+  },
 } as const;
 
 export type CronJobKey = keyof typeof KNOWN_CRONS;

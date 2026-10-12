@@ -62,6 +62,9 @@ const JOBS = [
   // Daily in production; every 30 min here so a deletion window that
   // has been backdated for testing actually gets collected in a sitting.
   { key: 'accounts', path: '/api/accounts/cron', everyTicks: 30 },
+  // Hourly in production: renews Zoho notification channels, which
+  // lapse after a week.
+  { key: 'zoho', path: '/api/integrations/zoho/cron', everyTicks: 60 },
 ];
 
 let tick = 0;

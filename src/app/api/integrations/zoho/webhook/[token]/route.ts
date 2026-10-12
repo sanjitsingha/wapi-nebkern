@@ -16,17 +16,28 @@
 // ============================================================
 
 import { NextResponse } from 'next/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { supabaseAdmin } from '@/lib/billing/admin-client';
 import { runAutomationsForTrigger } from '@/lib/automations/engine';
 import { normalizeZohoPayload } from '@/lib/zoho/payload';
 import { upsertContactFromZoho } from '@/lib/zoho/ingest';
 import { enrichZohoRecord } from '@/lib/zoho/enrich';
+import {
+  notificationRecord,
+  parseZohoNotification,
+} from '@/lib/zoho/watch';
+import type { ZohoNormalized } from '@/lib/zoho/payload';
 
 /** Refuse a payload bigger than this. A Zoho record is a few KB; a
  *  megabyte of JSON is a misconfiguration or an attack, and parsing it
  *  helps nobody. */
 const MAX_BODY_BYTES = 256 * 1024;
+
+/** Records handled from one notification. Zoho batches ids when many
+ *  change at once (an import); each costs a read and an automation run,
+ *  and Zoho times the delivery out if we take too long. */
+const MAX_NOTIFICATION_IDS = 25;
 
 export async function POST(
   request: Request,
@@ -38,7 +49,7 @@ export async function POST(
   const db = supabaseAdmin();
   const { data: conn } = await db
     .from('zoho_connections')
-    .select('id, account_id, is_active')
+    .select('id, account_id, is_active, watch_channel_id, watch_token')
     .eq('webhook_token', token)
     .maybeSingle();
 
@@ -81,7 +92,6 @@ export async function POST(
 
   const payload: Record<string, unknown> = { ...queryParams, ...bodyPayload };
 
-  const parsed = normalizeZohoPayload(payload);
   const accountId = conn.account_id as string;
 
   const { data: account } = await db
@@ -91,6 +101,88 @@ export async function POST(
     .maybeSingle();
   const ownerUserId = account?.owner_user_id as string | undefined;
   if (!ownerUserId) return NextResponse.json({ ok: true });
+
+  const ctx: EventContext = {
+    db,
+    accountId,
+    connectionId: conn.id as string,
+    ownerUserId,
+    payload,
+  };
+
+  // ── Automatic sync: a Notification API delivery ──
+  //
+  // Carries ids only. Accepted from the CURRENT channel alone, with the
+  // token we gave Zoho: a channel replaced during a failed renewal can
+  // keep delivering until it lapses, and running those too would fire
+  // every automation twice.
+  const notification = parseZohoNotification(bodyPayload);
+  if (notification) {
+    if (
+      !conn.watch_channel_id ||
+      notification.channelId !== conn.watch_channel_id ||
+      (conn.watch_token && notification.token !== conn.watch_token)
+    ) {
+      return NextResponse.json({ ok: true, skipped: 'stale_channel' });
+    }
+
+    for (const id of notification.ids.slice(0, MAX_NOTIFICATION_IDS)) {
+      await handleRecord(ctx, notificationRecord(notification, id), {
+        deleted: notification.operation === 'delete',
+      });
+    }
+    await touchConnection(db, conn.id as string);
+    return NextResponse.json({ ok: true });
+  }
+
+  // ── A Workflow Rule webhook ──
+  await handleRecord(ctx, normalizeZohoPayload(payload));
+  await touchConnection(db, conn.id as string);
+  return NextResponse.json({ ok: true });
+}
+
+interface EventContext {
+  db: SupabaseClient;
+  accountId: string;
+  connectionId: string;
+  ownerUserId: string;
+  /** The body as received, for the event log. */
+  payload: Record<string, unknown>;
+}
+
+async function touchConnection(db: SupabaseClient, connectionId: string) {
+  await db
+    .from('zoho_connections')
+    .update({ last_event_at: new Date().toISOString() })
+    .eq('id', connectionId);
+}
+
+/**
+ * One record's event: fill it in from Zoho, match or create the
+ * contact, log it, and run the automations. Shared by Workflow Rule
+ * webhooks (one record) and notifications (one per id).
+ */
+async function handleRecord(
+  { db, accountId, connectionId, ownerUserId, payload }: EventContext,
+  parsed: ZohoNormalized,
+  opts: { deleted?: boolean } = {},
+) {
+  // A deleted record cannot be read back and has nobody to message.
+  // Logged so the event list shows Zoho is reaching us.
+  if (opts.deleted) {
+    await db.from('zoho_events').insert({
+      account_id: accountId,
+      connection_id: connectionId,
+      event_type: parsed.eventType,
+      module: parsed.module,
+      record_id: parsed.recordId,
+      contact_id: null,
+      matched: false,
+      skip_reason: 'deleted',
+      payload,
+    });
+    return;
+  }
 
   // Read the record the event points at, so a Workflow Rule can carry
   // an id and a module and nothing else. Soft in every failure case —
@@ -110,7 +202,7 @@ export async function POST(
   // it, "the automation didn't run" has no answer.
   await db.from('zoho_events').insert({
     account_id: accountId,
-    connection_id: conn.id,
+    connection_id: connectionId,
     event_type: record.eventType,
     module: record.module,
     record_id: record.recordId,
@@ -127,16 +219,9 @@ export async function POST(
     enrich_skipped: enrichment.skipped ?? null,
   });
 
-  await db
-    .from('zoho_connections')
-    .update({ last_event_at: new Date().toISOString() })
-    .eq('id', conn.id);
-
   // No contact means nothing to message. The event is stored, so the
   // admin can see the payload and fix the Workflow Rule's field list.
-  if (!ingest.contactId) {
-    return NextResponse.json({ ok: true, skipped: ingest.skippedReason });
-  }
+  if (!ingest.contactId) return;
 
   await runAutomationsForTrigger({
     accountId,
@@ -154,6 +239,4 @@ export async function POST(
       },
     },
   });
-
-  return NextResponse.json({ ok: true });
 }
