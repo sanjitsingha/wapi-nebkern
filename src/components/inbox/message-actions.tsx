@@ -141,7 +141,7 @@ export function MessageActions({
                       key={e}
                       type="button"
                       onClick={() => handlePickEmoji(e)}
-                      className="flex size-11 items-center justify-center rounded-full text-[28px] leading-none transition-transform hover:scale-125 hover:bg-muted"
+                      className="flex size-9 items-center justify-center rounded-full text-[22px] leading-none transition-transform hover:scale-125 hover:bg-muted"
                       aria-label={`React with ${e}`}
                     >
                       {e}
@@ -150,11 +150,11 @@ export function MessageActions({
                   <button
                     type="button"
                     onClick={() => setFullPicker(true)}
-                    className="ml-0.5 flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:text-foreground"
+                    className="ml-0.5 flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:text-foreground"
                     aria-label="More emoji"
                     title="More emoji"
                   >
-                    <Plus className="size-5" />
+                    <Plus className="size-4" />
                   </button>
                 </>
               )}
