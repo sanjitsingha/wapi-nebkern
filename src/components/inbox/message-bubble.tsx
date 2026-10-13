@@ -73,25 +73,25 @@ function StatusIcon({
     case "sending":
       return (
         <span title="Sending…">
-          <Clock className="h-3 w-3 text-muted-foreground" />
+          <Clock className="h-3 w-3 text-[#667781] dark:text-white/60" />
         </span>
       );
     case "sent":
       return (
         <span title="Sent">
-          <Check className="h-3 w-3 text-muted-foreground" />
+          <Check className="h-3 w-3 text-[#667781] dark:text-white/60" />
         </span>
       );
     case "delivered":
       return (
         <span title="Delivered">
-          <CheckCheck className="h-3 w-3 text-muted-foreground" />
+          <CheckCheck className="h-3 w-3 text-[#667781] dark:text-white/60" />
         </span>
       );
     case "read":
       return (
         <span title="Read">
-          <CheckCheck className="h-3 w-3 text-blue-400" />
+          <CheckCheck className="h-3 w-3 text-[#53bdeb]" />
         </span>
       );
     case "failed":
@@ -281,7 +281,7 @@ function MessageContent({ message }: { message: Message }) {
     case "template":
       return (
         <div>
-          <span className="mb-1 inline-flex items-center gap-1 rounded bg-primary-foreground/20 px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">
+          <span className="mb-1 inline-flex items-center gap-1 rounded bg-black/5 px-1.5 py-0.5 text-[10px] font-medium text-[#667781] dark:bg-white/10 dark:text-white/70">
             <LayoutTemplate className="h-3 w-3" />
             Template
           </span>
@@ -443,17 +443,19 @@ export function MessageBubble({
         className={cn(
           // Same floor as incoming bubbles, so a one-word reply is not a
           // sliver beside its time.
-          "relative min-w-40 rounded-2xl px-3.5 py-2.5",
+          "relative min-w-40",
           isAgent
-            ? "rounded-br-md bg-primary text-primary-foreground"
-            : "rounded-bl-md bg-muted text-foreground",
+            ? // WhatsApp's own outgoing green (#D9FDD3; #005C4B in dark
+              // mode), as a card like the incoming bubble.
+              "rounded-lg bg-[#d9fdd3] px-3 py-2 text-[#111b21] shadow-[0_1px_2px_rgba(0,0,0,0.08)] dark:bg-[#005c4b] dark:text-[#e9edef]"
+            : "rounded-2xl rounded-bl-md bg-muted px-3.5 py-2.5 text-foreground",
         )}
       >
         {reply && (
           <ReplyQuote
             authorLabel={reply.authorLabel}
             preview={reply.preview}
-            onPrimary={isAgent}
+            onPrimary={false}
           />
         )}
         <MessageContent message={message} />
@@ -466,11 +468,9 @@ export function MessageBubble({
           <span
             className={cn(
               "text-[11px]",
-              // Outbound bubbles sit on the primary fill, so the
-              // timestamp must read against that (not the neutral
-              // foreground) — otherwise it goes low-contrast in light
-              // mode. Inbound bubbles use the muted surface.
-              isAgent ? "text-primary-foreground/70" : "text-muted-foreground",
+              // WhatsApp's grey on its green bubble; inbound bubbles use
+              // the muted surface.
+              isAgent ? "text-[#667781] dark:text-white/60" : "text-muted-foreground",
             )}
           >
             {time}
