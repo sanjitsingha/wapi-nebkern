@@ -427,7 +427,7 @@ export function ContactSidebar({
     <div className="flex h-full w-88 flex-col border-l border-border bg-card">
       {/* Who this is, and what you can do to them, always in view
           whichever tab is open. */}
-      <div className="flex items-start gap-3 border-b border-border px-4 py-3">
+      <div className="flex items-center gap-3 border-b border-border px-4 py-3">
         {/* Same seed as the conversation list and thread header so a
             contact's colour is identical everywhere. */}
         <div
