@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { CornerUpLeft, Copy, SmilePlus } from "lucide-react";
+import { CornerUpLeft, Copy, Plus, SmilePlus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -10,9 +10,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import type { Message } from "@/types";
+import { rememberEmoji } from "@/lib/emoji/recent";
+import { EmojiPicker } from "./emoji-picker";
 
-// WhatsApp's own quick-reaction bar starts with these six. Picking the same
-// set keeps the affordance familiar without pulling in a 300KB emoji library.
+// WhatsApp's own quick-reaction bar starts with these six; its "+" opens
+// every emoji, and so does ours (EmojiPicker, whose data loads on demand).
 const QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
 interface MessageActionsProps {
@@ -40,6 +42,8 @@ export function MessageActions({
   // interacts elsewhere.
   const [touchOpen, setTouchOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  /** The quick row, or — after "+" — every emoji. */
+  const [fullPicker, setFullPicker] = useState(false);
 
   const isAgent =
     message.sender_type === "agent" || message.sender_type === "bot";
@@ -65,8 +69,10 @@ export function MessageActions({
   };
 
   const handlePickEmoji = (emoji: string) => {
+    rememberEmoji(emoji);
     onReact?.(emoji);
     setPickerOpen(false);
+    setFullPicker(false);
     setTouchOpen(false);
   };
 
@@ -105,7 +111,13 @@ export function MessageActions({
         )}
       >
         {onReact && (
-          <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+          <Popover
+            open={pickerOpen}
+            onOpenChange={(open) => {
+              setPickerOpen(open);
+              if (!open) setFullPicker(false);
+            }}
+          >
             <PopoverTrigger
               className="flex h-5 w-5 items-center justify-center rounded-full text-popover-foreground hover:bg-muted hover:text-foreground"
               aria-label="React"
@@ -113,20 +125,39 @@ export function MessageActions({
               <SmilePlus className="h-3.5 w-3.5" />
             </PopoverTrigger>
             <PopoverContent
-              className="flex w-auto flex-row gap-1 p-1.5"
+              className={
+                fullPicker
+                  ? "w-auto gap-0 p-0"
+                  : "flex w-auto flex-row items-center gap-1 rounded-full p-1.5"
+              }
               sideOffset={6}
             >
-              {QUICK_EMOJIS.map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  onClick={() => handlePickEmoji(e)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-lg leading-none transition-transform hover:scale-125 hover:bg-muted"
-                  aria-label={`React with ${e}`}
-                >
-                  {e}
-                </button>
-              ))}
+              {fullPicker ? (
+                <EmojiPicker onPick={handlePickEmoji} />
+              ) : (
+                <>
+                  {QUICK_EMOJIS.map((e) => (
+                    <button
+                      key={e}
+                      type="button"
+                      onClick={() => handlePickEmoji(e)}
+                      className="flex size-11 items-center justify-center rounded-full text-[28px] leading-none transition-transform hover:scale-125 hover:bg-muted"
+                      aria-label={`React with ${e}`}
+                    >
+                      {e}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setFullPicker(true)}
+                    className="ml-0.5 flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:text-foreground"
+                    aria-label="More emoji"
+                    title="More emoji"
+                  >
+                    <Plus className="size-5" />
+                  </button>
+                </>
+              )}
             </PopoverContent>
           </Popover>
         )}
