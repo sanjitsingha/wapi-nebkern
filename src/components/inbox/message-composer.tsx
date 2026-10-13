@@ -20,8 +20,8 @@ import {
   Square,
   X,
   Loader2,
-  Sparkles,
 } from "lucide-react";
+import { AiWritePopover } from "./ai-write-popover";
 import { Button } from "@/components/ui/button";
 import { GatedButton } from "@/components/ui/gated-button";
 import {
@@ -171,10 +171,9 @@ export function MessageComposer({
     };
   }, []);
 
-  // "Draft with AI" — only surfaced when the account has an active AI
-  // config (checked once on mount). `drafting` covers the request window.
+  // ✨ "Write with AI" — only surfaced when the account has an active AI
+  // config (checked once on mount). The panel itself is AiWritePopover.
   const [aiActive, setAiActive] = useState(false);
-  const [drafting, setDrafting] = useState(false);
 
   // Media attachment state. `draft` holds an uploaded-but-not-yet-sent
   // attachment; `busy` covers the upload/transcode window.
@@ -269,36 +268,18 @@ export function MessageComposer({
     el.style.height = `${Math.min(el.scrollHeight, 96)}px`;
   }, []);
 
-  // Ask the AI for a suggested reply and drop it into the composer for
-  // the agent to edit + send. Read-only server-side — nothing is sent.
-  const handleDraft = useCallback(async () => {
-    if (drafting || readOnly) return;
-    setDrafting(true);
-    try {
-      const res = await fetch("/api/ai/draft", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversation_id: conversationId }),
+  // A message written in the ✨ panel goes into the box, ready to edit
+  // and send.
+  const insertAiMessage = useCallback(
+    (message: string) => {
+      setText(message);
+      requestAnimationFrame(() => {
+        adjustHeight();
+        textareaRef.current?.focus();
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data.error ?? "Couldn't draft a reply.");
-        return;
-      }
-      if (typeof data.draft === "string" && data.draft.trim()) {
-        setText(data.draft.trim());
-        requestAnimationFrame(() => {
-          adjustHeight();
-          textareaRef.current?.focus();
-        });
-      }
-    } catch {
-      toast.error("Couldn't reach the AI assistant.");
-    } finally {
-      setDrafting(false);
-    }
-    // `readOnly` is derived from a hook and stable within a render.
-  }, [drafting, readOnly, conversationId, adjustHeight]);
+    },
+    [adjustHeight],
+  );
 
   const handleSend = useCallback(async () => {
     const trimmed = text.trim();
@@ -766,21 +747,11 @@ export function MessageComposer({
           )}
 
           {aiActive && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => void handleDraft()}
-              disabled={inputsDisabled || drafting}
-              title="Draft a reply with AI"
-              className="h-10 w-10 shrink-0 p-0 text-primary hover:bg-primary-soft/60 hover:text-primary disabled:opacity-50"
-            >
-              {drafting ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Sparkles className="h-5 w-5" />
-              )}
-            </Button>
+            <AiWritePopover
+              conversationId={conversationId}
+              disabled={inputsDisabled}
+              onInsert={insertAiMessage}
+            />
           )}
 
           <textarea
@@ -793,9 +764,7 @@ export function MessageComposer({
                 ? "Read-only — viewers can browse but not reply"
                 : sessionExpired
                   ? "Session expired - use a template"
-                  : drafting
-                    ? "✨ Writing a reply…"
-                    : "Type a message... (Shift+Enter for new line)"
+                  : "Type a message... (Shift+Enter for new line)"
             }
             disabled={sessionExpired || readOnly}
             rows={1}

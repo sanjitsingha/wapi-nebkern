@@ -9,15 +9,21 @@ import { buildSystemPrompt } from '@/lib/ai/defaults'
 import { latestUserMessage } from '@/lib/ai/query'
 import { AiError } from '@/lib/ai/types'
 
+const MAX_INSTRUCTION_CHARS = 500
+
 /**
  * POST /api/ai/draft  (agent+)
  *
- * Body: { conversation_id, message_id? }
+ * Body: { conversation_id, message_id?, instruction? }
  * Returns: { draft } — a suggested reply for the agent to edit + send.
  *
  * With `message_id` (the inbox's "Reply with AI" on one message) the
  * draft answers THAT message: the transcript ends at it, and the
  * knowledge base is searched with its words.
+ *
+ * With `instruction` (the composer's ✨: "ask for their address") the
+ * draft is the message the agent described, in the context of the
+ * conversation — and can start a conversation that has no messages.
  *
  * Uses the account's configured provider/key (BYO). Read-only: it never
  * sends or stores anything, just hands text back to the composer.
@@ -40,6 +46,11 @@ export async function POST(request: Request) {
       body && typeof body.conversation_id === 'string' ? body.conversation_id : ''
     const messageId =
       body && typeof body.message_id === 'string' ? body.message_id : ''
+    // Capped: it goes into the system prompt verbatim.
+    const instruction =
+      body && typeof body.instruction === 'string'
+        ? body.instruction.trim().slice(0, MAX_INSTRUCTION_CHARS)
+        : ''
     if (!conversationId) {
       return NextResponse.json(
         { error: 'conversation_id is required' },
@@ -112,6 +123,18 @@ export async function POST(request: Request) {
         content: `[The customer sent ${target.content_type === 'audio' ? 'a voice note' : `a ${target.content_type}`}${caption ? `: ${caption}` : ''}]`,
       })
     }
+    // An instruction says what to write, so it needs no customer turn to
+    // answer — but the transcript must end on one: Anthropic would
+    // otherwise continue our own last message rather than write a new
+    // one. The marker says so plainly and carries no instruction (the
+    // instruction is in the system prompt, where it is trusted).
+    if (instruction && (messages.length === 0 || messages[messages.length - 1].role === 'assistant')) {
+      messages.push({
+        role: 'user',
+        content: '(No new message from the customer. The business is writing its next message.)',
+      })
+    }
+
     // Nothing to draft from — a brand-new thread with no customer text
     // would otherwise produce a nonsensical reply-to-nothing.
     if (messages.length === 0) {
@@ -130,13 +153,14 @@ export async function POST(request: Request) {
       supabase,
       accountId,
       config,
-      latestUserMessage(messages),
+      instruction || latestUserMessage(messages),
     )
 
     const systemPrompt = buildSystemPrompt({
       userPrompt: config.systemPrompt,
       mode: 'draft',
       knowledge,
+      instruction,
     })
 
     const { text } = await generateReply({ config, systemPrompt, messages })
