@@ -1441,6 +1441,15 @@ export function MessageThread({
                             isMetaDm ? undefined : handlePillToggle
                           }
                           channel={conversation.channel}
+                          sender={
+                            msg.sender_type === "customer"
+                              ? {
+                                  name: displayName,
+                                  avatarUrl: contact.avatar_url ?? null,
+                                  seed: contact.id,
+                                }
+                              : undefined
+                          }
                         />
                       </MessageActions>
                     );

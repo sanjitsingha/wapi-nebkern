@@ -27,6 +27,7 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import { formatDetailedMetaError } from "@/lib/whatsapp/errors";
+import { PersonAvatar } from "@/components/ui/person-avatar";
 
 interface MessageBubbleProps {
   message: Message;
@@ -39,6 +40,15 @@ interface MessageBubbleProps {
    *  'whatsapp'-shaped status rendering when omitted, so any call site
    *  that hasn't been updated keeps working unchanged. */
   channel?: ConversationChannel;
+  /** Who sent an incoming message: their photo goes beside the bubble,
+   *  their name across its top. Omitted for our own messages, and by
+   *  any call site that has no contact to hand. */
+  sender?: {
+    name: string;
+    avatarUrl?: string | null;
+    /** Fixes the avatar colour — the contact id, as everywhere else. */
+    seed: string;
+  };
 }
 
 function StatusIcon({
@@ -375,9 +385,50 @@ export function MessageBubble({
   currentUserId,
   onToggleReaction,
   channel = "whatsapp",
+  sender,
 }: MessageBubbleProps) {
   const isAgent = message.sender_type === "agent" || message.sender_type === "bot";
   const time = format(new Date(message.created_at), "HH:mm");
+
+  // An incoming message from a known contact: their photo beside a white
+  // card, their name across the top, the time at the bottom right.
+  if (!isAgent && sender) {
+    return (
+      <div className="flex items-start gap-2">
+        <PersonAvatar
+          name={sender.name}
+          avatarUrl={sender.avatarUrl}
+          seed={sender.seed}
+          className="mt-0.5 size-8 text-xs"
+        />
+        <div className="flex min-w-0 flex-col items-start">
+          <div className="relative min-w-40 rounded-lg bg-card px-3 py-2 text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.08)] ring-1 ring-black/5 dark:ring-white/10">
+            <p className="mb-0.5 truncate text-[13px] font-semibold text-emerald-600 dark:text-emerald-400">
+              {sender.name}
+            </p>
+            {reply && (
+              <ReplyQuote
+                authorLabel={reply.authorLabel}
+                preview={reply.preview}
+                onPrimary={false}
+              />
+            )}
+            <MessageContent message={message} />
+            <div className="mt-1 flex justify-end">
+              <span className="text-[11px] text-muted-foreground">{time}</span>
+            </div>
+          </div>
+          {reactions && reactions.length > 0 && onToggleReaction && (
+            <MessageReactions
+              reactions={reactions}
+              currentUserId={currentUserId}
+              onToggle={onToggleReaction}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // Row alignment + width cap are owned by <MessageActions> so its hover
   // group matches the bubble's content area, not the full row.
@@ -390,7 +441,9 @@ export function MessageBubble({
     >
       <div
         className={cn(
-          "relative rounded-2xl px-3.5 py-2.5",
+          // Same floor as incoming bubbles, so a one-word reply is not a
+          // sliver beside its time.
+          "relative min-w-40 rounded-2xl px-3.5 py-2.5",
           isAgent
             ? "rounded-br-md bg-primary text-primary-foreground"
             : "rounded-bl-md bg-muted text-foreground",
