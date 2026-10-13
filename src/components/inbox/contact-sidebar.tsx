@@ -444,14 +444,28 @@ export function ContactSidebar({
             initials
           )}
         </div>
-        <div className="min-w-0 flex-1 pt-0.5">
-          <Link
-            href={`/contacts/${contact.id}`}
-            title="Open contact"
-            className="block truncate text-sm font-semibold text-foreground hover:text-primary hover:underline underline-offset-2"
-          >
-            {displayName}
-          </Link>
+        <div className="min-w-0 flex-1">
+          {/* The name, with Call right beside it. Calling is
+              WhatsApp-only and needs a number. */}
+          <div className="flex min-w-0 items-center gap-1">
+            <Link
+              href={`/contacts/${contact.id}`}
+              title="Open contact"
+              className="min-w-0 truncate text-sm font-semibold text-foreground hover:text-primary hover:underline underline-offset-2"
+            >
+              {displayName}
+            </Link>
+            {contact.phone && callCenter && (
+              <HeaderAction
+                label="Call"
+                onClick={() => void callCenter.placeCall(contact.phone!, displayName)}
+                disabled={callCenter.busy}
+                className="shrink-0"
+              >
+                <PhoneCall className="h-4 w-4" />
+              </HeaderAction>
+            )}
+          </div>
           {contact.company && (
             <p className="truncate text-xs text-muted-foreground">{contact.company}</p>
           )}
@@ -460,17 +474,6 @@ export function ContactSidebar({
               <ShieldAlert className="h-3 w-3" />
               Marked as spam
             </span>
-          )}
-          {contact.phone && callCenter && (
-            <div className="mt-1.5 flex items-center gap-0.5 -ml-1.5">
-              <HeaderAction
-                label="Call"
-                onClick={() => void callCenter.placeCall(contact.phone!, displayName)}
-                disabled={callCenter.busy}
-              >
-                <PhoneCall className="h-4 w-4" />
-              </HeaderAction>
-            </div>
           )}
         </div>
         {collapseButton}
