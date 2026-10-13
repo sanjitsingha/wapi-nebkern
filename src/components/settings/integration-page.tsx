@@ -78,6 +78,10 @@ export function IntegrationPage({ id }: { id: string }) {
   // beside the docs link and drives dialogs that live in that component.
   if (item.id === 'google-sheets') return <GoogleSheetsConnect item={item} />;
 
+  // So does Zoho: its subtitle and everything below it depend on the
+  // connection, which that component owns.
+  if (item.id === 'zoho-crm') return <ZohoConnect page={item} />;
+
   return (
     <div className="space-y-6">
       <IntegrationHeader
@@ -92,9 +96,7 @@ export function IntegrationPage({ id }: { id: string }) {
           <ShopifyConnect renderCard={nativeCard(item)} />
         ) : item.id === 'woocommerce' ? (
           <WooCommerceConnect renderCard={nativeCard(item)} />
-        ) : (
-          <ZohoConnect renderCard={nativeCard(item)} />
-        ))}
+        ) : null)}
 
       {kind === 'zapier' && (
         <ZapierConnect

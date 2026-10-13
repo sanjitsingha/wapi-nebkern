@@ -96,6 +96,29 @@ export const ZOHO_SCOPES = [
 ] as const;
 
 /**
+ * What each scope means in plain words, for "Granted permissions".
+ * Deals' three scopes read as one line. Every scope in ZOHO_SCOPES must
+ * appear here (asserted in scopes.test.ts), so the list Settings shows
+ * cannot drift from what Zoho is actually asked for.
+ */
+export const ZOHO_SCOPE_LABELS: Record<(typeof ZOHO_SCOPES)[number], string> = {
+  'ZohoCRM.org.READ': 'Organisation details — read',
+  'ZohoCRM.modules.contacts.ALL': 'Contacts — read and write',
+  'ZohoCRM.modules.leads.ALL': 'Leads — read and write',
+  'ZohoCRM.modules.deals.READ': 'Deals — read, create and update',
+  'ZohoCRM.modules.deals.CREATE': 'Deals — read, create and update',
+  'ZohoCRM.modules.deals.UPDATE': 'Deals — read, create and update',
+  'ZohoCRM.modules.notes.CREATE': 'Notes — add',
+  'ZohoCRM.notifications.ALL': 'Record change notifications',
+  'ZohoCRM.settings.fields.READ': 'Field settings — read',
+};
+
+/** The granted permissions, as Settings lists them (deduplicated). */
+export function zohoPermissionLabels(): string[] {
+  return [...new Set(ZOHO_SCOPES.map((s) => ZOHO_SCOPE_LABELS[s]))];
+}
+
+/**
  * The ONE Zoho application this deployment connects through.
  *
  * This reverses the original design, where every account registered its

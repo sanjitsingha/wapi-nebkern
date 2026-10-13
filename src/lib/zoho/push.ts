@@ -310,7 +310,22 @@ export interface PushOutcome {
 
 /** Create, link or update one contact. Returns its link (or null when
  *  there is nothing to identify the person by). */
-async function pushContact(db: Db, contactId: string): Promise<{ link: LinkRow | null; outcome: PushOutcome }> {
+export interface PushContactOptions {
+  /** "Create contacts and leads in Zoho". Off: never write a person to
+   *  Zoho — only find and link one who is already there, so a deal can
+   *  still be attached to them. */
+  create: boolean;
+  /** What someone who arrived by messaging becomes in Zoho. */
+  chatModule: 'Leads' | 'Contacts';
+}
+
+const DEFAULT_CONTACT_OPTIONS: PushContactOptions = { create: true, chatModule: 'Leads' };
+
+async function pushContact(
+  db: Db,
+  contactId: string,
+  opts: PushContactOptions = DEFAULT_CONTACT_OPTIONS,
+): Promise<{ link: LinkRow | null; outcome: PushOutcome }> {
   const { data } = await db.from('contacts').select(CONTACT_SELECT).eq('id', contactId).maybeSingle();
   const c = data as ContactRow | null;
   if (!c) return { link: null, outcome: { skipped: true } };
@@ -328,7 +343,7 @@ async function pushContact(db: Db, contactId: string): Promise<{ link: LinkRow |
   const existing = await getLink(db, c.account_id, 'contact', c.id);
 
   if (existing && existing.zoho_module !== 'Deals') {
-    if (existing.synced_hash === hash) return { link: existing, outcome: {} };
+    if (existing.synced_hash === hash || !opts.create) return { link: existing, outcome: {} };
     try {
       await writeRecord(
         db,
@@ -342,7 +357,7 @@ async function pushContact(db: Db, contactId: string): Promise<{ link: LinkRow |
       // through to find-or-create, rather than failing forever.
       if (err instanceof PushError && err.code === 'INVALID_DATA' && err.field === 'id') {
         await db.from('zoho_record_links').delete().eq('id', existing.id);
-        return pushContact(db, contactId);
+        return pushContact(db, contactId, opts);
       }
       throw err;
     }
@@ -362,7 +377,9 @@ async function pushContact(db: Db, contactId: string): Promise<{ link: LinkRow |
     };
   }
 
-  const target: 'Leads' | 'Contacts' = c.created_via === 'conversation' ? 'Leads' : 'Contacts';
+  if (!opts.create) return { link: null, outcome: { skipped: true } };
+
+  const target: 'Leads' | 'Contacts' = c.created_via === 'conversation' ? opts.chatModule : 'Contacts';
   const id = await writeRecord(db, c.account_id, target, contactPayload(c, target, true));
   await saveLink(db, c.account_id, 'contact', c.id, target, id, hash, true);
   return {
@@ -456,7 +473,11 @@ interface ConvertResponse {
   data?: { status?: string; code?: string; message?: string; details?: Record<string, unknown> }[];
 }
 
-async function pushDeal(db: Db, dealId: string): Promise<PushOutcome> {
+async function pushDeal(
+  db: Db,
+  dealId: string,
+  people: PushContactOptions = DEFAULT_CONTACT_OPTIONS,
+): Promise<PushOutcome> {
   const { data } = await db
     .from('deals')
     .select('id, account_id, title, value, status, contact_id, expected_close_date, stage:pipeline_stages(name)')
@@ -470,7 +491,7 @@ async function pushDeal(db: Db, dealId: string): Promise<PushOutcome> {
 
   // The person first: a deal is attached to them in Zoho.
   let personLink: LinkRow | null = null;
-  if (d.contact_id) personLink = (await pushContact(db, d.contact_id)).link;
+  if (d.contact_id) personLink = (await pushContact(db, d.contact_id, people)).link;
 
   const fields: Record<string, unknown> = {
     Deal_Name: d.title,
@@ -590,7 +611,10 @@ export async function drainZohoQueue(
     .order('next_retry_at', { ascending: true })
     .limit(limit);
 
-  const pushable = new Map<string, { contacts: boolean; deals: boolean } | null>();
+  const pushable = new Map<
+    string,
+    { contacts: boolean; deals: boolean; chatModule: 'Leads' | 'Contacts' } | null
+  >();
 
   for (const row of (due ?? []) as QueueRow[]) {
     if (Date.now() - started > budgetMs) break;
@@ -610,12 +634,18 @@ export async function drainZohoQueue(
     if (!pushable.has(row.account_id)) {
       const { data: conn } = await db
         .from('zoho_connections')
-        .select('is_active, push_contacts, push_deals')
+        .select('is_active, push_contacts, push_deals, chat_contact_module')
         .eq('account_id', row.account_id)
         .maybeSingle();
       pushable.set(
         row.account_id,
-        conn?.is_active ? { contacts: !!conn.push_contacts, deals: !!conn.push_deals } : null,
+        conn?.is_active
+          ? {
+              contacts: !!conn.push_contacts,
+              deals: !!conn.push_deals,
+              chatModule: conn.chat_contact_module === 'Contacts' ? 'Contacts' : 'Leads',
+            }
+          : null,
       );
     }
     const flags = pushable.get(row.account_id);
@@ -631,8 +661,8 @@ export async function drainZohoQueue(
       try {
         const outcome =
           row.entity === 'contact'
-            ? (await pushContact(db, row.local_id)).outcome
-            : await pushDeal(db, row.local_id);
+            ? (await pushContact(db, row.local_id, { create: true, chatModule: flags.chatModule })).outcome
+            : await pushDeal(db, row.local_id, { create: flags.contacts, chatModule: flags.chatModule });
         status = outcome.skipped ? 'skipped' : 'done';
         lastError = outcome.note ?? null;
         summary.done += 1;
@@ -679,6 +709,26 @@ export async function drainZohoQueue(
   return summary;
 }
 
+/** The CRM's web host for a connection's data centre: the API lives at
+ *  www.zohoapis.<dc>, the app at crm.zoho.<dc> (Canada is the odd one). */
+function crmHost(apiDomain: string | null): string | null {
+  if (!apiDomain) return null;
+  let host: string;
+  try {
+    host = new URL(apiDomain).host;
+  } catch {
+    return null;
+  }
+  return host.endsWith('zohoapis.ca') ? 'crm.zohocloud.ca' : host.replace(/^www\.zohoapis\./, 'crm.zoho.');
+}
+
+/** The org's Zoho CRM home, for "Open Zoho CRM". */
+export function zohoCrmUrl(apiDomain: string | null, orgId: string | null): string | null {
+  const host = crmHost(apiDomain);
+  if (!host) return null;
+  return orgId ? `https://${host}/crm/org${orgId}/` : `https://${host}/crm/`;
+}
+
 /** The Zoho web address for a record, for "Open in Zoho" links. */
 export function zohoRecordUrl(
   apiDomain: string | null,
@@ -686,15 +736,7 @@ export function zohoRecordUrl(
   module: ZohoModule,
   zohoId: string,
 ): string | null {
-  if (!apiDomain || !orgId) return null;
-  let host: string;
-  try {
-    host = new URL(apiDomain).host; // www.zohoapis.in
-  } catch {
-    return null;
-  }
-  const crm = host.endsWith('zohoapis.ca')
-    ? 'crm.zohocloud.ca'
-    : host.replace(/^www\.zohoapis\./, 'crm.zoho.');
-  return `https://${crm}/crm/org${orgId}/tab/${module}/${zohoId}`;
+  const host = crmHost(apiDomain);
+  if (!host || !orgId) return null;
+  return `https://${host}/crm/org${orgId}/tab/${module}/${zohoId}`;
 }

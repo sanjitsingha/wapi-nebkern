@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   ZOHO_SCOPES,
+  ZOHO_SCOPE_LABELS,
+  zohoPermissionLabels,
   accountsUrlFromCallback,
   buildZohoAuthorizeUrl,
   zohoRedirectUri,
@@ -223,5 +225,19 @@ describe('zohoRedirectUri', () => {
     expect(zohoRedirectUri('https://fallback.example.org')).toBe(
       'https://fallback.example.org/api/integrations/zoho/oauth/callback',
     );
+  });
+});
+
+describe('granted permissions', () => {
+  it('names every scope Zoho is asked for', () => {
+    for (const scope of ZOHO_SCOPES) {
+      expect(ZOHO_SCOPE_LABELS[scope], `${scope} has no label`).toBeTruthy();
+    }
+  });
+
+  it('lists each permission once', () => {
+    const labels = zohoPermissionLabels();
+    expect(new Set(labels).size).toBe(labels.length);
+    expect(labels).toContain('Deals — read, create and update');
   });
 });

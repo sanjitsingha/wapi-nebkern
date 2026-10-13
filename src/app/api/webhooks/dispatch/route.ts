@@ -6,6 +6,7 @@ import { dispatchDueDeliveries } from '@/lib/webhooks/dispatch';
 import { recordCronHeartbeat } from '@/lib/system/cron-heartbeat';
 import { drainSheetQueue, exportFinishedCampaigns } from '@/lib/google-sheets/sync';
 import { drainZohoQueue } from '@/lib/zoho/push';
+import { logZohoChats } from '@/lib/zoho/chat-log';
 
 /**
  * Drain the outbound webhook delivery queue.
@@ -51,14 +52,21 @@ export async function GET(request: Request) {
       sheets = { error: err instanceof Error ? err.message : String(err) };
     }
 
-    // Instant → Zoho pushes, same minute and same isolation. A time
-    // budget keeps the whole run inside the scheduler's 55s timeout.
+    // Instant → Zoho pushes, then chats written as Zoho notes; same
+    // minute, same isolation. Time budgets keep the whole run inside the
+    // scheduler's 55s timeout.
     let zoho: Record<string, unknown> = {};
     try {
-      zoho = { ...(await drainZohoQueue(admin, { budgetMs: 30_000 })) };
+      zoho = { ...(await drainZohoQueue(admin, { budgetMs: 25_000 })) };
     } catch (err) {
       console.error('[webhooks-cron] zoho push failed:', err);
       zoho = { error: err instanceof Error ? err.message : String(err) };
+    }
+    try {
+      zoho.chats = await logZohoChats(admin, { budgetMs: 12_000 });
+    } catch (err) {
+      console.error('[webhooks-cron] zoho chat log failed:', err);
+      zoho.chats = { error: err instanceof Error ? err.message : String(err) };
     }
 
     await recordCronHeartbeat(admin, 'webhooks_dispatch', {

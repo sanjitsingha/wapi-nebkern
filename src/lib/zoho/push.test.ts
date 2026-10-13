@@ -6,6 +6,7 @@ import {
   mapStage,
   phoneKey,
   splitName,
+  zohoCrmUrl,
   zohoRecordUrl,
   type ContactRow,
 } from './push';
@@ -107,5 +108,14 @@ describe('zohoRecordUrl', () => {
       'https://crm.zoho.com/crm/org1/tab/Contacts/2',
     );
     expect(zohoRecordUrl(null, '1', 'Deals', '2')).toBeNull();
+  });
+});
+
+describe('zohoCrmUrl', () => {
+  it('opens the org in its own data centre', () => {
+    expect(zohoCrmUrl('https://www.zohoapis.in', '60012345')).toBe('https://crm.zoho.in/crm/org60012345/');
+    expect(zohoCrmUrl('https://www.zohoapis.ca', '7')).toBe('https://crm.zohocloud.ca/crm/org7/');
+    expect(zohoCrmUrl('https://www.zohoapis.com', null)).toBe('https://crm.zoho.com/crm/');
+    expect(zohoCrmUrl(null, '1')).toBeNull();
   });
 });
