@@ -1,10 +1,7 @@
 import {
   Building2,
-  Cloud,
   Code2,
   Hash,
-  Mail,
-  Puzzle,
   Sheet,
   ShoppingBag,
   ShoppingCart,
@@ -20,7 +17,7 @@ import {
 //
 //   • Built in    — native surfaces that live in this app (API keys, the
 //                   webhooks panel right below this grid).
-//   • Automation  — Zapier / Make / n8n, which reach the REST API and
+//   • Automation  — Zapier / Make, which reach the REST API and
 //                   webhooks and fan out to thousands of apps.
 //   • Popular apps — reached THROUGH those automation platforms today, so
 //                   their card is honest: it points at the setup guide,
@@ -69,14 +66,14 @@ export type ConnectKind =
   | 'zapier'
   /** An app reached through Zapier today; the page says so. */
   | 'via-zapier'
-  /** An automation platform wired up from its own side (Make, n8n):
+  /** An automation platform wired up from its own side (Make):
    *  the setup guide in the docs. */
   | 'docs'
   /** The outbound-webhooks settings, shown on the page itself. */
   | 'panel';
 
 const NATIVE = new Set(['shopify', 'woocommerce', 'zoho-crm', 'google-sheets']);
-const DOCS = new Set(['make', 'n8n']);
+const DOCS = new Set(['make']);
 
 export function connectKind(id: string): ConnectKind {
   if (id === 'webhooks') return 'panel';
@@ -139,17 +136,6 @@ export const INTEGRATIONS: Integration[] = [
     href: '/docs/api-and-integrations',
     cta: 'Setup guide',
   },
-  {
-    id: 'n8n',
-    name: 'n8n',
-    description:
-      'Self-host your automations and wire Instant in through the REST API and webhooks.',
-    icon: Puzzle,
-    tone: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
-    group: 'platform',
-    href: '/docs/api-and-integrations',
-    cta: 'Setup guide',
-  },
   // ── Popular apps (via automation) ─────────────────────────────────
   {
     // Native since migration 106: Instant creates a spreadsheet in the
@@ -197,26 +183,6 @@ export const INTEGRATIONS: Integration[] = [
     logo: '/images/integrations/zoho-crm.png',
   },
   {
-    id: 'hubspot',
-    name: 'HubSpot',
-    description: 'Create and update HubSpot contacts and deals from Instant activity.',
-    icon: Building2,
-    tone: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
-    group: 'app',
-    href: '/docs/api-and-integrations',
-    cta: 'Connect via Zapier',
-  },
-  {
-    id: 'salesforce',
-    name: 'Salesforce',
-    description: 'Push leads and conversation events into your Salesforce org.',
-    icon: Cloud,
-    tone: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
-    group: 'app',
-    href: '/docs/api-and-integrations',
-    cta: 'Connect via Zapier',
-  },
-  {
     // Native connect flow (rendered by <ShopifyConnect>).
     id: 'shopify',
     name: 'Shopify',
@@ -252,16 +218,6 @@ export const INTEGRATIONS: Integration[] = [
     href: '/docs/api-and-integrations',
     cta: 'Connect via Zapier',
   },
-  {
-    id: 'gmail',
-    name: 'Gmail',
-    description: 'Email your team when a lead replies, or log conversations to a thread.',
-    icon: Mail,
-    tone: 'bg-red-500/10 text-red-600 dark:text-red-400',
-    group: 'app',
-    href: '/docs/api-and-integrations',
-    cta: 'Connect via Zapier',
-  },
 ];
 
 export const GROUPS: { id: Group; title: string; blurb: string }[] = [
@@ -278,7 +234,7 @@ export const GROUPS: { id: Group; title: string; blurb: string }[] = [
   {
     id: 'app',
     title: 'Popular apps',
-    blurb: 'Connected today through Zapier, Make or n8n.',
+    blurb: 'Connected today through Zapier or Make.',
   },
 ];
 
