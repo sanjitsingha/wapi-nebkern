@@ -7,6 +7,8 @@ import { cn } from '@/lib/utils';
 import { softBadge } from '@/lib/badge-colors';
 import { useTotalUnread } from '@/hooks/use-total-unread';
 import { useEntitlements } from '@/hooks/use-entitlements';
+import { useSupportUnread } from '@/hooks/use-support-unread';
+import { SupportDialog } from '@/components/support/support-dialog';
 import {
   resolveSection,
   type SettingsSection,
@@ -25,7 +27,9 @@ import {
   // destinations cannot wear the same one.
   FlowArrow,
   FunnelSimple,
+  Gear,
   GitBranch,
+  Headset,
   House,
   Image as ImageIcon,
   Lightning,
@@ -176,7 +180,11 @@ export function Sidebar({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const totalUnread = useTotalUnread();
+  const supportUnread = useSupportUnread();
+  const [supportOpen, setSupportOpen] = useState(false);
   const activeTab = resolveSection(searchParams.get('tab'));
+  const settingsActive =
+    pathname === '/settings' || pathname.startsWith('/settings/');
 
   // Which expandable groups are open. The group containing the active
   // route is auto-opened; collapsing the sidebar does NOT change this —
@@ -503,31 +511,99 @@ export function Sidebar({
           </ul>
         </nav>
 
-        {/* Desktop collapse toggle, pinned to the bottom.
+        {/* Footer: Settings and Support, then the desktop collapse toggle,
+            pinned to the bottom.
 
             Deliberately NOT inside <nav>: that element is a fixed 256px
             wide and the <aside> clips it. This footer takes the aside's
-            real width, and the button is laid out like a nav row (icon
-            then label, left-aligned) so in the 64px rail the icon lines
-            up with the nav icons above and the label simply drops out. */}
-        {onToggleCollapse && (
-          <div className="border-border hidden shrink-0 border-t px-3 py-3 lg:block">
-            <button
-              type="button"
-              onClick={onToggleCollapse}
-              aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              aria-expanded={!isCollapsed}
-              title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              className="text-muted-foreground hover:bg-muted hover:text-foreground flex w-full items-center gap-3.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+            real width, and each row is laid out like a nav row (icon then
+            label, left-aligned) so in the 64px rail the icons line up
+            with the nav icons above and the labels simply drop out.
+
+            Settings and Support used to live in the account menu; down
+            here they are one click from any page, and on mobile the
+            drawer is now the way in. */}
+        <div className="border-border flex shrink-0 flex-col gap-1 border-t px-3 py-3">
+          <Link
+            href="/settings"
+            onClick={onClose}
+            title="Settings"
+            aria-current={settingsActive ? 'page' : undefined}
+            className={cn(
+              'flex w-full items-center gap-3.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+              settingsActive
+                ? 'bg-primary-soft text-primary font-semibold'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            )}
+          >
+            <Gear
+              weight={settingsActive ? 'fill' : 'regular'}
+              className="h-5 w-5 shrink-0"
+            />
+            <span className={cn('truncate', isCollapsed && 'lg:hidden')}>
+              Settings
+            </span>
+          </Link>
+          <button
+            type="button"
+            onClick={() => {
+              onClose?.();
+              setSupportOpen(true);
+            }}
+            title={
+              supportUnread > 0 ? `Support — ${supportUnread} new` : 'Support'
+            }
+            className="text-muted-foreground hover:bg-muted hover:text-foreground flex w-full items-center gap-3.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+          >
+            <span className="relative flex shrink-0">
+              <Headset className="h-5 w-5" />
+              {/* The rail has no room for the count; the dot says it. */}
+              {supportUnread > 0 && isCollapsed && (
+                <span className="bg-primary ring-card absolute -top-0.5 -right-0.5 hidden size-2 rounded-full ring-2 lg:block" />
+              )}
+            </span>
+            <span
+              className={cn(
+                'flex-1 truncate text-left',
+                isCollapsed && 'lg:hidden'
+              )}
             >
-              <SidebarSimple className="h-5 w-5 shrink-0" />
-              <span className={cn('truncate', isCollapsed && 'lg:hidden')}>
-                Collapse
+              Support
+            </span>
+            {supportUnread > 0 && (
+              <span
+                className={cn(
+                  'bg-primary-soft text-primary flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums',
+                  isCollapsed && 'lg:hidden'
+                )}
+              >
+                {supportUnread > 99 ? '99+' : supportUnread}
               </span>
-            </button>
-          </div>
-        )}
+            )}
+          </button>
+          {onToggleCollapse && (
+            // A rule between the destinations above and the toggle that
+            // only changes the sidebar itself.
+            <div className="border-border mt-2 hidden border-t pt-2 lg:block">
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                aria-expanded={!isCollapsed}
+                title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                className="text-muted-foreground hover:bg-muted hover:text-foreground flex w-full items-center gap-3.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+              >
+                <SidebarSimple className="h-5 w-5 shrink-0" />
+                <span className={cn('truncate', isCollapsed && 'lg:hidden')}>
+                  Collapse
+                </span>
+              </button>
+            </div>
+          )}
+        </div>
       </aside>
+
+      <SupportDialog open={supportOpen} onOpenChange={setSupportOpen} />
     </>
   );
 }

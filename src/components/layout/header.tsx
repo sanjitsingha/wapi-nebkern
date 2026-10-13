@@ -15,7 +15,6 @@ import {
 import {
   BookOpen,
   Gauge,
-  Gear,
   Headset,
   List as MenuIcon,
   Question,
@@ -275,32 +274,9 @@ export function Header({ onOpenSidebar }: HeaderProps) {
               </div>
             )}
 
-            {/* Settings & Sign out */}
+            {/* Sign out. Settings and Support moved to the foot of the
+                main sidebar, above Collapse. */}
             <DropdownMenuSeparator className="my-2" />
-            <DropdownMenuItem
-              render={<Link href="/settings" />}
-              className="gap-2.5 rounded-lg px-3 py-2.5 text-[15px] font-medium cursor-pointer text-foreground hover:bg-muted"
-            >
-              <Gear className="h-4.5 w-4.5 text-muted-foreground" />
-              Settings
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setSupportOpen(true)}
-              className="gap-2.5 rounded-lg px-3 py-2.5 text-[15px] font-medium cursor-pointer text-foreground hover:bg-muted"
-            >
-              <span className="relative flex">
-                <Headset className="h-4.5 w-4.5 text-muted-foreground" />
-                {supportUnread > 0 && (
-                  <span className="bg-primary ring-popover absolute -top-0.5 -right-0.5 size-2 rounded-full ring-2" />
-                )}
-              </span>
-              Support
-              {supportUnread > 0 && (
-                <span className="bg-primary-soft text-primary ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums">
-                  {supportUnread > 99 ? '99+' : supportUnread}
-                </span>
-              )}
-            </DropdownMenuItem>
             <DropdownMenuItem
               onClick={signOut}
               className="text-destructive data-highlighted:text-destructive gap-2.5 rounded-lg px-3 py-2.5 text-[15px] font-medium cursor-pointer"
