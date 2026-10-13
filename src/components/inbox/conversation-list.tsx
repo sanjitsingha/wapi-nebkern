@@ -23,12 +23,8 @@ import {
   AtSign,
   MessageCircle,
   Search,
-  ChevronDown,
-  Tag as TagIcon,
-  X,
   Bot,
   Check,
-  Filter,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { Input } from "@/components/ui/input";
@@ -41,10 +37,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { InboxFilterMenu } from "@/components/inbox/inbox-filter-menu";
 import {
-  InboxFiltersDialog,
-  type AssigneeFilter,
-} from "@/components/inbox/inbox-filters-dialog";
+  EMPTY_FILTERS,
+  activeCount,
+  matchesFilters,
+  type InboxFilters,
+} from "@/lib/inbox/filters";
 import {
   WhatsAppLogo,
   MessengerLogo,
@@ -87,21 +86,11 @@ interface ConversationListProps {
   resyncToken?: number;
 }
 
-/** 'YYYY-MM-DD' → the ISO date of the following day (UTC), used as an
- *  exclusive upper bound so a "to" date filter includes the whole day. */
-function nextDayISO(dateStr: string): string {
-  const d = new Date(`${dateStr}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + 1);
-  return d.toISOString().slice(0, 10);
-}
-
 const STATUS_COLORS: Record<ConversationStatus, string> = {
   open: "bg-primary",
   pending: "bg-amber-500",
   closed: "bg-muted-foreground",
 };
-
-type InboxFilter = ConversationStatus | "all" | "unread";
 
 type ChannelFilter = ConversationChannel | "all";
 
@@ -148,21 +137,6 @@ function splitChannels(connected: { messenger: boolean; instagram: boolean }) {
   };
 }
 
-const FILTER_OPTIONS: { label: string; value: InboxFilter }[] = [
-  { label: "All", value: "all" },
-  { label: "Unread", value: "unread" },
-  { label: "Open", value: "open" },
-  { label: "Pending", value: "pending" },
-  { label: "Closed", value: "closed" },
-];
-
-// Shared pill-chip styling so every filter control reads as one family.
-const CHIP =
-  "inline-flex h-7 shrink-0 items-center gap-1 rounded-full border px-2.5 text-xs font-medium transition-colors";
-const CHIP_ON = "border-primary/30 bg-primary-soft text-primary";
-const CHIP_OFF =
-  "border-border text-muted-foreground hover:bg-muted hover:text-foreground";
-
 export function ConversationList({
   activeConversationId,
   onSelect,
@@ -193,17 +167,18 @@ export function ConversationList({
       : liveChannels.has(channelChoice))
       ? channelChoice
       : (channelTabs[0]?.value ?? "all");
-  const [filter, setFilter] = useState<InboxFilter>("all");
-  // Multi-select: any mix of Maya / Bot / Team member. Empty = anyone.
-  const [assignees, setAssignees] = useState<AssigneeFilter[]>([]);
-  // When "user" is among the assignees, optionally narrow to one agent.
-  const [assignedUserId, setAssignedUserId] = useState<string | null>(null);
-  const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
-  // Conversation-started date range ('yyyy-MM-dd' or '' for unset), edited
-  // via InboxFiltersDialog alongside the assignee filter.
-  const [createdFrom, setCreatedFrom] = useState("");
-  const [createdTo, setCreatedTo] = useState("");
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  // Every filter in one place — the filter button's menu (labels, status,
+  // read, awaiting, assignee, dates, reply window), matched ALL or ANY.
+  // See lib/inbox/filters.ts.
+  const [filters, setFilters] = useState<InboxFilters>(EMPTY_FILTERS);
+  // "Today", "Last 7 days" and the 24-hour window move with the clock;
+  // ticking once a minute keeps them honest without re-filtering on
+  // every render.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
   const [flows, setFlows] = useState<FlowOption[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -359,42 +334,7 @@ export function ConversationList({
       result = result.filter((c) => (c.channel ?? "whatsapp") === channel);
     }
 
-    if (filter === "unread") {
-      result = result.filter((c) => c.unread_count > 0);
-    } else if (filter !== "all") {
-      result = result.filter((c) => c.status === filter);
-    }
-
-    // Assignee (who's handling the chat): any mix of Maya / Bot / User,
-    // OR-ed together. The "user" bucket can be "any assigned agent" or
-    // narrowed to a specific one. Empty selection means anyone.
-    if (assignees.length > 0) {
-      result = result.filter((c) =>
-        assignees.some((a) => {
-          if (a === "ai") return c.ai_agent_assigned === true;
-          if (a === "bot") return !!c.assigned_flow_id;
-          // "user"
-          return assignedUserId
-            ? c.assigned_agent_id === assignedUserId
-            : !!c.assigned_agent_id;
-        }),
-      );
-    }
-
-    if (selectedTagId) {
-      result = result.filter((c) =>
-        c.contact?.contact_tags?.some((ct) => ct.tag_id === selectedTagId)
-      );
-    }
-
-    if (createdFrom) {
-      result = result.filter((c) => c.created_at >= createdFrom);
-    }
-    if (createdTo) {
-      // Exclusive upper bound (start of the day after) so the whole
-      // "to" day is included, not just its midnight instant.
-      result = result.filter((c) => c.created_at < nextDayISO(createdTo));
-    }
+    result = result.filter((c) => matchesFilters(c, filters, now));
 
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -418,12 +358,8 @@ export function ConversationList({
   }, [
     conversations,
     channel,
-    filter,
-    assignees,
-    assignedUserId,
-    selectedTagId,
-    createdFrom,
-    createdTo,
+    filters,
+    now,
     search,
   ]);
 
@@ -437,12 +373,17 @@ export function ConversationList({
     [onSelect]
   );
 
-  const activeFilter = FILTER_OPTIONS.find((o) => o.value === filter);
-  const activeTag = availableTags.find((t) => t.id === selectedTagId);
-  // Badge count on the "Filter" chip — number of active secondary filters:
-  // each selected assignee plus the date range (counted once).
-  const secondaryFilterCount =
-    assignees.length + (createdFrom || createdTo ? 1 : 0);
+  const filterMembers = useMemo(
+    () =>
+      profiles
+        .filter((p) => p.user_id)
+        .map((p) => ({
+          userId: p.user_id as string,
+          name: p.full_name || p.email || "Teammate",
+          avatarUrl: p.avatar_url ?? null,
+        })),
+    [profiles],
+  );
 
   return (
     <div className="flex h-full w-full flex-col border-r border-border bg-card lg:w-96">
@@ -506,9 +447,9 @@ export function ConversationList({
         })}
       </div>
 
-      {/* Search + Filters */}
-      <div className="space-y-2 border-b border-border p-3">
-        <div className="relative">
+      {/* Search, and every filter behind one button beside it. */}
+      <div className="flex items-center gap-2 border-b border-border p-3">
+        <div className="relative min-w-0 flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
@@ -517,107 +458,13 @@ export function ConversationList({
             className="border-border bg-muted pl-9 text-sm text-foreground placeholder-muted-foreground focus:border-primary/50"
           />
         </div>
-
-        <div className="flex items-center gap-1.5 overflow-x-auto py-1.5 scrollbar-none [&::-webkit-scrollbar]:hidden">
-          {/* Status filter */}
-          <DropdownMenu>
-            <DropdownMenuTrigger className={cn(CHIP, filter !== "all" ? CHIP_ON : CHIP_OFF)}>
-              {activeFilter?.label ?? "All"}
-              <ChevronDown className="h-3 w-3" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="border-border bg-popover">
-              {FILTER_OPTIONS.map((opt) => (
-                <DropdownMenuItem
-                  key={opt.value}
-                  onClick={() => setFilter(opt.value)}
-                  className={cn(
-                    "text-sm",
-                    filter === opt.value ? "text-primary" : "text-popover-foreground"
-                  )}
-                >
-                  {opt.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Tag filter */}
-          {availableTags.length > 0 && (
-            activeTag ? (
-              // Active tag chip — click × to clear
-              <button
-                type="button"
-                onClick={() => setSelectedTagId(null)}
-                className={cn(CHIP, "border-transparent")}
-                style={{ background: `${activeTag.color}20`, color: activeTag.color }}
-              >
-                <span
-                  className="h-1.5 w-1.5 rounded-full shrink-0"
-                  style={{ background: activeTag.color }}
-                />
-                {activeTag.name}
-                <X className="h-2.5 w-2.5 ml-0.5" />
-              </button>
-            ) : (
-              <DropdownMenu>
-                <DropdownMenuTrigger className={cn(CHIP, CHIP_OFF)}>
-                  <TagIcon className="h-3 w-3" />
-                  Tag
-                  <ChevronDown className="h-3 w-3" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="border-border bg-popover min-w-40">
-                  {availableTags.map((tag) => (
-                    <DropdownMenuItem
-                      key={tag.id}
-                      onClick={() => setSelectedTagId(tag.id)}
-                      className="gap-2 text-sm text-popover-foreground"
-                    >
-                      <span
-                        className="h-2 w-2 shrink-0 rounded-full"
-                        style={{ background: tag.color }}
-                      />
-                      {tag.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )
-          )}
-
-          {/* Secondary filters — assignee (Maya / Bot / team member) and
-              conversation date range — live in a modal rather than more
-              inline chips, which is where they used to crowd this row. */}
-          <button
-            type="button"
-            onClick={() => setFiltersOpen(true)}
-            className={cn(CHIP, secondaryFilterCount > 0 ? CHIP_ON : CHIP_OFF)}
-          >
-            <Filter className="h-3 w-3" />
-            Filter
-            {secondaryFilterCount > 0 && (
-              <span className="ml-0.5 inline-flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
-                {secondaryFilterCount}
-              </span>
-            )}
-          </button>
-        </div>
+        <InboxFilterMenu
+          filters={filters}
+          onChange={setFilters}
+          tags={availableTags}
+          members={filterMembers}
+        />
       </div>
-
-      <InboxFiltersDialog
-        open={filtersOpen}
-        onOpenChange={setFiltersOpen}
-        appliedAssignees={assignees}
-        appliedAssignedUserId={assignedUserId}
-        appliedCreatedFrom={createdFrom}
-        appliedCreatedTo={createdTo}
-        profiles={profiles}
-        onApply={(next) => {
-          setAssignees(next.assignees);
-          setAssignedUserId(next.assignedUserId);
-          setCreatedFrom(next.createdFrom);
-          setCreatedTo(next.createdTo);
-        }}
-      />
 
       {/* Conversation Items */}
       <ScrollArea className="min-h-0 flex-1">
@@ -627,7 +474,20 @@ export function ConversationList({
           </div>
         ) : filtered.length === 0 ? (
           <div className="px-4 py-12 text-center">
-            <p className="text-sm text-muted-foreground">No conversations found</p>
+            <p className="text-sm text-muted-foreground">
+              {activeCount(filters) > 0
+                ? "No chats match these filters"
+                : "No conversations found"}
+            </p>
+            {activeCount(filters) > 0 && (
+              <button
+                type="button"
+                onClick={() => setFilters({ ...EMPTY_FILTERS, match: filters.match })}
+                className="mt-2 text-xs font-medium text-primary hover:underline"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
         ) : (
           <div className="flex flex-col">
