@@ -69,10 +69,14 @@ export interface ContactRow {
   instagram_id: string | null;
   messenger_id: string | null;
   created_via: string | null;
+  /** Marked in Instant; such contacts are never sent to Zoho. Optional
+   *  because callers that only hash a contact do not select them. */
+  is_spam?: boolean | null;
+  is_blocked?: boolean | null;
 }
 
 const CONTACT_SELECT =
-  'id, account_id, name, phone, email, company, instagram_id, messenger_id, created_via';
+  'id, account_id, name, phone, email, company, instagram_id, messenger_id, created_via, is_spam, is_blocked';
 
 /** A "name" that is really an identifier: the phone, an IGSID, a PSID.
  *  WhatsApp contacts carry their number as a name until they share one. */
@@ -299,7 +303,7 @@ async function findInZoho(db: Db, c: ContactRow): Promise<SearchHit | null> {
 
 export interface PushOutcome {
   /** Set when the push did something worth noting without failing —
-   *  shown in Settings next to the record. */
+   *  kept on the queue row for diagnosis; Settings does not show it. */
   note?: string;
   skipped?: boolean;
 }
@@ -310,6 +314,9 @@ async function pushContact(db: Db, contactId: string): Promise<{ link: LinkRow |
   const { data } = await db.from('contacts').select(CONTACT_SELECT).eq('id', contactId).maybeSingle();
   const c = data as ContactRow | null;
   if (!c) return { link: null, outcome: { skipped: true } };
+  // Someone marked as spam or blocked is not a prospect: sync is
+  // automatic, so this is the only thing keeping them out of the CRM.
+  if (c.is_spam || c.is_blocked) return { link: null, outcome: { skipped: true } };
   if (!c.phone && !c.email?.trim()) {
     // An Instagram or Messenger contact with nothing to match on.
     // Skipped quietly: it is not a problem, and listing every one would
@@ -544,7 +551,8 @@ async function pushDeal(db: Db, dealId: string): Promise<PushOutcome> {
 // ── The queue ───────────────────────────────────────────────
 
 /** Minutes to wait after the Nth failure. Six tries over ~9 hours,
- *  then 'failed' — visible in Settings with a Retry button. */
+ *  then 'failed'; the zoho cron gives failed records a fresh round a
+ *  day later, so nothing needs a person to press Retry. */
 const BACKOFF_MIN = [1, 5, 30, 120, 360];
 const MAX_ATTEMPTS = BACKOFF_MIN.length + 1;
 

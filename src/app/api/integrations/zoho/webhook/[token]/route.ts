@@ -155,6 +155,40 @@ interface EventContext {
   payload: Record<string, unknown>;
 }
 
+/**
+ * Is the push worker working on this contact, or on a deal of theirs,
+ * right now? It claims a queue row by moving next_retry_at into the
+ * future and holds it until the push is finished and linked. A row
+ * backing off after a failure looks the same — and wrote nothing to
+ * Zoho — so the rare misreading costs one event its automations.
+ */
+async function ownPushInFlight(
+  db: SupabaseClient,
+  accountId: string,
+  contactId: string,
+): Promise<boolean> {
+  const { data: rows } = await db
+    .from('zoho_sync_queue')
+    .select('entity, local_id')
+    .eq('account_id', accountId)
+    .eq('status', 'pending')
+    .gt('next_retry_at', new Date().toISOString())
+    .limit(100);
+  if (!rows?.length) return false;
+  if (rows.some((r) => r.entity === 'contact' && r.local_id === contactId)) return true;
+
+  // A deal push converts the person's Lead, creating a Zoho Contact
+  // that is announced as "contact.created".
+  const dealIds = rows.filter((r) => r.entity === 'deal').map((r) => r.local_id as string);
+  if (dealIds.length === 0) return false;
+  const { count } = await db
+    .from('deals')
+    .select('id', { count: 'exact', head: true })
+    .in('id', dealIds)
+    .eq('contact_id', contactId);
+  return (count ?? 0) > 0;
+}
+
 async function touchConnection(db: SupabaseClient, connectionId: string) {
   await db
     .from('zoho_connections')
@@ -221,6 +255,15 @@ async function handleRecord(
     ownerUserId,
     record,
   );
+
+  // The link checked above is saved just AFTER Instant creates a record
+  // in Zoho, and Zoho can announce the record before that — a "new lead"
+  // that is really the one we just pushed. So it is also our own change
+  // while the sync worker is still busy with this person or a deal of
+  // theirs. Matters most during a backfill, when hundreds are pushed.
+  if (!echo && ingest.contactId) {
+    echo = await ownPushInFlight(db, accountId, ingest.contactId);
+  }
 
   // Record the event either way. This is the debugging surface: without
   // it, "the automation didn't run" has no answer.

@@ -1478,9 +1478,9 @@ function TriggerCard({
   )
 }
 
-/** Which Zoho events run this automation. Nothing ticked means every
- *  event — the behaviour before this filter existed, and the right one
- *  for Workflow Rule events, whose names are whatever the rule sends. */
+/** Which Zoho events run this automation. Nothing picked means new
+ *  leads and new contacts, plus Workflow Rule events (whose names are
+ *  whatever the rule sends) — see zohoTriggerMatches. */
 function ZohoEventsConfig({
   value,
   onChange,
@@ -1522,8 +1522,8 @@ function ZohoEventsConfig({
       </div>
       <p className="mt-1.5 text-[11px] text-muted-foreground">
         {value.length === 0
-          ? "Every Zoho event, including Workflow Rule webhooks."
-          : "Only the selected events from automatic sync."}
+          ? "Nothing picked: runs on new leads and new contacts."
+          : "Runs only on the picked events."}
       </p>
     </div>
   )

@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
-  dueWatchFilter,
+  ALL_WATCH_KEYS,
+  isWatchDue,
   notificationEventType,
   notificationRecord,
   parseZohoNotification,
@@ -101,11 +102,32 @@ describe('zohoNotifyUrl', () => {
   });
 });
 
-describe('dueWatchFilter', () => {
-  it('renews live channels near expiry and retries missing ones daily', () => {
-    const f = dueWatchFilter(Date.parse('2026-10-12T00:00:00Z'));
-    expect(f).toContain('watch_expires_at.lt.2026-10-14T00:00:00.000Z');
-    expect(f).toContain('watch_checked_at.lt.2026-10-11T00:00:00.000Z');
-    expect(f).toContain('watch_checked_at.is.null');
+describe('isWatchDue', () => {
+  const now = Date.parse('2026-10-12T00:00:00Z');
+  const live = {
+    watch_channel_id: '100000006800211',
+    watch_expires_at: '2026-10-17T00:00:00Z',
+    watch_checked_at: '2026-10-11T00:00:00Z',
+    watch_events: [...ALL_WATCH_KEYS],
+  };
+
+  it('leaves a healthy channel alone', () => {
+    expect(isWatchDue(live, now)).toBe(false);
+  });
+
+  it('renews a channel within two days of lapsing', () => {
+    expect(isWatchDue({ ...live, watch_expires_at: '2026-10-13T12:00:00Z' }, now)).toBe(true);
+    expect(isWatchDue({ ...live, watch_expires_at: null }, now)).toBe(true);
+  });
+
+  it('widens a channel made when only some events were watched', () => {
+    expect(isWatchDue({ ...live, watch_events: ['Leads.create', 'Contacts.create'] }, now)).toBe(true);
+  });
+
+  it('retries a connection without a channel once a day', () => {
+    const none = { ...live, watch_channel_id: null, watch_expires_at: null };
+    expect(isWatchDue({ ...none, watch_checked_at: null }, now)).toBe(true);
+    expect(isWatchDue({ ...none, watch_checked_at: '2026-10-11T12:00:00Z' }, now)).toBe(false);
+    expect(isWatchDue({ ...none, watch_checked_at: '2026-10-10T23:00:00Z' }, now)).toBe(true);
   });
 });

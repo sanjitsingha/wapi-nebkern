@@ -1,12 +1,10 @@
 // ============================================================
 // /api/integrations/zoho/connect
 //
-//   GET    — connection status, including the webhook URL to paste
-//            into a Zoho Workflow Rule and the automatic-sync state.
-//   PATCH  — automatic sync: switch it on or off, or change which
-//            events it watches. Re-syncs the Zoho channel at once.
-//            Also Instant → Zoho: the push switches, "sync existing"
-//            (backfill) and "retry failed".
+//   GET    — connection status: the webhook URL for an optional
+//            Workflow Rule, and the sync state (in progress, or needing
+//            a reconnect). Sync itself has no settings: both
+//            directions are always on — see the zoho cron.
 //   DELETE — disconnect (removes the Zoho channel first).
 //
 // ── There is no POST any more ──
@@ -35,12 +33,7 @@ import {
   usesLegacyZohoApp,
 } from '@/lib/zoho/client';
 import { logAudit } from '@/lib/audit/log';
-import {
-  ZOHO_WATCH_EVENTS,
-  sanitizeWatchEvents,
-  syncZohoWatch,
-  unsubscribeZohoWatch,
-} from '@/lib/zoho/watch';
+import { unsubscribeZohoWatch } from '@/lib/zoho/watch';
 import { AUDIT } from '@/lib/audit/events';
 
 function siteBaseUrl(request: Request): string {
@@ -61,7 +54,7 @@ export async function GET(request: Request) {
     const { data } = await ctx.supabase
       .from('zoho_connections')
       .select(
-        'org_name, org_id, api_domain, is_active, connected_at, last_event_at, webhook_token, client_id, refresh_token, auto_sync, watch_events, watch_channel_id, watch_expires_at, watch_error, push_contacts, push_deals',
+        'org_name, org_id, api_domain, is_active, connected_at, last_event_at, webhook_token, client_id, refresh_token, watch_channel_id, watch_error',
       )
       .eq('account_id', ctx.accountId)
       .maybeSingle();
@@ -86,16 +79,6 @@ export async function GET(request: Request) {
 
     const base = siteBaseUrl(request);
 
-    // Recent events, so the settings card can show whether Zoho is
-    // actually reaching us — and, when a rule is misconfigured, WHY the
-    // automation did not run.
-    const { data: events } = await ctx.supabase
-      .from('zoho_events')
-      .select('id, event_type, module, matched, skip_reason, created_at')
-      .eq('account_id', ctx.accountId)
-      .order('created_at', { ascending: false })
-      .limit(5);
-
     return NextResponse.json({
       configured,
       connection: {
@@ -110,151 +93,66 @@ export async function GET(request: Request) {
         usesOwnApp: hasOwnApp,
         connectedAt: data.connected_at,
         lastEventAt: data.last_event_at,
-        // The whole point of the settings card: this is what the admin
-        // pastes into every Zoho Workflow Rule.
+        // For an optional Workflow Rule: custom events automatic sync
+        // does not cover (an overdue invoice, another module).
         webhookUrl: base
           ? `${base}/api/integrations/zoho/webhook/${data.webhook_token}`
           : null,
       },
-      autoSync: {
-        enabled: data.auto_sync !== false,
-        events: sanitizeWatchEvents(data.watch_events ?? []),
-        active: !!data.watch_channel_id,
-        expiresAt: data.watch_expires_at,
-        error: data.watch_error,
-      },
-      watchEvents: ZOHO_WATCH_EVENTS,
-      push: await pushStatus(data, ctx.accountId),
-      recentEvents: events ?? [],
+      sync: await syncStatus(ctx.accountId, data),
     });
   } catch (err) {
     return toErrorResponse(err);
   }
 }
 
-/** Instant → Zoho at a glance: switches, how much is linked, what is
- *  waiting, and the latest things that went wrong (or worth a note). */
-async function pushStatus(
-  conn: { push_contacts?: boolean | null; push_deals?: boolean | null },
+/**
+ * What Settings shows about sync — only what is happening or what
+ * needs the admin. Routine outcomes are not reported.
+ *
+ *   pending / synced   records on their way to Zoho, and how many are
+ *                      already there, for the progress bar.
+ *   needsReconnect     Zoho lacks a permission this version asks for;
+ *                      only reconnecting can grant it.
+ *   unavailable        why Zoho will not send events automatically
+ *                      (e.g. an edition without notifications), so the
+ *                      Workflow Rule fallback can be offered instead.
+ */
+async function syncStatus(
   accountId: string,
+  conn: { watch_channel_id?: string | null; watch_error?: string | null },
 ) {
   const db = supabaseAdmin();
-  const count = async (q: PromiseLike<{ count: number | null }>) => (await q).count ?? 0;
-  const [contacts, deals, pending, failed, problems] = await Promise.all([
-    count(
-      db.from('zoho_record_links').select('id', { count: 'exact', head: true })
-        .eq('account_id', accountId).eq('entity', 'contact'),
-    ),
-    count(
-      db.from('zoho_record_links').select('id', { count: 'exact', head: true })
-        .eq('account_id', accountId).eq('entity', 'deal'),
-    ),
-    count(
-      db.from('zoho_sync_queue').select('id', { count: 'exact', head: true })
-        .eq('account_id', accountId).eq('status', 'pending'),
-    ),
-    count(
-      db.from('zoho_sync_queue').select('id', { count: 'exact', head: true })
-        .eq('account_id', accountId).eq('status', 'failed'),
-    ),
-    db.from('zoho_sync_queue')
-      .select('id, entity, local_id, status, last_error, updated_at')
+  const [pending, synced, permission] = await Promise.all([
+    db
+      .from('zoho_sync_queue')
+      .select('id', { count: 'exact', head: true })
       .eq('account_id', accountId)
-      .not('last_error', 'is', null)
-      .order('updated_at', { ascending: false })
-      .limit(6),
+      .eq('status', 'pending'),
+    db
+      .from('zoho_record_links')
+      .select('id', { count: 'exact', head: true })
+      .eq('account_id', accountId),
+    db
+      .from('zoho_sync_queue')
+      .select('id')
+      .eq('account_id', accountId)
+      .in('status', ['pending', 'failed'])
+      .or('last_error.ilike.%reconnect%,last_error.ilike.%scope%')
+      .limit(1),
   ]);
 
-  // Name each record, so a problem says WHO rather than an id.
-  const rows = problems.data ?? [];
-  const contactIds = rows.filter((r) => r.entity === 'contact').map((r) => r.local_id);
-  const dealIds = rows.filter((r) => r.entity === 'deal').map((r) => r.local_id);
-  const [cn, dn] = await Promise.all([
-    contactIds.length
-      ? db.from('contacts').select('id, name, phone').in('id', contactIds)
-      : Promise.resolve({ data: [] as { id: string; name: string | null; phone: string | null }[] }),
-    dealIds.length
-      ? db.from('deals').select('id, title').in('id', dealIds)
-      : Promise.resolve({ data: [] as { id: string; title: string }[] }),
-  ]);
-  const names = new Map<string, string>();
-  for (const c of cn.data ?? []) names.set(c.id, c.name || c.phone || 'Contact');
-  for (const d of dn.data ?? []) names.set(d.id, d.title);
+  const watchError = conn.watch_error ?? null;
+  const reconnect =
+    /reconnect|scope|permission/i.test(watchError ?? '') || (permission.data?.length ?? 0) > 0;
 
   return {
-    contacts: conn.push_contacts !== false,
-    deals: conn.push_deals !== false,
-    linkedContacts: contacts,
-    linkedDeals: deals,
-    pending,
-    failed,
-    recent: rows.map((r) => ({
-      id: r.id,
-      entity: r.entity,
-      name: names.get(r.local_id) ?? (r.entity === 'deal' ? 'Deal' : 'Contact'),
-      status: r.status,
-      message: r.last_error,
-      at: r.updated_at,
-    })),
+    active: !!conn.watch_channel_id,
+    pending: pending.count ?? 0,
+    synced: synced.count ?? 0,
+    needsReconnect: reconnect,
+    unavailable: watchError && !reconnect ? watchError : null,
   };
-}
-
-export async function PATCH(request: Request) {
-  try {
-    const ctx = await requireRole('admin');
-    const db = supabaseAdmin();
-
-    const body = (await request.json().catch(() => ({}))) as {
-      enabled?: unknown;
-      events?: unknown;
-      pushContacts?: unknown;
-      pushDeals?: unknown;
-      action?: unknown;
-    };
-
-    // Instant → Zoho one-off actions.
-    if (body.action === 'backfill') {
-      const { data: queued, error } = await db.rpc('zoho_backfill', {
-        p_account: ctx.accountId,
-        p_deals: true,
-      });
-      if (error) {
-        return NextResponse.json({ error: 'Could not queue existing records.' }, { status: 500 });
-      }
-      return NextResponse.json({ ok: true, queued: queued ?? 0 });
-    }
-    if (body.action === 'retry') {
-      await db
-        .from('zoho_sync_queue')
-        .update({ status: 'pending', attempts: 0, next_retry_at: new Date().toISOString() })
-        .eq('account_id', ctx.accountId)
-        .eq('status', 'failed');
-      return NextResponse.json({ ok: true });
-    }
-
-    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
-    if (typeof body.enabled === 'boolean') patch.auto_sync = body.enabled;
-    if (body.events !== undefined) patch.watch_events = sanitizeWatchEvents(body.events);
-    if (typeof body.pushContacts === 'boolean') patch.push_contacts = body.pushContacts;
-    if (typeof body.pushDeals === 'boolean') patch.push_deals = body.pushDeals;
-    const touchesWatch = body.enabled !== undefined || body.events !== undefined;
-
-    const { data: updated, error } = await db
-      .from('zoho_connections')
-      .update(patch)
-      .eq('account_id', ctx.accountId)
-      .select('id')
-      .maybeSingle();
-    if (error || !updated) {
-      return NextResponse.json({ error: 'Zoho is not connected.' }, { status: 404 });
-    }
-
-    if (!touchesWatch) return NextResponse.json({ ok: true });
-    const result = await syncZohoWatch(db, ctx.accountId);
-    return NextResponse.json({ ok: true, autoSync: result });
-  } catch (err) {
-    return toErrorResponse(err);
-  }
 }
 
 export async function DELETE() {

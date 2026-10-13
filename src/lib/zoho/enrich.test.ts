@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { fetchableModule } from './enrich';
+import { dealContactId, fetchableModule, mergeEnriched } from './enrich';
+import { normalizeZohoPayload } from './payload';
 import { ZOHO_SCOPES } from './client';
 
 // What a Workflow Rule calls its module is free text — whatever the
@@ -58,5 +59,60 @@ describe('fetchableModule', () => {
       );
       expect(granted, `${apiName} is fetched but has no read scope`).toBe(true);
     }
+  });
+});
+
+// Every deal event arrives now. A Deal carries no phone, so its person
+// is read through Contact_Name — and must not be named after the deal.
+describe('deal enrichment', () => {
+  const event = normalizeZohoPayload({ id: '77', module: 'Deals', event_type: 'deal.updated' });
+  const deal = normalizeZohoPayload({
+    id: '77',
+    Deal_Name: 'Website redesign',
+    Stage: 'Negotiation',
+    Contact_Name: { id: '55', name: 'Maya Sen' },
+  });
+  const person = normalizeZohoPayload({
+    id: '55',
+    First_Name: 'Maya',
+    Last_Name: 'Sen',
+    Mobile: '+919876543210',
+    Email: 'maya@example.com',
+    Stage: 'person-field',
+  });
+
+  it('finds the person on a deal', () => {
+    expect(dealContactId({ Contact_Name: { id: '55', name: 'Maya Sen' } })).toBe('55');
+    expect(dealContactId({ Contact_Name: { id: 55 } })).toBe('55');
+    expect(dealContactId({ Contact_Name: null })).toBeNull();
+    expect(dealContactId({})).toBeNull();
+  });
+
+  it('takes phone and email from the person, never the deal name as theirs', () => {
+    const merged = mergeEnriched(event, deal, person, true);
+    expect(merged.phone).toBe(person.phone);
+    expect(merged.phone).toBeTruthy();
+    expect(merged.email).toBe('maya@example.com');
+    expect(merged.name).not.toBe('Website redesign');
+  });
+
+  it('keeps the deal’s fields on top in the vars', () => {
+    const merged = mergeEnriched(event, deal, person, true);
+    expect(merged.vars.stage).toBe('Negotiation');
+    expect(merged.vars.deal_name).toBe('Website redesign');
+    expect(merged.vars.first_name).toBe('Maya');
+  });
+
+  it('leaves lead and contact events as they were', () => {
+    const lead = normalizeZohoPayload({ id: '9', Last_Name: 'Rao', Mobile: '+919000000001' });
+    const merged = mergeEnriched(
+      normalizeZohoPayload({ id: '9', module: 'Leads' }),
+      lead,
+      null,
+      false,
+    );
+    expect(merged.phone).toBe(lead.phone);
+    expect(merged.phone).toBeTruthy();
+    expect(merged.name).toBe('Rao');
   });
 });

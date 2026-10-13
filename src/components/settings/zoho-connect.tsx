@@ -7,8 +7,6 @@ import {
   CheckCircle2,
   Copy,
   Loader2,
-  RefreshCw,
-  Upload,
   Zap,
   MessageSquareText,
   ShieldCheck,
@@ -16,10 +14,7 @@ import {
 } from 'lucide-react';
 
 import { openOAuthTab } from '@/lib/oauth/tab';
-import { ZOHO_WATCH_EVENTS } from '@/lib/zoho/watch-events';
-import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -53,40 +48,17 @@ const ZOHO_LOGO = '/images/integrations/zoho-crm.png';
 // consent flow starts at accounts.zoho.com and Zoho forwards the user
 // to their own. What is left is a button.
 //
-// ── Connecting is still only half the job ──
+// ── Then it syncs, with nothing to set ──
 //
-// That part has NOT changed, and this dialog is honest about it. Once
-// OAuth is done nothing happens until a Workflow Rule in Zoho is
-// pointed at our receiver URL, so the dialog keeps showing setup
-// instructions after connecting, where the Shopify and WooCommerce
-// cards go quiet.
-//
-// ── Deferred: automatic webhook setup ──
-//
-// Competitors create the webhook for you at connect time and offer a
-// "Skip automatic two-way sync" checkbox to opt out of it (needed on
-// free Zoho editions, which have no webhooks at all). This dialog does
-// not, and that is a decision rather than an omission — revisit it
-// before adding the checkbox, because the checkbox is the easy half.
-//
-// The mechanism would be Zoho's Notification API,
-// `POST {api_domain}/crm/v5/actions/watch`. Two costs come with it:
-//
-//   1. A channel expires after SEVEN DAYS at most, and defaults to one
-//      hour if channel_expiry is unset. It has to be renewed on a
-//      schedule. `npm run cron` exists but nothing has been pinging it
-//      since the VPS move — the same reason scheduled campaigns stopped
-//      firing. Without that renewal the integration goes dead a week
-//      after each customer connects, silently, which is worse than
-//      asking them to add one Workflow Rule that never expires.
-//
-//   2. It needs `ZohoCRM.notifications.ALL` on the consent screen, on
-//      top of the single read-only scope asked for today. See
-//      ZOHO_SCOPES in lib/zoho/client.ts, which is deliberately as
-//      narrow as it is.
-//
-// Weighed and deferred on 2026-10-10. The blocker is the scheduler,
-// not the Zoho side.
+// Connecting subscribes a Zoho notification channel (Zoho → Instant)
+// and queues everything already in Instant (Instant → Zoho); both run
+// from then on, for every lead, contact and deal. There are no
+// switches, event pickers or buttons, deliberately — the zoho cron
+// renews the channel, retries failures and trims the log. This dialog
+// shows only what is in progress (a loading bar) or needs the admin
+// (a reconnect). Workflow Rules still work against the webhook URL,
+// but the URL is shown only to a Zoho that cannot send events on its
+// own — the one case that needs one.
 // ============================================================
 
 interface ZohoConnection {
@@ -100,40 +72,17 @@ interface ZohoConnection {
   webhookUrl: string | null;
 }
 
-interface PushStatus {
-  contacts: boolean;
-  deals: boolean;
-  linkedContacts: number;
-  linkedDeals: number;
-  pending: number;
-  failed: number;
-  recent: {
-    id: string;
-    entity: 'contact' | 'deal';
-    name: string;
-    status: 'pending' | 'done' | 'failed' | 'skipped';
-    message: string;
-    at: string;
-  }[];
-}
-
-interface AutoSync {
-  enabled: boolean;
-  /** Zoho watch keys, e.g. Leads.create. */
-  events: string[];
-  /** A channel is subscribed in Zoho right now. */
+/** Sync as Settings sees it: only what is happening, or needs action. */
+interface SyncStatus {
+  /** A Zoho notification channel is live. */
   active: boolean;
-  expiresAt: string | null;
-  error: string | null;
-}
-
-interface ZohoEvent {
-  id: string;
-  event_type: string | null;
-  module: string | null;
-  matched: boolean;
-  skip_reason: string | null;
-  created_at: string;
+  /** Records on their way to Zoho, and how many are already there. */
+  pending: number;
+  synced: number;
+  /** Zoho lacks a permission; only reconnecting grants it. */
+  needsReconnect: boolean;
+  /** Why Zoho cannot send events automatically (e.g. its edition). */
+  unavailable: string | null;
 }
 
 /** One numbered step. The number is a chip rather than a list marker so
@@ -196,11 +145,7 @@ export function ZohoConnect({
   // the dialog does not flash a "not configured" warning during the
   // first load.
   const [configured, setConfigured] = useState(true);
-  const [events, setEvents] = useState<ZohoEvent[]>([]);
-  const [autoSync, setAutoSync] = useState<AutoSync | null>(null);
-  const [push, setPush] = useState<PushStatus | null>(null);
-  const [pushBusy, setPushBusy] = useState(false);
-  const [savingSync, setSavingSync] = useState(false);
+  const [sync, setSync] = useState<SyncStatus | null>(null);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -213,9 +158,7 @@ export function ZohoConnect({
         .then((d) => {
           const connection: ZohoConnection | null = d?.connection ?? null;
           setStatus(connection);
-          setEvents(d?.recentEvents ?? []);
-          setAutoSync(d?.autoSync ?? null);
-          setPush(d?.push ?? null);
+          setSync(d?.sync ?? null);
           if (typeof d?.configured === 'boolean') setConfigured(d.configured);
           return connection;
         })
@@ -290,11 +233,6 @@ export function ZohoConnect({
         return;
       }
       toast.success(`Connected to ${outcome.params.org ?? 'Zoho CRM'}`, { id: 'zoho-connected' });
-      if (outcome.params.autosync === 'error') {
-        toast.warning(
-          'Connected, but automatic sync could not be set up. See the dialog for why.'
-        );
-      }
       await load();
     } finally {
       setBusy(false);
@@ -304,7 +242,7 @@ export function ZohoConnect({
   const disconnect = async () => {
     if (
       !confirm(
-        'Disconnect Zoho? Workflow Rules in Zoho will keep firing at a URL that no longer works.'
+        'Disconnect Zoho? Instant and Zoho will stop syncing.'
       )
     )
       return;
@@ -326,84 +264,18 @@ export function ZohoConnect({
     }
   };
 
-  /** Switch automatic sync or change its events; the server re-syncs
-   *  the Zoho channel before answering, so the reload shows the result. */
-  const saveSync = async (patch: { enabled?: boolean; events?: string[] }) => {
-    if (!autoSync) return;
-    setSavingSync(true);
-    setAutoSync({ ...autoSync, ...patch });
-    try {
-      const res = await fetch('/api/integrations/zoho/connect', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(patch),
-      });
-      const data = (await res.json().catch(() => ({}))) as {
-        error?: string;
-        autoSync?: { state: string; error?: string };
-      };
-      if (!res.ok) toast.error(data.error || 'Could not update automatic sync.');
-      else if (data.autoSync?.state === 'error') {
-        toast.error(data.autoSync.error || 'Zoho refused automatic sync.');
-      }
-    } catch {
-      toast.error('Could not update automatic sync.');
-    } finally {
-      await load();
-      setSavingSync(false);
-    }
-  };
-
-  /** Instant → Zoho: a switch, or one of the one-off actions. */
-  const savePush = async (
-    patch: { pushContacts?: boolean; pushDeals?: boolean; action?: 'backfill' | 'retry' },
-  ) => {
-    if (patch.action === 'backfill' &&
-      !confirm('Send every existing contact and deal to Zoho? People already in Zoho are matched by phone and linked, not duplicated.')) {
-      return;
-    }
-    setPushBusy(true);
-    if (push && patch.pushContacts !== undefined) setPush({ ...push, contacts: patch.pushContacts });
-    if (push && patch.pushDeals !== undefined) setPush({ ...push, deals: patch.pushDeals });
-    try {
-      const res = await fetch('/api/integrations/zoho/connect', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(patch),
-      });
-      const data = (await res.json().catch(() => ({}))) as { error?: string; queued?: number };
-      if (!res.ok) toast.error(data.error || 'Could not update Zoho sync.');
-      else if (patch.action === 'backfill') {
-        toast.success(
-          `${data.queued ?? 0} records queued. They reach Zoho over the next few minutes.`,
-        );
-      } else if (patch.action === 'retry') toast.success('Retrying failed records.');
-    } catch {
-      toast.error('Could not update Zoho sync.');
-    } finally {
-      await load();
-      setPushBusy(false);
-    }
-  };
-
-  const failures = (push?.recent ?? []).filter((r) => r.status === 'failed');
-
-  // Keep the bar moving: re-read every few seconds while the dialog is
-  // open and records are still on their way.
-  const syncing = open && (push?.pending ?? 0) > 0;
+  // Keep the loading bar moving: re-read every few seconds while the
+  // dialog is open and records are still on their way.
+  const syncing = open && (sync?.pending ?? 0) > 0;
   useEffect(() => {
     if (!syncing) return;
     const id = setInterval(() => void load(), 5000);
     return () => clearInterval(id);
   }, [syncing, load]);
 
-  const toggleWatchEvent = (key: string) => {
-    if (!autoSync) return;
-    const next = autoSync.events.includes(key)
-      ? autoSync.events.filter((e) => e !== key)
-      : [...autoSync.events, key];
-    void saveSync({ events: next });
-  };
+  const progress = sync
+    ? Math.max(4, Math.round((sync.synced / Math.max(1, sync.synced + sync.pending)) * 100))
+    : 0;
 
   const copyUrl = async () => {
     if (!status?.webhookUrl) return;
@@ -471,17 +343,17 @@ export function ZohoConnect({
       )}
 
       <Dialog open={open} onOpenChange={(v) => !busy && setOpen(v)}>
-        {/* The connected view carries a long webhook URL, a five-step
-            Workflow Rule guide and the recent-events list, which were
-            being squeezed at max-w-lg. The pre-connect view is a single
-            readable column and is capped narrower from the inside.
+        {/* The connected view is short now — the organisation, and a
+            sync line when there is one — so it is no wider than the
+            pre-connect view, plus a little for the webhook URL in the
+            rare case it is shown.
 
             `*:min-w-0` — DialogContent is a CSS grid; without this a
             wide child (the long webhook URL) keeps its min-content
             width and spills outside the modal's background. */}
         <DialogContent
           className={
-            connected ? '*:min-w-0 sm:max-w-4xl' : '*:min-w-0 sm:max-w-xl'
+            connected ? '*:min-w-0 sm:max-w-2xl' : '*:min-w-0 sm:max-w-xl'
           }
         >
           <DialogHeader>
@@ -501,11 +373,11 @@ export function ZohoConnect({
               />
               <span>{connected ? 'Zoho CRM' : 'Connect to Zoho CRM'}</span>
             </DialogTitle>
-            {/* Before connecting the description is for screen readers
-                only — the dialog body already explains the sign-in. */}
-            <DialogDescription className={connected ? undefined : 'sr-only'}>
+            {/* For screen readers only — the dialog body says what
+                matters, and there is nothing to configure to explain. */}
+            <DialogDescription className="sr-only">
               {connected
-                ? 'Zoho events reach Instant automatically, or through a Workflow Rule you point at the URL below.'
+                ? 'Zoho CRM is connected and syncs with Instant automatically.'
                 : 'Sign in to Zoho and approve access to connect Zoho CRM.'}
             </DialogDescription>
           </DialogHeader>
@@ -545,389 +417,68 @@ export function ZohoConnect({
                 </p>
               )}
 
-              {autoSync && (
-                <section className="border-border space-y-3 rounded-lg border p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex min-w-0 gap-2.5">
-                      <Zap className="text-primary mt-0.5 size-4 shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-foreground text-sm font-medium">
-                          Automatic sync
-                        </p>
-                        <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
-                          {!autoSync.enabled
-                            ? 'Off. Events only arrive through a Workflow Rule you set up below.'
-                            : autoSync.active
-                              ? `On. Zoho sends the events below to Instant directly — no Workflow Rule needed. Renews automatically${
-                                  autoSync.expiresAt
-                                    ? ` (current channel until ${new Date(autoSync.expiresAt).toLocaleDateString()})`
-                                    : ''
-                                }.`
-                              : autoSync.events.length === 0
-                                ? 'Pick at least one event to start.'
-                                : 'Not running yet.'}
-                        </p>
-                      </div>
-                    </div>
-                    <Switch
-                      checked={autoSync.enabled}
-                      disabled={savingSync}
-                      onCheckedChange={(v) => void saveSync({ enabled: v })}
-                      aria-label="Automatic sync"
-                    />
-                  </div>
-
-                  {autoSync.enabled && autoSync.error && (
-                    <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5">
-                      <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                      <div className="min-w-0 flex-1 text-[11px] leading-relaxed text-amber-900 dark:text-amber-200">
-                        {autoSync.error}
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {/scope|reconnect/i.test(autoSync.error) ? (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs"
-                              onClick={connect}
-                              disabled={busy}
-                            >
-                              Reconnect Zoho
-                            </Button>
-                          ) : (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs"
-                              onClick={() => void saveSync({})}
-                              disabled={savingSync}
-                            >
-                              <RefreshCw className="mr-1.5 size-3" />
-                              Try again
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {autoSync.enabled && (
-                    <div>
-                      <p className="text-muted-foreground mb-1.5 text-[11px]">
-                        Send these to Instant
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {ZOHO_WATCH_EVENTS.map((e) => {
-                          const on = autoSync.events.includes(e.key);
-                          return (
-                            <button
-                              key={e.key}
-                              type="button"
-                              disabled={savingSync}
-                              aria-pressed={on}
-                              onClick={() => toggleWatchEvent(e.key)}
-                              className={
-                                on
-                                  ? 'border-primary/40 bg-primary-soft text-primary rounded-full border px-2.5 py-1 text-xs transition-colors disabled:opacity-60'
-                                  : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground rounded-full border px-2.5 py-1 text-xs transition-colors disabled:opacity-60'
-                              }
-                            >
-                              {e.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <p className="text-muted-foreground mt-1.5 text-[11px] leading-relaxed">
-                        Then build an automation with the{' '}
-                        <span className="text-foreground font-medium">
-                          Zoho CRM Event
-                        </span>{' '}
-                        trigger. Updates fire on every edit, so leave them off
-                        unless an automation needs them.
-                      </p>
-                    </div>
-                  )}
-                </section>
-              )}
-
-              {push && (
-                <section className="border-border space-y-3 rounded-lg border p-3">
-                  <div className="flex gap-2.5">
-                    <Upload className="text-primary mt-0.5 size-4 shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-foreground text-sm font-medium">
-                        Send Instant to Zoho
-                      </p>
-                      <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
-                        Matched by phone, so nobody is created twice. Nothing in
-                        Zoho is ever deleted.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="divide-border border-border divide-y rounded-md border">
-                    <label className="flex items-start justify-between gap-3 p-2.5">
-                      <span className="min-w-0">
-                        <span className="text-foreground block text-xs font-medium">
-                          Contacts and leads
-                        </span>
-                        <span className="text-muted-foreground block text-[11px] leading-relaxed">
-                          New people who message you become Leads. Contacts you
-                          add or import become Contacts. Edits keep them in step.
-                        </span>
-                      </span>
-                      <Switch
-                        checked={push.contacts}
-                        disabled={pushBusy}
-                        onCheckedChange={(v) => void savePush({ pushContacts: v })}
-                        aria-label="Send contacts and leads to Zoho"
-                      />
-                    </label>
-                    <label className="flex items-start justify-between gap-3 p-2.5">
-                      <span className="min-w-0">
-                        <span className="text-foreground block text-xs font-medium">
-                          Deals
-                        </span>
-                        <span className="text-muted-foreground block text-[11px] leading-relaxed">
-                          New deals, stage moves, won and lost. A deal for a
-                          Lead converts it into a Contact in Zoho.
-                        </span>
-                      </span>
-                      <Switch
-                        checked={push.deals}
-                        disabled={pushBusy}
-                        onCheckedChange={(v) => void savePush({ pushDeals: v })}
-                        aria-label="Send deals to Zoho"
-                      />
-                    </label>
-                  </div>
-
-                  {/* While records are on their way: a bar, not a list of
-                      what happened to each one. */}
-                  {push.pending > 0 && (
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-foreground inline-flex items-center gap-1.5 font-medium">
-                          <Loader2 className="size-3 animate-spin" />
-                          Syncing to Zoho
-                        </span>
-                        <span className="text-muted-foreground">
-                          {push.pending} left
-                        </span>
-                      </div>
-                      <div className="bg-muted h-1.5 overflow-hidden rounded-full">
-                        <div
-                          className="bg-primary h-full rounded-full transition-[width] duration-700"
-                          style={{
-                            width: `${Math.max(
-                              4,
-                              Math.round(
-                                ((push.linkedContacts + push.linkedDeals) /
-                                  Math.max(1, push.linkedContacts + push.linkedDeals + push.pending)) *
-                                  100,
-                              ),
-                            )}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-muted-foreground text-[11px]">
-                      {push.linkedContacts} contacts · {push.linkedDeals} deals in
-                      sync
-                      {push.failed > 0 && (
-                        <span className="text-red-600 dark:text-red-400">
-                          {' '}· {push.failed} failed
-                        </span>
-                      )}
-                    </p>
-                    <div className="flex gap-2">
-                      {push.failed > 0 && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs"
-                          disabled={pushBusy}
-                          onClick={() => void savePush({ action: 'retry' })}
-                        >
-                          <RefreshCw className="mr-1.5 size-3" />
-                          Retry failed
-                        </Button>
-                      )}
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs"
-                        disabled={pushBusy || (!push.contacts && !push.deals)}
-                        onClick={() => void savePush({ action: 'backfill' })}
-                      >
-                        Sync existing records
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Checked across everything still retrying too, not
-                      only final failures: a missing permission will fail
-                      every attempt, so say so on the first one. */}
-                  {push.recent.some(
-                    (r) => r.status !== 'done' && /scope|permission|reconnect/i.test(r.message ?? ''),
-                  ) && (
-                    <div className="flex items-center justify-between gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 text-[11px] text-amber-900 dark:text-amber-200">
-                      <span>Zoho needs one more permission to receive deals.</span>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs"
-                        onClick={connect}
-                        disabled={busy}
-                      >
-                        Reconnect Zoho
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Only what needs someone's attention. Routine outcomes
-                      ("linked to an existing Contact") are not news. */}
-                  {failures.length > 0 && (
-                    <ul className="border-border divide-border divide-y overflow-hidden rounded-md border text-[11px]">
-                      {failures.map((r) => (
-                        <li key={r.id} className="flex items-start gap-2 px-2.5 py-1.5">
-                          <span
-                            className={
-                              r.status === 'failed'
-                                ? 'mt-1 size-1.5 shrink-0 rounded-full bg-red-500'
-                                : r.status === 'pending'
-                                  ? 'mt-1 size-1.5 shrink-0 rounded-full bg-amber-500'
-                                  : 'mt-1 size-1.5 shrink-0 rounded-full bg-emerald-500'
-                            }
-                          />
-                          <span className="min-w-0 flex-1">
-                            <span className="text-foreground font-medium">{r.name}</span>
-                            <span className="text-muted-foreground"> — {r.message}</span>
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </section>
-              )}
-
-              {/* Manual setup. Still how custom events (an overdue
-                  invoice, a field change on another module) reach us,
-                  so it stays — folded away when automatic sync runs. */}
-              <details
-                className="group space-y-1.5"
-                open={!autoSync?.enabled || !autoSync?.active}
-              >
-                <summary className="text-foreground cursor-pointer list-none text-xs font-medium">
-                  <span className="text-muted-foreground mr-1 inline-block transition-transform group-open:rotate-90">
-                    ›
+              {/* Sync has no settings. Something shows here only while
+                  records are on their way, or when the admin must act. */}
+              {sync?.needsReconnect ? (
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                  <span className="flex items-center gap-2 text-xs text-amber-900 dark:text-amber-200">
+                    <TriangleAlert className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                    Reconnect Zoho to keep syncing.
                   </span>
-                  {autoSync?.enabled && autoSync?.active
-                    ? 'Custom events with a Workflow Rule (optional)'
-                    : 'Set up with a Workflow Rule'}
-                </summary>
-              <div className="mt-2 space-y-1.5">
-                <Label className="text-foreground text-xs">
-                  Webhook URL for your Zoho Workflow Rules
-                </Label>
-                <div className="flex items-center gap-2">
-                  <code className="bg-muted/50 border-border min-w-0 flex-1 truncate rounded-lg border px-3 py-2 font-mono text-[11px]">
-                    {status.webhookUrl ?? '—'}
-                  </code>
                   <Button
                     type="button"
+                    size="sm"
                     variant="outline"
-                    size="icon"
-                    onClick={copyUrl}
-                    aria-label="Copy webhook URL"
-                    className="size-9 shrink-0"
+                    className="h-7 shrink-0 text-xs"
+                    onClick={connect}
+                    disabled={busy}
                   >
-                    {copied ? (
-                      <Check className="size-4" />
-                    ) : (
-                      <Copy className="size-4" />
-                    )}
+                    Reconnect
                   </Button>
                 </div>
-                <ol className="text-muted-foreground list-decimal space-y-1 pl-4 text-[11px] leading-relaxed">
-                  <li>
-                    In Zoho: Setup → Automation →{' '}
-                    <span className="text-foreground font-medium">
-                      Workflow Rules
-                    </span>{' '}
-                    → Create Rule.
-                  </li>
-                  <li>
-                    Pick the module and when it fires — e.g. Deals, on a Stage
-                    change.
-                  </li>
-                  <li>
-                    Add an instant action →{' '}
-                    <span className="text-foreground font-medium">Webhook</span>{' '}
-                    → paste this URL, method POST.
-                  </li>
-                  <li>
-                    Set{' '}
-                    <span className="text-foreground font-medium">Body</span> →
-                    Raw (JSON) and include at least the phone — e.g.{' '}
-                    <code className="text-foreground">
-                      {'{ "phone": "${Leads.Phone}" }'}
-                    </code>{' '}
-                    — inserting fields with Zoho&apos;s picker. Without a phone
-                    we cannot tell who to message.
-                  </li>
-                  <li>
-                    Then build an automation here with the{' '}
-                    <span className="text-foreground font-medium">
-                      Zoho CRM Event
-                    </span>{' '}
-                    trigger.
-                  </li>
-                </ol>
-              </div>
-              </details>
+              ) : sync && sync.pending > 0 ? (
+                <div className="border-border space-y-2 rounded-lg border p-3">
+                  <span className="text-foreground inline-flex items-center gap-1.5 text-xs font-medium">
+                    <Loader2 className="size-3.5 animate-spin" />
+                    Syncing with Zoho…
+                  </span>
+                  <div className="bg-muted h-1.5 overflow-hidden rounded-full">
+                    <div
+                      className="bg-primary h-full rounded-full transition-[width] duration-700"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+              ) : null}
 
-              {events.length > 0 && (
-                <div className="space-y-1.5">
-                  <Label className="text-foreground text-xs">
-                    Recent events
-                  </Label>
-                  <ul className="border-border divide-border divide-y overflow-hidden rounded-lg border text-[11px]">
-                    {events.map((e) => (
-                      <li
-                        key={e.id}
-                        className="flex items-center justify-between gap-2 px-2.5 py-1.5"
-                      >
-                        <span className="text-foreground truncate">
-                          {e.event_type || e.module || 'Event'}
-                        </span>
-                        <span
-                          className={
-                            e.matched
-                              ? 'shrink-0 text-emerald-600 dark:text-emerald-400'
-                              : 'shrink-0 text-amber-600 dark:text-amber-400'
-                          }
-                        >
-                          {e.matched
-                            ? 'matched'
-                            : e.skip_reason === 'no_phone'
-                              ? 'no phone on record'
-                              : e.skip_reason === 'deleted'
-                                ? 'deleted in Zoho'
-                                : 'not matched'}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+              {/* Only when this Zoho cannot send events on its own (an
+                  edition without notifications): then a Workflow Rule is
+                  the one way in, and the admin needs the URL for it.
+                  Everyone else never sees Workflow Rules at all. */}
+              {sync?.unavailable && status.webhookUrl && (
+                <div className="space-y-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                  <p className="text-[11px] leading-relaxed text-amber-900 dark:text-amber-200">
+                    This Zoho can&apos;t send updates to Instant on its own. In
+                    Zoho, add a Workflow Rule with a webhook to this URL.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <code className="bg-background border-border min-w-0 flex-1 truncate rounded-lg border px-3 py-2 font-mono text-[11px]">
+                      {status.webhookUrl}
+                    </code>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={copyUrl}
+                      aria-label="Copy webhook URL"
+                      className="size-9 shrink-0"
+                    >
+                      {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+                    </Button>
+                  </div>
                 </div>
               )}
+
             </div>
           ) : (
             <div className="space-y-5">
@@ -994,9 +545,8 @@ export function ZohoConnect({
                     title="Get notified when records change"
                   >
                     <p>
-                      Instant subscribes to the events you choose — new leads
-                      and contacts by default — so they arrive without you
-                      building a Workflow Rule. You can switch this off.
+                      So new and changed leads, contacts and deals reach
+                      Instant on their own.
                     </p>
                   </Permission>
 
@@ -1030,8 +580,8 @@ export function ZohoConnect({
                     sends you straight back.
                   </GuideStep>
                   <GuideStep n={3}>
-                    Instant sets up sync for you. Choose which events to send,
-                    then build an automation with the Zoho CRM Event trigger.
+                    That&apos;s it — Instant and Zoho stay in sync from then
+                    on, both ways.
                   </GuideStep>
                 </ol>
               </section>

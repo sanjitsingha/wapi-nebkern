@@ -29,9 +29,9 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { zohoApiFetch } from './api';
 import type { ZohoNormalized } from './payload';
 
-import { sanitizeWatchEvents } from './watch-events';
+import { ALL_WATCH_KEYS, sanitizeWatchEvents } from './watch-events';
 
-export { ZOHO_WATCH_EVENTS, sanitizeWatchEvents, DEFAULT_WATCH_EVENTS } from './watch-events';
+export { ZOHO_WATCH_EVENTS, ALL_WATCH_KEYS, sanitizeWatchEvents } from './watch-events';
 export type { ZohoWatchKey } from './watch-events';
 
 export const CHANNEL_LIFETIME_DAYS = 6;
@@ -136,15 +136,13 @@ interface WatchRow {
   account_id: string;
   webhook_token: string;
   is_active: boolean;
-  auto_sync: boolean;
-  watch_events: string[] | null;
   watch_channel_id: string | null;
   watch_token: string | null;
   watch_expires_at: string | null;
 }
 
 export const WATCH_SELECT =
-  'id, account_id, webhook_token, is_active, auto_sync, watch_events, watch_channel_id, watch_token, watch_expires_at';
+  'id, account_id, webhook_token, is_active, watch_channel_id, watch_token, watch_expires_at';
 
 interface WatchResponse {
   watch?: {
@@ -220,7 +218,7 @@ export async function unsubscribeZohoWatch(
 }
 
 export interface WatchSyncResult {
-  /** 'active' — subscribed or renewed; 'off' — nothing to watch;
+  /** 'active' — subscribed or renewed; 'off' — not connected;
    *  'error' — see `error`. */
   state: 'active' | 'off' | 'error';
   error?: string;
@@ -228,9 +226,10 @@ export interface WatchSyncResult {
 }
 
 /**
- * Bring the Zoho channel in line with the row: subscribe when there is
- * none, renew (and apply any event change) when there is, remove it
- * when auto sync is off or no events are chosen. Writes the outcome
+ * Make sure the connection has a live Zoho channel watching every
+ * event: subscribe when there is none, renew (widening it to every
+ * event, for channels made when only some were watched) when there is.
+ * Automatic sync is always on — there is no setting. Writes the outcome
  * back to the row, so callers only need the summary.
  */
 export async function syncZohoWatch(
@@ -246,24 +245,7 @@ export async function syncZohoWatch(
   if (!row || !row.is_active) return { state: 'off' };
 
   const now = new Date().toISOString();
-  const events = sanitizeWatchEvents(row.watch_events ?? []);
-
-  if (!row.auto_sync || events.length === 0) {
-    if (row.watch_channel_id) {
-      await unsubscribeZohoWatch(db, accountId, row.watch_channel_id);
-    }
-    await db
-      .from('zoho_connections')
-      .update({
-        watch_channel_id: null,
-        watch_token: null,
-        watch_expires_at: null,
-        watch_error: null,
-        watch_checked_at: now,
-      })
-      .eq('id', row.id);
-    return { state: 'off' };
-  }
+  const events = ALL_WATCH_KEYS;
 
   const notifyUrl = zohoNotifyUrl(row.webhook_token);
   if (!notifyUrl) {
@@ -311,6 +293,7 @@ export async function syncZohoWatch(
       watch_channel_id: channelId,
       watch_token: token,
       watch_expires_at: result.expiresAt,
+      watch_events: events,
       watch_error: null,
       watch_checked_at: now,
     })
@@ -318,14 +301,24 @@ export async function syncZohoWatch(
   return { state: 'active', expiresAt: result.expiresAt };
 }
 
-/** Rows the cron should touch: live channels near expiry, and rows
- *  with no channel whose last attempt was over a day ago. */
-export function dueWatchFilter(now: number = Date.now()): string {
-  const renewBefore = new Date(now + RENEW_WITHIN_DAYS * DAY_MS).toISOString();
-  const retryAfter = new Date(now - DAY_MS).toISOString();
-  return [
-    `and(watch_channel_id.not.is.null,watch_expires_at.lt.${renewBefore})`,
-    `and(watch_channel_id.is.null,watch_checked_at.is.null)`,
-    `and(watch_channel_id.is.null,watch_checked_at.lt.${retryAfter})`,
-  ].join(',');
+export interface WatchDueRow {
+  watch_channel_id: string | null;
+  watch_expires_at: string | null;
+  watch_checked_at: string | null;
+  watch_events: string[] | null;
+}
+
+/** Whether the cron should sync a connection's channel now: a live one
+ *  near expiry, or one made when only some events were watched; a
+ *  missing one never tried, or last tried over a day ago (a Zoho
+ *  edition without notifications, a connection lacking the scope). */
+export function isWatchDue(row: WatchDueRow, now: number = Date.now()): boolean {
+  if (row.watch_channel_id) {
+    const expires = row.watch_expires_at ? Date.parse(row.watch_expires_at) : NaN;
+    if (Number.isNaN(expires) || expires < now + RENEW_WITHIN_DAYS * DAY_MS) return true;
+    return sanitizeWatchEvents(row.watch_events ?? []).length < ALL_WATCH_KEYS.length;
+  }
+  if (!row.watch_checked_at) return true;
+  const checked = Date.parse(row.watch_checked_at);
+  return Number.isNaN(checked) || checked < now - DAY_MS;
 }

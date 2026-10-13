@@ -99,16 +99,58 @@ export async function enrichZohoRecord(
   // from it. A Zoho record IS the shape that function was written for.
   const full = normalizeZohoPayload(fetched);
 
+  // A Deal has no phone of its own — the person is its Contact_Name.
+  // Read them too, or every deal event ends "no phone" and no deal
+  // automation can ever run.
+  let person: ZohoNormalized | null = null;
+  const isDeal = apiName === 'Deals';
+  if (isDeal && !record.phone && !full.phone) {
+    const contactId = dealContactId(fetched);
+    if (contactId) {
+      const res2 = await zohoApiFetch<{ data?: Record<string, unknown>[] }>(
+        db,
+        accountId,
+        `/crm/v5/Contacts/${encodeURIComponent(contactId)}`,
+      );
+      const row = res2.data?.data?.[0];
+      if (row) person = normalizeZohoPayload(row);
+    }
+  }
+
+  return { record: mergeEnriched(record, full, person, isDeal), enriched: true };
+}
+
+/** The id of the person on a Deal: its Contact_Name lookup,
+ *  `{ id, name }`. Null when the deal has nobody on it. */
+export function dealContactId(deal: Record<string, unknown>): string | null {
+  const v = deal.Contact_Name;
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const id = (v as { id?: unknown }).id;
+  return typeof id === 'string' || typeof id === 'number' ? String(id) : null;
+}
+
+/**
+ * Combine what the event carried, the record it points at, and — for a
+ * Deal — the person on it.
+ *
+ * The event wins every conflict (see the rule at the top of this
+ * file). After that the person beats the deal for who they are: a
+ * deal's "name" is its Deal_Name, and "Website redesign" must never
+ * become a contact's name. The deal's own fields win the vars, so
+ * {{vars.stage}} is the deal's stage; the person's add first_name and
+ * the like where the deal has none.
+ */
+export function mergeEnriched(
+  record: ZohoNormalized,
+  full: ZohoNormalized,
+  person: ZohoNormalized | null,
+  isDeal: boolean,
+): ZohoNormalized {
   return {
-    record: {
-      ...record,
-      phone: record.phone ?? full.phone,
-      name: record.name ?? full.name,
-      email: record.email ?? full.email,
-      // Fetched first so the webhook's own keys land on top — see the
-      // conflict rule at the top of this file.
-      vars: { ...full.vars, ...record.vars },
-    },
-    enriched: true,
+    ...record,
+    phone: record.phone ?? full.phone ?? person?.phone ?? null,
+    name: record.name ?? person?.name ?? (isDeal ? null : full.name),
+    email: record.email ?? full.email ?? person?.email ?? null,
+    vars: { ...(person?.vars ?? {}), ...full.vars, ...record.vars },
   };
 }

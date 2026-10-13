@@ -1,3 +1,4 @@
+import { zohoTriggerMatches } from '@/lib/zoho/watch-events'
 import type {
   Automation,
   AutomationLogStepResult,
@@ -858,15 +859,13 @@ function triggerMatches(automation: Automation, ctx: AutomationContext | undefin
     if (!cfg?.tag_id) return true
     return ctx?.tag_id === cfg.tag_id
   }
-  // A Zoho CRM Event automation can be limited to some events (e.g.
-  // only "lead.created"). No list means every Zoho event, which is how
-  // every automation built before the filter existed keeps working.
+  // A Zoho CRM Event automation runs on the events picked under "Run
+  // on" — or, with none picked, on new leads and contacts (and any
+  // Workflow Rule event). Every Zoho edit arrives as an event now, so
+  // "nothing picked" must not mean "everything". See zohoTriggerMatches.
   if (automation.trigger_type === 'zoho_event') {
     const cfg = automation.trigger_config as { events?: unknown }
-    const events = Array.isArray(cfg?.events) ? (cfg.events as unknown[]) : []
-    if (events.length === 0) return true
-    const event = ctx?.vars?.zoho_event
-    return typeof event === 'string' && events.includes(event)
+    return zohoTriggerMatches(cfg?.events, ctx?.vars?.zoho_event)
   }
   return true
 }

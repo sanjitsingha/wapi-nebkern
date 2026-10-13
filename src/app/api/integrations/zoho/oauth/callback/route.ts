@@ -204,6 +204,11 @@ export async function GET(request: Request) {
         is_active: true,
         connected_by: ctx.userId,
         connected_at: new Date().toISOString(),
+        // Sync runs both ways, always. These were Settings switches once;
+        // a reconnect puts any row that had one switched off back on.
+        auto_sync: true,
+        push_contacts: true,
+        push_deals: true,
         updated_at: new Date().toISOString(),
         // Clear any leftover per-account credentials when the token we
         // just stored was minted by the PLATFORM app.
@@ -236,21 +241,24 @@ export async function GET(request: Request) {
       metadata: { org_name: org.name ?? null, api_domain: tokens.apiDomain },
     });
 
-    // Automatic sync: subscribe the Notification API channel now, so
+    // Zoho → Instant: subscribe the Notification API channel now, so
     // events start arriving without a Workflow Rule. Soft — a Zoho
     // edition without notifications, or any other refusal, leaves a
     // working connection and the reason on the row for Settings to
-    // show; the manual Workflow Rule path is still there.
-    const watch = await syncZohoWatch(db, ctx.accountId).catch(() => ({
-      state: 'error' as const,
-      error: 'Could not set up automatic sync.',
-    }));
+    // show; the manual Workflow Rule path is still there, and the
+    // hourly cron retries daily.
+    await syncZohoWatch(db, ctx.accountId).catch(() => null);
 
-    return finish({
-      connected: '1',
-      org: org.name ?? 'Zoho CRM',
-      autosync: watch.state,
-    });
+    // Instant → Zoho: bring over everything already here. Records that
+    // are linked and unchanged cost the worker a lookup and nothing in
+    // Zoho, so a reconnect running this again is harmless.
+    try {
+      await db.rpc('zoho_backfill', { p_account: ctx.accountId, p_deals: true });
+    } catch {
+      // Queued edits still flow; only the catch-up is missed.
+    }
+
+    return finish({ connected: '1', org: org.name ?? 'Zoho CRM' });
   } catch (err) {
     return fail(
       err instanceof Error
