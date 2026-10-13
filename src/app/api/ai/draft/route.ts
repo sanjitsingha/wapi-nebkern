@@ -12,8 +12,12 @@ import { AiError } from '@/lib/ai/types'
 /**
  * POST /api/ai/draft  (agent+)
  *
- * Body: { conversation_id }
+ * Body: { conversation_id, message_id? }
  * Returns: { draft } — a suggested reply for the agent to edit + send.
+ *
+ * With `message_id` (the inbox's "Reply with AI" on one message) the
+ * draft answers THAT message: the transcript ends at it, and the
+ * knowledge base is searched with its words.
  *
  * Uses the account's configured provider/key (BYO). Read-only: it never
  * sends or stores anything, just hands text back to the composer.
@@ -34,6 +38,8 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => null)
     const conversationId =
       body && typeof body.conversation_id === 'string' ? body.conversation_id : ''
+    const messageId =
+      body && typeof body.message_id === 'string' ? body.message_id : ''
     if (!conversationId) {
       return NextResponse.json(
         { error: 'conversation_id is required' },
@@ -74,7 +80,38 @@ export async function POST(request: Request) {
       )
     }
 
-    const messages = await buildConversationContext(supabase, conversationId)
+    // The message being replied to, when there is one. Looked up within
+    // this conversation, so an id from elsewhere is simply not found.
+    let target: { created_at: string; content_type: string; content_text: string | null } | null =
+      null
+    if (messageId) {
+      const { data } = await supabase
+        .from('messages')
+        .select('created_at, content_type, content_text')
+        .eq('id', messageId)
+        .eq('conversation_id', conversationId)
+        .maybeSingle()
+      if (!data) {
+        return NextResponse.json({ error: 'Message not found' }, { status: 404 })
+      }
+      target = data
+    }
+
+    const messages = await buildConversationContext(
+      supabase,
+      conversationId,
+      undefined,
+      target?.created_at,
+    )
+    // A photo, voice note or document has no text of its own in the
+    // transcript; say what it was, so the reply can acknowledge it.
+    if (target && target.content_type !== 'text') {
+      const caption = target.content_text?.trim()
+      messages.push({
+        role: 'user',
+        content: `[The customer sent ${target.content_type === 'audio' ? 'a voice note' : `a ${target.content_type}`}${caption ? `: ${caption}` : ''}]`,
+      })
+    }
     // Nothing to draft from — a brand-new thread with no customer text
     // would otherwise produce a nonsensical reply-to-nothing.
     if (messages.length === 0) {

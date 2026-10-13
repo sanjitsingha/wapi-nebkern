@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/tooltip";
 import { formatDetailedMetaError } from "@/lib/whatsapp/errors";
 import { PersonAvatar } from "@/components/ui/person-avatar";
+import { AiReplyPopover } from "./ai-reply-popover";
 
 interface MessageBubbleProps {
   message: Message;
@@ -48,6 +49,14 @@ interface MessageBubbleProps {
     avatarUrl?: string | null;
     /** Fixes the avatar colour — the contact id, as everywhere else. */
     seed: string;
+  };
+  /** "Reply with AI" for an incoming message: the ✨ at the bubble's
+   *  top right opens a panel beside it that writes, and sends, a reply
+   *  to this message. Omitted when the account has no AI assistant. */
+  aiReply?: {
+    /** Why a reply cannot be sent now, shown instead of writing one. */
+    blockedReason?: string | null;
+    onSend: (text: string) => void;
   };
 }
 
@@ -386,6 +395,7 @@ export function MessageBubble({
   onToggleReaction,
   channel = "whatsapp",
   sender,
+  aiReply,
 }: MessageBubbleProps) {
   const isAgent = message.sender_type === "agent" || message.sender_type === "bot";
   const time = format(new Date(message.created_at), "HH:mm");
@@ -403,9 +413,19 @@ export function MessageBubble({
         />
         <div className="flex min-w-0 flex-col items-start">
           <div className="relative min-w-40 rounded-lg bg-card px-3 py-2 text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.08)] ring-1 ring-black/5 dark:ring-white/10">
-            <p className="mb-0.5 truncate text-[13px] font-semibold text-emerald-600 dark:text-emerald-400">
-              {sender.name}
-            </p>
+            <div className="mb-0.5 flex items-center justify-between gap-3">
+              <p className="truncate text-[13px] font-semibold text-emerald-600 dark:text-emerald-400">
+                {sender.name}
+              </p>
+              {aiReply && (
+                <AiReplyPopover
+                  conversationId={message.conversation_id}
+                  messageId={message.id}
+                  blockedReason={aiReply.blockedReason}
+                  onSend={aiReply.onSend}
+                />
+              )}
+            </div>
             {reply && (
               <ReplyQuote
                 authorLabel={reply.authorLabel}

@@ -110,6 +110,9 @@ interface MessageComposerProps {
   /** Instagram has no templates and (for now) no document/voice-note
    *  attachments — those affordances are hidden on that channel. */
   channel: ConversationChannel;
+  /** Told whether the AI assistant is live for this account, so the
+   *  thread shows ✨ "Reply with AI" on bubbles only when it would work. */
+  onAiAvailable?: (active: boolean) => void;
 }
 
 function formatDuration(seconds: number): string {
@@ -133,6 +136,7 @@ export function MessageComposer({
   replyTo,
   onClearReply,
   channel,
+  onAiAvailable,
 }: MessageComposerProps) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -242,7 +246,9 @@ export function MessageComposer({
         const res = await fetch("/api/ai/config");
         const data = await res.json().catch(() => ({}));
         if (!cancelled) {
-          setAiActive(Boolean(data?.configured && data?.is_active));
+          const active = Boolean(data?.configured && data?.is_active);
+          setAiActive(active);
+          onAiAvailable?.(active);
         }
       } catch {
         // Leave the button hidden on error.
@@ -251,7 +257,9 @@ export function MessageComposer({
     return () => {
       cancelled = true;
     };
-  }, []);
+    // The thread passes a state setter, which is stable, so this still
+    // checks once per mount.
+  }, [onAiAvailable]);
 
   const adjustHeight = useCallback(() => {
     const el = textareaRef.current;
@@ -762,7 +770,7 @@ export function MessageComposer({
               type="button"
               variant="ghost"
               size="sm"
-              onClick={handleDraft}
+              onClick={() => void handleDraft()}
               disabled={inputsDisabled || drafting}
               title="Draft a reply with AI"
               className="h-10 w-10 shrink-0 p-0 text-primary hover:bg-primary-soft/60 hover:text-primary disabled:opacity-50"
@@ -785,7 +793,9 @@ export function MessageComposer({
                 ? "Read-only — viewers can browse but not reply"
                 : sessionExpired
                   ? "Session expired - use a template"
-                  : "Type a message... (Shift+Enter for new line)"
+                  : drafting
+                    ? "✨ Writing a reply…"
+                    : "Type a message... (Shift+Enter for new line)"
             }
             disabled={sessionExpired || readOnly}
             rows={1}

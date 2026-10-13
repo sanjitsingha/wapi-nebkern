@@ -15,17 +15,24 @@ interface DbMessage {
  *
  * Ordered oldest-first (chronological) so the transcript reads
  * naturally and the most recent customer message lands last.
+ *
+ * `until` (a created_at) ends the transcript at that message, for a
+ * reply to one particular message: the model then answers it as the
+ * latest thing said, not whatever came after it.
  */
 export async function buildConversationContext(
   db: SupabaseClient,
   conversationId: string,
   limit: number = aiContextMessageLimit(),
+  until?: string,
 ): Promise<ChatMessage[]> {
-  const { data, error } = await db
+  let query = db
     .from('messages')
     .select('sender_type, content_text')
     .eq('conversation_id', conversationId)
     .eq('content_type', 'text')
+  if (until) query = query.lte('created_at', until)
+  const { data, error } = await query
     .order('created_at', { ascending: false })
     .limit(limit)
 

@@ -824,6 +824,11 @@ export function MessageThread({
     [authorLabelFor],
   );
 
+  // Whether the account's AI assistant is live (the composer finds out
+  // and tells us): the ✨ "Reply with AI" on incoming bubbles shows only
+  // then.
+  const [aiAvailable, setAiAvailable] = useState(false);
+
   // Single reaction-set primitive. emoji === "" removes; otherwise adds/swaps.
   // The "toggle" semantic (pill click) is computed at the call site where the
   // current reactions for the bubble are already in scope — keeps this
@@ -1441,6 +1446,19 @@ export function MessageThread({
                             isMetaDm ? undefined : handlePillToggle
                           }
                           channel={conversation.channel}
+                          aiReply={
+                            aiAvailable && msg.sender_type === "customer"
+                              ? {
+                                  // Free text cannot go out once
+                                  // WhatsApp's 24-hour window has closed.
+                                  blockedReason:
+                                    !isMetaDm && sessionInfo.expired
+                                      ? "The 24-hour reply window has closed — send a template instead."
+                                      : null,
+                                  onSend: (text: string) => handleSend(text, msg.id),
+                                }
+                              : undefined
+                          }
                           sender={
                             msg.sender_type === "customer"
                               ? {
@@ -1472,6 +1490,7 @@ export function MessageThread({
         replyTo={replyTo}
         onClearReply={() => setReplyTo(null)}
         channel={conversation.channel}
+        onAiAvailable={setAiAvailable}
       />
 
       {!isMetaDm && (
