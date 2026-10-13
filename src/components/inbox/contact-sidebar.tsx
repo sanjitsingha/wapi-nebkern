@@ -27,6 +27,7 @@ import {
   LayoutList,
   Users,
   SlidersHorizontal,
+  Blocks,
   Link2,
   Sparkles,
   Bot,
@@ -37,6 +38,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { useCallCenter } from "@/components/calls/call-center";
 import { ContactCallHistory } from "@/components/calls/contact-call-history";
 import { TeamThread } from "@/components/inbox/team-thread";
+import { IntegrationsTab } from "@/components/inbox/integrations-tab";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PersonAvatar } from "@/components/ui/person-avatar";
 import {
@@ -47,7 +49,14 @@ import {
 import { formatDetailedMetaError } from "@/lib/whatsapp/errors";
 import { toast } from "sonner";
 
-type PanelTab = 'overview' | 'deals' | 'calls' | 'team' | 'issues' | 'details';
+type PanelTab =
+  | 'overview'
+  | 'deals'
+  | 'calls'
+  | 'team'
+  | 'issues'
+  | 'details'
+  | 'integrations';
 
 interface ContactSidebarProps {
   contact: Contact | null;
@@ -411,6 +420,7 @@ export function ContactSidebar({
       tone: 'alert',
     },
     { key: 'details', label: 'Details', icon: SlidersHorizontal },
+    { key: 'integrations', label: 'Integrations', icon: Blocks },
   ];
 
   return (
@@ -473,7 +483,7 @@ export function ContactSidebar({
       <div
         role="tablist"
         aria-label="Contact panel"
-        className="flex shrink-0 items-center gap-0.5 border-b border-border px-2"
+        className="flex shrink-0 items-center gap-0.5 overflow-x-auto border-b border-border px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {tabs.map(({ key, label, icon: Icon, badge, tone }) => {
           const active = tab === key;
@@ -487,7 +497,7 @@ export function ContactSidebar({
               title={label}
               onClick={() => selectTab(key)}
               className={cn(
-                'relative flex items-center gap-1.5 px-2.5 py-3 text-xs font-medium transition-colors',
+                'relative flex shrink-0 items-center gap-1.5 px-2 py-3 text-xs font-medium transition-colors',
                 active
                   ? 'text-primary'
                   : 'text-muted-foreground hover:text-foreground',
@@ -510,7 +520,7 @@ export function ContactSidebar({
               </span>
               {active && <span className="whitespace-nowrap">{label}</span>}
               {active && (
-                <span className="bg-primary absolute inset-x-1.5 -bottom-px h-0.5 rounded-full" />
+                <span className="bg-primary absolute inset-x-1.5 bottom-0 h-0.5 rounded-full" />
               )}
             </button>
           );
@@ -798,6 +808,8 @@ export function ContactSidebar({
             )}
           </PanelSection>
         )}
+        {tab === 'integrations' && <IntegrationsTab contactId={contact.id} />}
+
         {tab === 'details' && (
           <DetailsTab
             contact={contact}
