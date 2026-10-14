@@ -10,7 +10,7 @@ import { JsonLd } from '@/components/json-ld';
 import { ORGANIZATION_SCHEMA, getBreadcrumbSchema } from '@/lib/marketing/schema';
 
 // ============================================================
-// Shared shell for the legal pages — the eleven policies in
+// Shared shell for the legal pages — the twelve policies in
 // `legal-links.ts`, plus contact.
 //
 // Same nav/footer as the rest of the site, but deliberately restrained
@@ -33,27 +33,29 @@ import { ORGANIZATION_SCHEMA, getBreadcrumbSchema } from '@/lib/marketing/schema
 /* ─── Blocks ──────────────────────────────────────────────────────── */
 
 const LEGAL_FACTS: Record<string, string> = {
+  /** The product, as named in Meta's App Dashboard. */
+  PRODUCT: 'Instant',
+  SITE: 'instant.nebkern.com',
+  /** Exactly as on the Meta Business verification and Razorpay account. */
   COMPANY: 'Nebkern Technology',
-  /** How the business is constituted. Named in the Terms and the DPA so
-   *  a customer knows exactly which legal person they are contracting
-   *  with — "Nebkern Technology" alone does not say. */
-  ENTITY: 'a sole proprietorship',
-  ADDRESS: 'Siliguri, West Bengal, India',
-  // A role address, not a personal one. Policy pages outlive the person
-  // reading the inbox, and a gmail address on a Terms page undercuts
-  // every claim of process the page goes on to make.
+  /** How the business is constituted, so a customer knows which legal
+   *  person they contract with — "Nebkern Technology" alone does not. */
+  ENTITY: 'a sole proprietorship owned by Sanjit Singha',
+  PROPRIETOR: 'Sanjit Singha',
+  ADDRESS: 'Ghoshpukur, Kamala Bagan, Darjeeling, West Bengal 734426, India',
+  // A role address, not a personal one: policy pages outlive whoever
+  // reads the inbox. Monitored — every request on these pages goes here.
   EMAIL: 'contact@instant.nebkern.com',
-  CITY: 'Siliguri',
-  GRIEVANCE: 'Sanjit Singh',
+  /** Published at the user's request (2026-10-14) for payment-gateway
+   *  and Meta review. A number on a policy page must stay answered. */
+  PHONE: '+91 92390 64013',
+  /** Courts named in the Terms for disputes. */
+  JURISDICTION: 'the competent courts at Darjeeling district, West Bengal',
+  GRIEVANCE: 'Sanjit Singha, Proprietor',
   HOSTING:
-    'Hostinger for application hosting, with Cloudflare R2 for media delivery',
+    'Cloudonfire (application servers), Supabase in Mumbai, India (database, authentication and file storage) and Cloudflare R2 (media storage and delivery)',
   SECURITY_EMAIL: 'contact@instant.nebkern.com',
 };
-// No PHONE. It was a personal mobile, and a number published on a
-// policy page is a number that must stay answered — email is the
-// contact route these pages promise, and the one that is actually
-// monitored. Worth revisiting if a payment gateway asks for a phone
-// number during review.
 
 export type LegalBlock =
   | { p: string }
@@ -170,7 +172,14 @@ export function LegalPage({
   };
 
   return (
-    <>
+    <div
+      className="min-h-screen bg-white"
+      // The cream comes from these two tokens (lp2.css, whatsapp.css);
+      // redefining them here turns every surface inside a legal page —
+      // nav, header band, body and footer — white, in both site designs,
+      // without touching the rest of the marketing site.
+      style={{ '--lp2-cream': '#ffffff', '--wa-canvas': '#ffffff' } as React.CSSProperties}
+    >
       <JsonLd schema={schema} />
       <Lp2Nav />
 
@@ -178,8 +187,8 @@ export function LegalPage({
         {/* ── Header band ──
             No blobs, no rotation, no sticker shadow, and no coloured
             rule across the top — a policy page reads as a document, and
-            a stripe that changes colour per document just makes eleven
-            of them look like eleven unrelated sites. The hue survives
+            a stripe that changes colour per document just makes twelve
+            of them look like twelve unrelated sites. The hue survives
             only on the section numbers below. */}
         <section className="border-b border-(--lp2-ink)/10 pt-8 sm:pt-10">
           <div className="mx-auto max-w-4xl px-4 pt-4 pb-14 sm:px-6">
@@ -242,6 +251,6 @@ export function LegalPage({
       </main>
 
       <Lp2Footer />
-    </>
+    </div>
   );
 }

@@ -13,6 +13,7 @@
  */
 export const LEGAL_LINKS: { label: string; href: string }[] = [
   { label: 'Privacy Policy', href: '/privacy' },
+  { label: 'Data Deletion', href: '/data-deletion' },
   { label: 'Terms of Service', href: '/terms' },
   { label: 'Cookie Policy', href: '/cookies' },
   { label: 'Refund & Cancellation', href: '/refunds' },

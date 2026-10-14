@@ -32,7 +32,9 @@ export const ORGANIZATION_SCHEMA = {
   logo: 'https://media.instant.nebkern.com/assets/meta-logo.png',
   address: {
     '@type': 'PostalAddress',
-    addressLocality: 'Siliguri',
+    streetAddress: 'Ghoshpukur, Kamala Bagan',
+    addressLocality: 'Darjeeling',
+    postalCode: '734426',
     addressRegion: 'West Bengal',
     addressCountry: 'IN',
   },

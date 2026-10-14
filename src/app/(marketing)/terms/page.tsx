@@ -4,7 +4,7 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 
 export const metadata: Metadata = {
   alternates: { canonical: '/terms' },
-  title: { absolute: 'Terms & Conditions — Instant for WhatsApp Business' },
+  title: { absolute: 'Terms of Service — Instant for WhatsApp Business' },
   description:
     'The agreement between you and Instant — accounts, billing, acceptable use, WhatsApp Business Platform obligations, liability and termination.',
   robots: { index: true, follow: true },
@@ -16,13 +16,13 @@ const SECTIONS: LegalSection[] = [
     heading: 'The agreement',
     blocks: [
       {
-        p: 'These Terms are a contract between you and {{COMPANY}}, {{ENTITY}} based at {{ADDRESS}} ("we", "us"). They govern your use of the Instant application, its APIs and everything we provide with them (the "Service"). By creating an account, or by using the Service, you accept them.',
+        p: 'These Terms of Service are a contract between you and {{COMPANY}}, {{ENTITY}}, with its registered address at {{ADDRESS}} ("we", "us"). They govern your use of {{PRODUCT}} ({{SITE}}), its web application, APIs, the {{PRODUCT}} app on Meta’s platform and everything we provide with them (the "Service"). By creating an account, or by using the Service, you accept them.',
       },
       {
         p: 'If you are accepting on behalf of a company, you confirm you are authorised to bind it, and "you" means that company. The Service is for business use — you must be at least 18 and legally able to enter a contract.',
       },
       {
-        p: 'Our Privacy Policy, Acceptable Use Policy, and Cancellation & Refund Policy are part of these Terms by reference.',
+        p: 'Our Privacy Policy, Acceptable Use Policy, WhatsApp Messaging and Marketing Policies, Cancellation & Refund Policy and Data Processing Agreement form part of these Terms by reference.',
       },
     ],
   },
@@ -45,13 +45,13 @@ const SECTIONS: LegalSection[] = [
     heading: 'Plans, billing and taxes',
     blocks: [
       {
-        p: 'The Service is sold on a monthly subscription. Prices, seat counts, contact limits and storage caps for each plan are shown on our pricing page, and the limits in your plan are enforced in the product.',
+        p: 'The Service is sold as a subscription, billed monthly or yearly. Prices, seat counts, contact limits and storage caps for each plan are shown on our pricing page, and the limits in your plan are enforced in the product.',
       },
       {
         ul: [
           'Fees are charged in advance for each billing period and are stated in Indian Rupees unless we agree otherwise in writing.',
-          'Payments are processed by our payment provider. By subscribing you authorise the charge for the plan you chose, including recurring charges until you cancel.',
-          'Prices exclude taxes. You are responsible for GST and any other applicable tax, which we add where we are required to collect it.',
+          'Payments are processed by our payment provider, Razorpay. By subscribing you authorise the charge for the plan and billing period you chose, including recurring charges until you cancel.',
+          'Prices exclude taxes. You are responsible for any applicable taxes, which we add where we are required by law to collect them.',
           'If a payment fails we may retry it and may suspend the Service after notice until the balance clears.',
           'We may change prices with at least 30 days’ notice by email. A price change takes effect at your next renewal, and you can cancel before then.',
           'Exceeding a plan limit may require an upgrade before you can add more seats, contacts or storage.',
@@ -95,12 +95,12 @@ const SECTIONS: LegalSection[] = [
     heading: 'WhatsApp, Instagram and Meta',
     blocks: [
       {
-        p: 'The Service runs on the official WhatsApp Business Platform and Meta’s messaging APIs. Your use of those channels is also governed by Meta’s own terms and policies, including the WhatsApp Business Messaging Policy and Commerce Policy, and you agree to comply with them.',
+        p: 'The Service runs on the official WhatsApp Business Platform and Meta’s Instagram and Messenger APIs. Your use of those channels is also governed by Meta’s own terms and policies — including the WhatsApp Business Terms of Service, WhatsApp Business Messaging Policy, WhatsApp Commerce Policy and Meta’s Platform Terms — and you agree to comply with them.',
       },
       {
         ul: [
           'You are responsible for your WhatsApp Business account, your display name, your message templates and their approval status.',
-          'Meta charges its own conversation and template fees. Unless your plan states otherwise, those are billed to you by Meta and are not included in our subscription fee.',
+          'Meta charges its own fees for WhatsApp template messages. Unless your plan states otherwise, those are billed to you by Meta and are not included in our subscription fee.',
           'Meta may change, throttle, suspend or withdraw its APIs, or suspend your number, on its own terms and timeline. We do not control that and are not liable for it.',
           'Quality ratings and messaging limits are assigned by Meta based on how your recipients react to your messages. Poor practice lowers them; we cannot restore them for you.',
         ],
@@ -139,7 +139,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'Third-party services',
     blocks: [
       {
-        p: 'The Service can connect to tools we do not control — Zapier, Make, n8n, AI model providers, payment providers and any system you point our API or webhooks at. Those integrations are between you and that provider, on their terms. We are not responsible for what they do with data you send them, and enabling an integration is your instruction to us to send it.',
+        p: 'The Service can connect to tools we do not control — Google (Sign in with Google and Google Sheets), Zoho CRM, Shopify, WooCommerce, Zapier, Make, n8n, AI model providers you connect with your own API key, and any system you point our API or webhooks at. Those services are provided by their owners, on their own terms. We are not responsible for what they do with data you send them, and enabling an integration is your instruction to us to exchange data with it.',
       },
     ],
   },
@@ -167,10 +167,10 @@ const SECTIONS: LegalSection[] = [
     blocks: [
       {
         ul: [
-          'You may cancel at any time from your billing settings. Cancellation takes effect at the end of the current billing period; see our Cancellation & Refund Policy for what is and is not refundable.',
+          'You may cancel at any time from Settings → Billing. Cancellation takes effect at the end of the current billing period; see our Cancellation & Refund Policy for what is and is not refundable.',
           'We may suspend or terminate your account if you materially breach these Terms and do not fix it within 14 days of notice — or immediately, without notice, for Acceptable Use breaches, non-payment after notice, or activity that puts our platform or other customers at risk.',
           'We may also terminate for convenience with 30 days’ notice, refunding any prepaid, unused fees.',
-          'On termination your right to use the Service stops. Export your data first: after closure we delete or anonymise workspace data as described in the Privacy Policy.',
+          'On termination your right to use the Service stops. Export your data first: after closure we delete workspace data as described in our Data Retention & Deletion Policy. You can also delete your account yourself at any time — see our Data Deletion page.',
           'Clauses that should outlive the agreement — payment owed, intellectual property, confidentiality, disclaimers, liability, indemnity and governing law — survive it.',
         ],
       },
@@ -214,10 +214,10 @@ const SECTIONS: LegalSection[] = [
     heading: 'Governing law and disputes',
     blocks: [
       {
-        p: 'These Terms are governed by the laws of India, without regard to conflict-of-laws rules. The courts of {{CITY}} have exclusive jurisdiction, and both of us submit to it.',
+        p: 'These Terms are governed by the laws of India, without regard to conflict-of-laws rules. Subject to the dispute process below, {{JURISDICTION}} have exclusive jurisdiction, and both of us submit to it.',
       },
       {
-        p: 'Before filing anything, please email {{EMAIL}} and give us 30 days to resolve it — most disputes end there.',
+        p: 'Before starting any formal proceedings, please email {{EMAIL}} and give us 30 days to resolve the matter — most disputes end there.',
       },
     ],
   },
@@ -235,7 +235,7 @@ const SECTIONS: LegalSection[] = [
           'These Terms, with the policies they reference, are the entire agreement between us and replace any earlier understanding.',
         ],
       },
-      { p: 'Questions about these Terms: {{EMAIL}}.' },
+      { p: 'Questions about these Terms: {{EMAIL}} or {{PHONE}}. {{COMPANY}}, {{ADDRESS}}.' },
     ],
   },
 ];
@@ -243,9 +243,9 @@ const SECTIONS: LegalSection[] = [
 export default function Lp2TermsPage() {
   return (
     <LegalPage
-      title="Terms & Conditions"
+      title="Terms of Service"
       hue="grape"
-      updated="25 July 2026"
+      updated="14 October 2026"
       intro="The rules of the road: what you can expect from us, what we need from you, and what happens when something goes wrong."
       sections={SECTIONS}
     />

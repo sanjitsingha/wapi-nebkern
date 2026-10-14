@@ -41,13 +41,15 @@ const SECTIONS: LegalSection[] = [
       },
       {
         ul: [
-          'Supabase — managed PostgreSQL database, authentication and file storage. Sees essentially all workspace data: account and user records, contacts, message history, attachments and avatars. This is where your workspace lives.',
+          'Supabase (Mumbai, India) — managed PostgreSQL database, authentication and file storage. Holds essentially all workspace data: account and user records, contacts, message history, attachments and avatars. This is where your workspace lives.',
+          'Cloudonfire — the servers that run the {{PRODUCT}} web application and its APIs. Processes request data, including IP addresses, and handles workspace data in transit.',
+          'Cloudflare — R2 object storage and delivery for message media, and Turnstile bot protection on our public forms. Holds the media files exchanged in conversations; Turnstile sees the technical details of a form visit, not workspace data.',
+          'DeoMail — delivery of the emails we send: sign-in and verification links, account, billing and security notices, and newsletters you subscribe to. Sees the recipient’s email address and the content of those emails.',
           'Meta Platforms — the WhatsApp Business Platform, Instagram and Messenger. Sees the messages, phone numbers and profile identifiers of every conversation on those channels, necessarily, because it is the network carrying them. Meta acts as an independent controller under its own terms, not merely as our subprocessor.',
-          '{{HOSTING}} — application hosting and content delivery for the Instant web application and its APIs. Processes request data including IP addresses, and handles data in transit.',
         ],
       },
       {
-        note: 'Workspace data is hosted in Mumbai, India (ap-south-1). Meta processes message data across its own global infrastructure under its terms, which is outside our control and unavoidable on any WhatsApp Business Platform product.',
+        note: 'Workspace data is hosted in Mumbai, India (ap-south-1). Meta, Google and Cloudflare process data across their own global infrastructure under their terms, which is unavoidable on any WhatsApp Business Platform product.',
       },
     ],
   },
@@ -61,7 +63,7 @@ const SECTIONS: LegalSection[] = [
         ],
       },
       {
-        p: 'Meta bills conversation charges to your own WhatsApp Business Account separately from your Instant subscription. That relationship is between you and Meta.',
+        p: 'Meta bills its WhatsApp message charges to your own WhatsApp Business Account, separately from your {{PRODUCT}} subscription. That relationship is between you and Meta.',
       },
     ],
   },
@@ -74,7 +76,7 @@ const SECTIONS: LegalSection[] = [
       },
       {
         ul: [
-          'Google — two separate things, both optional. Sign-in with Google, where you or your team choose it, sees the email address and basic profile of the person signing in, and only at sign-in. Google Analytics 4 runs on the public marketing pages only, and only for visitors who accept cookies: it sees the pages visited and the coarse technical details any web request carries. Neither touches the signed-in app or any of your workspace data.',
+          'Google — three separate things, all optional. Sign in with Google, where you or your team choose it, sees the email address and basic profile of the person signing in, and only at sign-in. Google Sheets, when you connect it, receives the contact and event rows you set up, written only to spreadsheets {{PRODUCT}} creates or you choose (the "drive.file" permission). Google Analytics 4 runs on the public marketing pages only, and only for visitors who accept cookies.',
           'Umami — cookieless page-view analytics, where enabled on this deployment. Sees the page visited plus the coarse technical details any web request carries (browser, device type, approximate country from IP). It sets no cookies, does not follow visitors between sites, and does not receive any of your workspace data.',
           'OpenAI — AI reply generation and embeddings, when you configure an OpenAI key. Sees the prompts, knowledge-base content and message text needed to draft a reply.',
           'Anthropic — AI reply generation, when you configure an Anthropic key. Same scope as above.',
@@ -91,10 +93,12 @@ const SECTIONS: LegalSection[] = [
     heading: 'Providers you introduce yourself',
     blocks: [
       {
-        p: 'When you connect your own systems, you extend the chain beyond this list and take responsibility for that part of it:',
+        p: 'When you connect your own accounts and systems, you extend the chain beyond this list and take responsibility for that part of it. Each provider below acts under its own terms with you:',
       },
       {
         ul: [
+          'Zoho CRM — when you connect it, leads, contacts, deals and conversation notes are exchanged between {{PRODUCT}} and your Zoho organisation.',
+          'Shopify and WooCommerce — when you connect a store, its order events and customer contact details are sent to {{PRODUCT}}.',
           'Outbound webhooks deliver event data to endpoints you nominate — Zapier, Make, n8n or your own backend.',
           'API keys let software you choose read and write your workspace data.',
           'Data you export leaves the Service entirely.',
@@ -128,7 +132,7 @@ export default function Lp2SubprocessorsPage() {
     <LegalPage
       title="Subprocessor List"
       hue="pop"
-      updated="5 August 2026"
+      updated="14 October 2026"
       intro="Every third party that touches your data to make Instant work — what each one does, what it can see, and how to object if you would rather we did not use one."
       sections={SECTIONS}
     />

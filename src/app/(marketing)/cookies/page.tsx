@@ -21,7 +21,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'What this covers',
     blocks: [
       {
-        p: 'A cookie is a small file a site stores in your browser so it can recognise you on the next request. Related technologies — local storage and session storage — do much the same job with different plumbing. This policy covers all of them, and applies to the Instant website and web application operated by {{COMPANY}}.',
+        p: 'A cookie is a small file a site stores in your browser so it can recognise you on the next request. Related technologies — local storage and session storage — do much the same job with different plumbing. This policy covers all of them, and applies to the {{PRODUCT}} website and web application ({{SITE}}) operated by {{COMPANY}}.',
       },
       {
         p: 'It sits alongside our Privacy Policy, which explains the wider picture of what personal data we hold and why.',
@@ -78,7 +78,8 @@ const SECTIONS: LegalSection[] = [
           'Google, for Google Analytics 4 on the public marketing pages — only after you accept. It sets `_ga` and `_ga_<id>`, which distinguish one browser from another so a returning visit is not counted as a new one. They last up to two years, are never set inside the signed-in app, and declining means they are never set at all.',
           'Meta, when you connect a WhatsApp, Instagram or Facebook Page account. Its login window runs on Meta’s own domain, under Meta’s cookie policy, and we never see those cookies.',
           'Google, if you sign in with Google. The consent screen is Google’s and so are its cookies.',
-          'Our payment processor, during checkout, for fraud prevention and to complete the transaction.',
+          'Razorpay, our payment processor, during checkout, for fraud prevention and to complete the transaction.',
+          'Cloudflare, whose Turnstile check protects our public forms (contact, newsletter and similar) from bots. It verifies that a real browser is present without setting advertising or tracking cookies.',
         ],
       },
       {
@@ -93,7 +94,7 @@ const SECTIONS: LegalSection[] = [
       {
         ul: [
           'Every major browser can block or delete cookies, per site or globally — look under Privacy or Site settings. Blocking cookies for this domain will log you out and keep you logged out.',
-          'Where we show a consent banner, you can change your answer at any time from the link in the footer, and we will act on the change immediately.',
+          'You can change your cookie choice at any time with "Cookie settings" in the footer of every page. If you withdraw consent, Google Analytics stops collecting immediately.',
           'Browser "Do Not Track" and Global Privacy Control signals are honoured where the law requires us to honour them.',
           'Clearing your browser storage also clears saved interface preferences. Nothing in your workspace data is affected — that lives on our servers, not in your browser.',
         ],
@@ -119,7 +120,7 @@ export default function Lp2CookiePolicyPage() {
     <LegalPage
       title="Cookie Policy"
       hue="lemon"
-      updated="5 August 2026"
+      updated="14 October 2026"
       intro="A logged-in tool needs surprisingly few cookies. Here is every one Instant sets, what it does, and how to switch off the ones that are optional."
       sections={SECTIONS}
     />

@@ -95,6 +95,7 @@ const LEGAL = [
   '/refunds',
   '/acceptable-use',
   '/data-retention',
+  '/data-deletion',
   '/subprocessors',
   '/whatsapp-marketing-policy',
   '/whatsapp-messaging-policy',

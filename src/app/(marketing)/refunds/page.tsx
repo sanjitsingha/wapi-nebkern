@@ -22,10 +22,10 @@ const SECTIONS: LegalSection[] = [
     heading: 'How billing works',
     blocks: [
       {
-        p: 'Instant is a monthly subscription, charged in advance. When you subscribe, you are billed for the month ahead and the plan’s features unlock immediately. The subscription renews automatically each month until you cancel it.',
+        p: '{{PRODUCT}} is a subscription, billed monthly or yearly and charged in advance. When you subscribe you are billed for the period ahead, and the plan’s features unlock immediately. The subscription renews automatically at the end of each period until you cancel it.',
       },
       {
-        p: 'All prices are in Indian Rupees and exclude applicable taxes, which are added where we are required to collect them. Payments are handled by our payment processor; we never store your card or UPI details.',
+        p: 'All prices are in Indian Rupees and exclude applicable taxes, which are added where we are required by law to collect them. Payments are processed by Razorpay; your card, UPI and bank details go directly to Razorpay and are never stored on our servers.',
       },
     ],
   },
@@ -65,7 +65,7 @@ const SECTIONS: LegalSection[] = [
           'Cancellation stops the next renewal. Your plan stays active until the end of the period you have already paid for.',
           'At the end of that period the account moves to a read-only state: you can still sign in and export your data, but you cannot send messages.',
           'Your data is retained as described in our Privacy Policy, so you can reactivate later without losing your history.',
-          'To delete your workspace and its data outright rather than just stop billing, email {{EMAIL}} and we will action it.',
+          'To delete your workspace and its data outright rather than just stop billing, the account owner can do it from Settings → Profile → Delete account, or email {{EMAIL}}. See our Data Deletion page for the details.',
         ],
       },
     ],
@@ -81,14 +81,15 @@ const SECTIONS: LegalSection[] = [
           'A technical failure on our side that made the Service materially unusable for a sustained period and that we could not resolve — refunded pro-rata for the affected time, or in full at our discretion.',
           'A charge taken after you had already cancelled — refunded in full.',
           'A plan that never activated after payment, as described in section 2 — refunded in full.',
+          'A yearly plan cancelled within 7 days of the yearly charge — refunded in full.',
           'Where consumer law in your jurisdiction gives you a refund right that overrides this policy — honoured, of course.',
         ],
       },
       { p: 'We do not normally refund:' },
       {
         ul: [
-          'Part-used billing periods where you simply changed your mind or stopped using the Service. The 14-day free trial exists so you can evaluate Instant before paying anything.',
-          'Charges from Meta for WhatsApp conversations or template messages. Those are billed by Meta on its own terms and we cannot reverse them.',
+          'Part-used billing periods where you simply changed your mind or stopped using the Service — including the rest of a yearly plan after its first 7 days. The 14-day free trial exists so you can evaluate {{PRODUCT}} before paying anything.',
+          'Charges from Meta for WhatsApp template messages. Those are billed by Meta on its own terms and we cannot reverse them.',
           'Periods where the Service worked but your WhatsApp number was restricted, throttled or banned by Meta — including as a result of message quality or policy breaches.',
           'Accounts suspended or terminated for breaching our Terms or Acceptable Use Policy.',
         ],
@@ -140,7 +141,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'Contact',
     blocks: [
       {
-        p: 'Billing questions, cancellations and refunds: {{EMAIL}}. We reply within one working day. Postal address: {{COMPANY}}, {{ADDRESS}}.',
+        p: 'Billing questions, cancellations and refunds: {{EMAIL}} or {{PHONE}}. We reply within one working day. Postal address: {{COMPANY}}, {{ADDRESS}}.',
       },
     ],
   },
@@ -151,7 +152,7 @@ export default function Lp2RefundsPage() {
     <LegalPage
       title="Cancellation & Refunds"
       hue="tangerine"
-      updated="25 July 2026"
+      updated="14 October 2026"
       intro="Cancel yourself in two clicks, keep what you paid for until the period ends, and here — in plain words — is exactly when money comes back."
       sections={SECTIONS}
     />

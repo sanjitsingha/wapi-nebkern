@@ -46,6 +46,17 @@ export function setCookieConsent(value: CookieConsent): void {
   for (const fn of listeners) fn();
 }
 
+/** Forget the choice so the prompt asks again — the footer's "Cookie
+ *  settings" link. The Cookie Policy promises this is always possible. */
+export function resetCookieConsent(): void {
+  try {
+    window.localStorage.removeItem(COOKIE_CONSENT_KEY);
+  } catch {
+    // Storage blocked: the prompt shows anyway, since nothing was stored.
+  }
+  for (const fn of listeners) fn();
+}
+
 /* ─── Subscription ────────────────────────────────────────────────────
  *
  * localStorage is an external store, so React should read it through

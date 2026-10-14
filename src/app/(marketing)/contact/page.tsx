@@ -24,12 +24,12 @@ const SECTIONS: LegalSection[] = [
     heading: 'Support',
     blocks: [
       {
-        p: 'Email {{EMAIL}} and a human will answer. Write from the address on your account and tell us your workspace name — it saves a round trip.',
+        p: 'Email {{EMAIL}} or call {{PHONE}}, and a person will answer. Write from the address on your account and tell us your workspace name — it saves a round trip.',
       },
       {
         ul: [
           'Business hours are Monday to Friday, 10:00–18:00 IST.',
-          'We aim to reply within one working day, and faster on Pro and Business plans.',
+          'We aim to reply within one working day, and faster on Growth and Business plans.',
           'For anything urgent and account-breaking — you cannot sign in, or messages have stopped sending — put "URGENT" in the subject line.',
         ],
       },
@@ -55,10 +55,10 @@ const SECTIONS: LegalSection[] = [
     heading: 'Privacy and data requests',
     blocks: [
       {
-        p: 'To access, correct, export or delete your personal data, email {{EMAIL}}. We respond within 30 days and may need to verify your identity first. Full detail is in our Privacy Policy.',
+        p: 'To access, correct, export or delete your personal data, email {{EMAIL}}. We respond within 30 days and may need to verify your identity first. Account owners can also delete their account themselves from Settings → Profile — our Data Deletion page has step-by-step instructions, and our Privacy Policy has the full detail.',
       },
       {
-        p: 'If you are a customer of a business that uses Instant and you want your data removed, contact that business — they control it. Tell us as well and we will pass the request on.',
+        p: 'If you are a customer of a business that uses {{PRODUCT}} and you want your data removed, contact that business — it controls your data. Tell us as well and we will pass the request on.',
       },
     ],
   },
@@ -67,7 +67,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'Grievance Officer',
     blocks: [
       {
-        p: 'As required under India’s Digital Personal Data Protection Act and IT Rules, our designated Grievance Officer is {{GRIEVANCE}}, reachable at {{EMAIL}}.',
+        p: 'As required under the Information Technology Act, 2000, the rules made under it, and the Digital Personal Data Protection Act, 2023, our designated Grievance Officer is {{GRIEVANCE}} — email {{EMAIL}}, phone {{PHONE}}, address {{ADDRESS}}.',
       },
       {
         ul: [
@@ -83,7 +83,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'Reporting spam or abuse',
     blocks: [
       {
-        p: 'Received a message you did not ask for, sent through Instant? Email {{EMAIL}} with the sending number and a screenshot if you have one. You do not need to be a customer, and we investigate every report.',
+        p: 'Received a message you did not ask for, sent through {{PRODUCT}}? Email {{EMAIL}} with the sending number and a screenshot if you have one. You do not need to be a customer, and we investigate every report.',
       },
     ],
   },
@@ -92,10 +92,10 @@ const SECTIONS: LegalSection[] = [
     heading: 'Registered office',
     blocks: [
       {
-        p: '{{COMPANY}}, {{ENTITY}} based at {{ADDRESS}}. Email is the fastest way to reach us and the address every request below goes to: {{EMAIL}}.',
+        p: '{{COMPANY}}, {{ENTITY}}. Registered address: {{ADDRESS}}. Email: {{EMAIL}}. Phone: {{PHONE}}.',
       },
       {
-        p: 'Post reaches us, but email is considerably faster. We do not take walk-in visits without an appointment.',
+        p: 'Email is the fastest way to reach us, and post reaches us too. We do not take walk-in visits without an appointment.',
       },
     ],
   },
@@ -106,7 +106,7 @@ export default function Lp2ContactPage() {
     <LegalPage
       title="Contact us"
       hue="pop"
-      updated="25 July 2026"
+      updated="14 October 2026"
       intro="Real people, one inbox, sensible hours. Here's who to write to depending on what you need — or use the form at /contact-us."
       sections={SECTIONS}
     />

@@ -3,6 +3,7 @@ import Link from 'next/link';
 
 import type { Lp2Hue } from './decor';
 import { LEGAL_LINKS } from './legal-links';
+import { CookieSettingsLink } from '@/components/consent/cookie-settings-link';
 import { COMPARISONS } from '@/lib/marketing/comparisons';
 
 const META_LOGO = 'https://media.instant.nebkern.com/assets/meta-logo.png';
@@ -167,7 +168,7 @@ export function Lp2Footer() {
             </ul>
           </div>
 
-          {/* Legal band. Its own row so all eleven policies fit without one
+          {/* Legal band. Its own row so all twelve policies fit without one
             column running three times the height of its neighbours. */}
           <div className="mt-12 border-t border-(--lp2-ink)/15 pt-8">
             <p className="flex items-center gap-2 text-sm font-extrabold">
@@ -189,6 +190,9 @@ export function Lp2Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <CookieSettingsLink className="text-left text-sm font-medium text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink)" />
+              </li>
             </ul>
           </div>
 

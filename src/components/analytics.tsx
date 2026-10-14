@@ -1,7 +1,7 @@
 'use client';
 
 import Script from 'next/script';
-import { useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 
 import {
   getCookieConsent,
@@ -55,6 +55,15 @@ export function Analytics() {
     getCookieConsent,
     getCookieConsentServer
   );
+
+  // A withdrawn consent must take effect at once, not on the next page
+  // load: gtag.js stays in memory once loaded, so GA's own opt-out flag
+  // tells it to stop sending anything for the rest of this visit.
+  useEffect(() => {
+    const id = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+    if (!id) return;
+    (window as unknown as Record<string, boolean>)[`ga-disable-${id}`] = consent !== 'accepted';
+  }, [consent]);
 
   return (
     <>

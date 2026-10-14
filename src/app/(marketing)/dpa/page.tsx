@@ -28,7 +28,7 @@ const SECTIONS: LegalSection[] = [
         p: 'It applies automatically from the moment you accept the Terms and process personal data through the Service — no signature is required for it to bind us. If your procurement process needs a countersigned copy, see the last section.',
       },
       {
-        p: 'Terms such as "personal data", "processing", "controller", "processor", "data subject" and "supervisory authority" carry the meaning given to them in the applicable data protection law — including the EU and UK GDPR and India’s Digital Personal Data Protection Act, 2023.',
+        p: 'Terms such as "personal data", "processing", "Data Fiduciary", "Data Processor" and "Data Principal" carry the meaning given to them in India’s Digital Personal Data Protection Act, 2023 and the rules made under it. In this DPA, "Controller" means the Data Fiduciary, "Processor" means the Data Processor, and "data subject" means the Data Principal. Where another data protection law applies to you, such as the GDPR, its equivalent terms apply in the same way.',
       },
     ],
   },
@@ -53,7 +53,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'Subject matter and details of processing',
     blocks: [
       {
-        p: 'Required by Article 28(3) and its equivalents. These are the particulars of what we process for you:',
+        p: 'These are the particulars of what we process for you:',
       },
       {
         ul: [
@@ -78,7 +78,7 @@ const SECTIONS: LegalSection[] = [
           'Tell you if, in our opinion, an instruction infringes applicable data protection law.',
           'Ensure that everyone authorised to process the data is bound by confidentiality and has been trained on handling it.',
           'Implement and maintain the technical and organisational measures described in our Security Policy, and not materially weaken them during the term.',
-          'Assist you, taking into account the nature of the processing, with data subject requests, data protection impact assessments and prior consultations with a supervisory authority.',
+          'Assist you, taking into account the nature of the processing, with data subject requests, data protection impact assessments and consultations with a regulator.',
           'Make available the information reasonably necessary to demonstrate compliance with this DPA.',
           'Never sell personal data, never share it for cross-context behavioural advertising, and never use the contents of your conversations to train general-purpose AI models.',
         ],
@@ -110,13 +110,12 @@ const SECTIONS: LegalSection[] = [
     heading: 'International transfers',
     blocks: [
       {
-        p: 'Your workspace data is hosted in Mumbai, India (ap-south-1). Some subprocessors operate globally, so personal data may be transferred outside your country — including outside the EEA and the UK.',
+        p: 'Your workspace data is hosted in Mumbai, India (ap-south-1). Some subprocessors — including Meta, Google, Cloudflare and the AI provider you connect — process data on infrastructure outside India.',
       },
       {
         ul: [
-          'Where a transfer requires a safeguard, we rely on an adequacy decision where one exists, and otherwise on the European Commission’s Standard Contractual Clauses, the UK International Data Transfer Addendum, or another lawful mechanism.',
-          'By entering into this DPA, the parties are deemed to have entered into the applicable Standard Contractual Clauses, with you as data exporter and us as data importer, completed by reference to the particulars set out above.',
-          'We will not transfer personal data to a country without a lawful transfer mechanism in place.',
+          'We transfer personal data outside India only as the Digital Personal Data Protection Act, 2023 permits, and never to a country or territory the Government of India has restricted.',
+          'If you are subject to the GDPR or a similar law that requires a transfer mechanism, such as Standard Contractual Clauses, tell us and we will put one in place with you.',
         ],
       },
     ],
@@ -130,10 +129,10 @@ const SECTIONS: LegalSection[] = [
       },
       {
         ul: [
-          'We will notify you without undue delay, and in any event within 72 hours, after becoming aware of a personal data breach affecting your data.',
+          'We will notify you without undue delay, and in any event within 72 hours, after becoming aware of a personal data breach affecting your data, so that you can meet your own obligations, including notifying the Data Protection Board of India and affected Data Principals.',
           'The notice will describe the nature of the breach, the categories and approximate volume of data and data subjects affected, the likely consequences, and the measures taken or proposed.',
           'Where we cannot provide all of that at once, we will provide it in phases as the investigation progresses rather than delaying the first notice.',
-          'We will assist you in meeting your own notification duties to supervisory authorities and data subjects.',
+          'We will assist you in meeting your own notification duties to the Data Protection Board of India, any other regulator, and data subjects.',
           'Notifying you is not an admission of fault by either party.',
         ],
       },
@@ -190,7 +189,7 @@ const SECTIONS: LegalSection[] = [
         ],
       },
       {
-        p: 'If your procurement or compliance process requires a signed, countersigned or entity-specific copy — or a version with the Standard Contractual Clauses annexed and completed — email {{EMAIL}} with your legal entity name, registered address and the name of the signatory. We will send one back.',
+        p: 'If your procurement or compliance process requires a signed, countersigned or entity-specific copy, email {{EMAIL}} with your legal entity name, registered address and the name of the signatory. We will send one back, signed by {{PROPRIETOR}} for {{COMPANY}}.',
       },
     ],
   },
@@ -201,7 +200,7 @@ export default function Lp2DpaPage() {
     <LegalPage
       title="Data Processing Agreement"
       hue="grape"
-      updated="5 August 2026"
+      updated="14 October 2026"
       intro="Most of the personal data in Instant is not ours — it is your customers', held on your instructions. This is the contract that governs how we handle it, and it applies automatically from the moment you accept our Terms."
       sections={SECTIONS}
     />

@@ -90,7 +90,9 @@ const STRUCTURED_DATA = {
       url: 'https://nebkern.com/',
       address: {
         '@type': 'PostalAddress',
-        addressLocality: 'Siliguri',
+        streetAddress: 'Ghoshpukur, Kamala Bagan',
+        addressLocality: 'Darjeeling',
+        postalCode: '734426',
         addressRegion: 'West Bengal',
         addressCountry: 'IN',
       },

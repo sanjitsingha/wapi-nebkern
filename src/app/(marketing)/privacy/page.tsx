@@ -11,143 +11,219 @@ export const metadata: Metadata = {
   alternates: { canonical: '/privacy' },
   title: { absolute: 'Privacy Policy — Instant for WhatsApp Business' },
   description:
-    'How Instant collects, uses, shares and protects personal data — including WhatsApp message data processed on behalf of our customers.',
+    'How Instant by Nebkern Technology collects, uses, shares, protects and deletes personal data — including data received from Meta (WhatsApp, Instagram, Messenger) and Google.',
   robots: { index: true, follow: true },
 };
 
+// Kept in agreement with the Terms, Cookie Policy, Data Retention &
+// Deletion Policy, Data Deletion instructions and Subprocessor List.
+// Meta's App Review and Google's OAuth verification both read this page
+// against what the app actually does — sections 4 and 5 are written for
+// them, and must stay true to the code (scopes, deletion flow, tokens).
 const SECTIONS: LegalSection[] = [
   {
     id: 'who-we-are',
-    heading: 'Who we are and what this covers',
+    heading: 'Who we are and what this policy covers',
     blocks: [
       {
-        p: 'Instant is a customer-relationship platform for businesses that talk to their customers over WhatsApp, Instagram and Messenger. It is operated by {{COMPANY}}, {{ENTITY}} based at {{ADDRESS}}. In this policy, "we", "us" and "our" mean {{COMPANY}}, and "the Service" means the Instant web application, its APIs and any related tooling.',
+        p: '{{PRODUCT}} ({{SITE}}) is a customer-messaging and CRM platform that lets businesses talk to their customers over WhatsApp, Instagram and Facebook Messenger. It is owned and operated by {{COMPANY}}, {{ENTITY}}, with its registered address at {{ADDRESS}}. In this policy, "we", "us" and "our" mean {{COMPANY}}, and "the Service" means the {{PRODUCT}} website, web application, APIs and the {{PRODUCT}} app on Meta’s platform.',
       },
       {
-        p: 'This policy explains what personal data we handle, why, who we share it with and what rights you have. It covers our website and the Service. It does not cover the practices of the businesses that use Instant to message their own customers — for that, see the controller/processor split in section 4.',
+        p: 'This policy explains what personal data we collect, how we use it, who we share it with, how long we keep it, how we protect it, and the rights you have over it. It applies to everyone who visits our website or uses the Service.',
+      },
+      {
+        note: 'In short: we use your data only to run the Service for you. We do not sell personal data, we do not use it for advertising, and you can delete your account and everything in it at any time — see our Data Deletion page at {{SITE}}/data-deletion.',
       },
     ],
   },
   {
     id: 'what-we-collect',
-    heading: 'Data we collect',
+    heading: 'Information we collect',
     blocks: [
-      { p: 'We collect five broad categories of data.' },
+      { p: 'We collect the following categories of information.' },
       {
         ul: [
-          'Account data you give us: name, work email, password hash, business name, phone number, team members you invite, and your role and permissions.',
-          'Conversation data: messages, attachments, contact names and phone numbers, notes, tags, custom fields, deal stages and call records that flow through your connected WhatsApp, Instagram or Messenger channels. This is the data you and your customers create — we hold it on your behalf.',
-          'Billing data: your plan, invoices, billing address and tax identifiers. Card and UPI details are entered directly with our payment processor and are never stored on our servers.',
-          'Technical and usage data: IP address, browser and device information, pages and features used, timestamps, session and device records used for security, and error diagnostics.',
-          'Free tool data: when you generate a code with our public QR generator, we record the WhatsApp number and the pre-filled message you entered, with a timestamp. No account is needed to use it, so this is the only thing we hold about that visit. We use it to understand how the tool is used and, where the number is a business we could help, to reach out. Ask us at {{EMAIL}} and we will delete it.',
+          'Account information — your name, email address, password (stored only as a secure hash), business name, phone number, profile picture, the team members you invite, and their roles and permissions.',
+          'Information from Meta, when you connect a WhatsApp Business, Instagram or Facebook Page account — described in detail in section 4.',
+          'Conversation and customer data — the messages, media, voice notes and call records exchanged with your customers on your connected channels, and the contacts, names, phone numbers, notes, tags, custom fields, deals and campaign data you keep in {{PRODUCT}}. We hold this on your behalf; see section 7.',
+          'Information from other services you connect — such as Google (Sign in with Google and Google Sheets, described in section 5), Zoho CRM, Shopify, WooCommerce, or an AI model provider whose API key you add. We receive only what each connection needs to work.',
+          'Billing information — your plan, invoices, billing name, address and tax details. Card, UPI and bank details are entered directly with our payment processor, Razorpay, and never reach or are stored on our servers.',
+          'Technical and usage information — IP address, browser and device type, pages and features used, timestamps, sign-in sessions and devices, and error logs, used to run and secure the Service.',
+          'Information you send through our website — contact and enquiry forms, newsletter sign-ups, and our free tools. When you use the free WhatsApp QR code generator, we record the number and pre-filled message you enter with a timestamp.',
         ],
       },
       {
-        p: 'We do not buy contact lists, and we do not ask you for special-category data (health, biometrics, political views and so on). If such data ends up in a conversation, we process it only as part of holding your messages for you.',
+        p: 'We do not buy personal data, and we do not ask for sensitive personal data such as health, financial account, biometric or religious information. If such data appears inside a conversation, we process it only as part of storing that conversation for you.',
       },
     ],
   },
   {
     id: 'how-we-use-it',
-    heading: 'How and why we use it',
+    heading: 'How we use information',
     blocks: [
       {
         ul: [
-          'To provide the Service — deliver and store messages, run your automations and AI agents, keep your pipelines and contacts in sync, and show you your own data.',
-          'To bill you, under our contract with you, and to meet tax and accounting obligations.',
-          'To keep accounts secure — detect suspicious sign-ins, enforce rate limits, maintain device and session records, and investigate abuse.',
-          'To support you when you contact us, which may mean looking at the specific records you ask us about.',
-          'To improve the Service, using aggregated or de-identified usage patterns rather than the contents of your conversations.',
-          'To send service notices (billing, security, breaking changes). Marketing email is separate and you can opt out of it at any time.',
+          'To provide the Service — send and receive messages, display your inbox, run the automations, campaigns, chatbots and AI features you set up, keep your contacts and connected tools in sync, and show you reports about your own account.',
+          'To process payments, issue invoices and meet our tax and accounting obligations.',
+          'To keep the Service and your account secure — verify sign-ins, prevent fraud, spam and abuse, enforce rate limits and investigate incidents.',
+          'To give you support when you ask for it, which may mean viewing the specific records you ask us about.',
+          'To maintain and improve the Service using aggregated, de-identified usage statistics — never the content of your conversations.',
+          'To send you service messages, such as account, billing and security notices. Marketing emails are separate, and every one has an unsubscribe link.',
+          'To comply with the law and respond to lawful requests from authorities.',
         ],
       },
       {
-        note: 'We do not use the contents of your customer conversations to train general-purpose AI models. Your AI agent is grounded on the knowledge base you upload, and it works only for your workspace.',
+        p: 'We process your personal data on the basis of your consent, to perform our contract with you, to comply with legal obligations, and for other legitimate uses permitted by India’s Digital Personal Data Protection Act, 2023. Where we rely on consent, you can withdraw it at any time.',
+      },
+      {
+        note: 'We do not use the content of your customer conversations to train AI models. AI features in {{PRODUCT}} run on an AI provider account that you connect with your own API key, and only for your own workspace.',
+      },
+    ],
+  },
+  {
+    id: 'meta-data',
+    heading: 'Information we receive from Meta (WhatsApp, Instagram and Messenger)',
+    blocks: [
+      {
+        p: 'When you connect a WhatsApp Business account, an Instagram professional account or a Facebook Page to {{PRODUCT}}, you sign in with Meta and grant {{PRODUCT}} the permissions shown on Meta’s consent screen. Through that connection we receive:',
+      },
+      {
+        ul: [
+          'Business and account identifiers — your Meta business ID, WhatsApp Business Account ID, phone number ID, display phone number, verified business name, Facebook Page ID and name, and Instagram account ID and username.',
+          'Account status — phone number quality rating, messaging limits, and your message templates and their approval status.',
+          'Access tokens that allow {{PRODUCT}} to act on these accounts on your behalf. They are stored encrypted and are never shown in the app.',
+          'Messages and events — messages, media and reactions your customers send to your connected accounts, delivery and read receipts for the messages you send, call events, and the profile name and WhatsApp number, Instagram-scoped ID or Messenger-scoped ID of each person who contacts you.',
+        ],
+      },
+      { p: 'How we use and protect it:' },
+      {
+        ul: [
+          'We use this information only to provide the features you use in {{PRODUCT}} — sending and receiving messages, managing templates, showing conversations in your inbox, running your automations and reports, and keeping your connection working.',
+          'We do not sell it, rent it, or use it for advertising or marketing; we do not share it with data brokers; and we do not combine it across different businesses to build profiles of individuals.',
+          'We share it only with the service providers needed to run {{PRODUCT}} (see section 8 and our Subprocessor List), each bound to use it only for that purpose.',
+          'We handle it in accordance with the Meta Platform Terms, Meta’s Developer Policies, and the WhatsApp Business terms and policies.',
+          'When you disconnect a WhatsApp, Instagram or Messenger account in {{PRODUCT}}, we immediately delete its access token and connection settings. Conversation history you already have stays in your workspace until you delete it or your account.',
+        ],
+      },
+      {
+        p: 'To delete the data we hold that came from Meta — or your whole account — follow the steps on our Data Deletion page at {{SITE}}/data-deletion, or email {{EMAIL}}. You can also remove {{PRODUCT}}’s access at any time from your Facebook settings (Business integrations) or from Meta Business Suite.',
+      },
+    ],
+  },
+  {
+    id: 'google-data',
+    heading: 'Information we receive from Google',
+    blocks: [
+      {
+        ul: [
+          'Sign in with Google — if you choose it, Google shares your name, email address and profile picture so we can create and sign in to your account. We use it for nothing else.',
+          'Google Sheets — if you connect Google Sheets, {{PRODUCT}} uses the Google "drive.file" permission, which gives access only to spreadsheets that {{PRODUCT}} creates or that you choose to open with it. We use it to create those spreadsheets and write the contact and event rows you set up. We cannot see any other file in your Google Drive.',
+        ],
+      },
+      {
+        note: '{{PRODUCT}}’s use and transfer of information received from Google APIs to any other app will adhere to the Google API Services User Data Policy, including the Limited Use requirements.',
+      },
+      {
+        p: 'We do not use Google user data for advertising, we do not sell it, we do not let humans read it except with your permission, for security, or where the law requires, and we do not use it to train AI models. You can revoke access at any time from your Google Account (Security → Third-party connections) or by disconnecting Google Sheets in {{PRODUCT}}.',
+      },
+    ],
+  },
+  {
+    id: 'other-integrations',
+    heading: 'Other services you connect',
+    blocks: [
+      {
+        p: 'You can choose to connect {{PRODUCT}} to other tools. Each connection is optional, starts only when you set it up, and can be removed at any time.',
+      },
+      {
+        ul: [
+          'Zoho CRM — keeps your Zoho leads, contacts and deals in sync with {{PRODUCT}}, and can save your conversations as notes on the matching Zoho record.',
+          'Shopify and WooCommerce — receive your store’s order events so you can send order updates to your customers.',
+          'AI model providers (OpenAI, Anthropic, OpenRouter) — when you add your own API key, we send them only the text needed to draft or send a reply: the recent conversation, your instructions and relevant knowledge-base content.',
+          'Webhooks, the API, Zapier, Make and n8n — deliver data to the systems you nominate.',
+        ],
+      },
+      {
+        p: 'Access credentials for these services are stored encrypted. What a connected service does with the data it receives is governed by its own terms and privacy policy.',
       },
     ],
   },
   {
     id: 'controller-processor',
-    heading: 'Who is responsible for what',
+    heading: 'Our role for your customers’ data',
     blocks: [
       {
-        p: 'This distinction matters, because most of the personal data in Instant is not ours.',
+        p: 'Much of the personal data in {{PRODUCT}} belongs to the people your business talks to. For that data — your contacts, their numbers and your conversations with them — your business decides why and how it is processed, and we process it only on your instructions. Under India’s DPDP Act your business is the Data Fiduciary and we are its Data Processor; under the GDPR, the controller and processor. For your own account, billing and usage data, we are the Data Fiduciary (controller).',
       },
       {
-        ul: [
-          'For your customers’ data — the contacts, phone numbers and messages inside your workspace — you are the controller and we are the processor. You decide who to message, on what basis, and for how long the records are kept. We process it on your documented instructions, which are the Terms and the settings you choose in the product.',
-          'For your own account, billing and usage data, we are the controller.',
-        ],
-      },
-      {
-        p: 'As controller of your customers’ data, you are responsible for having a lawful basis to message them, for honouring their opt-outs, and for answering their privacy requests. We will help you do that — every contact record can be exported and deleted from the app. See our Acceptable Use Policy for the consent rules that apply to WhatsApp specifically.',
+        p: 'As a business using {{PRODUCT}}, you are responsible for having a valid basis — usually opt-in consent — to message your customers, for honouring their requests to stop, and for answering their privacy requests. Our Acceptable Use and WhatsApp policies explain what that requires, and the app lets you export or delete any contact and their conversation history.',
       },
     ],
   },
   {
     id: 'sharing',
-    heading: 'Who we share data with',
+    heading: 'How we share information',
     blocks: [
       {
-        p: 'We do not sell personal data. We share it only with providers who help us run the Service, each under contract and only for that purpose.',
+        p: 'We do not sell personal data, and we do not share it for advertising. We share it only as follows:',
       },
       {
         ul: [
-          'Meta Platforms — WhatsApp Business Platform, Instagram and Messenger. Messages you send and receive necessarily pass through Meta, under its own terms and privacy policy.',
-          'Our cloud hosting and database provider, which stores your workspace data.',
-          'Our payment processor, which handles card and UPI transactions and holds the payment details we never see.',
-          'Our transactional email and, where enabled, error-monitoring providers.',
-          'AI model providers, where you enable AI agent features — limited to the prompts, knowledge-base content and message text needed to generate a reply.',
-          'Professional advisers, acquirers in a merger or sale, and authorities where we are legally compelled. We will tell you about a compelled disclosure unless we are prohibited from doing so.',
+          'Meta — messages you send and receive pass through the WhatsApp Business Platform, Instagram and Messenger, which Meta operates under its own terms and privacy policy.',
+          'Service providers who run the Service for us, under contract and only for that purpose: Cloudonfire (application servers), Supabase (database, authentication and file storage, in Mumbai, India), Cloudflare (media storage and delivery, and bot protection on our forms), Razorpay (payments) and DeoMail (email delivery). The full list is on our Subprocessor List.',
+          'Services you choose to connect, as described in sections 5 and 6.',
+          'Professional advisers, and a buyer or successor if our business is sold or reorganised, who must protect the data as this policy does.',
+          'Government or law-enforcement authorities, where the law requires it. Unless we are prohibited from doing so, we will tell you about such a request.',
         ],
       },
     ],
   },
   {
     id: 'cookies',
-    heading: 'Cookies and similar technologies',
+    heading: 'Cookies and analytics',
     blocks: [
       {
-        p: 'We keep this deliberately small. We use strictly necessary cookies to hold your login session, remember your workspace and theme preference, and protect forms against cross-site request forgery. These are required for the app to work and cannot be switched off from within it.',
+        p: 'The app uses only cookies and browser storage that are strictly necessary — to keep you signed in, protect your account and remember your interface preferences. On our public website we measure visits with Umami, which sets no cookies, and with Google Analytics 4, which sets cookies and loads only if you accept them. We do not use advertising or cross-site tracking cookies anywhere. Our Cookie Policy lists every cookie and how to control it.',
       },
+    ],
+  },
+  {
+    id: 'storage-transfers',
+    heading: 'Where your data is stored',
+    blocks: [
       {
-        p: 'We do not run third-party advertising or cross-site tracking cookies on the Service. If we later add analytics that are not strictly necessary, we will ask for consent first and list them here. You can clear or block cookies in your browser, but you will not be able to stay signed in.',
+        p: 'Your workspace data — accounts, contacts and conversations — is stored in Supabase’s data centre in Mumbai, India. Media files are stored with Cloudflare R2, and the application runs on servers operated by Cloudonfire. Some providers, including Meta, Google, Cloudflare and the AI provider you connect, process data on infrastructure outside India. We transfer data abroad only as permitted by Indian law, and never to a country the Government of India has restricted.',
       },
     ],
   },
   {
     id: 'retention',
-    heading: 'How long we keep it',
+    heading: 'How long we keep information',
     blocks: [
       {
         ul: [
-          'Conversation and contact data: for as long as your workspace is active. You can delete individual records at any time, and deletion in the app removes them from our live systems.',
-          'After you close your account: we delete or anonymise workspace data within 90 days, except where we must keep it longer by law.',
-          'Invoices and tax records: as long as tax law requires, typically several years.',
-          'Security logs and device sessions: a rolling window sufficient to investigate incidents.',
-          'Backups: encrypted and cycled out on a rolling schedule, so deleted data can persist in backups briefly after removal from live systems.',
+          'Conversation and contact data — for as long as your account is active. You can delete any contact or conversation at any time, and it is removed from our live systems.',
+          'Connected channel credentials — until you disconnect the channel, when they are deleted immediately.',
+          'When you delete your account — the account is locked at once and can be restored for 30 days. After that, all workspace data, including data received from Meta and Google, is permanently deleted from our live systems.',
+          'Backups — deleted data can remain in encrypted backups for up to 30 days, until they expire.',
+          'Invoices and payment records — for as long as Indian tax and accounting law requires, generally up to 8 years.',
+          'Security logs — for a limited period, generally no more than 90 days.',
         ],
+      },
+      {
+        p: 'Our Data Retention & Deletion Policy has the full detail.',
       },
     ],
   },
   {
     id: 'security',
-    heading: 'How we protect it',
+    heading: 'How we protect information',
     blocks: [
       {
-        p: 'Data is encrypted in transit with TLS and at rest by our hosting provider. Access to workspace data is enforced at the database level by row-level security, so one workspace cannot read another’s. Internal access is limited to staff who need it, over authenticated accounts, and API keys are scoped and revocable.',
+        p: 'Data is encrypted in transit with TLS and at rest. Access tokens and integration credentials are additionally encrypted before they are stored. Each business’s data is kept separate by row-level security enforced in the database, so one workspace can never read another’s. Staff access is limited to what is needed to run and support the Service. Our Security Policy describes these controls in detail.',
       },
       {
-        p: 'No system is perfectly secure. If a breach affects your personal data and creates a real risk to you, we will notify you and the relevant regulator within the timeframes the law requires.',
-      },
-    ],
-  },
-  {
-    id: 'transfers',
-    heading: 'International transfers',
-    blocks: [
-      {
-        p: 'Our providers may process data outside your country, including in the United States and the European Union. Where we move personal data across borders, we rely on an appropriate safeguard — standard contractual clauses, an adequacy decision, or your consent where neither applies. You can ask us which mechanism covers a specific provider.',
+        p: 'No system is completely secure. If a personal data breach affects you, we will notify you, and the Data Protection Board of India where required, without undue delay.',
       },
     ],
   },
@@ -156,13 +232,23 @@ const SECTIONS: LegalSection[] = [
     heading: 'Your rights',
     blocks: [
       {
-        p: 'Depending on where you live, you may have the right to access your data, correct it, delete it, restrict or object to processing, withdraw consent, receive a portable copy, and not be subject to solely automated decisions with legal effect. Indian users have equivalent rights under the Digital Personal Data Protection Act, including the right to nominate someone to exercise them.',
+        p: 'Under India’s Digital Personal Data Protection Act, 2023, you have the right to:',
       },
       {
-        p: 'To exercise any of these, email {{EMAIL}}. We will respond within 30 days, and we may need to verify your identity first. You can also complain to your local data protection authority.',
+        ul: [
+          'Obtain a summary of the personal data we hold about you and how we process it.',
+          'Have inaccurate or incomplete data corrected, completed or updated.',
+          'Have your personal data erased, unless we must keep it by law.',
+          'Withdraw consent you have given, as easily as you gave it.',
+          'Have your grievances addressed by our Grievance Officer.',
+          'Nominate another person to exercise these rights on your behalf in case of death or incapacity.',
+        ],
       },
       {
-        note: 'If you are a customer of a business that uses Instant and you want your data changed or removed, please contact that business directly — they control it. If you contact us, we will pass your request on to them.',
+        p: 'You can view, edit, export and delete most of your data yourself in the app. For anything else, email {{EMAIL}}. We may need to verify your identity, and we respond within 30 days. If you are not satisfied with our response, you may complain to the Data Protection Board of India. If you are located outside India, you may have similar rights under your local law, and we will honour them.',
+      },
+      {
+        note: 'If you are a customer of a business that uses {{PRODUCT}} and want your data corrected or deleted, please contact that business — it controls your data. If you contact us, we will forward your request to the business and help it respond.',
       },
     ],
   },
@@ -171,7 +257,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'Children',
     blocks: [
       {
-        p: 'The Service is for businesses and is not directed at children. We do not knowingly collect personal data from anyone under 18. If you believe a child’s data has reached us, email {{EMAIL}} and we will delete it.',
+        p: 'The Service is for businesses and is not directed at anyone under 18. We do not knowingly collect personal data from children. If you believe a child’s data has reached us, email {{EMAIL}} and we will delete it.',
       },
     ],
   },
@@ -180,19 +266,19 @@ const SECTIONS: LegalSection[] = [
     heading: 'Changes to this policy',
     blocks: [
       {
-        p: 'We may update this policy as the Service changes. We will update the "last updated" date above, and for material changes we will email account owners or show a notice in the app before the change takes effect.',
+        p: 'We may update this policy as the Service or the law changes. We will change the "Last updated" date above and, for significant changes, notify account owners by email or in the app before the change takes effect.',
       },
     ],
   },
   {
     id: 'contact',
-    heading: 'Contact and grievances',
+    heading: 'Contact us and Grievance Officer',
     blocks: [
       {
-        p: 'For any privacy question or request, email {{EMAIL}} or write to {{COMPANY}}, {{ADDRESS}}.',
+        p: 'For any question or request about this policy or your personal data, contact {{COMPANY}} at {{EMAIL}}, call {{PHONE}}, or write to {{ADDRESS}}.',
       },
       {
-        p: 'As required under Indian law, our Grievance Officer is {{GRIEVANCE}}, reachable at {{EMAIL}}. Grievances are acknowledged within 24 hours and resolved within 15 days.',
+        p: 'In accordance with the Information Technology Act, 2000, the rules made under it, and the Digital Personal Data Protection Act, 2023, our Grievance Officer is {{GRIEVANCE}} — email {{EMAIL}}, phone {{PHONE}}, address {{ADDRESS}}. Grievances are acknowledged within 24 hours and resolved within 15 days.',
       },
     ],
   },
@@ -203,8 +289,8 @@ export default function Lp2PrivacyPage() {
     <LegalPage
       title="Privacy Policy"
       hue="sky"
-      updated="25 July 2026"
-      intro="What we collect, why we have it, who else sees it, and how to get it back or get it deleted. Written to be read, not to be survived."
+      updated="14 October 2026"
+      intro="What we collect, why we collect it, who we share it with, and how you can see, change or delete it — including the data we receive from Meta and Google."
       sections={SECTIONS}
     />
   );

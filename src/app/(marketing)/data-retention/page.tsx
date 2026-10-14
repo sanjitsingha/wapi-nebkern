@@ -24,7 +24,7 @@ const SECTIONS: LegalSection[] = [
         p: 'We keep personal data for as long as it is needed for the purpose it was collected for, and then we delete it. For the conversations and contacts inside your workspace, "needed" is a decision you make, not us: you are the controller, and the data stays as long as your account is active and you choose to keep it.',
       },
       {
-        p: 'This policy sets out the periods we apply, what deletion actually means technically, and the narrow set of records we are required to hold on to. It forms part of our Data Processing Agreement and applies to the Service operated by {{COMPANY}}.',
+        p: 'This policy sets out the periods we apply, what deletion actually means technically, and the narrow set of records we are required to hold on to. It forms part of our Data Processing Agreement and applies to {{PRODUCT}}, operated by {{COMPANY}}.',
       },
     ],
   },
@@ -39,7 +39,7 @@ const SECTIONS: LegalSection[] = [
           'Account and team member records — kept while the workspace exists. Removing a member revokes their access immediately; their name remains on the messages and notes they authored, because rewriting conversation history would be worse than keeping it.',
           'Session and device records — kept while the session is valid, and for a short period afterwards for security investigation. You can revoke any session yourself from Profile settings.',
           'Application and access logs — retained for a limited period, typically no more than 90 days, then discarded.',
-          'Channel access tokens — held encrypted for as long as the channel is connected, and destroyed when you disconnect it.',
+          'Channel access tokens — held encrypted for as long as the channel is connected, and deleted immediately when you disconnect it in Settings.',
         ],
       },
       {
@@ -49,21 +49,21 @@ const SECTIONS: LegalSection[] = [
   },
   {
     id: 'closing',
-    heading: 'Closing your account',
+    heading: 'Deleting your account',
     blocks: [
       {
-        p: 'To close an account and have its data deleted, email {{EMAIL}} from the address that owns the workspace, or ask through in-app support. We will verify that the request comes from someone entitled to make it before acting on it — that check protects you from someone else deleting your business’s records.',
+        p: 'The account owner can delete the workspace at any time from Settings → Profile → Delete account. If you cannot use the app, email {{EMAIL}} from the address that owns the workspace; we verify the request comes from someone entitled to make it before acting, which protects your business from someone else deleting its records.',
       },
       {
-        ul: [
-          'We acknowledge the request and confirm what will be deleted.',
-          'A 30-day grace period follows, during which the account can be restored if the request was a mistake or a departing employee acted without authority. Say the word and we will skip it.',
-          'After the grace period, workspace data is deleted from live systems within 30 days.',
-          'Backups containing it expire on their own rotation and are not selectively edited — see below.',
+        ol: [
+          'The account is locked immediately, and the owner is emailed a confirmation.',
+          'For 30 days the account can be restored from {{SITE}}/account-recovery — in case the request was a mistake, or a departing employee acted without authority.',
+          'When the 30 days end, all workspace data — contacts, conversations, media, templates, connected channels and their access tokens, and data received from Meta and Google — is permanently deleted from our live systems.',
+          'Backups containing it expire on their normal rotation within 30 days, and are not selectively edited — see below.',
         ],
       },
       {
-        note: 'Export your data before you ask us to close the account. Contacts, conversations and reports can be exported from the app while it is open. Once deletion completes we cannot recover it for you, and neither can our providers.',
+        note: 'Export your data before you delete the account. Contacts, conversations and reports can be exported from the app while it is open. Once deletion completes we cannot recover it for you, and neither can our providers. Step-by-step instructions are on our Data Deletion page.',
       },
     ],
   },
@@ -150,7 +150,7 @@ export default function Lp2DataRetentionPage() {
     <LegalPage
       title="Data Retention & Deletion Policy"
       hue="tangerine"
-      updated="4 August 2026"
+      updated="14 October 2026"
       intro="How long each category of data survives, what happens when you delete a record or close an account, why backups take a little longer, and the short list of things we have to keep."
       sections={SECTIONS}
     />
