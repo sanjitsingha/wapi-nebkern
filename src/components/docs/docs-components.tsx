@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   AlertTriangle,
@@ -176,6 +177,86 @@ export function DocsSteps({
             <div className="mt-1 text-sm leading-relaxed text-(--lp2-ink-soft) [&_code]:rounded [&_code]:bg-(--lp2-ink)/5 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[13px] [&_code]:text-(--lp2-ink)">
               {step.description}
             </div>
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+export interface DocsImage {
+  /** Under /public, e.g. /images/docs/getting-started/sign-up.png */
+  src: string;
+  alt: string;
+  /** The file's real pixel size; next/image needs the ratio. */
+  width: number;
+  height: number;
+  caption?: string;
+}
+
+/** A product screenshot: framed so its own white edges don't melt into
+ *  the page, with an optional caption underneath. Never shown wider than
+ *  the file itself — a tight crop of one form stays crisp and centred
+ *  instead of being stretched to the column. */
+export function DocsScreenshot({ image }: { image: DocsImage }) {
+  return (
+    <figure className="mt-5">
+      <div
+        className="mx-auto overflow-hidden rounded-xl border border-(--lp2-ink)/10 bg-(--lp2-paper) shadow-sm"
+        style={{ maxWidth: image.width }}
+      >
+        <Image
+          src={image.src}
+          alt={image.alt}
+          width={image.width}
+          height={image.height}
+          sizes={`(min-width: 1024px) ${Math.min(image.width, 768)}px, 100vw`}
+          className="h-auto w-full"
+        />
+      </div>
+      {image.caption && (
+        <figcaption className="mt-2 text-center text-xs text-(--lp2-ink-soft)">
+          {image.caption}
+        </figcaption>
+      )}
+    </figure>
+  );
+}
+
+/**
+ * A step-by-step walkthrough with room for screenshots — each step a
+ * numbered marker, a heading, its text and an optional full-width image,
+ * joined by a rule down the left. For setup guides where the reader
+ * follows along on screen; `DocsSteps` stays the compact card list for
+ * steps that need no picture.
+ */
+export function DocsWalkthrough({
+  steps,
+}: {
+  steps: { title: string; body: React.ReactNode; image?: DocsImage }[];
+}) {
+  return (
+    <ol className="mt-8">
+      {steps.map((step, i) => (
+        <li key={step.title} className="relative flex gap-5 pb-12 last:pb-0">
+          {/* The rule joining this marker to the next one. */}
+          {i < steps.length - 1 && (
+            <span
+              aria-hidden
+              className="absolute top-9 bottom-0 left-[15px] w-px bg-(--lp2-ink)/10"
+            />
+          )}
+          <span className="relative flex size-8 shrink-0 items-center justify-center rounded-full bg-(--lp2-grass) text-sm font-bold text-white">
+            {i + 1}
+          </span>
+          <div className="min-w-0 flex-1 pt-0.5">
+            <h3 className="scroll-mt-36 text-lg font-bold text-(--lp2-ink)">
+              Step {i + 1}: {step.title}
+            </h3>
+            <div className="mt-2 space-y-3 text-[15px] leading-relaxed text-(--lp2-ink-soft) [&_strong]:font-bold [&_strong]:text-(--lp2-ink) [&_ul]:list-disc [&_ul]:space-y-1.5 [&_ul]:pl-5 [&_a]:font-semibold [&_a]:text-(--lp2-grass-deep) [&_a]:underline [&_a]:decoration-(--lp2-grass)/30 [&_a]:underline-offset-2 [&_code]:rounded [&_code]:bg-(--lp2-ink)/5 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[13px] [&_code]:text-(--lp2-ink)">
+              {step.body}
+            </div>
+            {step.image && <DocsScreenshot image={step.image} />}
           </div>
         </li>
       ))}

@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Rocket,
   Settings,
+  Smartphone,
   Users,
   Wallet,
   Zap,
@@ -42,11 +43,21 @@ export const DOCS_NAV: DocsCategory[] = [
   {
     label: 'Getting started',
     pages: [
+      // One page per process, in the order you do them — the account
+      // first, then the number. The slug stays 'getting-started' so
+      // existing links and search results keep landing on step one.
       {
         slug: 'getting-started',
-        title: 'Getting started',
-        description: 'Create an account, understand the trial, and send your first message.',
+        title: 'Create your account',
+        description: 'Sign up, verify your email, and start your free trial.',
         icon: Rocket,
+      },
+      {
+        slug: 'connect-whatsapp',
+        // Short for the sidebar, where the full page title is cut off.
+        title: 'Connect WhatsApp',
+        description: 'Link your WhatsApp Business number to Instant in one Facebook login.',
+        icon: Smartphone,
       },
     ],
   },

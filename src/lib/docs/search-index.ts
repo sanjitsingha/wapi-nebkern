@@ -27,9 +27,11 @@ export interface DocsSearchEntry {
 
 const TERMS: Record<string, string> = {
   'getting-started':
-    'signup account trial 14-day free trial roles owner admin agent viewer team invite embedded signup contacts CSV import first conversation',
+    'signup sign up register create account setup set up your account google organization phone number password verify email six-digit code OTP resend code use another email trial 14-day free trial owner workspace invited',
+  'connect-whatsapp':
+    'connect whatsapp number phone number embedded signup facebook login meta business portfolio whatsapp business account WABA display name verification code SMS voice call get ready before you start continue with facebook live check connection one more step finish setup already connected another account connect with a token access token system user find my numbers phone number ID two-step verification 2-step PIN',
   whatsapp:
-    'connecting your number embedded signup manual connect phone number ID WABA access token verify token 2-step PIN registration status phone health quality rating messaging limit tier business profile about description address email websites category vertical profile photo catalog commerce manager cart calling call icon layer A layer B',
+    'connecting your number embedded signup connect with a token access token 2-step PIN live check connection phone health quality rating messaging limit tier business profile about description address email websites category vertical profile photo catalog commerce manager cart calling call icon layer A layer B',
   'instagram-messenger':
     'connect instagram messenger facebook login one button meta tech provider page picker linked instagram professional account webhook callback URL verify token DM only free-form text delivered read receipts disconnect reconnect',
   inbox:

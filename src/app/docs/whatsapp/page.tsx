@@ -7,7 +7,6 @@ import {
   DocsFieldTable,
   DocsHero,
   DocsPager,
-  DocsSteps,
 } from '@/components/docs/docs-components';
 
 export const metadata: Metadata = {
@@ -26,57 +25,19 @@ export default function WhatsAppDocsPage() {
       />
 
       <DocsArticle>
-        <h2>Connecting your number (Embedded Signup)</h2>
+        <h2>Connecting your number</h2>
         <p>
-          The recommended way to connect is <strong>Embedded Signup</strong>{' '}
-          under <strong>Settings → WhatsApp</strong> — a guided Facebook login
-          that hands the whole setup to Instant rather than asking you to copy
-          API credentials around. Behind the scenes it runs through several
-          steps automatically:
+          Connecting is a one-time Facebook login from{' '}
+          <strong>Settings → WhatsApp</strong>. The full walkthrough — what
+          you need first, each step, and what Instant sets up for you — is in{' '}
+          <Link href="/docs/connect-whatsapp">Connect your WhatsApp number</Link>.
         </p>
-        <DocsSteps
-          steps={[
-            {
-              title: 'Log in and pick your WhatsApp Business Account',
-              description:
-                'You authorize Instant through a Facebook consent screen and select which WhatsApp Business Account (WABA) and phone number to connect.',
-            },
-            {
-              title: 'Instant verifies access',
-              description:
-                'It confirms the granted token can actually read the WABA you selected, and resolves the exact phone number to use — falling back to the WABA’s first number if needed.',
-            },
-            {
-              title: 'Ownership check',
-              description:
-                'If that phone number is already connected to a different Instant account, the connection is rejected rather than silently taking it over.',
-            },
-            {
-              title: 'Subscribe and register',
-              description:
-                'Instant subscribes the WABA to receive messages, registers the phone number for Cloud API messaging (setting a 2-step verification PIN — reused if you had one, freshly generated otherwise), and confirms the number reports as live.',
-            },
-            {
-              title: 'Credentials saved, encrypted',
-              description:
-                'The access token, verify token, and PIN are encrypted before being stored — nothing is kept in plain text.',
-            },
-          ]}
-        />
-
-        <DocsCallout type="tip" title="Already have your own Meta app?">
-          A manual connection form is available as a fallback: Phone Number
-          ID, WhatsApp Business Account ID, Access Token, Verify Token, and a
-          2-step verification PIN. Use this if you&apos;re managing your own
-          Meta developer app rather than going through Embedded Signup.
-        </DocsCallout>
 
         <p>
-          Once connected, a <strong>Registration status</strong> panel on the
-          same page separately confirms that Meta will actually deliver
-          message events to Instant — distinct from &ldquo;the credentials
-          are valid&rdquo; — with a one-click &ldquo;Verify with Meta&rdquo;
-          check if something seems off.
+          Once connected, the same page shows whether your number is{' '}
+          <strong>Live</strong> — Meta actually delivering message events to
+          Instant, not just accepting the credentials — with a one-click{' '}
+          <strong>Check connection</strong> if something seems off.
         </p>
 
         <h2>Phone health</h2>

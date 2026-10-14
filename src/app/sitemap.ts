@@ -65,6 +65,7 @@ const MARKETING = [
 const DOCS = [
   '',
   '/getting-started',
+  '/connect-whatsapp',
   '/inbox',
   '/whatsapp',
   '/instagram-messenger',
