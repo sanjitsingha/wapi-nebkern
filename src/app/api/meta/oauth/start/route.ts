@@ -5,6 +5,7 @@ import { buildMetaAuthorizeUrl } from '@/lib/meta/connect';
 import { META_OAUTH_STATE_COOKIE } from '@/lib/meta/oauth-cookie';
 import { oauthTabResponse } from '@/lib/oauth/tab-response';
 import { buildOAuthState, wantsTab } from '@/lib/oauth/state';
+import { publicOrigin } from '@/lib/public-origin';
 
 /**
  * GET /api/meta/oauth/start
@@ -51,7 +52,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const redirectUri = `${new URL(request.url).origin}/api/meta/oauth/callback`;
+    const redirectUri = `${publicOrigin(request)}/api/meta/oauth/callback`;
     const state = buildOAuthState(tab);
 
     const authorizeUrl = buildMetaAuthorizeUrl({

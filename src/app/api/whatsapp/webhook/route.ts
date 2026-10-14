@@ -11,6 +11,7 @@ import {
 } from '@/lib/automations/engine'
 import { dispatchInboundToFlows } from '@/lib/flows/engine'
 import { triggerAiReplyEngine } from '@/lib/ai/dispatch'
+import { publicOrigin } from '@/lib/public-origin'
 import { emitWebhookEvent } from '@/lib/webhooks/emit'
 import {
   handleTemplateWebhookChange,
@@ -268,7 +269,7 @@ export async function POST(request: Request) {
     // back to the request's own origin.
     const origin =
       process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, '') ||
-      new URL(request.url).origin
+      publicOrigin(request)
     await processWebhook(body, origin)
   } catch (error) {
     console.error('Error processing webhook:', error)

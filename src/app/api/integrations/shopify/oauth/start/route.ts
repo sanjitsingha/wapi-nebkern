@@ -12,6 +12,7 @@ import {
 } from '@/lib/shopify/oauth-cookie';
 import { oauthTabResponse } from '@/lib/oauth/tab-response';
 import { buildOAuthState, wantsTab } from '@/lib/oauth/state';
+import { publicOrigin } from '@/lib/public-origin';
 
 /**
  * GET /api/integrations/shopify/oauth/start?shop=<domain>&tab=1
@@ -59,7 +60,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const redirectUri = `${url.origin}/api/integrations/shopify/oauth/callback`;
+    const redirectUri = `${publicOrigin(request)}/api/integrations/shopify/oauth/callback`;
     const state = buildOAuthState(tab);
 
     const response = NextResponse.redirect(

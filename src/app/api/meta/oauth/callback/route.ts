@@ -12,6 +12,7 @@ import { finalizeMetaAsset, parkMetaUserToken } from '@/lib/meta/connect-server'
 import { META_OAUTH_STATE_COOKIE } from '@/lib/meta/oauth-cookie';
 import { oauthTabResponse } from '@/lib/oauth/tab-response';
 import { isTabState } from '@/lib/oauth/state';
+import { publicOrigin } from '@/lib/public-origin';
 
 /**
  * GET /api/meta/oauth/callback
@@ -37,7 +38,8 @@ import { isTabState } from '@/lib/oauth/state';
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const settingsUrl = new URL('/settings/meta', url.origin);
+  const origin = publicOrigin(request);
+  const settingsUrl = new URL('/settings/meta', origin);
 
   // Only trustworthy once `state` has been checked against the cookie;
   // until then this is attacker-controlled, so it decides nothing more
@@ -101,7 +103,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const redirectUri = `${url.origin}/api/meta/oauth/callback`;
+    const redirectUri = `${origin}/api/meta/oauth/callback`;
     const shortLivedToken = await exchangeFacebookCode({
       appId,
       appSecret,

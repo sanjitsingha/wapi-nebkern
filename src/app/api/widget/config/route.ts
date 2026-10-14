@@ -17,6 +17,7 @@ import {
 import { widgetHref } from '@/lib/widget/runtime';
 import { verifyPhoneNumber } from '@/lib/whatsapp/meta-api';
 import { decrypt } from '@/lib/whatsapp/encryption';
+import { publicOrigin } from '@/lib/public-origin';
 
 const SELECT =
   'public_key, enabled, phone, prefilled_message, business_name, tagline, greeting, brand_color, placement, auto_open_delay_seconds, show_on_mobile, show_on_desktop';
@@ -33,7 +34,7 @@ const SELECT =
 function resolveOrigin(request: Request): string {
   const configured = process.env.NEXT_PUBLIC_APP_URL;
   if (configured) return configured.replace(/\/+$/, '');
-  return new URL(request.url).origin;
+  return publicOrigin(request);
 }
 
 /**

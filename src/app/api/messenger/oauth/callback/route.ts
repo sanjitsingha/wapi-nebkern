@@ -12,6 +12,7 @@ import { finalizeMessengerPage } from '@/lib/messenger/server-config';
 import { MESSENGER_OAUTH_STATE_COOKIE } from '@/lib/messenger/oauth-cookie';
 import { oauthTabResponse } from '@/lib/oauth/tab-response';
 import { isTabState } from '@/lib/oauth/state';
+import { publicOrigin } from '@/lib/public-origin';
 
 /**
  * GET /api/messenger/oauth/callback
@@ -32,7 +33,7 @@ import { isTabState } from '@/lib/oauth/state';
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const settingsUrl = new URL('/settings/messenger', url.origin);
+  const settingsUrl = new URL('/settings/messenger', publicOrigin(request));
 
   // Attacker-controlled until `state` is checked against the cookie, so
   // it decides nothing beyond the shape of an early "no".
@@ -95,7 +96,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const redirectUri = `${url.origin}/api/messenger/oauth/callback`;
+    const redirectUri = `${publicOrigin(request)}/api/messenger/oauth/callback`;
     const shortLivedToken = await exchangeFacebookCode({
       appId,
       appSecret,

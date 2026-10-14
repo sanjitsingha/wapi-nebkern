@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { OAUTH_NEXT_COOKIE, safeNextPath } from '@/lib/auth/oauth-next';
+import { publicOrigin } from '@/lib/public-origin';
 
 /**
  * OAuth (and email-confirmation) callback.
@@ -23,7 +24,8 @@ import { OAUTH_NEXT_COOKIE, safeNextPath } from '@/lib/auth/oauth-next';
  * On any failure we bounce to /login with an `error` the page can surface.
  */
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
+  const origin = publicOrigin(request);
   const code = searchParams.get('code');
 
   const cookieStore = await cookies();
@@ -48,16 +50,7 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      // Behind a proxy/load balancer the request host is the internal one;
-      // honour the forwarded host so the redirect targets the public origin.
-      const forwardedHost = request.headers.get('x-forwarded-host');
-      const isLocal = process.env.NODE_ENV === 'development';
-      const target =
-        isLocal || !forwardedHost
-          ? `${origin}${next}`
-          : `https://${forwardedHost}${next}`;
-
-      const response = NextResponse.redirect(target);
+      const response = NextResponse.redirect(`${origin}${next}`);
       // Spent — drop it, so a later sign-in can't inherit this one's
       // destination.
       response.cookies.delete(OAUTH_NEXT_COOKIE);

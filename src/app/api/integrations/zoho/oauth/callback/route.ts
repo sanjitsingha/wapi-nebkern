@@ -21,6 +21,7 @@ import {
 } from '@/lib/zoho/oauth-cookie';
 import { oauthTabResponse } from '@/lib/oauth/tab-response';
 import { isTabState } from '@/lib/oauth/state';
+import { publicOrigin } from '@/lib/public-origin';
 import { syncZohoWatch } from '@/lib/zoho/watch';
 
 /**
@@ -35,7 +36,7 @@ import { syncZohoWatch } from '@/lib/zoho/watch';
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const settingsUrl = new URL('/settings/integrations', url.origin);
+  const settingsUrl = new URL('/settings/integrations', publicOrigin(request));
 
   const tab = isTabState(url.searchParams.get('state') ?? '');
 
@@ -165,7 +166,7 @@ export async function GET(request: Request) {
       clientSecret,
       // Must be byte-identical to the one the authorize URL carried,
       // or Zoho rejects the exchange after the consent is already given.
-      redirectUri: zohoRedirectUri(url.origin),
+      redirectUri: zohoRedirectUri(publicOrigin(request)),
       accountsUrl,
     });
     if (!tokens) return fail(exErr ?? 'Could not complete the connection.');

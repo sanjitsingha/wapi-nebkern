@@ -9,6 +9,7 @@ import {
 } from '@/lib/google-sheets/oauth-cookie';
 import { oauthTabResponse } from '@/lib/oauth/tab-response';
 import { buildOAuthState, wantsTab } from '@/lib/oauth/state';
+import { publicOrigin } from '@/lib/public-origin';
 
 /**
  * GET /api/integrations/google-sheets/oauth/start  (admin+)
@@ -30,12 +31,11 @@ export async function GET(request: Request) {
       return refuse('Google Sheets is not set up on this server yet.', 503);
     }
 
-    const url = new URL(request.url);
     const state = buildOAuthState(tab);
     const response = NextResponse.redirect(
       buildGoogleAuthorizeUrl({
         clientId: client.clientId,
-        redirectUri: gsheetsRedirectUri(url.origin),
+        redirectUri: gsheetsRedirectUri(publicOrigin(request)),
         state,
       }),
     );

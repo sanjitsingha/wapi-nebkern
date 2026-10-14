@@ -5,6 +5,7 @@ import { buildInstagramAuthorizeUrl } from '@/lib/instagram/meta-api'
 import { INSTAGRAM_OAUTH_STATE_COOKIE } from '@/lib/instagram/oauth-cookie'
 import { oauthTabResponse } from '@/lib/oauth/tab-response'
 import { buildOAuthState, wantsTab } from '@/lib/oauth/state'
+import { publicOrigin } from '@/lib/public-origin'
 import {
   featureBlockedResponse,
   getAccountEntitlements,
@@ -53,7 +54,7 @@ export async function GET(request: Request) {
       )
     }
 
-    const redirectUri = `${new URL(request.url).origin}/api/instagram/oauth/callback`
+    const redirectUri = `${publicOrigin(request)}/api/instagram/oauth/callback`
     const state = buildOAuthState(tab)
 
     const authorizeUrl = buildInstagramAuthorizeUrl({ appId, redirectUri, state })

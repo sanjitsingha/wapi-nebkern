@@ -17,6 +17,7 @@ import {
 } from '@/lib/google-sheets/oauth-cookie';
 import { oauthTabResponse } from '@/lib/oauth/tab-response';
 import { isTabState } from '@/lib/oauth/state';
+import { publicOrigin } from '@/lib/public-origin';
 
 /**
  * GET /api/integrations/google-sheets/oauth/callback
@@ -28,7 +29,7 @@ import { isTabState } from '@/lib/oauth/state';
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const tab = isTabState(url.searchParams.get('state') ?? '');
-  const pageUrl = new URL('/settings/integrations/google-sheets', url.origin);
+  const pageUrl = new URL('/settings/integrations/google-sheets', publicOrigin(request));
 
   function finish(params: Record<string, string | null>): NextResponse {
     const res = tab
@@ -85,7 +86,7 @@ export async function GET(request: Request) {
     const tokens = await exchangeGoogleCode({
       code,
       ...client,
-      redirectUri: gsheetsRedirectUri(url.origin),
+      redirectUri: gsheetsRedirectUri(publicOrigin(request)),
     });
     if (!tokens.refreshToken) {
       // Google only issues one on a fresh consent; without it the

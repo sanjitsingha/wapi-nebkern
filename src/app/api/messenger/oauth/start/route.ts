@@ -5,6 +5,7 @@ import { buildFacebookAuthorizeUrl } from '@/lib/messenger/meta-api';
 import { MESSENGER_OAUTH_STATE_COOKIE } from '@/lib/messenger/oauth-cookie';
 import { oauthTabResponse } from '@/lib/oauth/tab-response';
 import { buildOAuthState, wantsTab } from '@/lib/oauth/state';
+import { publicOrigin } from '@/lib/public-origin';
 
 /**
  * GET /api/messenger/oauth/start
@@ -42,7 +43,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const redirectUri = `${new URL(request.url).origin}/api/messenger/oauth/callback`;
+    const redirectUri = `${publicOrigin(request)}/api/messenger/oauth/callback`;
     const state = buildOAuthState(tab);
 
     const authorizeUrl = buildFacebookAuthorizeUrl({ appId, redirectUri, state });

@@ -17,6 +17,7 @@ import {
 } from '@/lib/zoho/oauth-cookie';
 import { oauthTabResponse } from '@/lib/oauth/tab-response';
 import { buildOAuthState, wantsTab } from '@/lib/oauth/state';
+import { publicOrigin } from '@/lib/public-origin';
 
 /**
  * GET /api/integrations/zoho/oauth/start?tab=1
@@ -48,7 +49,6 @@ export async function GET(request: Request) {
 
   try {
     const ctx = await requireRole('admin');
-    const url = new URL(request.url);
 
     const db = supabaseAdmin();
     const { data: existing } = await db
@@ -142,7 +142,7 @@ export async function GET(request: Request) {
       }
     }
 
-    const redirectUri = zohoRedirectUri(url.origin);
+    const redirectUri = zohoRedirectUri(publicOrigin(request));
     const state = buildOAuthState(tab);
 
     const response = NextResponse.redirect(
