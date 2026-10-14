@@ -71,39 +71,50 @@ const COLUMNS: {
 
 export function Lp2Footer() {
   return (
-    <footer className="bg-white text-(--lp2-ink)">
-      <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
-        {/* Three link columns and the Product Hunt badge. The brand
+    // A white sheet rising from the bottom of the page: inset from the
+    // left and right, top corners rounded, flush with the bottom edge.
+    // The footer sets no background of its own, so the page's canvas
+    // (cream on the homepage) shows in the margins around the sheet.
+    // The links inside stay at the page's content width so they don't
+    // sprawl on a wide monitor.
+    <footer className="px-4 text-(--lp2-ink) sm:px-6 lg:px-10">
+      {/* The homepage cards' soft hard shadow (the client feedback card
+          and its siblings in wa/landing.tsx). `lp2-hard-shadow` is the
+          opt-out from whatsapp.css's blanket `box-shadow: none`; without
+          it the homepage strips the shadow. */}
+      <div className="lp2-hard-shadow rounded-t-3xl bg-white shadow-[4px_4px_0_2px_rgba(0,0,0,0.05)]">
+        <div className="mx-auto max-w-7xl px-6 py-14 sm:px-10">
+          {/* Three link columns and the Product Hunt badge. The brand
             blurb that used to take the first two columns is gone — see
             the note in the bottom bar for where its one load-bearing
             sentence went. */}
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-          {COLUMNS.map((col) => (
-            <div key={col.title}>
-              <p className="flex items-center gap-2 text-sm font-extrabold">
-                <span
-                  aria-hidden
-                  className="size-2.5 rounded-full"
-                  style={{ backgroundColor: `var(--lp2-${col.hue})` }}
-                />
-                {col.title}
-              </p>
-              <ul className="mt-4 space-y-2.5">
-                {col.links.map((l) => (
-                  <li key={l.label}>
-                    <Link
-                      href={l.href}
-                      className="text-sm font-medium text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink)"
-                    >
-                      {l.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            {COLUMNS.map((col) => (
+              <div key={col.title}>
+                <p className="flex items-center gap-2 text-sm font-extrabold">
+                  <span
+                    aria-hidden
+                    className="size-2.5 rounded-full"
+                    style={{ backgroundColor: `var(--lp2-${col.hue})` }}
+                  />
+                  {col.title}
+                </p>
+                <ul className="mt-4 space-y-2.5">
+                  {col.links.map((l) => (
+                    <li key={l.label}>
+                      <Link
+                        href={l.href}
+                        className="text-sm font-medium text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink)"
+                      >
+                        {l.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
 
-          {/* Product Hunt badge. A plain <img>, not next/image: the badge
+            {/* Product Hunt badge. A plain <img>, not next/image: the badge
               is a remote SVG, and routing it through the optimiser would
               mean adding producthunt.com to remotePatterns AND turning on
               dangerouslyAllowSVG for the whole app — a lot of surface for
@@ -112,76 +123,76 @@ export function Lp2Footer() {
               `rel` is ours, not theirs: their snippet opens a new tab with
               no `noopener`, which hands the opened page a handle on this
               one. */}
-          <div className="flex items-start lg:justify-end">
-            <a
-              href="https://www.producthunt.com/products/instant-whatsapp-automation-platform/reviews/new?utm_source=badge-product_review&utm_medium=badge&utm_source=badge-instant-whatsapp-automation-platform"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/images/product-hunt-review.svg"
-                alt="Instant — WhatsApp Automation Platform on Product Hunt"
-                width={250}
-                height={54}
-                loading="lazy"
-                decoding="async"
-                className="h-[54px] w-[250px]"
-              />
-            </a>
+            <div className="flex items-start lg:justify-end">
+              <a
+                href="https://www.producthunt.com/products/instant-whatsapp-automation-platform/reviews/new?utm_source=badge-product_review&utm_medium=badge&utm_source=badge-instant-whatsapp-automation-platform"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/images/product-hunt-review.svg"
+                  alt="Instant — WhatsApp Automation Platform on Product Hunt"
+                  width={250}
+                  height={54}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-[54px] w-[250px]"
+                />
+              </a>
+            </div>
           </div>
-        </div>
 
-        {/* Comparisons band. Its own row after the first section. */}
-        <div className="mt-12 border-t border-(--lp2-ink)/15 pt-8">
-          <p className="flex items-center gap-2 text-sm font-extrabold">
-            <span
-              aria-hidden
-              className="size-2.5 rounded-full"
-              style={{ backgroundColor: 'var(--lp2-tangerine)' }}
-            />
-            Comparisons
-          </p>
-          <ul className="mt-4 grid gap-x-8 gap-y-2.5 sm:grid-cols-2 lg:grid-cols-4">
-            {COMPARISONS.map((c) => (
-              <li key={c.slug}>
-                <Link
-                  href={`/compare/${c.slug}`}
-                  className="text-sm font-medium text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink)"
-                >
-                  Comparison between Instant and {c.rival}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+          {/* Comparisons band. Its own row after the first section. */}
+          <div className="mt-12 border-t border-(--lp2-ink)/15 pt-8">
+            <p className="flex items-center gap-2 text-sm font-extrabold">
+              <span
+                aria-hidden
+                className="size-2.5 rounded-full"
+                style={{ backgroundColor: 'var(--lp2-tangerine)' }}
+              />
+              Comparisons
+            </p>
+            <ul className="mt-4 grid gap-x-8 gap-y-2.5 sm:grid-cols-2 lg:grid-cols-4">
+              {COMPARISONS.map((c) => (
+                <li key={c.slug}>
+                  <Link
+                    href={`/compare/${c.slug}`}
+                    className="text-sm font-medium text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink)"
+                  >
+                    Comparison between Instant and {c.rival}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-        {/* Legal band. Its own row so all eleven policies fit without one
+          {/* Legal band. Its own row so all eleven policies fit without one
             column running three times the height of its neighbours. */}
-        <div className="mt-12 border-t border-(--lp2-ink)/15 pt-8">
-          <p className="flex items-center gap-2 text-sm font-extrabold">
-            <span
-              aria-hidden
-              className="size-2.5 rounded-full"
-              style={{ backgroundColor: 'var(--lp2-grape)' }}
-            />
-            Legal &amp; policies
-          </p>
-          <ul className="mt-4 grid gap-x-8 gap-y-2.5 sm:grid-cols-2 lg:grid-cols-4">
-            {LEGAL_LINKS.map((l) => (
-              <li key={l.href}>
-                <Link
-                  href={l.href}
-                  className="text-sm font-medium text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink)"
-                >
-                  {l.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+          <div className="mt-12 border-t border-(--lp2-ink)/15 pt-8">
+            <p className="flex items-center gap-2 text-sm font-extrabold">
+              <span
+                aria-hidden
+                className="size-2.5 rounded-full"
+                style={{ backgroundColor: 'var(--lp2-grape)' }}
+              />
+              Legal &amp; policies
+            </p>
+            <ul className="mt-4 grid gap-x-8 gap-y-2.5 sm:grid-cols-2 lg:grid-cols-4">
+              {LEGAL_LINKS.map((l) => (
+                <li key={l.href}>
+                  <Link
+                    href={l.href}
+                    className="text-sm font-medium text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink)"
+                  >
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-        {/* Credentials. Both lockups are near-black artwork, so on this
+          {/* Credentials. Both lockups are near-black artwork, so on this
             white panel they need no light surface of their own — the
             chips are kept for grouping, and take the hairline the rest
             of the design uses, since white on white has no edge.
@@ -190,11 +201,11 @@ export function Lp2Footer() {
             lockup is a stacked three-line mark and sets the taller of
             the two, and hard-coding a height on both would need
             revisiting every time either logo or its label changed. */}
-        <div className="mt-10 flex flex-wrap items-stretch gap-3 border-t border-(--lp2-ink)/15 pt-8">
-          <span className="flex items-center gap-2.5 rounded-xl border border-(--lp2-ink)/15 bg-white px-4 py-2.5 text-(--lp2-ink)">
-            {/* `alt=""` — the words beside it already say Meta, so a
+          <div className="mt-10 flex flex-wrap items-stretch gap-3 border-t border-(--lp2-ink)/15 pt-8">
+            <span className="flex items-center gap-2.5 rounded-xl border border-(--lp2-ink)/15 bg-white px-4 py-2.5 text-(--lp2-ink)">
+              {/* `alt=""` — the words beside it already say Meta, so a
                 name here makes a screen reader read the brand twice. */}
-            {/* Intrinsic 4096 × 825, not the rendered 79 × 16. The
+              {/* Intrinsic 4096 × 825, not the rendered 79 × 16. The
                 attributes are only here to give the browser the true
                 ratio; `h-4 w-auto` is what sizes it. Declaring the
                 rendered pair instead rounds the ratio to 79/16 — off
@@ -202,55 +213,58 @@ export function Lp2Footer() {
                 computes lands a fraction from the attribute, which is
                 exactly what Next's "width or height modified" warning
                 fires on. */}
-            <Image
-              src={META_LOGO}
-              alt=""
-              width={4096}
-              height={825}
-              // Drawn about 80px wide. Without `sizes`, next/image offers
-              // only 1x/2x candidates of the 4096px intrinsic width, so
-              // every visitor downloaded a ~3840px PNG for this badge.
-              sizes="96px"
-              className="h-4 w-auto shrink-0"
-            />
-            <span className="text-xs font-bold">
-              Official Meta Tech Provider
-            </span>
-          </span>
-
-          <span className="flex items-center gap-3 rounded-xl border border-(--lp2-ink)/15 bg-white px-4 py-2.5 text-(--lp2-ink)">
-            {/* The mark already reads "MSME · Micro, Small & Medium
-                Enterprises", so the label beside it only has to carry
-                what the artwork does not: the registration. */}
-            {/* Intrinsic 600 × 276 — see the Meta mark above for why
-                these are the file's real dimensions and not the
-                rendered ones. */}
-            <Image
-              src={MSME_LOGO}
-              alt=""
-              width={600}
-              height={276}
-              // Drawn about 78px wide — see the Meta mark above.
-              sizes="96px"
-              className="h-9 w-auto shrink-0"
-            />
-            <span className="leading-tight">
-              <span className="block text-xs font-bold">Udyam registered</span>
-              <span className="block font-mono text-[11px] text-(--lp2-ink-soft)">
-                {UDYAM_NUMBER}
+              <Image
+                src={META_LOGO}
+                alt=""
+                width={4096}
+                height={825}
+                // Drawn about 80px wide. Without `sizes`, next/image offers
+                // only 1x/2x candidates of the 4096px intrinsic width, so
+                // every visitor downloaded a ~3840px PNG for this badge.
+                sizes="96px"
+                className="h-4 w-auto shrink-0"
+              />
+              <span className="text-xs font-bold">
+                Official Meta Tech Provider
               </span>
             </span>
-          </span>
-        </div>
 
-        <div className="mt-8 flex flex-col items-center justify-between gap-2 border-t border-(--lp2-ink)/15 pt-6 text-xs font-medium text-(--lp2-ink-soft) sm:flex-row">
-          {/* Rendered per request rather than frozen at build time —
+            <span className="flex items-center gap-3 rounded-xl border border-(--lp2-ink)/15 bg-white px-4 py-2.5 text-(--lp2-ink)">
+              {/* The mark already reads "MSME · Micro, Small & Medium
+                Enterprises", so the label beside it only has to carry
+                what the artwork does not: the registration. */}
+              {/* Intrinsic 600 × 276 — see the Meta mark above for why
+                these are the file's real dimensions and not the
+                rendered ones. */}
+              <Image
+                src={MSME_LOGO}
+                alt=""
+                width={600}
+                height={276}
+                // Drawn about 78px wide — see the Meta mark above.
+                sizes="96px"
+                className="h-9 w-auto shrink-0"
+              />
+              <span className="leading-tight">
+                <span className="block text-xs font-bold">
+                  Udyam registered
+                </span>
+                <span className="block font-mono text-[11px] text-(--lp2-ink-soft)">
+                  {UDYAM_NUMBER}
+                </span>
+              </span>
+            </span>
+          </div>
+
+          <div className="mt-8 flex flex-col items-center justify-between gap-2 border-t border-(--lp2-ink)/15 pt-6 text-xs font-medium text-(--lp2-ink-soft) sm:flex-row">
+            {/* Rendered per request rather than frozen at build time —
               same as the live footer, and the page is static enough
               that a hardcoded year would go stale silently. */}
-          <p>© {new Date().getFullYear()} Instant · Nebkern Technology</p>
-          {/* The Meta credential moved up into the chip above; repeating
+            <p>© {new Date().getFullYear()} Instant · Nebkern Technology</p>
+            {/* The Meta credential moved up into the chip above; repeating
               it here would say the same thing twice in 60px. */}
-          <p>Built on the WhatsApp Business API</p>
+            <p>Built on the WhatsApp Business API</p>
+          </div>
         </div>
       </div>
     </footer>
