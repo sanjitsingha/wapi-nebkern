@@ -40,7 +40,8 @@ export const ORGANIZATION_SCHEMA = {
   },
   contactPoint: {
     '@type': 'ContactPoint',
-    email: 'support@nebkern.com',
+    email: 'contact@instant.nebkern.com',
+    telephone: '+91-92390-64013',
     contactType: 'customer support',
     areaServed: 'IN',
     availableLanguage: ['en', 'hi'],
