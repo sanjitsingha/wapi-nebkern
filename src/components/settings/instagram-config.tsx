@@ -166,7 +166,10 @@ export function InstagramConfig() {
 
   function handleConnectClick() {
     setConnecting(true);
-    window.location.href = '/api/instagram/oauth/start';
+    // The combined Facebook login — the flow the Meta app is set up and
+    // reviewed for. It lands on /settings/meta, which owns the Page
+    // picker and the outcome toast.
+    window.location.href = '/api/meta/oauth/start';
   }
 
   async function handleSave() {

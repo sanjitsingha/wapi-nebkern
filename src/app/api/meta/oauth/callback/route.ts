@@ -41,10 +41,19 @@ export async function GET(request: Request) {
   const origin = publicOrigin(request);
   const settingsUrl = new URL('/settings/meta', origin);
 
+  const cookieState = request.headers
+    .get('cookie')
+    ?.split('; ')
+    .find((c) => c.startsWith(`${META_OAUTH_STATE_COOKIE}=`))
+    ?.split('=')[1];
+
   // Only trustworthy once `state` has been checked against the cookie;
   // until then this is attacker-controlled, so it decides nothing more
-  // than which shape of "no" we return.
-  const tab = isTabState(url.searchParams.get('state') ?? '');
+  // than which shape of "no" we return. Facebook drops `state` from its
+  // error redirects ("URL blocked", a refused config) — then our own
+  // cookie says how the flow started, or the error lands in a tab
+  // nobody is listening to and Settings waits on it forever.
+  const tab = isTabState(url.searchParams.get('state') ?? cookieState ?? '');
 
   function finish(params: Record<string, string | null>): NextResponse {
     const res = tab
@@ -63,8 +72,12 @@ export async function GET(request: Request) {
     return finish({ error: message });
   }
 
+  // OAuth's error/error_description, or Facebook's own
+  // error_code/error_message pair, which is what a "URL blocked" sends.
   const metaError =
-    url.searchParams.get('error_description') || url.searchParams.get('error');
+    url.searchParams.get('error_description') ||
+    url.searchParams.get('error_message') ||
+    url.searchParams.get('error');
   if (metaError) {
     return fail(`Facebook login was not completed: ${metaError}`);
   }
@@ -75,11 +88,6 @@ export async function GET(request: Request) {
     return fail('Facebook did not return an authorization code.');
   }
 
-  const cookieState = request.headers
-    .get('cookie')
-    ?.split('; ')
-    .find((c) => c.startsWith(`${META_OAUTH_STATE_COOKIE}=`))
-    ?.split('=')[1];
   if (!cookieState || cookieState !== state) {
     return fail('Login session expired or was tampered with. Please try connecting again.');
   }

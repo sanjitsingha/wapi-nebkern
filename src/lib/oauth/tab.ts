@@ -44,6 +44,10 @@ export interface OpenOAuthTabOptions {
   /** Tab name. Reusing one name means a second click re-uses the same
    *  tab instead of stacking them. */
   name?: string;
+  /** Abandon this attempt: settles as `cancelled` and closes the tab if
+   *  it still can. For a fresh click superseding one that never
+   *  reported back. */
+  signal?: AbortSignal;
 }
 
 /**
@@ -57,11 +61,15 @@ export function openOAuthTab(
   url: string,
   options: OpenOAuthTabOptions = {},
 ): Promise<OAuthTabOutcome> {
-  const { name = 'wacrm-oauth' } = options;
+  const { name = 'wacrm-oauth', signal } = options;
 
   return new Promise((resolve) => {
     if (typeof window === 'undefined') {
       resolve({ status: 'blocked' });
+      return;
+    }
+    if (signal?.aborted) {
+      resolve({ status: 'cancelled' });
       return;
     }
 
@@ -81,6 +89,7 @@ export function openOAuthTab(
       window.removeEventListener('message', onMessage);
       window.clearInterval(pollId);
       channel?.close();
+      signal?.removeEventListener('abort', onAbort);
     }
 
     function settle(outcome: OAuthTabOutcome) {
@@ -117,7 +126,17 @@ export function openOAuthTab(
       }
     }
 
+    function onAbort() {
+      settle({ status: 'cancelled' });
+      try {
+        tab?.close();
+      } catch {
+        // Severed by the provider's COOP — nothing to close from here.
+      }
+    }
+
     window.addEventListener('message', onMessage);
+    signal?.addEventListener('abort', onAbort);
 
     // BroadcastChannel is same-origin by construction, so no origin
     // check is needed here.

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
@@ -190,12 +190,25 @@ export function MetaChannelsConfig() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
+  // The attempt still waiting on its tab. A login tab that never
+  // reports back (left open, or parked on a provider error page) would
+  // otherwise hold the button in "Waiting…" for good; a fresh click
+  // abandons it and starts over.
+  const attemptRef = useRef<AbortController | null>(null);
+
   async function handleConnect() {
+    attemptRef.current?.abort();
+    const attempt = new AbortController();
+    attemptRef.current = attempt;
     setConnecting(true);
     try {
       const outcome = await openOAuthTab('/api/meta/oauth/start?tab=1', {
-        name: 'wacrm-meta-connect',
+        // Its own tab every time: reusing a name navigates an old tab
+        // left in the background, and the click looks like it did nothing.
+        name: '_blank',
+        signal: attempt.signal,
       });
+      if (attempt.signal.aborted) return;
 
       if (outcome.status === 'blocked') {
         // Not worth an error: the full-page flow still works, and the
@@ -208,7 +221,10 @@ export function MetaChannelsConfig() {
 
       applyOutcome(outcome.params);
     } finally {
-      setConnecting(false);
+      if (attemptRef.current === attempt) {
+        attemptRef.current = null;
+        setConnecting(false);
+      }
     }
   }
 
@@ -269,48 +285,11 @@ export function MetaChannelsConfig() {
   }
 
   /* ── One channel at a time ──
-     The combined button above is the short path; these two run each
-     channel's own OAuth flow, so a workspace can add Messenger today and
-     Instagram next month, or replace one without touching the other.
-     Same login-tab treatment — nobody should lose this page mid-setup. */
-
-  async function handleConnectOne(channel: Channel) {
-    setBusyChannel(channel);
-    try {
-      const outcome = await openOAuthTab(`/api/${channel}/oauth/start?tab=1`, {
-        name: `wacrm-${channel}-connect`,
-      });
-
-      if (outcome.status === 'blocked') {
-        toast.info('Your browser blocked the new tab — continuing here instead.');
-        window.location.href = `/api/${channel}/oauth/start`;
-        return;
-      }
-      if (outcome.status === 'cancelled') return;
-
-      const params = outcome.params;
-      if (params.error) {
-        toast.error(params.error, { duration: 10000 });
-        return;
-      }
-      // Messenger only: several Pages came back and the choice has to be
-      // made against messenger_config alone. This page's picker connects
-      // BOTH channels, so sending someone to it here would quietly do
-      // more than they asked — the channel's own page owns that choice.
-      if (params.pick) {
-        toast.info('You manage several Pages — choose one on the Messenger page.');
-        router.push('/settings/messenger');
-        return;
-      }
-      if (!params.connected) return;
-
-      const who = params.page ?? (params.username ? `@${params.username}` : null);
-      toast.success(who ? `Connected — ${who}` : 'Connected.');
-      loadStatus();
-    } finally {
-      setBusyChannel(null);
-    }
-  }
+     Connecting goes through the combined login above for either row —
+     it is the flow set up in the Meta app and the one App Review
+     approves; the per-channel logins it replaced need their own
+     redirect URIs and, for Instagram, a separate Instagram Business
+     Login app. Disconnecting stays per channel. */
 
   async function handleDisconnectOne(channel: Channel) {
     const label = channel === 'messenger' ? 'Messenger' : 'Instagram';
@@ -406,7 +385,7 @@ export function MetaChannelsConfig() {
               canEdit={canEdit}
               busy={busyChannel === 'messenger'}
               anyBusy={busyChannel !== null}
-              onConnect={() => handleConnectOne('messenger')}
+              onConnect={handleConnect}
               onDisconnect={() => handleDisconnectOne('messenger')}
               settingsHref="/settings/messenger"
             />
@@ -429,7 +408,7 @@ export function MetaChannelsConfig() {
               canEdit={canEdit && status?.allow_instagram !== false}
               busy={busyChannel === 'instagram'}
               anyBusy={busyChannel !== null}
-              onConnect={() => handleConnectOne('instagram')}
+              onConnect={handleConnect}
               onDisconnect={() => handleDisconnectOne('instagram')}
               settingsHref="/settings/instagram"
             />
@@ -438,7 +417,8 @@ export function MetaChannelsConfig() {
           <div className="flex flex-wrap gap-2">
             <Button
               onClick={handleConnect}
-              disabled={!canEdit || connecting}
+              disabled={!canEdit}
+              title={connecting ? 'Click to open the Facebook login again' : undefined}
               className="bg-[#0866FF] text-white hover:bg-[#0866FF]/90"
             >
               {connecting ? (
