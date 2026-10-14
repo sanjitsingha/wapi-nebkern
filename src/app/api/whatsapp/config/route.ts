@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import {
-  registerPhoneNumber,
-  subscribeWabaToApp,
-  verifyPhoneNumber,
-} from '@/lib/whatsapp/meta-api'
+import { subscribeWabaToApp, verifyPhoneNumber } from '@/lib/whatsapp/meta-api'
 import { encrypt, decrypt } from '@/lib/whatsapp/encryption'
+import { registerNumber } from '@/lib/whatsapp/connect-flow'
 
 /**
  * Resolve the caller's account_id from their profile. Inlined here
@@ -104,7 +101,7 @@ export async function GET() {
         {
           connected: false,
           reason: 'no_config',
-          message: 'No WhatsApp configuration saved yet. Fill in the form and click Save Configuration.',
+          message: 'No WhatsApp number connected yet.',
         },
         { status: 200 }
       )
@@ -123,7 +120,7 @@ export async function GET() {
           reason: 'token_corrupted',
           needs_reset: true,
           message:
-            'The stored access token cannot be decrypted with the current ENCRYPTION_KEY. This usually means the key changed, or it differs between environments (local vs Hostinger vs Vercel). Click "Reset Configuration" below, then re-save.',
+            'The stored access token cannot be decrypted with the current ENCRYPTION_KEY. This usually means the key changed, or it differs between environments (local vs Hostinger vs Vercel). Disconnect the number, then connect it again.',
         },
         { status: 200 }
       )
@@ -274,7 +271,7 @@ export async function POST(request: Request) {
     // /register when the user didn't provide a PIN this time around.
     const { data: existing } = await supabase
       .from('whatsapp_config')
-      .select('id, registered_at, phone_number_id')
+      .select('id, registered_at, phone_number_id, registration_pin')
       .eq('account_id', accountId)
       .maybeSingle()
 
@@ -291,41 +288,45 @@ export async function POST(request: Request) {
     // stale PIN would actually fail and undo the active subscription.
     let registeredAt: string | null = existing?.registered_at ?? null
     let registrationError: string | null = null
-    // True when registration was deliberately skipped because no PIN
-    // was supplied (see below). Distinct from registrationError — this
-    // is not a failure, just an incomplete-but-valid save.
+    // Not registered, but deliberately: the number is already live on
+    // Meta (a test number, which can't be registered — issue #242).
+    // Not a failure, just an incomplete-but-valid save.
     let registrationSkipped = false
+    // The number has a two-step PIN of its own; the UI asks for it.
+    let needsPin = false
+    let registeredPin: string | null = null
 
     const needsRegistration = !sameNumber || (typeof pin === 'string' && pin.length > 0)
     if (needsRegistration) {
-      if (!pin) {
-        // No PIN provided. Meta TEST numbers (Developer Console) are
-        // pre-registered by Meta and expose no two-step verification
-        // PIN to set, so requiring one made them impossible to connect
-        // (issue #242). The /register + PIN step only matters for
-        // production numbers under a shared WABA (issue #136), so treat
-        // it as best-effort: skip it, save the (already Meta-verified)
-        // credentials as connected, and leave registered_at null. The
-        // UI surfaces a separate "Not registered" banner with a path to
-        // add a PIN later for users who do need inbound webhook routing.
-        registrationSkipped = true
-      } else {
+      // registerNumber picks the PIN — the one typed, the one stored,
+      // or a fresh one that becomes the number's PIN — so nobody has
+      // to dig it out of WhatsApp Manager unless the number already
+      // has one.
+      let storedPin: string | null = null
+      if (existing?.registration_pin) {
         try {
-          await registerPhoneNumber({
-            phoneNumberId: phone_number_id,
-            accessToken: access_token,
-            pin,
-          })
-          registeredAt = new Date().toISOString()
-        } catch (err) {
-          registrationError =
-            err instanceof Error ? err.message : 'Unknown Meta API error'
-          console.error('Phone number /register failed:', registrationError)
-          // We deliberately fall through and still save the row so the
-          // user can retry without re-entering everything. The UI
-          // surfaces `last_registration_error` so they see WHY it's
-          // not actually live yet.
+          storedPin = decrypt(existing.registration_pin)
+        } catch {
+          storedPin = null
         }
+      }
+      const outcome = await registerNumber({
+        phoneNumberId: phone_number_id,
+        wabaId: waba_id || null,
+        accessToken: access_token,
+        userPin: pin || null,
+        storedPin,
+      })
+      registeredAt = outcome.registeredAt
+      registrationError = outcome.error
+      registrationSkipped = outcome.skipped
+      needsPin = outcome.needsPin
+      registeredPin = outcome.pin
+      if (registrationError) {
+        // Still save the row so the user can retry without re-entering
+        // everything. The UI surfaces `last_registration_error` so they
+        // see WHY it's not actually live yet.
+        console.error('Phone number /register failed:', registrationError)
       }
     }
 
@@ -357,7 +358,11 @@ export async function POST(request: Request) {
       phone_number_id,
       waba_id: waba_id || null,
       access_token: encryptedAccessToken,
-      verify_token: encryptedVerifyToken,
+      // Left out when blank, so a save without one keeps the token the
+      // app's webhook was verified with instead of wiping it.
+      ...(encryptedVerifyToken ? { verify_token: encryptedVerifyToken } : {}),
+      // Only the PIN that actually registered the number is worth keeping.
+      ...(registeredPin ? { registration_pin: encrypt(registeredPin) } : {}),
       status: registrationError ? 'disconnected' : 'connected',
       connected_at: registrationError ? null : new Date().toISOString(),
       registered_at: registrationError ? null : registeredAt,
@@ -410,6 +415,7 @@ export async function POST(request: Request) {
         saved: true,
         registered: false,
         registration_error: registrationError,
+        needs_pin: needsPin,
         phone_info: phoneInfo,
       })
     }
@@ -418,10 +424,10 @@ export async function POST(request: Request) {
       success: true,
       saved: true,
       registered: registeredAt != null,
-      // Credentials are valid and saved, but inbound webhook
-      // registration was skipped because no PIN was supplied (e.g. a
-      // Meta test number). The UI shows the "Not registered" banner
-      // rather than claiming the number is fully live.
+      // Credentials are valid and saved, but registration was skipped
+      // because the number is already live on Meta (e.g. a test
+      // number). The UI shows the "Not registered" banner rather than
+      // claiming the number is fully live.
       registration_skipped: registrationSkipped,
       phone_info: phoneInfo,
     })

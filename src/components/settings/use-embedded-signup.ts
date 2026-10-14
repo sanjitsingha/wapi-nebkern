@@ -1,9 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
-import { Loader2, MessageCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 // Must match META_API_VERSION in src/lib/whatsapp/meta-api.ts so the
 // browser SDK and our server calls speak the same Graph API version.
@@ -11,6 +8,9 @@ const GRAPH_VERSION = 'v21.0';
 
 const APP_ID = process.env.NEXT_PUBLIC_META_APP_ID;
 const CONFIG_ID = process.env.NEXT_PUBLIC_META_ES_CONFIG_ID;
+
+/** False until the Meta app's public ids are set; the token path is the only way in then. */
+export const embeddedSignupAvailable = Boolean(APP_ID && CONFIG_ID);
 
 // Minimal shape of the global the Facebook JS SDK installs. We only
 // touch the two methods we use, so a hand-written interface keeps us
@@ -74,31 +74,41 @@ function loadFacebookSdk(appId: string): Promise<FacebookSDK> {
   });
 }
 
-interface EmbeddedSignupButtonProps {
-  /** Called after the server finishes onboarding so the parent can reload config. */
-  onConnected: () => void;
+/**
+ * Where the connection is: `login` while the Facebook window is open,
+ * `finishing` while POST /api/whatsapp/embedded-signup does the setup.
+ */
+export type EmbeddedSignupPhase = 'idle' | 'login' | 'finishing' | 'done' | 'failed';
+
+/** Which server step failed, as tagged by the embedded-signup route. */
+export type EmbeddedSignupStep = 'exchange' | 'account' | 'number' | 'subscribe' | 'save';
+
+export interface EmbeddedSignupFailure {
+  message: string;
+  /** Absent when the Facebook window was closed or never opened. */
+  step?: EmbeddedSignupStep;
 }
 
 /**
- * "Connect with Facebook" — launches Meta Embedded Signup, captures the
- * authorization code + the WABA / phone-number ids Meta reports via its
- * sessionInfo `message` event, and hands them to
- * POST /api/whatsapp/embedded-signup to complete onboarding server-side.
+ * Meta Embedded Signup as a hook, so the connect wizard can draw its
+ * own progress: launches FB.login, captures the authorization code plus
+ * the WABA / phone-number ids Meta reports via its sessionInfo
+ * `message` event, and hands them to POST /api/whatsapp/embedded-signup
+ * to complete onboarding server-side.
  */
-export function EmbeddedSignupButton({ onConnected }: EmbeddedSignupButtonProps) {
-  const [launching, setLaunching] = useState(false);
+export function useEmbeddedSignup({ onConnected }: { onConnected: () => void }) {
+  const [phase, setPhase] = useState<EmbeddedSignupPhase>('idle');
+  const [failure, setFailure] = useState<EmbeddedSignupFailure | null>(null);
   // Latest sessionInfo (waba_id + phone_number_id) reported by the
   // Embedded Signup window. Captured via postMessage; read when
   // FB.login's callback fires with the code.
   const sessionInfoRef = useRef<{ waba_id?: string; phone_number_id?: string }>({});
 
-  const configured = Boolean(APP_ID && CONFIG_ID);
-
   // Listen for Embedded Signup's postMessage events for the whole
   // lifetime of the component — the message can arrive before OR after
   // the FB.login callback depending on timing.
   useEffect(() => {
-    if (!configured) return;
+    if (!embeddedSignupAvailable) return;
     function onMessage(event: MessageEvent) {
       if (
         event.origin !== 'https://www.facebook.com' &&
@@ -124,10 +134,16 @@ export function EmbeddedSignupButton({ onConnected }: EmbeddedSignupButtonProps)
     }
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [configured]);
+  }, []);
+
+  const fail = useCallback((value: EmbeddedSignupFailure) => {
+    setFailure(value);
+    setPhase('failed');
+  }, []);
 
   const completeOnboarding = useCallback(
     async (code: string) => {
+      setPhase('finishing');
       try {
         const res = await fetch('/api/whatsapp/embedded-signup', {
           method: 'POST',
@@ -138,37 +154,27 @@ export function EmbeddedSignupButton({ onConnected }: EmbeddedSignupButtonProps)
             phone_number_id: sessionInfoRef.current.phone_number_id,
           }),
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          toast.error(data.error || 'Onboarding failed.', { duration: 12000 });
+          fail({ message: data.error || 'Onboarding failed.', step: data.step });
           return;
         }
-        if (data.registered === false && data.registration_error) {
-          toast.error(
-            `Connected, but Meta couldn't register the number: ${data.registration_error}`,
-            { duration: 12000 },
-          );
-        } else {
-          toast.success(
-            data.phone_info?.verified_name
-              ? `Live — ${data.phone_info.verified_name} is registered and ready.`
-              : 'WhatsApp connected and registered. Events will start flowing shortly.',
-          );
-        }
+        // Saved — even when Meta still wants the number's own PIN, the
+        // connected page picks it up from there.
+        setPhase('done');
         onConnected();
       } catch (err) {
         console.error('Embedded Signup completion failed:', err);
-        toast.error('Could not reach the onboarding endpoint.');
-      } finally {
-        setLaunching(false);
+        fail({ message: 'Could not reach Instant to finish the setup. Check your connection and try again.' });
       }
     },
-    [onConnected],
+    [fail, onConnected],
   );
 
   const launch = useCallback(async () => {
     if (!APP_ID || !CONFIG_ID) return;
-    setLaunching(true);
+    setFailure(null);
+    setPhase('login');
     sessionInfoRef.current = {};
     try {
       const FB = await loadFacebookSdk(APP_ID);
@@ -176,10 +182,10 @@ export function EmbeddedSignupButton({ onConnected }: EmbeddedSignupButtonProps)
         (response) => {
           const code = response?.authResponse?.code;
           if (!code) {
-            setLaunching(false);
-            if (response?.status !== 'connected') {
-              toast.error('Embedded Signup was cancelled before completing.');
-            }
+            fail({
+              message:
+                'The Facebook window closed before the setup finished. Nothing was changed — try again when you’re ready.',
+            });
             return;
           }
           void completeOnboarding(code);
@@ -197,41 +203,14 @@ export function EmbeddedSignupButton({ onConnected }: EmbeddedSignupButtonProps)
       );
     } catch (err) {
       console.error('Embedded Signup launch failed:', err);
-      toast.error(
-        err instanceof Error ? err.message : 'Could not start Embedded Signup.',
-      );
-      setLaunching(false);
+      fail({
+        message:
+          err instanceof Error
+            ? `${err.message} If an ad blocker is on, allow facebook.com and try again.`
+            : 'Could not open the Facebook window.',
+      });
     }
-  }, [completeOnboarding]);
+  }, [completeOnboarding, fail]);
 
-  if (!configured) {
-    return (
-      <p className="text-xs text-muted-foreground">
-        One-click onboarding is unavailable: set{' '}
-        <code className="text-foreground">NEXT_PUBLIC_META_APP_ID</code> and{' '}
-        <code className="text-foreground">NEXT_PUBLIC_META_ES_CONFIG_ID</code> to
-        enable Embedded Signup. Enter credentials manually below in the meantime.
-      </p>
-    );
-  }
-
-  return (
-    <Button
-      onClick={launch}
-      disabled={launching}
-      className="bg-[#1877F2] hover:bg-[#1877F2]/90 text-white"
-    >
-      {launching ? (
-        <>
-          <Loader2 className="size-4 animate-spin" />
-          Connecting…
-        </>
-      ) : (
-        <>
-          <MessageCircle className="size-4" />
-          Connect WhatsApp with Facebook
-        </>
-      )}
-    </Button>
-  );
+  return { phase, failure, launch };
 }

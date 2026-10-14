@@ -84,7 +84,7 @@ const SECRET_KEYS = ['access_token', 'client_secret', 'code', 'pin']
 /** Redact secret query-string params in a URL for logging. */
 function redactUrl(url: string): string {
   return url.replace(
-    /(access_token|client_secret|code)=([^&]+)/gi,
+    /(input_token|access_token|client_secret|code)=([^&]+)/gi,
     (_m, key, val) => `${key}=${redactSecret(decodeURIComponent(val))}`,
   )
 }
@@ -707,7 +707,9 @@ export async function registerPhoneNumber(
   if (/already.*registered/i.test(message)) {
     return { success: true, alreadyRegistered: true }
   }
-  throw new Error(message)
+  // Carry Meta's numeric code so callers can tell a PIN mismatch
+  // (133005) from everything else without parsing the message.
+  throw Object.assign(new Error(message), { code: data.error?.code })
 }
 
 export interface SubscribeWabaToAppArgs {
@@ -904,6 +906,98 @@ export async function getWabaPhoneNumbers(args: {
   }
   const data = (await response.json()) as { data?: WabaPhoneNumber[] }
   return data.data ?? []
+}
+
+// ============================================================
+// Token discovery (connect with just an access token)
+// ============================================================
+//
+// The manual connect path used to ask for four IDs and a token copied
+// out of Meta's dashboards. Everything but the token can be looked up:
+// the token itself says which WhatsApp Business Accounts it may touch,
+// and each WABA lists its numbers.
+
+export interface DebugTokenResult {
+  /** Meta app the token was issued for. */
+  appId: string | null
+  isValid: boolean
+  /**
+   * WABA ids named in the token's granular scopes. Empty when the token
+   * carries no per-asset grants (e.g. a user token with blanket access).
+   */
+  wabaIds: string[]
+}
+
+const WABA_SCOPES = ['whatsapp_business_management', 'whatsapp_business_messaging']
+
+/**
+ * Inspect an access token with GET /debug_token. `accessToken` is the
+ * token making the call: an app token (`{app_id}|{app_secret}`) for
+ * tokens issued to our app, or the inspected token itself, which Meta
+ * lets any token do for itself.
+ */
+export async function debugAccessToken(args: {
+  inputToken: string
+  accessToken: string
+}): Promise<DebugTokenResult> {
+  const { inputToken, accessToken } = args
+  const params = new URLSearchParams({ input_token: inputToken, access_token: accessToken })
+  const response = await metaFetch(`${META_API_BASE}/debug_token?${params.toString()}`, undefined, {
+    op: 'debugAccessToken',
+  })
+  if (!response.ok) {
+    await throwMetaError(response, `Meta API error: ${response.status}`)
+  }
+  const body = (await response.json()) as {
+    data?: {
+      app_id?: string
+      is_valid?: boolean
+      granular_scopes?: { scope?: string; target_ids?: string[] }[]
+    }
+  }
+  const data = body.data ?? {}
+  const wabaIds = new Set<string>()
+  for (const grant of data.granular_scopes ?? []) {
+    if (!grant.scope || !WABA_SCOPES.includes(grant.scope)) continue
+    for (const id of grant.target_ids ?? []) wabaIds.add(id)
+  }
+  return {
+    appId: data.app_id ?? null,
+    isValid: data.is_valid === true,
+    wabaIds: [...wabaIds],
+  }
+}
+
+/**
+ * Every WABA the token reaches through the businesses it belongs to,
+ * owned and shared with it as a client. The fallback when debug_token
+ * names no WABA: a user or admin token with blanket access.
+ */
+export async function listBusinessWabas(args: { accessToken: string }): Promise<WabaInfo[]> {
+  const { accessToken } = args
+  const headers = { Authorization: `Bearer ${accessToken}` }
+  const bizRes = await metaFetch(`${META_API_BASE}/me/businesses?fields=id,name&limit=25`, { headers }, {
+    op: 'listBusinesses',
+  })
+  if (!bizRes.ok) {
+    await throwMetaError(bizRes, `Meta API error: ${bizRes.status}`)
+  }
+  const businesses = ((await bizRes.json()) as { data?: { id: string }[] }).data ?? []
+
+  const found = new Map<string, WabaInfo>()
+  for (const biz of businesses) {
+    for (const edge of ['owned_whatsapp_business_accounts', 'client_whatsapp_business_accounts']) {
+      const res = await metaFetch(`${META_API_BASE}/${biz.id}/${edge}?fields=id,name&limit=50`, { headers }, {
+        op: 'listBusinessWabas',
+      })
+      // One business without the permission shouldn't hide the others.
+      if (!res.ok) continue
+      for (const waba of ((await res.json()) as { data?: WabaInfo[] }).data ?? []) {
+        if (!found.has(waba.id)) found.set(waba.id, waba)
+      }
+    }
+  }
+  return [...found.values()]
 }
 
 // ============================================================

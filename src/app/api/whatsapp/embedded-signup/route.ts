@@ -6,10 +6,10 @@ import {
   getWabaInfo,
   getWabaPhoneNumbers,
   verifyPhoneNumber,
-  registerPhoneNumber,
   subscribeWabaToApp,
 } from '@/lib/whatsapp/meta-api'
 import { encrypt, decrypt } from '@/lib/whatsapp/encryption'
+import { registerNumber } from '@/lib/whatsapp/connect-flow'
 
 /**
  * POST /api/whatsapp/embedded-signup
@@ -70,11 +70,6 @@ function supabaseAdmin() {
   return _adminClient
 }
 
-/** Meta 2-step PINs are 6 digits. Generate one for fresh registrations. */
-function generatePin(): string {
-  return String(Math.floor(100000 + Math.random() * 900000))
-}
-
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -131,6 +126,7 @@ export async function POST(request: Request) {
         {
           error:
             'Missing WhatsApp Business Account id from Embedded Signup. Re-run the connect flow and grant all requested permissions.',
+          step: 'account',
         },
         { status: 400 },
       )
@@ -145,7 +141,7 @@ export async function POST(request: Request) {
       const message = err instanceof Error ? err.message : 'Unknown Meta API error'
       console.error('[embedded-signup] code exchange failed:', message)
       return NextResponse.json(
-        { error: `Could not exchange the authorization code: ${message}` },
+        { error: `Could not exchange the authorization code: ${message}`, step: 'exchange' },
         { status: 400 },
       )
     }
@@ -157,7 +153,7 @@ export async function POST(request: Request) {
       const message = err instanceof Error ? err.message : 'Unknown Meta API error'
       console.error('[embedded-signup] WABA lookup failed:', message)
       return NextResponse.json(
-        { error: `Could not read the WhatsApp Business Account: ${message}` },
+        { error: `Could not read the WhatsApp Business Account: ${message}`, step: 'account' },
         { status: 400 },
       )
     }
@@ -182,7 +178,7 @@ export async function POST(request: Request) {
       const message = err instanceof Error ? err.message : 'Unknown Meta API error'
       console.error('[embedded-signup] phone number lookup failed:', message)
       return NextResponse.json(
-        { error: `Could not list phone numbers for the WABA: ${message}` },
+        { error: `Could not list phone numbers for the WABA: ${message}`, step: 'number' },
         { status: 400 },
       )
     }
@@ -192,6 +188,7 @@ export async function POST(request: Request) {
         {
           error:
             'No phone number found under the WhatsApp Business Account. Add a phone number in the Embedded Signup dialog and try again.',
+          step: 'number',
         },
         { status: 400 },
       )
@@ -216,6 +213,7 @@ export async function POST(request: Request) {
         {
           error:
             'This WhatsApp phone number is already linked to another account on this instance. Each phone number can only be connected once.',
+          step: 'number',
         },
         { status: 409 },
       )
@@ -230,40 +228,41 @@ export async function POST(request: Request) {
       const message = err instanceof Error ? err.message : String(err)
       console.error('[embedded-signup] subscribed_apps failed:', message)
       return NextResponse.json(
-        { error: `Could not subscribe the WABA to this app: ${message}` },
+        { error: `Could not subscribe the WABA to this app: ${message}`, step: 'subscribe' },
         { status: 400 },
       )
     }
 
     // ----- Step 5: register the phone number (Pending → Connected) ----
     // This is the step that was missing end-to-end before: it activates
-    // the number in Cloud API and sets its 2-step PIN. We reuse any PIN
-    // already stored for this account (Meta rejects changing it), else
-    // generate a fresh one.
+    // the number in Cloud API and sets its 2-step PIN. registerNumber
+    // reuses any PIN already stored for this account (Meta rejects
+    // changing it), else generates a fresh one, and reports when the
+    // number has a PIN of its own we need to ask for.
     const { data: existing } = await supabase
       .from('whatsapp_config')
       .select('id, registration_pin')
       .eq('account_id', accountId)
       .maybeSingle()
 
-    let pin: string
+    let storedPin: string | null = null
     if (existing?.registration_pin) {
       try {
-        pin = decrypt(existing.registration_pin)
+        storedPin = decrypt(existing.registration_pin)
       } catch {
-        pin = generatePin()
+        storedPin = null
       }
-    } else {
-      pin = generatePin()
     }
 
-    let registeredAt: string | null = null
-    let registrationError: string | null = null
-    try {
-      await registerPhoneNumber({ phoneNumberId, accessToken, pin })
-      registeredAt = new Date().toISOString()
-    } catch (err) {
-      registrationError = err instanceof Error ? err.message : 'Unknown Meta API error'
+    const registration = await registerNumber({
+      phoneNumberId,
+      wabaId: waba_id,
+      accessToken,
+      storedPin,
+    })
+    const registeredAt = registration.registeredAt
+    const registrationError = registration.error
+    if (registrationError) {
       console.error('[embedded-signup] /register failed:', registrationError)
     }
 
@@ -279,11 +278,13 @@ export async function POST(request: Request) {
     // ----- Step 7: persist everything -----
     let encryptedAccessToken: string
     let encryptedVerifyToken: string | null
-    let encryptedPin: string
+    let encryptedPin: string | null
     try {
       encryptedAccessToken = encrypt(accessToken)
       encryptedVerifyToken = verify_token ? encrypt(verify_token) : null
-      encryptedPin = encrypt(pin)
+      // Only a PIN that registered the number is worth keeping; storing
+      // a rejected guess would make every later retry fail the same way.
+      encryptedPin = registration.pin ? encrypt(registration.pin) : null
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown encryption error'
       console.error('[embedded-signup] encryption failed:', message)
@@ -291,6 +292,7 @@ export async function POST(request: Request) {
         {
           error:
             'Failed to encrypt credentials. Check ENCRYPTION_KEY is a valid 64-character hex string.',
+          step: 'save',
         },
         { status: 500 },
       )
@@ -300,8 +302,10 @@ export async function POST(request: Request) {
       phone_number_id: phoneNumberId,
       waba_id,
       access_token: encryptedAccessToken,
-      verify_token: encryptedVerifyToken,
-      registration_pin: encryptedPin,
+      // Kept when not sent: the browser never sends one, and wiping it
+      // would break re-verifying the app's webhook.
+      ...(encryptedVerifyToken ? { verify_token: encryptedVerifyToken } : {}),
+      ...(encryptedPin ? { registration_pin: encryptedPin } : {}),
       status: registrationError ? 'disconnected' : 'connected',
       connected_at: registrationError ? null : new Date().toISOString(),
       registered_at: registeredAt,
@@ -318,7 +322,7 @@ export async function POST(request: Request) {
       if (updateError) {
         console.error('[embedded-signup] row update failed:', updateError)
         return NextResponse.json(
-          { error: 'Failed to save configuration.' },
+          { error: 'Failed to save configuration.', step: 'save' },
           { status: 500 },
         )
       }
@@ -329,7 +333,7 @@ export async function POST(request: Request) {
       if (insertError) {
         console.error('[embedded-signup] row insert failed:', insertError)
         return NextResponse.json(
-          { error: 'Failed to save configuration.' },
+          { error: 'Failed to save configuration.', step: 'save' },
           { status: 500 },
         )
       }
@@ -341,6 +345,7 @@ export async function POST(request: Request) {
         saved: true,
         registered: false,
         registration_error: registrationError,
+        needs_pin: registration.needsPin,
         phone_number_id: phoneNumberId,
         waba_id,
         phone_info: phoneInfo,
@@ -350,7 +355,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       saved: true,
-      registered: true,
+      registered: registeredAt != null,
+      registration_skipped: registration.skipped,
       phone_number_id: phoneNumberId,
       waba_id,
       phone_info: phoneInfo,
