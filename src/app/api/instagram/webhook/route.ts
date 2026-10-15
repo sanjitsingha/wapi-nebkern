@@ -4,6 +4,7 @@ import { decrypt, encrypt, isLegacyFormat } from '@/lib/whatsapp/encryption'
 import { verifyMetaWebhookSignature } from '@/lib/whatsapp/webhook-signature'
 import { isUniqueViolation } from '@/lib/contacts/dedupe'
 import { supabaseAdmin } from '@/lib/flows/admin-client'
+import { getInstagramSenderName, hasPlaceholderName } from '@/lib/meta/sender-profile'
 
 // Every DB write in this route goes through the service-role admin
 // client (supabaseAdmin) — a webhook request has no authenticated user
@@ -195,7 +196,25 @@ async function processWebhook(body: { entry?: InstagramWebhookEntry[] }) {
       const accountId: string = config.account_id
       const configOwnerUserId: string = config.created_by
 
-      const contact = await findOrCreateInstagramContact(accountId, configOwnerUserId, senderId)
+      // Decrypted only when asked: just a contact still named by its id
+      // needs the token. A row with a Page holds a Page token; one from
+      // Instagram Login (no Page) holds an Instagram token.
+      const lookupName = (): Promise<string | null> => {
+        let accessToken: string
+        try {
+          accessToken = decrypt(config.access_token)
+        } catch {
+          return Promise.resolve(null)
+        }
+        return getInstagramSenderName({ igsid: senderId, accessToken, viaPage: Boolean(config.page_id) })
+      }
+
+      const contact = await findOrCreateInstagramContact(
+        accountId,
+        configOwnerUserId,
+        senderId,
+        lookupName,
+      )
       if (!contact) continue
 
       const conversation = await findOrCreateInstagramConversation(
@@ -301,6 +320,7 @@ async function findOrCreateInstagramContact(
   accountId: string,
   configOwnerUserId: string,
   instagramId: string,
+  lookupName: () => Promise<string | null>,
 ): Promise<ContactOutcome | null> {
   // Exact match — instagram_id is an opaque IGSID, no fuzzy matching
   // needed (unlike phone). Inlined here rather than extending
@@ -312,7 +332,20 @@ async function findOrCreateInstagramContact(
     .eq('instagram_id', instagramId)
     .maybeSingle()
 
-  if (existing) return existing
+  if (existing) {
+    // Still named by its id — a contact from before names were looked
+    // up, or one whose lookup came back empty last time. Try again; a
+    // name a teammate typed in is never touched.
+    if (hasPlaceholderName(existing.name, instagramId)) {
+      const name = await lookupName()
+      if (name) {
+        const { error } = await supabaseAdmin().from('contacts').update({ name }).eq('id', existing.id)
+        if (!error) return { ...existing, name }
+        console.warn('[instagram-webhook] Error saving looked-up name:', error)
+      }
+    }
+    return existing
+  }
 
   const { data: newContact, error: createError } = await supabaseAdmin()
     .from('contacts')
@@ -320,10 +353,9 @@ async function findOrCreateInstagramContact(
       account_id: accountId,
       user_id: configOwnerUserId,
       instagram_id: instagramId,
-      // No display name available without an extra Graph API profile
-      // call (out of scope for MVP) — fall back to the raw id, same
-      // as the WhatsApp webhook falling back to the raw phone.
-      name: instagramId,
+      // The sender's Instagram name (else @username); the raw IGSID when
+      // Meta won't say, and the next message tries again.
+      name: (await lookupName()) ?? instagramId,
       created_via: 'conversation',
     })
     .select()

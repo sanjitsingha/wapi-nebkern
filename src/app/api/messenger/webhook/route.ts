@@ -4,6 +4,7 @@ import { decrypt, encrypt, isLegacyFormat } from '@/lib/whatsapp/encryption'
 import { verifyMetaWebhookSignature } from '@/lib/whatsapp/webhook-signature'
 import { isUniqueViolation } from '@/lib/contacts/dedupe'
 import { supabaseAdmin } from '@/lib/flows/admin-client'
+import { getMessengerSenderName, hasPlaceholderName } from '@/lib/meta/sender-profile'
 
 // Structural mirror of src/app/api/instagram/webhook/route.ts, one
 // channel over — same Messenger Platform payload shape, same
@@ -206,7 +207,24 @@ async function processWebhook(body: { object?: string; entry?: MessengerWebhookE
       const accountId: string = config.account_id
       const configOwnerUserId: string = config.created_by
 
-      const contact = await findOrCreateMessengerContact(accountId, configOwnerUserId, senderId)
+      // Decrypted only when asked: just a contact still named by its id
+      // needs the Page token.
+      const lookupName = (): Promise<string | null> => {
+        let pageAccessToken: string
+        try {
+          pageAccessToken = decrypt(config.access_token)
+        } catch {
+          return Promise.resolve(null)
+        }
+        return getMessengerSenderName({ psid: senderId, pageAccessToken })
+      }
+
+      const contact = await findOrCreateMessengerContact(
+        accountId,
+        configOwnerUserId,
+        senderId,
+        lookupName,
+      )
       if (!contact) continue
 
       const conversation = await findOrCreateMessengerConversation(
@@ -323,6 +341,7 @@ async function findOrCreateMessengerContact(
   accountId: string,
   configOwnerUserId: string,
   messengerId: string,
+  lookupName: () => Promise<string | null>,
 ): Promise<ContactOutcome | null> {
   // Exact match — a PSID is opaque, so no fuzzy matching (unlike phone).
   const { data: existing } = await supabaseAdmin()
@@ -332,7 +351,20 @@ async function findOrCreateMessengerContact(
     .eq('messenger_id', messengerId)
     .maybeSingle()
 
-  if (existing) return existing
+  if (existing) {
+    // Still named by its id — a contact from before names were looked
+    // up, or one whose lookup came back empty last time. Try again; a
+    // name a teammate typed in is never touched.
+    if (hasPlaceholderName(existing.name, messengerId)) {
+      const name = await lookupName()
+      if (name) {
+        const { error } = await supabaseAdmin().from('contacts').update({ name }).eq('id', existing.id)
+        if (!error) return { ...existing, name }
+        console.warn('[messenger-webhook] Error saving looked-up name:', error)
+      }
+    }
+    return existing
+  }
 
   const { data: newContact, error: createError } = await supabaseAdmin()
     .from('contacts')
@@ -340,10 +372,9 @@ async function findOrCreateMessengerContact(
       account_id: accountId,
       user_id: configOwnerUserId,
       messenger_id: messengerId,
-      // No display name without an extra Graph call (needs the PSID
-      // profile endpoint) — fall back to the raw id, same as the
-      // Instagram webhook does with an IGSID.
-      name: messengerId,
+      // The sender's Facebook name; the raw PSID when Meta won't say,
+      // and the next message tries again.
+      name: (await lookupName()) ?? messengerId,
       created_via: 'conversation',
     })
     .select()
