@@ -127,7 +127,7 @@ export async function GET(request: Request) {
     const assets = await getMetaAssets(userAccessToken);
     if (assets.length === 0) {
       return fail(
-        'No Facebook Pages found on that account. Create a Page (or ask to be given a Page admin role) and try again — Instagram DMs are reached through the Page your Instagram account is linked to.',
+        'No Facebook Pages came through. If your Page belongs to a business portfolio, connect again, choose Edit settings in the Facebook window and tick it there — and make sure your Facebook account has access to that Page (Business Settings → Accounts → Pages → People). Instagram DMs come through the Page your Instagram account is linked to.',
       );
     }
 

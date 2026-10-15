@@ -512,6 +512,16 @@ export function MetaChannelsConfig() {
                 ))}
               </div>
             )}
+            {/* /me/accounts only returns the Pages ticked in Facebook's
+                window, and on a repeat login Facebook offers "Continue"
+                with the old picks — so a missing Page means re-picking. */}
+            {assets !== null && (
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                Don&rsquo;t see your Page? Click <strong>Connect Facebook &amp; Instagram</strong>{' '}
+                again and choose <strong>Edit settings</strong> in the Facebook window — not
+                Continue — to pick other Pages, including your business portfolio&rsquo;s.
+              </p>
+            )}
           </CardContent>
         </Card>
       )}
