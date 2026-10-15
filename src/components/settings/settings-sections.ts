@@ -71,16 +71,13 @@ export const DEFAULT_SECTION: SettingsSection = 'profile';
 export interface SectionMeta {
   id: SettingsSection;
   label: string;
-  /** Optional only because a section carrying a `mark` draws artwork
-   *  instead of a glyph. Every other row needs one. */
+  /** Optional only because a section carrying a `mark` draws its own
+   *  glyph. Every other row needs one. */
   icon?: LucideIcon;
   /**
-   * Draw the row as a wordmark rather than an icon and a label. Maya is
-   * the only section with artwork of her own and should stay the only
-   * one — a rail of competing logos is not a nav.
-   *
-   * `label` is still required: it is the row's accessible fallback and
-   * what the lock and coming-soon tooltips quote.
+   * Draw the row as Maya's: her name beside the AI sparkle, kept at
+   * every width. Maya is the only section marked out like this and
+   * should stay the only one — a rail of competing badges is not a nav.
    */
   mark?: 'maya';
   group: 'assistant' | 'account' | 'workspace' | 'channels' | 'integrations';
@@ -125,7 +122,7 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
   //
   // In a group of her own above Account, with no heading over it: she is
   // not an account setting or a workspace one, and a heading over a
-  // single row is a label looking for a list. The mark carries the name.
+  // single row is a label looking for a list. The sparkle marks her out.
   maya: {
     id: 'maya',
     label: 'Maya',

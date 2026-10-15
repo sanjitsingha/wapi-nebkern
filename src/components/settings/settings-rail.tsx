@@ -3,15 +3,11 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Lock } from 'lucide-react';
+import { Lock, Sparkles } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { softBadge } from '@/lib/badge-colors';
 import { useEntitlements } from '@/hooks/use-entitlements';
-// Reached across from the marketing scope rather than copied: the
-// component is a next/image wrapper over a file in public/ and uses
-// none of lp2's tokens, so it renders correctly in the app shell.
-import { MayaLockup } from '@/components/lp2/maya-lockup';
 import {
   DEFAULT_SECTION,
   RAIL_GROUPS,
@@ -120,23 +116,14 @@ export function SettingsRail() {
               const body = (
                 <>
                   {meta.mark === 'maya' ? (
-                    /* The mark replaces both the glyph and the label —
-                       it spells the name itself, so setting "Maya" in
-                       type beside it would say it twice. Held to 18px
-                       so the wordmark's letters land at about the
-                       weight of the 15px labels it sits among; the
-                       rail is a list of peers, not a place for a logo
-                       to shout.
-
-                       `flex-1` goes on the wrapper, never on the image:
-                       the label it replaces is what pushes the lock and
-                       the badge out to the right-hand edge, but a
-                       flex-grown `<img>` would take its width from the
-                       track instead of from `w-auto` and stretch the
-                       wordmark. */
-                    <span className="flex flex-1 items-center">
-                      <MayaLockup variant="bare" className="h-[18px] shrink-0" />
-                    </span>
+                    /* Her name in type beside the sparkle every AI
+                       feature in the app wears. Shown at every width:
+                       her group has no heading to carry a glyph, unlike
+                       the rows below it. */
+                    <>
+                      <Sparkles className="size-5 shrink-0 text-primary lg:size-4" />
+                      <span className="flex-1">{meta.label}</span>
+                    </>
                   ) : (
                     <>
                       {/* Phone only: the chip strip has no headings, so
@@ -167,6 +154,9 @@ export function SettingsRail() {
                 // heading's label, past its glyph. Maya's row has no
                 // heading and sits flush.
                 label && 'lg:ml-6',
+                // Icon plus a heading-width gap lands Maya's name on the
+                // same left edge as the indented labels below.
+                meta.mark === 'maya' && 'lg:gap-2',
                 meta.mobileOnly && 'lg:hidden',
                 isActive
                   ? 'bg-muted text-primary'
