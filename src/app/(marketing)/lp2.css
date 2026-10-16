@@ -18,6 +18,11 @@
      the hook is kept so these surfaces can diverge again later. */
   font-family: var(--font-lp2-display), var(--font-sans), sans-serif;
 
+  /* The site's own corner radius. The app tightened `--radius` in
+     globals.css; the landing, legal, docs and onboarding pages keep the
+     softer corners they were designed with. */
+  --radius: 0.55rem;
+
   /* ── Surfaces & ink ── */
   --lp2-cream: #fffbf2; /* page canvas — warm, never clinical white */
   --lp2-paper: #ffffff; /* cards that sit on the cream */

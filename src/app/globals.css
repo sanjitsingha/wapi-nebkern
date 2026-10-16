@@ -73,7 +73,11 @@
   --chart-3: oklch(0.7 0.06 255);
   --chart-4: oklch(0.8 0.04 255);
   --chart-5: oklch(0.87 0.03 255);
-  --radius: 0.55rem;
+  /* The app's corner radius; every rounded-* size is a calc() over it.
+     Tightened from 0.55rem (2026-10-15) — the same 6px the admin panel
+     uses. The marketing site keeps its softer corners: `.lp2` pins its
+     own value in lp2.css. */
+  --radius: 0.375rem;
   --sidebar: oklch(0.99 0.003 255);
   --sidebar-foreground: oklch(0.205 0.015 260);
   --sidebar-accent: oklch(0.955 0.008 255);
