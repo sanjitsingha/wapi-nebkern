@@ -73,7 +73,7 @@ interface NavGroup {
 
 // Standalone items above the grouped nav (the reference's "Home").
 const homeLink: NavLink = {
-  label: 'Home',
+  label: 'Dashboard',
   icon: House,
   href: '/dashboard',
 };

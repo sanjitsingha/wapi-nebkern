@@ -99,8 +99,11 @@ export function SettingsRail() {
                 under it are plain, indented text — a settings index, not
                 a second app sidebar. */}
             {label ? (
-              <div className="hidden items-center gap-2 px-3 pt-4 pb-1 text-[15px] font-medium text-muted-foreground lg:flex">
-                {GroupIcon && <GroupIcon className="size-4 shrink-0" />}
+              // Smaller than the rows it heads: a label for the group, not
+              // another link. Glyph 14px + gap 10px keeps the label on the
+              // rows' `lg:ml-6` (24px) edge.
+              <div className="hidden items-center gap-2.5 px-3 pt-4 pb-1 text-xs font-medium text-muted-foreground lg:flex">
+                {GroupIcon && <GroupIcon className="size-3.5 shrink-0" />}
                 {label}
               </div>
             ) : null}
