@@ -1,6 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { decrypt } from '@/lib/whatsapp/encryption'
 import type { AiConfig } from './types'
+import {
+  RESPONSE_DELAY,
+  SNOOZE,
+  parseOperatingHours,
+  parseSeconds,
+} from './reply-settings'
 
 interface AiConfigRow {
   provider: 'openai' | 'anthropic' | 'openrouter'
@@ -11,10 +17,13 @@ interface AiConfigRow {
   auto_reply_enabled: boolean
   auto_reply_max_per_conversation: number
   embeddings_api_key: string | null
+  /** Migration 114. Optional in the row type: read through select('*')
+   *  so a database without the column still loads the config. */
+  activation_prompt?: string | null
+  response_delay_seconds?: number | null
+  snooze_seconds?: number | null
+  operating_hours?: unknown
 }
-
-const CONFIG_COLUMNS =
-  'provider, model, api_key, system_prompt, is_active, auto_reply_enabled, auto_reply_max_per_conversation, embeddings_api_key'
 
 /**
  * Load and decrypt the account's AI config for *use* (draft or
@@ -35,7 +44,10 @@ export async function loadAiConfig(
   const { requireActive = true } = opts
   const { data, error } = await db
     .from('ai_configs')
-    .select(CONFIG_COLUMNS)
+    // '*' rather than a column list, so a database that hasn't run a
+    // newer migration (114's activation_prompt) still loads — naming a
+    // missing column would fail the whole query and silence Maya.
+    .select('*')
     .eq('account_id', accountId)
     .maybeSingle()
 
@@ -75,6 +87,13 @@ export async function loadAiConfig(
     autoReplyEnabled: row.auto_reply_enabled,
     autoReplyMaxPerConversation: row.auto_reply_max_per_conversation,
     embeddingsApiKey,
+    activationPrompt: row.activation_prompt?.trim() || null,
+    // Before migration 114 these columns don't exist; the defaults are
+    // how she behaved then.
+    responseDelaySeconds:
+      parseSeconds(row.response_delay_seconds, RESPONSE_DELAY) ?? RESPONSE_DELAY.default,
+    snoozeSeconds: parseSeconds(row.snooze_seconds, SNOOZE) ?? SNOOZE.default,
+    operatingHours: parseOperatingHours(row.operating_hours),
   }
 }
 

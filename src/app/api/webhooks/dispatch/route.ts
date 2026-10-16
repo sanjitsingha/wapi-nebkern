@@ -7,6 +7,7 @@ import { recordCronHeartbeat } from '@/lib/system/cron-heartbeat';
 import { drainSheetQueue, exportFinishedCampaigns } from '@/lib/google-sheets/sync';
 import { drainZohoQueue } from '@/lib/zoho/push';
 import { logZohoChats } from '@/lib/zoho/chat-log';
+import { sweepDueAiReplies } from '@/lib/ai/due-replies';
 
 /**
  * Drain the outbound webhook delivery queue.
@@ -55,6 +56,17 @@ export async function GET(request: Request) {
     // Instant → Zoho pushes, then chats written as Zoho notes; same
     // minute, same isolation. Time budgets keep the whole run inside the
     // scheduler's 55s timeout.
+    // Maya's long response delays: replies whose wait has run out, handed
+    // to the reply engine over loopback — the cron runs on this server.
+    // The replies themselves run in their own invocations.
+    let ai: Record<string, unknown> = {};
+    try {
+      ai = await sweepDueAiReplies(admin, `http://127.0.0.1:${process.env.PORT || 3000}`);
+    } catch (err) {
+      console.error('[webhooks-cron] due AI replies failed:', err);
+      ai = { error: err instanceof Error ? err.message : String(err) };
+    }
+
     let zoho: Record<string, unknown> = {};
     try {
       zoho = { ...(await drainZohoQueue(admin, { budgetMs: 25_000 })) };
@@ -72,9 +84,9 @@ export async function GET(request: Request) {
     await recordCronHeartbeat(admin, 'webhooks_dispatch', {
       status: 'ok',
       durationMs: Date.now() - started,
-      detail: { ...(result as Record<string, unknown>), sheets, zoho },
+      detail: { ...(result as Record<string, unknown>), sheets, ai, zoho },
     });
-    return NextResponse.json({ ...result, sheets, zoho });
+    return NextResponse.json({ ...result, sheets, ai, zoho });
   } catch (err) {
     console.error('[webhooks-cron] dispatch failed:', err);
     await recordCronHeartbeat(admin, 'webhooks_dispatch', {

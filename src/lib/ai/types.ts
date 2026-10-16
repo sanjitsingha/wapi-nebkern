@@ -1,3 +1,5 @@
+import type { OperatingHours } from './reply-settings'
+
 // ============================================================
 // Shared types for the AI reply assistant (bring-your-own-key).
 //
@@ -25,6 +27,17 @@ export interface AiConfig {
    *  knowledge base is embedded and semantic retrieval turns on; when
    *  null, retrieval falls back to lexical full-text search. */
   embeddingsApiKey: string | null
+  /** Maya's activation rules (Configuration): checked before each reply
+   *  to decide whether the message needs one. null/absent = no rules,
+   *  answer every message she's allowed to. */
+  activationPrompt?: string | null
+  /** Seconds to wait after the customer's last message before replying
+   *  (RESPONSE_DELAY in reply-settings.ts). */
+  responseDelaySeconds?: number
+  /** Seconds to stay quiet after a teammate replies; 0 = no pause. */
+  snoozeSeconds?: number
+  /** When she may auto-reply; null/absent = any time. */
+  operatingHours?: OperatingHours | null
 }
 
 /** A single conversation turn in the shape both providers accept. */
