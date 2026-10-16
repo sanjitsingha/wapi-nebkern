@@ -39,8 +39,6 @@ import {
  * order, so this is also the top-to-bottom order within each group.
  */
 export const SETTINGS_SECTIONS = [
-  // Maya — alone, above everything, in a group with no heading.
-  'maya',
   // Account — you, not the workspace.
   'profile',
   // Workspace — the business everyone on the team shares.
@@ -71,16 +69,8 @@ export const DEFAULT_SECTION: SettingsSection = 'profile';
 export interface SectionMeta {
   id: SettingsSection;
   label: string;
-  /** Optional only because a section carrying a `mark` draws its own
-   *  glyph. Every other row needs one. */
-  icon?: LucideIcon;
-  /**
-   * Draw the row as Maya's: her name beside the AI sparkle, kept at
-   * every width. Maya is the only section marked out like this and
-   * should stay the only one — a rail of competing badges is not a nav.
-   */
-  mark?: 'maya';
-  group: 'assistant' | 'account' | 'workspace' | 'channels' | 'integrations';
+  icon: LucideIcon;
+  group: 'account' | 'workspace' | 'channels' | 'integrations';
   /**
    * Shelved channel: the rail shows the entry with a "Soon" badge and
    * makes it non-navigable, and the section's page renders the
@@ -115,20 +105,8 @@ export interface SectionMeta {
  * Declared in the same order as SETTINGS_SECTIONS.
  */
 export const SECTION_META: Record<SettingsSection, SectionMeta> = {
-  /* ── Maya ────────────────────────────────────────────────────────── */
-  // The assistant herself, not her credentials — those are "AI & models"
-  // under Developers, which is where the provider, key and model live.
-  // This is where you talk to her and see whether she is live.
-  //
-  // In a group of her own above Account, with no heading over it: she is
-  // not an account setting or a workspace one, and a heading over a
-  // single row is a label looking for a list. The sparkle marks her out.
-  maya: {
-    id: 'maya',
-    label: 'Maya',
-    mark: 'maya',
-    group: 'assistant',
-  },
+  // Maya herself lives in the app sidebar (/askmaya); only her
+  // credentials — "AI & models" — stay in Settings.
 
   /* ── Account ─────────────────────────────────────────────────────── */
   profile: {
@@ -269,12 +247,10 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
  * group is recognised at a glance.
  */
 export const RAIL_GROUPS: {
-  label: string | null;
+  label: string;
   group: SectionMeta['group'];
-  icon?: LucideIcon;
+  icon: LucideIcon;
 }[] = [
-  // Headingless, and first. See SECTION_META.maya.
-  { label: null, group: 'assistant' },
   { label: 'Account', group: 'account', icon: UserCog },
   { label: 'Workspace', group: 'workspace', icon: Building2 },
   { label: 'Channels', group: 'channels', icon: MessagesSquare },

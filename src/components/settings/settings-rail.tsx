@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Lock, Sparkles } from 'lucide-react';
+import { Lock } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { softBadge } from '@/lib/badge-colors';
@@ -98,15 +98,13 @@ export function SettingsRail() {
             {/* Desktop: the heading carries the group's glyph and the rows
                 under it are plain, indented text — a settings index, not
                 a second app sidebar. */}
-            {label ? (
-              // Smaller than the rows it heads: a label for the group, not
-              // another link. Glyph 14px + gap 10px keeps the label on the
-              // rows' `lg:ml-6` (24px) edge.
-              <div className="hidden items-center gap-2.5 px-3 pt-4 pb-1 text-xs font-medium text-muted-foreground lg:flex">
-                {GroupIcon && <GroupIcon className="size-3.5 shrink-0" />}
-                {label}
-              </div>
-            ) : null}
+            {/* Smaller than the rows it heads: a label for the group, not
+                another link. Glyph 14px + gap 10px keeps the label on the
+                rows' `lg:ml-6` (24px) edge. */}
+            <div className="hidden items-center gap-2.5 px-3 pt-4 pb-1 text-xs font-medium text-muted-foreground lg:flex">
+              <GroupIcon className="size-3.5 shrink-0" />
+              {label}
+            </div>
             {items.map((s) => {
               const meta = SECTION_META[s];
               const Icon = meta.icon;
@@ -118,23 +116,10 @@ export function SettingsRail() {
 
               const body = (
                 <>
-                  {meta.mark === 'maya' ? (
-                    /* Her name in type beside the sparkle every AI
-                       feature in the app wears. Shown at every width:
-                       her group has no heading to carry a glyph, unlike
-                       the rows below it. */
-                    <>
-                      <Sparkles className="size-5 shrink-0 text-primary lg:size-4" />
-                      <span className="flex-1">{meta.label}</span>
-                    </>
-                  ) : (
-                    <>
-                      {/* Phone only: the chip strip has no headings, so
-                          each chip keeps its glyph. */}
-                      {Icon && <Icon className="size-5 shrink-0 lg:hidden" />}
-                      <span className="flex-1">{meta.label}</span>
-                    </>
-                  )}
+                  {/* Phone only: the chip strip has no headings, so
+                      each chip keeps its glyph. */}
+                  <Icon className="size-5 shrink-0 lg:hidden" />
+                  <span className="flex-1">{meta.label}</span>
 
                   {locked && <Lock className="size-3.5 shrink-0 opacity-70" />}
                   {soon && (
@@ -154,12 +139,8 @@ export function SettingsRail() {
                 'flex shrink-0 items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium whitespace-nowrap transition-colors',
                 'lg:py-1.5 lg:text-[15px]',
                 // Indented under a heading so the text lines up with the
-                // heading's label, past its glyph. Maya's row has no
-                // heading and sits flush.
-                label && 'lg:ml-6',
-                // Icon plus a heading-width gap lands Maya's name on the
-                // same left edge as the indented labels below.
-                meta.mark === 'maya' && 'lg:gap-2',
+                // heading's label, past its glyph.
+                'lg:ml-6',
                 meta.mobileOnly && 'lg:hidden',
                 isActive
                   ? 'bg-muted text-primary'

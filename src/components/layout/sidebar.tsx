@@ -38,6 +38,8 @@ import {
   Megaphone,
   PhoneCall,
   SidebarSimple,
+  // Maya's sparkle — the AI mark the app's AI features wear.
+  Sparkle,
   UsersThree,
   X,
   type Icon as PhosphorIcon,
@@ -78,10 +80,9 @@ const homeLink: NavLink = {
   href: '/dashboard',
 };
 
-// Maya has no row here any more. She moved into Settings → Workspace
-// (/settings/maya), which is also where her rail entry lives — see
-// settings-sections.ts. /askmaya and /agents both still resolve, so
-// nothing that linked to the old surface is broken.
+// Maya is a standalone link after the Automation group (see `groups`).
+// /settings/maya and /agents redirect to her page, so nothing that
+// linked to an older home is broken.
 
 const quickLinks: NavLink[] = [
   {
@@ -150,6 +151,9 @@ const groups: (NavGroup | NavLink)[] = [
       { label: 'Flows', icon: FlowArrow, href: '/flows' },
     ],
   },
+  // On her own after Automation, not inside it: she is the assistant
+  // that answers customers, not one more rule.
+  { label: 'Maya', icon: Sparkle, href: '/askmaya' },
 ];
 
 interface SidebarProps {

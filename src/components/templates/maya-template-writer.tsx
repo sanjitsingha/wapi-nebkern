@@ -118,7 +118,7 @@ export function MayaTemplateWriter({
           {(error.code === 'ai_not_configured' ||
             error.code === 'invalid_key' ||
             error.code === 'output_limit') && (
-            <Link href="/settings/maya" className="font-medium underline underline-offset-2">
+            <Link href="/askmaya" className="font-medium underline underline-offset-2">
               Open Maya settings
             </Link>
           )}

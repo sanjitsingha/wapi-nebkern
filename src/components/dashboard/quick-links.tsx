@@ -62,7 +62,7 @@ const LINKS: QuickLink[] = [
     title: 'Maya, your AI agent',
     description: 'Let AI answer customers and hand over to your team when needed',
     icon: Sparkles,
-    href: '/settings/maya',
+    href: '/askmaya',
     doc: 'ai-agents',
   },
   {
