@@ -2,17 +2,19 @@
 // Channel brand marks.
 //
 // Full-colour logos for each messaging channel, used wherever the inbox
-// names a platform (the conversation-list channel tabs today; the thread
+// names a platform (the conversation-list channel tabs and avatar badges; the thread
 // header / composer later). Deliberately the *brand* logos — green
 // WhatsApp bubble, the Messenger gradient, the Instagram gradient — not
 // the monochrome lucide glyphs, so a channel reads at a glance.
 //
 // Each is a plain presentational SVG sized in `em`/via className, so a
-// caller controls the size with `size-4` etc. The gradient ids are
-// static: every logo renders at most once in the tab bar today, so
-// there's no duplicate-id clash. If one ever needs to appear many times
-// on a page at once, swap the static id for React's `useId()`.
+// caller controls the size with `size-4` etc. Gradient ids come from
+// `useId()`: the conversation list badges every row's avatar, so one
+// logo renders dozens of times, and a shared id points every copy at
+// the first — which paints nothing if that one sits in a hidden subtree.
 // ============================================================
+
+import { useId } from 'react';
 
 type IconProps = { className?: string };
 
@@ -34,11 +36,12 @@ export function WhatsAppLogo({ className }: IconProps) {
 
 /** Messenger — the 2020 gradient bubble with the white lightning glyph. */
 export function MessengerLogo({ className }: IconProps) {
+  const gradId = useId();
   return (
     <svg viewBox="0 0 36 36" className={className} aria-hidden focusable="false">
       <defs>
         <radialGradient
-          id="wacrm-messenger-grad"
+          id={gradId}
           cx="0.19"
           cy="1"
           r="1.1"
@@ -51,7 +54,7 @@ export function MessengerLogo({ className }: IconProps) {
         </radialGradient>
       </defs>
       <path
-        fill="url(#wacrm-messenger-grad)"
+        fill={`url(#${gradId})`}
         d="M18 0C7.99 0 0 7.34 0 17.25c0 5.19 2.19 9.66 5.75 12.75.3.26.48.63.49 1.03l.1 3.25a1.44 1.44 0 0 0 2.02 1.28l3.63-1.6c.31-.14.66-.16.98-.08 1.64.45 3.39.69 5.03.69C28.01 34.5 36 27.16 36 17.25S28.01 0 18 0z"
       />
       <path
@@ -64,11 +67,12 @@ export function MessengerLogo({ className }: IconProps) {
 
 /** Instagram — the gradient rounded-square camera. */
 export function InstagramLogo({ className }: IconProps) {
+  const gradId = useId();
   return (
     <svg viewBox="0 0 32 32" className={className} aria-hidden focusable="false">
       <defs>
         <linearGradient
-          id="wacrm-instagram-grad"
+          id={gradId}
           x1="0"
           y1="1"
           x2="1"
@@ -82,7 +86,7 @@ export function InstagramLogo({ className }: IconProps) {
           <stop offset="1" stopColor="#4f5bd5" />
         </linearGradient>
       </defs>
-      <rect width="32" height="32" rx="9" fill="url(#wacrm-instagram-grad)" />
+      <rect width="32" height="32" rx="9" fill={`url(#${gradId})`} />
       <rect
         x="7"
         y="7"

@@ -20,11 +20,9 @@ import type {
   Tag,
 } from "@/types";
 import {
-  AtSign,
-  MessageCircle,
-  Search,
   Bot,
   Check,
+  Search,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { Input } from "@/components/ui/input";
@@ -449,13 +447,15 @@ export function ConversationList({
 
       {/* Search, and every filter behind one button beside it. */}
       <div className="flex items-center gap-2 border-b border-border p-3">
+        {/* No box — the glyph and placeholder over an underline that
+            turns primary while typing. */}
         <div className="relative min-w-0 flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute left-0 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={handleSearchChange}
             placeholder="Search conversations..."
-            className="border-border bg-muted pl-9 text-sm text-foreground placeholder-muted-foreground focus:border-primary/50"
+            className="h-9 rounded-none border-0 border-b border-border bg-transparent pr-0 pl-6 text-sm text-foreground focus-visible:border-primary focus-visible:ring-0 dark:bg-transparent"
           />
         </div>
         <InboxFilterMenu
@@ -597,6 +597,10 @@ function ConversationItem({
     "Unknown";
   const initials = displayName.charAt(0).toUpperCase();
   const avatar = avatarColor(contact?.id || displayName);
+  const channelOpt = CHANNEL_OPTIONS.find(
+    (o) => o.value === (conversation.channel ?? "whatsapp"),
+  );
+  const ChannelMark = channelOpt?.Logo;
 
   const handleClick = useCallback(() => {
     onSelect(conversation);
@@ -648,24 +652,16 @@ function ConversationItem({
             initials
           )}
         </div>
-        {/* Channel badge — only Instagram gets one; a bare avatar reads
-            as WhatsApp (the default/majority channel), so this stays
-            visually unchanged for every conversation until a second
-            channel is actually in play. */}
-        {conversation.channel === "instagram" && (
+        {/* Channel badge — the platform's own logo on a white chip at
+            the avatar's bottom-right, for every channel, so a mixed
+            inbox reads at a glance. No `channel` = a pre-044 WhatsApp
+            thread. */}
+        {ChannelMark && (
           <span
-            title="Instagram"
-            className="absolute -right-0.5 -bottom-0.5 flex size-4 items-center justify-center rounded-full bg-card text-foreground ring-2 ring-card"
+            title={channelOpt?.label}
+            className="absolute -right-1 -bottom-1 flex size-5 items-center justify-center rounded-full bg-card ring-2 ring-card"
           >
-            <AtSign className="size-3" />
-          </span>
-        )}
-        {conversation.channel === "messenger" && (
-          <span
-            title="Messenger"
-            className="absolute -right-0.5 -bottom-0.5 flex size-4 items-center justify-center rounded-full bg-card text-[#0084FF] ring-2 ring-card"
-          >
-            <MessageCircle className="size-3" />
+            <ChannelMark className="size-4" />
           </span>
         )}
       </div>

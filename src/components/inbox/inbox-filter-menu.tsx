@@ -10,8 +10,8 @@ import {
   CircleDot,
   Clock,
   Hourglass,
+  Funnel,
   Info,
-  ListFilter,
   MailOpen,
   Sparkles,
   Tag as TagIcon,
@@ -258,16 +258,16 @@ export function InboxFilterMenu({
       <PopoverTrigger
         title="Filter conversations"
         aria-label="Filter conversations"
+        // Just the glyph — no box. Filters in use turn it primary and
+        // pin the count to its corner.
         className={cn(
-          'relative inline-flex size-9 shrink-0 items-center justify-center rounded-md border transition-colors',
-          count > 0
-            ? 'border-primary/30 bg-primary-soft text-primary'
-            : 'border-border bg-muted text-muted-foreground hover:text-foreground',
+          'relative inline-flex size-8 shrink-0 items-center justify-center transition-colors',
+          count > 0 ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
         )}
       >
-        <ListFilter className="size-4" />
+        <Funnel className="size-[18px]" />
         {count > 0 && (
-          <span className="bg-primary text-primary-foreground absolute -top-1.5 -right-1.5 inline-flex size-4 items-center justify-center rounded-full text-[10px] font-semibold">
+          <span className="bg-primary text-primary-foreground absolute top-0 right-0 inline-flex size-4 items-center justify-center rounded-full text-[10px] font-semibold">
             {count}
           </span>
         )}
