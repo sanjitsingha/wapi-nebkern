@@ -13,6 +13,8 @@
 // testable. See presence.test.ts.
 // ============================================================
 
+import { format, isSameDay, subDays } from "date-fns";
+
 /**
  * How often the active client heartbeats its own presence row.
  *
@@ -50,6 +52,9 @@ export type PresenceStatus = "online" | "away" | "offline";
 export interface PresenceRow {
   status: StoredPresence;
   last_seen_at: string;
+  /** When the current session began (migration 113); null when offline
+   *  or for a row written before that migration's first heartbeat. */
+  online_since?: string | null;
 }
 
 /**
@@ -133,4 +138,38 @@ export function summarize(statuses: PresenceStatus[]): {
   const counts = { online: 0, away: 0, offline: 0 };
   for (const s of statuses) counts[s] += 1;
   return counts;
+}
+
+/**
+ * Clock time a session started, for "Online since …": the time alone
+ * today, "yesterday, …" for yesterday, else the date too. Local time,
+ * like every other timestamp the app shows.
+ */
+export function formatOnlineSince(onlineSince: string, now: number): string {
+  const at = new Date(onlineSince);
+  if (Number.isNaN(at.getTime())) return "";
+  const today = new Date(now);
+  const time = format(at, "h:mm a");
+  if (isSameDay(at, today)) return time;
+  if (isSameDay(at, subDays(today, 1))) return `yesterday, ${time}`;
+  return `${format(at, "d MMM")}, ${time}`;
+}
+
+/**
+ * One line for a teammate on the dashboard's Team panel:
+ *   "Online since 10:42 AM"
+ *   "Away · online since 10:42 AM"
+ *   "Last seen 2 hours ago"
+ *   "Not signed in yet"            (no presence row at all)
+ */
+export function presenceSince(
+  status: PresenceStatus,
+  row: PresenceRow | undefined,
+  now: number,
+): string {
+  if (!row) return "Not signed in yet";
+  if (status === "offline") return `Last seen ${formatLastSeen(row.last_seen_at, now)}`;
+  const since = row.online_since ? formatOnlineSince(row.online_since, now) : "";
+  if (status === "online") return since ? `Online since ${since}` : "Online";
+  return since ? `Away · online since ${since}` : "Away";
 }

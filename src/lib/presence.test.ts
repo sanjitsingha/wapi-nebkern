@@ -4,7 +4,9 @@ import {
   OFFLINE_AFTER_MS,
   derivePresence,
   formatLastSeen,
+  formatOnlineSince,
   presenceLabel,
+  presenceSince,
   summarize,
 } from "./presence";
 
@@ -83,5 +85,58 @@ describe("summarize", () => {
 
   it("returns zeroes for an empty roster", () => {
     expect(summarize([])).toEqual({ online: 0, away: 0, offline: 0 });
+  });
+});
+
+describe("formatOnlineSince", () => {
+  // Local-time dates, so the assertions hold in any time zone.
+  const now = new Date(2026, 9, 15, 16, 30).getTime();
+
+  it("shows the time alone for a session that started today", () => {
+    expect(formatOnlineSince(new Date(2026, 9, 15, 10, 42).toISOString(), now)).toBe("10:42 AM");
+  });
+
+  it("says yesterday for a session carried over from yesterday", () => {
+    expect(formatOnlineSince(new Date(2026, 9, 14, 18, 5).toISOString(), now)).toBe(
+      "yesterday, 6:05 PM",
+    );
+  });
+
+  it("adds the date for anything older", () => {
+    expect(formatOnlineSince(new Date(2026, 9, 12, 9, 0).toISOString(), now)).toBe(
+      "12 Oct, 9:00 AM",
+    );
+  });
+});
+
+describe("presenceSince", () => {
+  const now = new Date(2026, 9, 15, 16, 30).getTime();
+  const since = new Date(2026, 9, 15, 10, 42).toISOString();
+  const seen = new Date(now - 2 * 3_600_000).toISOString();
+
+  it("says when an online teammate came on", () => {
+    expect(
+      presenceSince("online", { status: "online", last_seen_at: seen, online_since: since }, now),
+    ).toBe("Online since 10:42 AM");
+  });
+
+  it("keeps the session start for someone away", () => {
+    expect(
+      presenceSince("away", { status: "away", last_seen_at: seen, online_since: since }, now),
+    ).toBe("Away · online since 10:42 AM");
+  });
+
+  it("falls back to plain Online for a row from before online_since existed", () => {
+    expect(presenceSince("online", { status: "online", last_seen_at: seen }, now)).toBe("Online");
+  });
+
+  it("gives last seen for someone offline", () => {
+    expect(
+      presenceSince("offline", { status: "online", last_seen_at: seen, online_since: since }, now),
+    ).toBe("Last seen 2 hours ago");
+  });
+
+  it("says so for a teammate who has never signed in", () => {
+    expect(presenceSince("offline", undefined, now)).toBe("Not signed in yet");
   });
 });

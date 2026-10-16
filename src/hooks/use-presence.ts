@@ -65,12 +65,14 @@ export function usePresence(enabled = true): UsePresenceResult {
       user_id: string;
       status: StoredPresence;
       last_seen_at: string;
+      online_since?: string | null;
     }) => {
       setRows((prev) => {
         const next = new Map(prev);
         next.set(row.user_id, {
           status: row.status,
           last_seen_at: row.last_seen_at,
+          online_since: row.online_since ?? null,
         });
         return next;
       });
@@ -107,6 +109,7 @@ export function usePresence(enabled = true): UsePresenceResult {
               user_id: string;
               status: StoredPresence;
               last_seen_at: string;
+              online_since?: string | null;
             },
           );
         },
@@ -115,7 +118,10 @@ export function usePresence(enabled = true): UsePresenceResult {
 
     supabase
       .from("member_presence")
-      .select("user_id, status, last_seen_at")
+      // `*`, not a column list: online_since arrives with migration 113,
+      // and naming it would fail the whole read on a database that
+      // hasn't run it yet — taking every presence dot down with it.
+      .select("*")
       .eq("account_id", accountId)
       .then(({ data, error }) => {
         if (cancelled) return;
@@ -130,6 +136,7 @@ export function usePresence(enabled = true): UsePresenceResult {
             const incoming: PresenceRow = {
               status: r.status as StoredPresence,
               last_seen_at: r.last_seen_at as string,
+              online_since: (r.online_since as string | null | undefined) ?? null,
             };
             const existing = next.get(userId);
             // A live event that arrived first must win over a staler
