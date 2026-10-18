@@ -71,7 +71,7 @@ const ZOHO_LOGO = '/images/integrations/zoho-crm.png';
 /** One numbered step. The number is a chip rather than a list marker so
  *  a step can wrap to three lines without its text sliding under the
  *  digit. */
-function GuideStep({ n, children }: { n: number; children: ReactNode }) {
+export function GuideStep({ n, children }: { n: number; children: ReactNode }) {
   return (
     <li className="flex gap-2.5">
       <span className="bg-background border-border text-foreground mt-px flex size-4.5 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold">
@@ -90,7 +90,7 @@ function GuideStep({ n, children }: { n: number; children: ReactNode }) {
  * screen will a moment later. Someone who reads "required" here and
  * then sees a different list at Zoho has every reason to back out.
  */
-function Permission({
+export function Permission({
   icon: Icon,
   title,
   children,

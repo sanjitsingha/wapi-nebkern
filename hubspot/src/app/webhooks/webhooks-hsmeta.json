@@ -1,0 +1,42 @@
+{
+  "uid": "instant_crm_webhooks",
+  "type": "webhooks",
+  "config": {
+    "settings": {
+      "targetUrl": "https://instant.nebkern.com/api/integrations/hubspot/webhook",
+      "maxConcurrentRequests": 10
+    },
+    "subscriptions": {
+      "crmObjects": [
+        {
+          "subscriptionType": "object.creation",
+          "objectType": "contact",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "lifecyclestage",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "contact",
+          "propertyName": "hs_lead_status",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.creation",
+          "objectType": "deal",
+          "active": true
+        },
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "dealstage",
+          "active": true
+        }
+      ]
+    }
+  }
+}

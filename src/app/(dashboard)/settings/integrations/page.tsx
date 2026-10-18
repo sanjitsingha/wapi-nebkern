@@ -7,7 +7,7 @@ export default function IntegrationsPage() {
     <FeatureGate
       feature="allowIntegrations"
       label="Webhooks & integrations"
-      description="Connect Zapier, Make, n8n, or your own backend with outbound webhooks. Upgrade your plan to unlock integrations."
+      description="Connect Shopify, WooCommerce, Zoho CRM, Google Sheets, or your own backend with outbound webhooks. Upgrade your plan to unlock integrations."
     >
       <div className="space-y-10">
         <IntegrationsGrid />

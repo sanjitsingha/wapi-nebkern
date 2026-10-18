@@ -8,6 +8,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { WooCommerceConnect } from './woocommerce-connect';
 import { ShopifyConnect } from './shopify-connect';
 import { ZohoConnect } from './zoho-connect';
+import { HubSpotConnect } from './hubspot-connect';
 import { ZapierConnect } from './zapier-guide';
 import {
   GROUPS,
@@ -112,6 +113,8 @@ export function IntegrationsGrid() {
                   <ShopifyConnect key={item.id} />
                 ) : item.id === 'zoho-crm' ? (
                   <ZohoConnect key={item.id} />
+                ) : item.id === 'hubspot' ? (
+                  <HubSpotConnect key={item.id} />
                 ) : item.id === 'zapier' ? (
                   <ZapierConnect key={item.id} />
                 ) : (

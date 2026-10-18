@@ -72,7 +72,7 @@ export type ConnectKind =
   /** The outbound-webhooks settings, shown on the page itself. */
   | 'panel';
 
-const NATIVE = new Set(['shopify', 'woocommerce', 'zoho-crm', 'google-sheets']);
+const NATIVE = new Set(['shopify', 'woocommerce', 'zoho-crm', 'hubspot', 'google-sheets']);
 const DOCS = new Set(['make']);
 
 export function connectKind(id: string): ConnectKind {
@@ -85,7 +85,14 @@ export function connectKind(id: string): ConnectKind {
 /** The one integrations guide every page's "Go to documentation" opens. */
 export const INTEGRATIONS_DOCS_HREF = '/docs/api-and-integrations';
 
-export const INTEGRATIONS: Integration[] = [
+/**
+ * Kept in the catalogue below but not shown anywhere for now — no card,
+ * no settings-rail link, and their pages 404. Take an id out of this
+ * set to bring it back.
+ */
+const HIDDEN = new Set(['zapier', 'make', 'slack']);
+
+const ALL_INTEGRATIONS: Integration[] = [
   // ── Built in ──────────────────────────────────────────────────────
   {
     id: 'rest-api',
@@ -183,6 +190,22 @@ export const INTEGRATIONS: Integration[] = [
     logo: '/images/integrations/zoho-crm.png',
   },
   {
+    // Native connect flow (rendered by <HubSpotConnect>), the same
+    // two-way sync as Zoho's. The logo is the sprocket alone, cut from
+    // the wordmark, for the same reason as Zoho's mark: the grid draws
+    // logos in a 40px square, where the wordmark would be unreadable.
+    id: 'hubspot',
+    name: 'HubSpot',
+    description:
+      'Keep HubSpot contacts and deals in sync, log chats on the timeline, and message people when HubSpot events fire.',
+    icon: Building2,
+    tone: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
+    group: 'builtin',
+    href: '#',
+    cta: 'Connect',
+    logo: '/images/integrations/hubspot-mark.png',
+  },
+  {
     // Native connect flow (rendered by <ShopifyConnect>).
     id: 'shopify',
     name: 'Shopify',
@@ -219,6 +242,8 @@ export const INTEGRATIONS: Integration[] = [
     cta: 'Connect via Zapier',
   },
 ];
+
+export const INTEGRATIONS = ALL_INTEGRATIONS.filter((i) => !HIDDEN.has(i.id));
 
 export const GROUPS: { id: Group; title: string; blurb: string }[] = [
   {

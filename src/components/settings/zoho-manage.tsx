@@ -71,7 +71,7 @@ export interface ZohoSettings {
 
 /** One setting: a switch with a one-line description, and anything
  *  that belongs to it underneath while it is on. */
-function SettingRow({
+export function SettingRow({
   title,
   description,
   checked,

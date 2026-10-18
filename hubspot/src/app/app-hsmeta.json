@@ -1,0 +1,35 @@
+{
+  "uid": "instant_crm_sync",
+  "type": "app",
+  "config": {
+    "name": "Instant",
+    "description": "Two-way sync between Instant (WhatsApp, Instagram and Messenger inbox) and HubSpot: contacts and deals, chats on the timeline, and WhatsApp messages when HubSpot events fire.",
+    "distribution": "marketplace",
+    "auth": {
+      "type": "oauth",
+      "redirectUrls": [
+        "https://instant.nebkern.com/api/integrations/hubspot/oauth/callback"
+      ],
+      "requiredScopes": [
+        "crm.objects.contacts.read",
+        "crm.objects.contacts.write",
+        "crm.objects.deals.read",
+        "crm.objects.deals.write",
+        "crm.objects.owners.read",
+        "oauth"
+      ],
+      "optionalScopes": [],
+      "conditionallyRequiredScopes": []
+    },
+    "permittedUrls": {
+      "fetch": [],
+      "iframe": [],
+      "img": []
+    },
+    "support": {
+      "supportEmail": "contact@instant.nebkern.com",
+      "documentationUrl": "https://instant.nebkern.com/docs/api-and-integrations",
+      "supportUrl": "https://instant.nebkern.com/contact"
+    }
+  }
+}

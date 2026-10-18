@@ -67,7 +67,7 @@ const LINKS: QuickLink[] = [
   },
   {
     title: 'Integrate your tools',
-    description: 'Link Zoho CRM, Shopify, WooCommerce and Google Sheets',
+    description: 'Link HubSpot, Zoho CRM, Shopify, WooCommerce and Google Sheets',
     icon: Blocks,
     href: '/settings/integrations',
     doc: 'api-and-integrations',

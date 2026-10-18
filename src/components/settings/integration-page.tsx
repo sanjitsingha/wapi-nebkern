@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ShopifyConnect } from './shopify-connect';
 import { WooCommerceConnect } from './woocommerce-connect';
 import { ZohoConnect } from './zoho-connect';
+import { HubSpotConnect } from './hubspot-connect';
 import { ZapierConnect } from './zapier-guide';
 import { WebhooksPanel } from './webhooks-panel';
 import { ConnectHero, IntegrationHeader, ToolMark } from './integration-visuals';
@@ -81,6 +82,7 @@ export function IntegrationPage({ id }: { id: string }) {
   // So does Zoho: its subtitle and everything below it depend on the
   // connection, which that component owns.
   if (item.id === 'zoho-crm') return <ZohoConnect page={item} />;
+  if (item.id === 'hubspot') return <HubSpotConnect page={item} />;
 
   return (
     <div className="space-y-6">

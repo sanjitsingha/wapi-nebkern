@@ -32,6 +32,10 @@ export const TRIGGER_META: Record<AutomationTriggerType, TriggerMeta> = {
     label: 'Zoho CRM Event',
     pillClass: softBadge.red,
   },
+  hubspot_event: {
+    label: 'HubSpot Event',
+    pillClass: softBadge.amber,
+  },
   time_based: { label: 'Time-Based', pillClass: softBadge.neutral },
 }
 

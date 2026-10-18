@@ -907,6 +907,28 @@ function DetailsTab({
   }, [contact.id]);
   const zohoHere = zoho?.contactId === contact.id ? zoho : null;
 
+  // The same for HubSpot.
+  const [hubspot, setHubspot] = useState<{
+    contactId: string;
+    connected: boolean;
+    link: { url: string | null } | null;
+  } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/integrations/hubspot/link?contact_id=${contact.id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d) {
+          setHubspot({ contactId: contact.id, connected: !!d.connected, link: d.link ?? null });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [contact.id]);
+  const hubspotHere = hubspot?.contactId === contact.id ? hubspot : null;
+
   // Ticks once a minute so the reply-window countdown stays current.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -1050,6 +1072,26 @@ function DetailsTab({
                 <ExternalLink className="h-3 w-3" />
               </a>
             ) : zohoHere.link.module === 'Leads' ? 'Lead' : 'Contact'
+          ) : (
+            'Not synced yet'
+          )}
+        </DetailRow>
+      )}
+
+      {hubspotHere?.connected && (
+        <DetailRow label="HubSpot">
+          {hubspotHere.link?.url ? (
+            <a
+              href={hubspotHere.link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-primary hover:underline underline-offset-2"
+            >
+              Contact
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          ) : hubspotHere.link ? (
+            'Contact'
           ) : (
             'Not synced yet'
           )}

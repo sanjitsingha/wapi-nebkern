@@ -893,6 +893,9 @@ export type AutomationTriggerType =
   /** A Zoho CRM Workflow Rule fired at our webhook (migration 097).
    *  Which CRM events these are is configured in Zoho, not here. */
   | 'zoho_event'
+  /** A HubSpot webhook event (migration 120): a new contact, a
+   *  lifecycle or lead-status change, a new deal, a stage change. */
+  | 'hubspot_event'
   | 'time_based';
 
 export type AutomationStepType =

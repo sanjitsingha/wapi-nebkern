@@ -7,6 +7,7 @@ import { recordCronHeartbeat } from '@/lib/system/cron-heartbeat';
 import { drainSheetQueue, exportFinishedCampaigns } from '@/lib/google-sheets/sync';
 import { drainZohoQueue } from '@/lib/zoho/push';
 import { logZohoChats } from '@/lib/zoho/chat-log';
+import { runHubSpotCron } from '@/lib/hubspot/upkeep';
 import { sweepDueAiReplies } from '@/lib/ai/due-replies';
 
 /**
@@ -81,12 +82,16 @@ export async function GET(request: Request) {
       zoho.chats = { error: err instanceof Error ? err.message : String(err) };
     }
 
+    // HubSpot: pushes, events the webhook's own run did not finish, and
+    // chats for the timeline. Isolated inside runHubSpotCron.
+    const hubspot = await runHubSpotCron(admin);
+
     await recordCronHeartbeat(admin, 'webhooks_dispatch', {
       status: 'ok',
       durationMs: Date.now() - started,
-      detail: { ...(result as Record<string, unknown>), sheets, ai, zoho },
+      detail: { ...(result as Record<string, unknown>), sheets, ai, zoho, hubspot },
     });
-    return NextResponse.json({ ...result, sheets, ai, zoho });
+    return NextResponse.json({ ...result, sheets, ai, zoho, hubspot });
   } catch (err) {
     console.error('[webhooks-cron] dispatch failed:', err);
     await recordCronHeartbeat(admin, 'webhooks_dispatch', {

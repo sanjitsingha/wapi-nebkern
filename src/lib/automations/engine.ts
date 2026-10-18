@@ -1,4 +1,5 @@
 import { zohoTriggerMatches } from '@/lib/zoho/watch-events'
+import { hubspotTriggerMatches } from '@/lib/hubspot/events'
 import type {
   Automation,
   AutomationLogStepResult,
@@ -866,6 +867,12 @@ function triggerMatches(automation: Automation, ctx: AutomationContext | undefin
   if (automation.trigger_type === 'zoho_event') {
     const cfg = automation.trigger_config as { events?: unknown }
     return zohoTriggerMatches(cfg?.events, ctx?.vars?.zoho_event)
+  }
+  // A HubSpot Event automation runs on the events picked under "Run
+  // on" — new contacts when none are. See hubspotTriggerMatches.
+  if (automation.trigger_type === 'hubspot_event') {
+    const cfg = automation.trigger_config as { events?: unknown }
+    return hubspotTriggerMatches(cfg?.events, ctx?.vars?.hubspot_event)
   }
   return true
 }

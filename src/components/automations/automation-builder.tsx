@@ -1,6 +1,7 @@
 "use client"
 
 import { ZOHO_WATCH_EVENTS } from "@/lib/zoho/watch-events"
+import { HUBSPOT_EVENTS } from "@/lib/hubspot/events"
 import {
   createContext,
   useContext,
@@ -265,6 +266,11 @@ const TRIGGER_OPTIONS: { value: AutomationTriggerType; label: string; hint: stri
     value: "zoho_event",
     label: "Zoho CRM Event",
     hint: "When something happens in Zoho CRM — a new lead or contact, a deal update, or any Workflow Rule you point at Instant.",
+  },
+  {
+    value: "hubspot_event",
+    label: "HubSpot Event",
+    hint: "When something happens in HubSpot — a new contact, a lifecycle or lead status change, a new deal, or a deal won or lost.",
   },
   { value: "time_based", label: "Time-Based", hint: "On a recurring schedule" },
 ]
@@ -1461,6 +1467,12 @@ function TriggerCard({
                 onChange={(events) => onConfigChange({ ...config, events })}
               />
             )}
+            {type === "hubspot_event" && (
+              <HubSpotEventsConfig
+                value={Array.isArray(config.events) ? (config.events as string[]) : []}
+                onChange={(events) => onConfigChange({ ...config, events })}
+              />
+            )}
             {type === "time_based" && (
               <Input
                 placeholder="Cron expression or HH:mm"
@@ -1481,12 +1493,44 @@ function TriggerCard({
 /** Which Zoho events run this automation. Nothing picked means new
  *  leads and new contacts, plus Workflow Rule events (whose names are
  *  whatever the rule sends) — see zohoTriggerMatches. */
-function ZohoEventsConfig({
+function ZohoEventsConfig(props: {
+  value: string[]
+  onChange: (events: string[]) => void
+}) {
+  return (
+    <CrmEventsConfig
+      {...props}
+      events={ZOHO_WATCH_EVENTS}
+      emptyHint="Nothing picked: runs on new leads and new contacts."
+    />
+  )
+}
+
+/** Which HubSpot events run this automation. Nothing picked means new
+ *  contacts — see hubspotTriggerMatches. */
+function HubSpotEventsConfig(props: {
+  value: string[]
+  onChange: (events: string[]) => void
+}) {
+  return (
+    <CrmEventsConfig
+      {...props}
+      events={HUBSPOT_EVENTS}
+      emptyHint="Nothing picked: runs on new contacts."
+    />
+  )
+}
+
+function CrmEventsConfig({
   value,
   onChange,
+  events,
+  emptyHint,
 }: {
   value: string[]
   onChange: (events: string[]) => void
+  events: readonly { eventType: string; label: string }[]
+  emptyHint: string
 }) {
   const toggle = (eventType: string) =>
     onChange(
@@ -1500,7 +1544,7 @@ function ZohoEventsConfig({
         Run on
       </label>
       <div className="flex flex-wrap gap-1.5">
-        {ZOHO_WATCH_EVENTS.map((e) => {
+        {events.map((e) => {
           const on = value.includes(e.eventType)
           return (
             <button
@@ -1521,9 +1565,7 @@ function ZohoEventsConfig({
         })}
       </div>
       <p className="mt-1.5 text-[11px] text-muted-foreground">
-        {value.length === 0
-          ? "Nothing picked: runs on new leads and new contacts."
-          : "Runs only on the picked events."}
+        {value.length === 0 ? emptyHint : "Runs only on the picked events."}
       </p>
     </div>
   )
