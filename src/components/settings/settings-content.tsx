@@ -11,14 +11,19 @@ import { cn } from '@/lib/utils';
 // the full-width tables everywhere else in the app. New full-width
 // settings pages just add their route prefix here.
 const FULL_WIDTH_ROUTES = ['/settings/activity-log'];
+// A form with a live preview beside it (Business profile's phone
+// mock-up) needs room for both; its other tabs keep the form measure
+// themselves.
+const WIDE_ROUTES = ['/settings/business-profile'];
 
 export function SettingsContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const fullWidth = FULL_WIDTH_ROUTES.some((r) => pathname?.startsWith(r));
+  const wide = WIDE_ROUTES.some((r) => pathname?.startsWith(r));
 
   return (
     <div className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:px-10 lg:py-8">
-      <div className={cn('w-full', fullWidth ? 'max-w-none' : 'max-w-4xl')}>
+      <div className={cn('w-full', fullWidth ? 'max-w-none' : wide ? 'max-w-6xl' : 'max-w-4xl')}>
         {children}
       </div>
     </div>

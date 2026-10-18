@@ -27,7 +27,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useWhatsAppInfo } from '@/hooks/use-whatsapp-info';
 import { SettingsPanelHead } from './settings-panel-head';
+import { BusinessProfilePreview } from './business-profile-preview';
 
 // Meta's `vertical` enum → human labels for the picker. Kept local
 // (rather than imported from meta-api) so this client component doesn't
@@ -80,6 +82,9 @@ export function BusinessProfile() {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // The name and number shown at the top of the profile — the connected
+  // number's verified name, which this form doesn't edit.
+  const waInfo = useWhatsAppInfo();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -195,7 +200,7 @@ export function BusinessProfile() {
           description="The public details customers see when they tap your business name in a chat."
         />
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="size-6 animate-spin text-primary" />
+          <Loader2 className="text-primary size-6 animate-spin" />
         </div>
       </section>
     );
@@ -223,7 +228,7 @@ export function BusinessProfile() {
             </p>
             <Link
               href="/settings/whatsapp"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+              className="text-primary inline-flex items-center gap-1.5 text-sm font-medium hover:underline"
             >
               Go to WhatsApp settings
               <ExternalLink className="size-3.5" />
@@ -239,23 +244,11 @@ export function BusinessProfile() {
       <SettingsPanelHead
         title="Business Profile"
         description="The public details customers see when they tap your business name in a chat. Changes are saved to your WhatsApp Business account via the Meta API."
-        action={
-          canEdit ? (
-            <Button onClick={handleSave} disabled={saving} className="h-10">
-              {saving ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Save className="size-4" />
-              )}
-              Save changes
-            </Button>
-          ) : null
-        }
       />
 
       {!canEdit && (
         <Alert className="mb-5">
-          <Lock className="size-4 shrink-0 text-muted-foreground" />
+          <Lock className="text-muted-foreground size-4 shrink-0" />
           <AlertDescription>
             You have read-only access. Only admins and owners can edit the
             business profile.
@@ -263,204 +256,236 @@ export function BusinessProfile() {
         </Alert>
       )}
 
-      <Card className="gap-0 overflow-hidden py-0">
-        {/* Photo hero */}
-        <div className="flex flex-wrap items-center gap-5 border-b border-border bg-muted/30 px-6 py-5">
-          <Avatar size="lg" className="size-20 ring-2 ring-border">
-            {photoUrl ? (
-              <AvatarImage src={photoUrl} alt="Business profile photo" />
-            ) : null}
-            <AvatarFallback className="bg-primary/10 text-xl font-semibold text-primary">
-              {(about || 'B').charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+      {/* The form, and beside it on wide screens a live preview of the
+          profile as customers see it. */}
+      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0">
+          <Card className="gap-0 overflow-hidden py-0">
+            {/* Photo hero */}
+            <div className="border-border bg-muted/30 flex flex-wrap items-center gap-5 border-b px-6 py-5">
+              <Avatar size="lg" className="ring-border size-20 ring-2">
+                {photoUrl ? (
+                  <AvatarImage src={photoUrl} alt="Business profile photo" />
+                ) : null}
+                <AvatarFallback className="bg-primary/10 text-primary text-xl font-semibold">
+                  {(about || 'B').charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
 
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-foreground">
-              Profile photo
-            </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Shown next to your business name. JPEG or PNG · up to 5 MB.
-            </p>
-            {canEdit && (
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg"
-                  className="hidden"
-                  onChange={(e) => {
-                    handlePhoto(e.target.files?.[0]);
-                    e.target.value = '';
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingPhoto}
-                >
-                  {uploadingPhoto ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Upload className="size-4" />
-                  )}
-                  {photoUrl ? 'Change photo' : 'Upload photo'}
-                </Button>
+              <div className="min-w-0 flex-1">
+                <p className="text-foreground text-sm font-semibold">
+                  Profile photo
+                </p>
+                <p className="text-muted-foreground mt-0.5 text-xs">
+                  Shown next to your business name. JPEG or PNG · up to 5 MB.
+                </p>
+                {canEdit && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg"
+                      className="hidden"
+                      onChange={(e) => {
+                        handlePhoto(e.target.files?.[0]);
+                        e.target.value = '';
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingPhoto}
+                    >
+                      {uploadingPhoto ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Upload className="size-4" />
+                      )}
+                      {photoUrl ? 'Change photo' : 'Upload photo'}
+                    </Button>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </div>
+
+            <CardContent className="space-y-6 px-6 py-6">
+              {/* About */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="bp-about" className="text-foreground">
+                    About
+                  </Label>
+                  <span className="text-muted-foreground text-xs">
+                    {about.length}/{LIMITS.about}
+                  </span>
+                </div>
+                <Input
+                  id="bp-about"
+                  value={about}
+                  onChange={(e) =>
+                    setAbout(e.target.value.slice(0, LIMITS.about))
+                  }
+                  placeholder="A short tagline shown under your name"
+                  disabled={!canEdit}
+                  maxLength={LIMITS.about}
+                />
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="bp-description" className="text-foreground">
+                    Description
+                  </Label>
+                  <span className="text-muted-foreground text-xs">
+                    {description.length}/{LIMITS.description}
+                  </span>
+                </div>
+                <Textarea
+                  id="bp-description"
+                  value={description}
+                  onChange={(e) =>
+                    setDescription(e.target.value.slice(0, LIMITS.description))
+                  }
+                  placeholder="Tell customers what your business does"
+                  className="min-h-24 resize-none"
+                  disabled={!canEdit}
+                  maxLength={LIMITS.description}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {/* Email */}
+                <div className="space-y-2">
+                  <Label htmlFor="bp-email" className="text-foreground">
+                    Contact email
+                  </Label>
+                  <Input
+                    id="bp-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) =>
+                      setEmail(e.target.value.slice(0, LIMITS.email))
+                    }
+                    placeholder="hello@yourbusiness.com"
+                    disabled={!canEdit}
+                    maxLength={LIMITS.email}
+                  />
+                </div>
+
+                {/* Vertical */}
+                <div className="space-y-2">
+                  <Label htmlFor="bp-vertical" className="text-foreground">
+                    Industry
+                  </Label>
+                  <Select
+                    value={vertical}
+                    onValueChange={(v) => setVertical(v ?? 'UNDEFINED')}
+                    disabled={!canEdit}
+                  >
+                    <SelectTrigger
+                      id="bp-vertical"
+                      className="border-border h-11 w-full bg-transparent"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {verticalOptions.map((v) => (
+                        <SelectItem key={v.value} value={v.value}>
+                          {v.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Address */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="bp-address" className="text-foreground">
+                    Address
+                  </Label>
+                  <span className="text-muted-foreground text-xs">
+                    {address.length}/{LIMITS.address}
+                  </span>
+                </div>
+                <Input
+                  id="bp-address"
+                  value={address}
+                  onChange={(e) =>
+                    setAddress(e.target.value.slice(0, LIMITS.address))
+                  }
+                  placeholder="Street, city, country"
+                  disabled={!canEdit}
+                  maxLength={LIMITS.address}
+                />
+              </div>
+
+              {/* Websites */}
+              <div className="space-y-2">
+                <Label className="text-foreground">Websites</Label>
+                <p className="text-muted-foreground text-xs">
+                  Up to two links. Must start with http:// or https://
+                </p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <Input
+                    value={website1}
+                    onChange={(e) => setWebsite1(e.target.value)}
+                    placeholder="https://yourbusiness.com"
+                    disabled={!canEdit}
+                    inputMode="url"
+                  />
+                  <Input
+                    value={website2}
+                    onChange={(e) => setWebsite2(e.target.value)}
+                    placeholder="https://instagram.com/yourbusiness"
+                    disabled={!canEdit}
+                    inputMode="url"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {canEdit && (
+            <div className="mt-5 flex justify-end">
+              <Button onClick={handleSave} disabled={saving} className="h-11">
+                {saving ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Save className="size-4" />
+                )}
+                Save changes
+              </Button>
+            </div>
+          )}
         </div>
 
-        <CardContent className="space-y-6 px-6 py-6">
-          {/* About */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="bp-about" className="text-foreground">
-                About
-              </Label>
-              <span className="text-xs text-muted-foreground">
-                {about.length}/{LIMITS.about}
-              </span>
-            </div>
-            <Input
-              id="bp-about"
-              value={about}
-              onChange={(e) => setAbout(e.target.value.slice(0, LIMITS.about))}
-              placeholder="A short tagline shown under your name"
-              disabled={!canEdit}
-              maxLength={LIMITS.about}
-            />
-          </div>
-
-          {/* Description */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="bp-description" className="text-foreground">
-                Description
-              </Label>
-              <span className="text-xs text-muted-foreground">
-                {description.length}/{LIMITS.description}
-              </span>
-            </div>
-            <Textarea
-              id="bp-description"
-              value={description}
-              onChange={(e) =>
-                setDescription(e.target.value.slice(0, LIMITS.description))
+        <aside className="hidden xl:block">
+          <div className="sticky top-0">
+            <BusinessProfilePreview
+              name={waInfo?.verified_name ?? ''}
+              phone={waInfo?.display_phone_number ?? null}
+              photoUrl={photoUrl}
+              about={about}
+              description={description}
+              category={
+                vertical !== 'UNDEFINED'
+                  ? (VERTICALS.find((v) => v.value === vertical)?.label ?? null)
+                  : null
               }
-              placeholder="Tell customers what your business does"
-              className="min-h-24 resize-none"
-              disabled={!canEdit}
-              maxLength={LIMITS.description}
+              address={address}
+              email={email}
+              websites={[website1, website2]
+                .map((w) => w.trim())
+                .filter(Boolean)}
             />
           </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="bp-email" className="text-foreground">
-                Contact email
-              </Label>
-              <Input
-                id="bp-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value.slice(0, LIMITS.email))}
-                placeholder="hello@yourbusiness.com"
-                disabled={!canEdit}
-                maxLength={LIMITS.email}
-              />
-            </div>
-
-            {/* Vertical */}
-            <div className="space-y-2">
-              <Label htmlFor="bp-vertical" className="text-foreground">
-                Industry
-              </Label>
-              <Select
-                value={vertical}
-                onValueChange={(v) => setVertical(v ?? 'UNDEFINED')}
-                disabled={!canEdit}
-              >
-                <SelectTrigger
-                  id="bp-vertical"
-                  className="h-11 w-full border-border bg-transparent"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {verticalOptions.map((v) => (
-                    <SelectItem key={v.value} value={v.value}>
-                      {v.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Address */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="bp-address" className="text-foreground">
-                Address
-              </Label>
-              <span className="text-xs text-muted-foreground">
-                {address.length}/{LIMITS.address}
-              </span>
-            </div>
-            <Input
-              id="bp-address"
-              value={address}
-              onChange={(e) =>
-                setAddress(e.target.value.slice(0, LIMITS.address))
-              }
-              placeholder="Street, city, country"
-              disabled={!canEdit}
-              maxLength={LIMITS.address}
-            />
-          </div>
-
-          {/* Websites */}
-          <div className="space-y-2">
-            <Label className="text-foreground">Websites</Label>
-            <p className="text-xs text-muted-foreground">
-              Up to two links. Must start with http:// or https://
-            </p>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Input
-                value={website1}
-                onChange={(e) => setWebsite1(e.target.value)}
-                placeholder="https://yourbusiness.com"
-                disabled={!canEdit}
-                inputMode="url"
-              />
-              <Input
-                value={website2}
-                onChange={(e) => setWebsite2(e.target.value)}
-                placeholder="https://instagram.com/yourbusiness"
-                disabled={!canEdit}
-                inputMode="url"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {canEdit && (
-        <div className="mt-5 flex justify-end">
-          <Button onClick={handleSave} disabled={saving} className="h-11">
-            {saving ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Save className="size-4" />
-            )}
-            Save changes
-          </Button>
-        </div>
-      )}
+        </aside>
+      </div>
     </section>
   );
 }

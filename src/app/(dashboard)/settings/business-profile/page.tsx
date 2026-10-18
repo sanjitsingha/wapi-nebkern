@@ -39,11 +39,13 @@ function BusinessProfilePageInner() {
         <BusinessProfile />
       </TabsContent>
 
-      <TabsContent value="quick-replies">
+      {/* The page is wide for the Profile tab's preview; these two keep
+          the usual form measure. */}
+      <TabsContent value="quick-replies" className="max-w-4xl">
         <QuickRepliesManager />
       </TabsContent>
 
-      <TabsContent value="catalog">
+      <TabsContent value="catalog" className="max-w-4xl">
         <Catalog />
       </TabsContent>
     </Tabs>
