@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Manrope, JetBrains_Mono } from 'next/font/google';
+import { Manrope, JetBrains_Mono, Noto_Color_Emoji } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/hooks/use-theme';
 import { ThemedToaster } from '@/components/themed-toaster';
@@ -33,6 +33,29 @@ const mono = JetBrains_Mono({
   variable: '--font-mono-family',
   subsets: ['latin'],
   display: 'swap',
+});
+
+/**
+ * One emoji style on every computer — Google's Noto Color Emoji —
+ * instead of whatever the device's font draws (Segoe on Windows, Noto
+ * on Linux, Apple's on a Mac). Customers never see this: we send emoji
+ * as text and their phone draws WhatsApp's own. WhatsApp's artwork
+ * itself isn't licensed for other apps.
+ *
+ * Not preloaded: Google splits it into ~11 chunks by character range
+ * (2 MB in all) and a browser fetches only the chunks for emoji on the
+ * page. The build gets the COLRv1 cut, which Safari can't draw, so
+ * globals.css only puts it in the stack where `font-tech(color-COLRv1)`
+ * holds — Safari keeps Apple's emoji. No metric-adjusted fallback face:
+ * that exists to stop text reflowing, and emoji are their own glyphs.
+ */
+const emoji = Noto_Color_Emoji({
+  variable: '--font-emoji',
+  weight: '400',
+  subsets: ['emoji'],
+  display: 'swap',
+  preload: false,
+  adjustFontFallback: false,
 });
 
 const SITE_URL = (
@@ -107,7 +130,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${sans.variable} ${mono.variable} h-full antialiased`}
+      className={`${sans.variable} ${mono.variable} ${emoji.variable} h-full antialiased`}
     >
       <body className="bg-background text-foreground min-h-full font-sans">
         <ThemeProvider>

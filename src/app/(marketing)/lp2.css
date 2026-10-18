@@ -237,3 +237,11 @@
   background-color: #ffffff !important;
   --lp2-cream: #ffffff !important;
 }
+
+/* The app's emoji face on the site too — globals.css explains the
+   COLRv1 gate. After the base `.lp2` rule, so it wins where it applies. */
+@supports font-tech(color-COLRv1) {
+  .lp2 {
+    font-family: var(--font-lp2-display), var(--font-sans), var(--font-emoji), sans-serif;
+  }
+}

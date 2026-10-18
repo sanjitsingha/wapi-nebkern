@@ -118,6 +118,56 @@
   }
 }
 
+/* Emoji in Noto Color Emoji (layout.tsx), right after the text face so
+   letters and digits stay in Manrope and only emoji reach it. Gated on
+   COLRv1: that's the cut the build fetches, and a browser without it
+   (Safari) — or without font-tech() at all — skips this block and keeps
+   its own emoji rather than drawing blanks. Unlayered, so it outranks
+   the font-sans/font-heading utilities it extends. */
+@supports font-tech(color-COLRv1) {
+  html,
+  .font-sans,
+  .font-heading {
+    font-family: var(--font-sans), var(--font-emoji), ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+/* Light sweeping across a status line while the AI works — Maya's
+   "Thinking…" in the Playground. The text is the gradient, clipped to
+   the glyphs; reduced motion leaves it plain, muted text. */
+@keyframes text-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+.text-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    var(--muted-foreground) 0%,
+    var(--muted-foreground) 35%,
+    var(--foreground) 50%,
+    var(--muted-foreground) 65%,
+    var(--muted-foreground) 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: text-shimmer 1.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .text-shimmer {
+    animation: none;
+    background-image: none;
+    color: var(--muted-foreground);
+  }
+}
+
 /* Marketing hero: customer chips orbiting the pitch.
    The ring carrier rotates; each chip counter-rotates on the SAME
    duration so avatars and message bubbles stay upright while their
