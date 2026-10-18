@@ -49,3 +49,23 @@ export const ROLE_META: Record<
     className: 'border-border bg-transparent text-muted-foreground',
   },
 };
+
+/**
+ * What each role may do, for the member editor's permission list —
+ * every entry names the least role that has it. Mirrors the predicates
+ * in lib/auth/roles.ts and the API guards behind them: agent+ writes
+ * operational data, admin+ edits settings, manages members, pays and
+ * reads the activity log, and only the owner deletes or hands over the
+ * account. Change a guard, change this list.
+ */
+export const ROLE_PERMISSIONS: { label: string; min: AccountRole }[] = [
+  { label: 'See conversations, contacts, deals and reports', min: 'viewer' },
+  { label: 'Reply to customers and send messages', min: 'agent' },
+  { label: 'Add and edit contacts, lists and deals', min: 'agent' },
+  { label: 'Run campaigns, automations and flows', min: 'agent' },
+  { label: 'Use quick replies and the media library', min: 'agent' },
+  { label: 'Change settings — channels, templates, tags & fields, integrations, Maya', min: 'admin' },
+  { label: 'Invite and remove members, and change their roles', min: 'admin' },
+  { label: 'Pay for plans and see the activity log', min: 'admin' },
+  { label: 'Transfer ownership or delete the account', min: 'owner' },
+];

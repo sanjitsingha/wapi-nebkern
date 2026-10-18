@@ -21,7 +21,7 @@
 //   the role anyway.
 // ============================================================
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
   AlertTriangle,
@@ -29,10 +29,13 @@ import {
   Loader2,
   Mail,
   MailX,
+  Check,
+  Pencil,
   Plus,
+  Search,
   Trash2,
-  UsersRound,
 } from 'lucide-react';
+import { MdOutlineOpenInNew } from 'react-icons/md';
 
 import {
   Avatar,
@@ -47,7 +50,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { docHref } from '@/lib/docs/nav';
 import {
   Dialog,
   DialogContent,
@@ -66,16 +73,13 @@ import {
 import { RequireRole } from '@/components/auth/require-role';
 import { useAuth } from '@/hooks/use-auth';
 import { usePresence } from '@/hooks/use-presence';
-import type { AccountRole } from '@/lib/auth/roles';
-import { presenceLabel, summarize } from '@/lib/presence';
-import {
-  PRESENCE_DOT_CLASS,
-  PresenceDot,
-} from '@/components/presence/presence-dot';
+import { hasMinRole, type AccountRole } from '@/lib/auth/roles';
+import { presenceLabel } from '@/lib/presence';
+import { PRESENCE_DOT_CLASS } from '@/components/presence/presence-dot';
 import { uploadAccountMedia } from '@/lib/storage/upload-media';
 import { InviteMemberDialog } from './invite-member-dialog';
 import { SettingsPanelHead } from './settings-panel-head';
-import { ROLE_META } from './role-meta';
+import { ROLE_META, ROLE_PERMISSIONS } from './role-meta';
 
 /** Same bucket the profile page uploads own avatars to. */
 const AVATAR_BUCKET = 'avatars';
@@ -110,16 +114,6 @@ const EDITABLE_ROLES: { value: AccountRole; label: string; hint: string }[] = [
 // drift. The colour scale runs amber (owner — scarce, immutable) →
 // primary (admin) → muted (agent / viewer).
 
-function fmtDate(iso: string): string {
-  // Match the rest of the dashboard's locale-light formatting.
-  const d = new Date(iso);
-  return d.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
 function fmtExpiresIn(iso: string): string {
   const ms = new Date(iso).getTime() - Date.now();
   if (ms <= 0) return 'expired';
@@ -138,7 +132,34 @@ export function MembersTab() {
   const [loading, setLoading] = useState(true);
 
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  // Ticked teammates, removed together from the Delete beside Add member.
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [confirmBulk, setConfirmBulk] = useState(false);
+  const [bulkRemoving, setBulkRemoving] = useState(false);
+  // Name, email or role — whatever the search box holds.
+  const visibleMembers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return members;
+    return members.filter((m) =>
+      [m.full_name, m.email ?? '', ROLE_META[m.role]?.label ?? m.role].some((v) =>
+        v.toLowerCase().includes(q),
+      ),
+    );
+  }, [members, search]);
+  // Pending invites sit in the same list, so the search covers them too.
+  const visibleInvites = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return invitations;
+    return invitations.filter((inv) =>
+      [inv.label ?? '', 'pending', ROLE_META[inv.role]?.label ?? inv.role].some((v) =>
+        v.toLowerCase().includes(q),
+      ),
+    );
+  }, [invitations, search]);
   const [removingMember, setRemovingMember] = useState<Member | null>(null);
+  // The teammate whose role and access the pencil opened.
+  const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [pendingMemberAction, setPendingMemberAction] = useState<string | null>(
     null,
   );
@@ -317,6 +338,43 @@ export function MembersTab() {
     }
   }
 
+  function toggleSelected(userId: string, on: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(userId);
+      else next.delete(userId);
+      return next;
+    });
+  }
+
+  /** Remove every ticked teammate, one request each; failures stay ticked. */
+  async function handleBulkRemove() {
+    const targets = members.filter((m) => selected.has(m.user_id));
+    if (targets.length === 0) return;
+    setBulkRemoving(true);
+    const removed: string[] = [];
+    for (const m of targets) {
+      try {
+        const res = await fetch(`/api/account/members/${m.user_id}`, { method: 'DELETE' });
+        if (res.ok) {
+          removed.push(m.user_id);
+        } else {
+          const payload = await res.json().catch(() => ({}));
+          toast.error(`${m.full_name || 'A member'}: ${payload.error || 'could not be removed'}`);
+        }
+      } catch {
+        toast.error(`${m.full_name || 'A member'}: could not reach the server`);
+      }
+    }
+    setBulkRemoving(false);
+    if (removed.length > 0) {
+      setMembers((prev) => prev.filter((m) => !removed.includes(m.user_id)));
+      setSelected((prev) => new Set([...prev].filter((id) => !removed.includes(id))));
+      toast.success(removed.length === 1 ? 'Removed 1 member' : `Removed ${removed.length} members`);
+    }
+    setConfirmBulk(false);
+  }
+
   async function handleRevoke(invite: Invitation) {
     try {
       const res = await fetch(`/api/account/invitations/${invite.id}`, {
@@ -349,43 +407,17 @@ export function MembersTab() {
         title="Team members"
         description="People with access to this account. Roles control what each teammate can do."
         action={
-          <RequireRole min="admin">
-            <Button
-              onClick={() => setInviteOpen(true)}
-              className="h-11 bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              <Plus className="size-4" />
-              Invite member
-            </Button>
-          </RequireRole>
+          <Button
+            variant="outline"
+            size="lg"
+            nativeButton={false}
+            render={<a href={docHref('team')} target="_blank" rel="noopener noreferrer" />}
+          >
+            Documentation
+            <MdOutlineOpenInNew className="size-4" />
+          </Button>
         }
       />
-
-      {/* Live presence summary across the roster. Updates without a
-          full refresh as heartbeats and the local re-derive tick land. */}
-      {members.length > 0 &&
-        (() => {
-          const counts = summarize(members.map((m) => getPresence(m.user_id)));
-          return (
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5">
-                <PresenceDot status="online" />
-                {counts.online} online
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <PresenceDot status="away" />
-                {counts.away} away
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <PresenceDot status="offline" />
-                {counts.offline} offline
-              </span>
-              <span className="text-muted-foreground/70">
-                · {members.length} member{members.length === 1 ? '' : 's'}
-              </span>
-            </div>
-          );
-        })()}
 
       {/* One hidden file input, shared by every row's camera overlay. */}
       <input
@@ -396,11 +428,56 @@ export function MembersTab() {
         onChange={onAvatarFileChange}
       />
 
+      {/* Search the roster, and add someone beside it. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full max-w-sm">
+          <Search className="pointer-events-none absolute top-1/2 left-0 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search members..."
+            aria-label="Search members"
+            // Underline only, as on the other settings lists.
+            className="h-10 rounded-none border-0 border-b border-border bg-transparent pr-0 pl-6 focus-visible:border-primary focus-visible:ring-0 dark:bg-transparent"
+          />
+        </div>
+        <RequireRole min="admin">
+          <div className="flex shrink-0 items-center gap-2">
+            {/* Grey until teammates are ticked; then removes them. */}
+            <Button
+              variant="outline"
+              onClick={() => setConfirmBulk(true)}
+              disabled={selected.size === 0}
+              title={selected.size === 0 ? 'Tick members to remove them' : undefined}
+              className={cn(
+                'h-10 disabled:opacity-100',
+                selected.size === 0 ? 'text-muted-foreground' : 'text-foreground',
+              )}
+            >
+              <Trash2 className="size-4" />
+              Delete
+            </Button>
+            <Button
+              onClick={() => setInviteOpen(true)}
+              className="h-10 shrink-0 bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              <Plus className="size-4" />
+              Add member
+            </Button>
+          </div>
+        </RequireRole>
+      </div>
+
       {/* Roster */}
       <Card>
         <CardContent className="p-0">
+          {visibleMembers.length === 0 && visibleInvites.length === 0 && search.trim() !== "" && (
+            <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+              No members match “{search.trim()}”.
+            </p>
+          )}
           <ul className="divide-y divide-border">
-            {members.map((member) => {
+            {visibleMembers.map((member) => {
               const roleMeta = ROLE_META[member.role];
               const RoleIcon = roleMeta.icon;
               const isSelf = member.user_id === user?.id;
@@ -425,6 +502,25 @@ export function MembersTab() {
                   className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:gap-4"
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-4">
+                    {canManageMembers && (
+                      <span
+                        className="flex shrink-0"
+                        title={
+                          isOwnerRow
+                            ? "The owner can't be removed"
+                            : isSelf
+                              ? "You can't remove yourself"
+                              : undefined
+                        }
+                      >
+                        <Checkbox
+                          checked={selected.has(member.user_id)}
+                          onCheckedChange={(on) => toggleSelected(member.user_id, on)}
+                          disabled={isOwnerRow || isSelf}
+                          aria-label={`Select ${member.full_name || member.email || 'member'}`}
+                        />
+                      </span>
+                    )}
                     <div className="group relative shrink-0">
                       <Tooltip>
                         <TooltipTrigger
@@ -498,174 +594,117 @@ export function MembersTab() {
                     </div>
                   </div>
 
-                  {/* Joined date stays desktop-only. The mobile row's
-                      vertical density makes the joined date noise. */}
-                  <div className="hidden sm:block text-right text-xs text-muted-foreground">
-                    Joined {fmtDate(member.joined_at)}
-                  </div>
-
                   {/* Actions cluster. On mobile this is its own row
                       below the identity block; on desktop it sits
                       inline. Items align to the start on mobile so the
                       role dropdown lines up under the avatar. */}
                   <div className="flex items-center gap-2 sm:gap-3">
-                    {/* Role display / editor. Inline Select is admin+
-                        only AND not allowed on the owner row (owner
-                        changes go through transfer, which lands later). */}
-                    {canManageMembers && !isOwnerRow && !isSelf ? (
-                      <Select
-                        value={member.role}
-                        onValueChange={(v) =>
-                          // Base UI Select can emit null on clear. We
-                          // don't expose a clear affordance, so the
-                          // guard is defensive — but the typed
-                          // signature requires it.
-                          v && handleRoleChange(member, v as AccountRole)
-                        }
-                      >
-                        <SelectTrigger
-                          className="w-32 bg-muted border-border text-foreground"
-                          disabled={isBusy}
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {EDITABLE_ROLES.map((r) => (
-                            <SelectItem key={r.value} value={r.value}>
-                              {r.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium ${roleMeta.className}`}
-                      >
-                        {RoleIcon && <RoleIcon className="size-3.5" />}
-                        {roleMeta.label}
-                      </span>
-                    )}
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium ${roleMeta.className}`}
+                    >
+                      {RoleIcon && <RoleIcon className="size-3.5" />}
+                      {roleMeta.label}
+                    </span>
 
-                    {/* Remove. Admin+ only; never on the owner row;
-                        never on yourself. Pre-polish styling was
-                        neutral-default + red-on-hover — the
-                        destructive intent was invisible until the
-                        user moused over. Now red is the default
-                        state with a darker shade on hover so the
-                        affordance reads at-a-glance. */}
+                    {/* Role, access and removal live in one window behind
+                        the pencil. Admin+ only; never the owner (that's a
+                        transfer) and never yourself. */}
                     {canManageMembers && !isOwnerRow && !isSelf && (
                       <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setRemovingMember(member)}
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => setEditingMember(member)}
                         disabled={isBusy}
-                        className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-300 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20 dark:hover:border-red-500/60 dark:hover:text-red-200"
+                        title="Edit role and access"
+                        aria-label={`Edit ${member.full_name || 'member'}`}
+                        className="text-muted-foreground hover:text-foreground"
                       >
-                        <Trash2 className="size-4" />
+                        <Pencil className="size-4" />
                       </Button>
                     )}
                   </div>
                 </li>
               );
             })}
+
+            {/* Invites not yet accepted, in the same list: a Pending tag
+                by the name, and revoke where a member has the pencil.
+                Admin+ only — nobody else loads them. */}
+            {canManageMembers &&
+              visibleInvites.map((inv) => {
+                const inviteRoleMeta = ROLE_META[inv.role];
+                const InviteRoleIcon = inviteRoleMeta.icon;
+                return (
+                  <li
+                    key={inv.id}
+                    className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:gap-4"
+                  >
+                    <div className="flex min-w-0 flex-1 items-center gap-4">
+                      {/* Lines up with the members' checkboxes. */}
+                      <span aria-hidden className="size-4 shrink-0" />
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                        <Mail className="size-4" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate text-sm font-medium text-foreground">
+                            {inv.label || 'Untitled invite'}
+                          </span>
+                          <span className="shrink-0 rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-amber-800 uppercase dark:bg-amber-500/15 dark:text-amber-300">
+                            Pending
+                          </span>
+                        </div>
+                        <p className="truncate text-xs text-muted-foreground">
+                          Invite link · {fmtExpiresIn(inv.expires_at)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium ${inviteRoleMeta.className}`}
+                      >
+                        {InviteRoleIcon && <InviteRoleIcon className="size-3.5" />}
+                        {inviteRoleMeta.label}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => handleRevoke(inv)}
+                        // An invite link is shown once, at creation — so
+                        // re-sharing means revoking and adding again.
+                        title="Revoke invite — the link stops working. To re-share, revoke it and add the member again."
+                        aria-label={`Revoke invite ${inv.label || ''}`.trim()}
+                        className="text-muted-foreground hover:text-red-600 dark:hover:text-red-400"
+                      >
+                        <MailX className="size-4" />
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
           </ul>
         </CardContent>
       </Card>
-
-      {/* Pending invitations — admin+ only */}
-      <RequireRole min="admin">
-        <div>
-          <div className="mb-2 flex items-center gap-2">
-            <UsersRound className="size-4 text-muted-foreground" />
-            <h3 className="text-sm font-semibold text-foreground">
-              Pending invitations
-            </h3>
-            <Badge className="bg-muted text-muted-foreground border-border">
-              {invitations.length}
-            </Badge>
-          </div>
-          {/* P10 — make the no-resend design explicit. Admins were
-              confused why the pending list shows roles + expiry but
-              no "copy link again" button. Stating the constraint up
-              front (rather than letting the user discover it by
-              looking for a button) keeps it from feeling like a bug. */}
-          {invitations.length > 0 ? (
-            <p className="mb-3 text-xs text-muted-foreground">
-              The plaintext invite URL is only shown once at creation
-              for security — to re-share, revoke the invite below and
-              create a new one.
-            </p>
-          ) : null}
-
-          {invitations.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-8 text-center">
-                <Mail className="size-6 text-muted-foreground" />
-                <p className="mt-2 text-sm text-muted-foreground">
-                  No pending invitations.
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Click <span className="text-muted-foreground">Invite member</span>{' '}
-                  above to generate a shareable link.
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardContent className="p-0">
-                <ul className="divide-y divide-border">
-                  {invitations.map((inv) => {
-                    const inviteRoleMeta = ROLE_META[inv.role];
-                    const InviteRoleIcon = inviteRoleMeta.icon;
-                    return (
-                    <li
-                      key={inv.id}
-                      className="flex items-center gap-4 px-4 py-3"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-foreground">
-                            {inv.label || 'Untitled invite'}
-                          </span>
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium ${inviteRoleMeta.className}`}
-                          >
-                            {InviteRoleIcon && <InviteRoleIcon className="size-3" />}
-                            {inviteRoleMeta.label}
-                          </span>
-                        </div>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          Created {fmtDate(inv.created_at)} · {fmtExpiresIn(inv.expires_at)}
-                        </p>
-                      </div>
-
-                      {/* Revoke: red default state, mirrors the
-                          members-tab Remove button. Pre-polish version
-                          read as a neutral secondary button until
-                          hover. */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRevoke(inv)}
-                        className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-300 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20 dark:hover:border-red-500/60 dark:hover:text-red-200"
-                      >
-                        <MailX className="size-4" />
-                        Revoke
-                      </Button>
-                    </li>
-                    );
-                  })}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </RequireRole>
 
       <InviteMemberDialog
         open={inviteOpen}
         onOpenChange={setInviteOpen}
         onCreated={loadEverything}
+      />
+
+      <EditMemberDialog
+        member={editingMember}
+        onClose={() => setEditingMember(null)}
+        onUpdateRole={async (member, role) => {
+          await handleRoleChange(member, role);
+          setEditingMember(null);
+        }}
+        onRemove={(member) => {
+          // The existing confirmation takes it from here.
+          setEditingMember(null);
+          setRemovingMember(member);
+        }}
       />
 
       <Dialog
@@ -715,6 +754,162 @@ export function MembersTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Remove the ticked teammates */}
+      <Dialog open={confirmBulk} onOpenChange={(open) => !bulkRemoving && setConfirmBulk(open)}>
+        <DialogContent className="bg-popover border-border sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-popover-foreground">
+              <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400" />
+              {selected.size === 1 ? 'Remove member' : `Remove ${selected.size} members`}
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Remove{' '}
+              <span className="font-medium text-foreground">
+                {members
+                  .filter((m) => selected.has(m.user_id))
+                  .map((m) => m.full_name || m.email || 'a teammate')
+                  .join(', ')}
+              </span>{' '}
+              from the account? They&apos;ll be signed out of this account and given a fresh
+              personal account on their next sign-in. Their logins aren&apos;t deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="bg-popover border-border">
+            <Button
+              variant="outline"
+              onClick={() => setConfirmBulk(false)}
+              disabled={bulkRemoving}
+              className="border-border text-muted-foreground hover:bg-muted"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleBulkRemove}
+              disabled={bulkRemoving}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {bulkRemoving ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Removing...
+                </>
+              ) : (
+                'Remove'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
+  );
+}
+
+/**
+ * One teammate's role and access: pick a role, see what it grants
+ * (ROLE_PERMISSIONS, granted ones only), save it — or remove them from
+ * the account.
+ */
+function EditMemberDialog({
+  member,
+  onClose,
+  onUpdateRole,
+  onRemove,
+}: {
+  member: Member | null;
+  onClose: () => void;
+  onUpdateRole: (member: Member, role: AccountRole) => Promise<void>;
+  onRemove: (member: Member) => void;
+}) {
+  const [role, setRole] = useState<AccountRole>('agent');
+  const [saving, setSaving] = useState(false);
+
+  // Start from the member's own role each time the window opens.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (member) setRole(member.role);
+  }, [member]);
+
+  return (
+    <Dialog open={member !== null} onOpenChange={(open) => !open && !saving && onClose()}>
+      <DialogContent className="border-border bg-popover sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-popover-foreground">Edit member</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
+            {member?.full_name || 'Teammate'}
+            {member?.email ? ` · ${member.email}` : ''}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <p id="edit-member-role" className="text-sm font-medium text-foreground">
+              Role
+            </p>
+            <Select value={role} onValueChange={(v) => v && setRole(v as AccountRole)}>
+              <SelectTrigger
+                aria-labelledby="edit-member-role"
+                className="w-full border-border bg-transparent data-[size=default]:h-11"
+              >
+                <SelectValue>
+                  {EDITABLE_ROLES.find((r) => r.value === role)?.label ?? role}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent align="start" alignItemWithTrigger={false}>
+                {EDITABLE_ROLES.map((r) => (
+                  <SelectItem key={r.value} value={r.value} className="py-2">
+                    <span className="flex flex-col gap-0.5">
+                      <span className="text-sm font-medium text-foreground">{r.label}</span>
+                      <span className="text-xs text-muted-foreground">{r.hint}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">Permissions</p>
+            <ul className="space-y-1.5">
+              {ROLE_PERMISSIONS.filter((p) => hasMinRole(role, p.min)).map((p) => (
+                <li key={p.label} className="flex items-start gap-2 text-sm text-foreground">
+                  <Check className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  {p.label}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <DialogFooter className="border-border bg-popover sm:justify-between">
+          <Button
+            variant="ghost"
+            onClick={() => member && onRemove(member)}
+            disabled={saving}
+            className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10"
+          >
+            <Trash2 className="size-4" />
+            Remove from account
+          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose} disabled={saving}>
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!member) return;
+                setSaving(true);
+                await onUpdateRole(member, role);
+                setSaving(false);
+              }}
+              disabled={saving || !member || role === member.role}
+            >
+              {saving && <Loader2 className="size-4 animate-spin" />}
+              Update role
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
