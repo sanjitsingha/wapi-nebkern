@@ -1,26 +1,29 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Loader2 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import {
-  DEFAULT_PERSONALITY,
-  PERSONALITIES,
-  personalityById,
-  type PersonalityId,
-} from '@/lib/ai/personalities';
+import { PERSONALITIES, personalityById, type PersonalityId } from '@/lib/ai/personalities';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 /**
  * Maya → Personalization → Personality type: pick how she talks, and
- * read what each choice means. UI only for now — the choice isn't saved
- * or used in her replies yet.
+ * read what each choice means. Saved to ai_configs.personality and
+ * written into every reply's prompt (buildSystemPrompt).
  */
-export function MayaPersonality() {
-  // What's "saved" until saving exists: the default every account starts on.
-  const saved = DEFAULT_PERSONALITY;
+export function MayaPersonality({
+  saved,
+  disabled,
+  onSave,
+}: {
+  saved: PersonalityId;
+  disabled: boolean;
+  onSave: (personality: PersonalityId) => Promise<boolean>;
+}) {
   const [selected, setSelected] = useState<PersonalityId>(saved);
+  const [saving, setSaving] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(true);
   const personality = personalityById(selected);
 
@@ -40,7 +43,11 @@ export function MayaPersonality() {
         Choose the communication style, tone and response behaviour of your AI agent.
       </p>
 
-      <Select value={selected} onValueChange={(v) => v && setSelected(v as PersonalityId)}>
+      <Select
+        value={selected}
+        onValueChange={(v) => v && setSelected(v as PersonalityId)}
+        disabled={disabled}
+      >
         <SelectTrigger
           aria-labelledby="maya-personality-heading"
           className="mt-3 w-full bg-card data-[size=default]:h-11"
@@ -86,6 +93,20 @@ export function MayaPersonality() {
           </dl>
         </div>
       )}
+
+      <div className="mt-5 flex justify-end">
+        <Button
+          onClick={async () => {
+            setSaving(true);
+            await onSave(selected);
+            setSaving(false);
+          }}
+          disabled={disabled || selected === saved || saving}
+        >
+          {saving && <Loader2 className="size-4 animate-spin" />}
+          Save changes
+        </Button>
+      </div>
     </div>
   );
 }

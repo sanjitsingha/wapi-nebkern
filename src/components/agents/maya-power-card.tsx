@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { toast } from 'sonner';
 
 import { Switch } from '@/components/ui/switch';
@@ -59,7 +58,7 @@ export function MayaPowerCard({
   const description = !configured
     ? null
     : !on
-      ? 'Maya is off and won’t reply to anyone. You can still test her in the Playground below.'
+      ? 'Maya is off and won’t reply to anyone. You can still test her in the Playground.'
       : autoReplyEnabled
         ? 'Maya is on and answering new messages automatically.'
         : 'Maya is on. Automatic replies are off, so she answers only in chats assigned to her.';
@@ -76,17 +75,8 @@ export function MayaPowerCard({
       <div className="min-w-0">
         <p className="text-sm font-semibold text-foreground">AI Agent</p>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          {description ?? (
-            <>
-              Connect a model provider to switch Maya on.{' '}
-              <Link
-                href="/settings/developer-hub"
-                className="font-medium text-primary underline-offset-2 hover:underline"
-              >
-                Set up Maya
-              </Link>
-            </>
-          )}
+          {description ??
+            'Maya isn’t available yet — AI is still being set up for Instant. Please check back soon.'}
         </p>
       </div>
     </div>

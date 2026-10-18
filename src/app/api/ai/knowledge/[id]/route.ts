@@ -5,14 +5,14 @@ import {
   toErrorResponse,
 } from '@/lib/auth/account'
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit'
-import { loadEmbeddingsKey } from '@/lib/ai/config'
-import { ingestDocument } from '@/lib/ai/knowledge'
-import { AiError } from '@/lib/ai/types'
+import { indexKnowledgeDocument } from '@/lib/ai/knowledge'
+import { isKnowledgeKind, parseKnowledgeInput } from '@/lib/ai/knowledge-sources'
 
 type Params = { params: Promise<{ id: string }> }
 
 /**
- * GET /api/ai/knowledge/[id] — full document (any member).
+ * GET /api/ai/knowledge/[id] — one source in full, for editing (any
+ * member): its text, and for Q&A the pairs in meta.
  */
 export async function GET(_request: Request, { params }: Params) {
   try {
@@ -20,7 +20,7 @@ export async function GET(_request: Request, { params }: Params) {
     const { id } = await params
     const { data, error } = await supabase
       .from('ai_knowledge_documents')
-      .select('id, title, content, updated_at')
+      .select('id, title, kind, meta, content, updated_at')
       .eq('account_id', accountId)
       .eq('id', id)
       .maybeSingle()
@@ -29,15 +29,16 @@ export async function GET(_request: Request, { params }: Params) {
       return NextResponse.json({ error: 'Failed to load document' }, { status: 500 })
     }
     if (!data) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    return NextResponse.json(data)
+    return NextResponse.json({ ...data, kind: isKnowledgeKind(data.kind) ? data.kind : 'text' })
   } catch (err) {
     return toErrorResponse(err)
   }
 }
 
 /**
- * PATCH /api/ai/knowledge/[id]  (admin+) — update title/content and
- * re-index when the content changed.
+ * PATCH /api/ai/knowledge/[id]  (admin+) — edit a source as its kind
+ * allows (text: title/content; Q&A: title/pairs; file: title only),
+ * re-indexing when its text changed.
  */
 export async function PATCH(request: Request, { params }: Params) {
   try {
@@ -47,63 +48,39 @@ export async function PATCH(request: Request, { params }: Params) {
 
     const { id } = await params
     const body = await request.json().catch(() => null)
-    const title = typeof body?.title === 'string' ? body.title.trim() : undefined
-    const content = typeof body?.content === 'string' ? body.content.trim() : undefined
-    if (title === undefined && content === undefined) {
-      return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
-    }
-    if (title !== undefined && !title) {
-      return NextResponse.json({ error: 'title cannot be empty' }, { status: 400 })
-    }
-    if (content !== undefined && !content) {
-      return NextResponse.json({ error: 'content cannot be empty' }, { status: 400 })
-    }
 
-    const update: Record<string, string> = {}
-    if (title !== undefined) update.title = title
-    if (content !== undefined) update.content = content
+    const { data: existing, error: readError } = await supabase
+      .from('ai_knowledge_documents')
+      .select('kind')
+      .eq('account_id', accountId)
+      .eq('id', id)
+      .maybeSingle()
+    if (readError) {
+      console.error('[ai/knowledge/[id] PATCH] read error:', readError)
+      return NextResponse.json({ error: 'Failed to update' }, { status: 500 })
+    }
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    const { data: updated, error } = await supabase
+    const kind = isKnowledgeKind(existing.kind) ? existing.kind : 'text'
+    const parsed = parseKnowledgeInput(body, kind, 'update')
+    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 })
+    const update = parsed.value
+
+    const { error } = await supabase
       .from('ai_knowledge_documents')
       .update(update)
       .eq('account_id', accountId)
       .eq('id', id)
-      .select('id')
-      .maybeSingle()
     if (error) {
       console.error('[ai/knowledge/[id] PATCH] error:', error)
-      return NextResponse.json({ error: 'Failed to update document' }, { status: 500 })
-    }
-    if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-
-    if (content !== undefined) {
-      const { key: embeddingsApiKey, corrupt } = await loadEmbeddingsKey(
-        supabase,
-        accountId,
-      )
-      try {
-        await ingestDocument(supabase, accountId, { embeddingsApiKey }, id, content)
-      } catch (err) {
-        const message = err instanceof AiError ? err.message : 'indexing failed'
-        console.error('[ai/knowledge/[id] PATCH] ingest error:', err)
-        return NextResponse.json(
-          {
-            success: true,
-            warning: `Updated, but semantic indexing failed (${message}). Lexical search still works; use Reindex to retry.`,
-          },
-          { status: 200 },
-        )
-      }
-      if (corrupt) {
-        return NextResponse.json({
-          success: true,
-          warning:
-            'Updated with keyword search only — your embeddings key could not be decrypted (check ENCRYPTION_KEY, then re-enter the key).',
-        })
-      }
+      return NextResponse.json({ error: 'Failed to update' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true })
+    const warning =
+      update.content !== undefined
+        ? await indexKnowledgeDocument(supabase, accountId, id, update.content)
+        : null
+    return NextResponse.json({ success: true, ...(warning ? { warning } : {}) })
   } catch (err) {
     return toErrorResponse(err)
   }

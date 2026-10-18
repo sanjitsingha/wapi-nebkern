@@ -1,7 +1,8 @@
 import type { OperatingHours } from './reply-settings'
+import type { PersonalityId } from './personalities'
 
 // ============================================================
-// Shared types for the AI reply assistant (bring-your-own-key).
+// Shared types for the AI reply assistant (Maya).
 //
 // One small provider-agnostic surface so the inbox draft route and the
 // Playground both talk to `generateReply` without caring whether the
@@ -11,9 +12,9 @@ import type { OperatingHours } from './reply-settings'
 export type AiProvider = 'openai' | 'anthropic' | 'openrouter'
 
 /**
- * Account AI setup, decrypted and ready to use. Produced by
- * `loadAiConfig` — `apiKey` is the plaintext BYO provider key
- * (stored AES-256-GCM-encrypted at rest).
+ * An account's AI setup, ready to use. Produced by `loadAiConfig`: the
+ * provider, model and keys are the platform's (lib/ai/platform.ts,
+ * stored AES-256-GCM-encrypted), the rest the account's behaviour.
  */
 export interface AiConfig {
   provider: AiProvider
@@ -38,6 +39,10 @@ export interface AiConfig {
   snoozeSeconds?: number
   /** When she may auto-reply; null/absent = any time. */
   operatingHours?: OperatingHours | null
+  /** Personalization → Personality type; null = the default. */
+  personality?: PersonalityId | null
+  /** Personalization → Restrictions; null = none. */
+  restrictions?: string | null
 }
 
 /** A single conversation turn in the shape both providers accept. */

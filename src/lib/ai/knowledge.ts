@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { AiConfig } from './types'
+import { AiError, type AiConfig } from './types'
+import { loadEmbeddingsKey } from './config'
 import { chunkText } from './chunk'
 import { embedTexts, toVectorLiteral } from './embeddings'
 
@@ -146,4 +147,27 @@ export async function retrieveKnowledge(
   }
 
   return Array.from(picked.values()).slice(0, k)
+}
+
+/**
+ * Index a saved document with the platform's embeddings key, for the
+ * knowledge routes. Never throws: the document is already saved and
+ * keyword search works on its chunks either way, so a failure comes
+ * back as a warning to show, not an error. Null when all went well.
+ */
+export async function indexKnowledgeDocument(
+  db: SupabaseClient,
+  accountId: string,
+  documentId: string,
+  content: string,
+): Promise<string | null> {
+  const { key: embeddingsApiKey, corrupt } = await loadEmbeddingsKey()
+  try {
+    await ingestDocument(db, accountId, { embeddingsApiKey }, documentId, content)
+  } catch (err) {
+    console.error('[ai/knowledge] ingest error:', err)
+    const message = err instanceof AiError ? err.message : 'indexing failed'
+    return `Saved, but smart search couldn't index it (${message}). Maya can still find it by keyword.`
+  }
+  return corrupt ? 'Saved with keyword search only — smart search is unavailable right now.' : null
 }

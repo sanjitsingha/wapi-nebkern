@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireRole, toErrorResponse } from '@/lib/auth/account'
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit'
 import { loadAiConfig } from '@/lib/ai/config'
+import { aiUnavailableMessage } from '@/lib/ai/platform'
 import { retrieveKnowledge } from '@/lib/ai/knowledge'
 import { generateReply } from '@/lib/ai/generate'
 import { buildSystemPrompt } from '@/lib/ai/defaults'
@@ -65,7 +66,7 @@ export async function POST(request: Request) {
     if (!config) {
       return NextResponse.json(
         {
-          error: 'No agent configured yet. Add your provider key in Setup.',
+          error: await aiUnavailableMessage('test her in the Playground'),
           code: 'ai_not_configured',
         },
         { status: 400 },
@@ -82,6 +83,8 @@ export async function POST(request: Request) {
       userPrompt: config.systemPrompt,
       mode: 'auto_reply',
       knowledge,
+      personality: config.personality,
+      restrictions: config.restrictions,
     })
 
     const { text, handoff } = await generateReply({ config, systemPrompt, messages })

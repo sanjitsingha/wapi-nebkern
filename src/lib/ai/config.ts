@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { decrypt } from '@/lib/whatsapp/encryption'
 import type { AiConfig } from './types'
+import { loadPlatformAi } from './platform'
+import { DEFAULT_PERSONALITY, PERSONALITIES, type PersonalityId } from './personalities'
 import {
   RESPONSE_DELAY,
   SNOOZE,
@@ -8,30 +9,47 @@ import {
   parseSeconds,
 } from './reply-settings'
 
+/**
+ * The account's row: Maya's behaviour only. The credential columns
+ * (provider / model / api_key / embeddings_api_key) predate migration 115
+ * and are no longer read — the model and key are the platform's.
+ */
 interface AiConfigRow {
-  provider: 'openai' | 'anthropic' | 'openrouter'
-  model: string
-  api_key: string
   system_prompt: string | null
   is_active: boolean
   auto_reply_enabled: boolean
   auto_reply_max_per_conversation: number
-  embeddings_api_key: string | null
   /** Migration 114. Optional in the row type: read through select('*')
    *  so a database without the column still loads the config. */
   activation_prompt?: string | null
   response_delay_seconds?: number | null
   snooze_seconds?: number | null
   operating_hours?: unknown
+  /** Migration 116. */
+  personality?: string | null
+  restrictions?: string | null
 }
 
+/** A stored personality id, or the default when unset or unknown. */
+function toPersonality(raw: string | null | undefined): PersonalityId {
+  return PERSONALITIES.some((p) => p.id === raw) ? (raw as PersonalityId) : DEFAULT_PERSONALITY
+}
+
+/** What a workspace without a row yet gets: Maya off, the defaults. */
+const DEFAULT_MAX_PER_CONVERSATION = 3
+
 /**
- * Load and decrypt the account's AI config for *use* (draft or
- * playground). Returns `null` when there's no row or the master switch
- * (`is_active`) is off and `requireActive` is set — both mean "AI is not
- * available", which callers treat identically. Throws only if the stored
- * key can't be decrypted (mismatched `ENCRYPTION_KEY`), so that distinct
- * failure surfaces rather than looking like "not configured".
+ * The AI config to *use* for an account (draft, playground, auto-reply,
+ * templates, campaign overview): the platform's provider, model and key
+ * (Admin → AI model) with the account's behaviour on top.
+ *
+ * Null means "AI is not available here": the platform AI isn't set up,
+ * or — with `requireActive` (the default) — the account hasn't switched
+ * Maya on. A workspace that has never touched Maya has no row; with
+ * `requireActive: false` (the Playground) it still gets the defaults, so
+ * anyone can try her before turning her on. Throws only when the
+ * platform key can't be decrypted or the read fails, so those surface
+ * rather than looking like "not set up".
  *
  * Works with any client: pass the RLS-scoped SSR client from a dashboard
  * route, or the service-role admin client from a background job.
@@ -42,6 +60,10 @@ export async function loadAiConfig(
   opts: { requireActive?: boolean } = {},
 ): Promise<AiConfig | null> {
   const { requireActive = true } = opts
+
+  const platform = await loadPlatformAi()
+  if (!platform) return null
+
   const { data, error } = await db
     .from('ai_configs')
     // '*' rather than a column list, so a database that hasn't run a
@@ -50,80 +72,48 @@ export async function loadAiConfig(
     .select('*')
     .eq('account_id', accountId)
     .maybeSingle()
-
   if (error) throw error
-  if (!data) return null
 
-  const row = data as AiConfigRow
-  // The Playground passes requireActive:false so an admin can test the
-  // agent before flipping the master switch on.
-  if (requireActive && !row.is_active) return null
-  // Defensive: the column is NOT NULL, but a partial write / manual DB
-  // edit could leave it empty. Treat a missing key as "not configured"
-  // rather than letting decrypt() throw on null.
-  if (!row.api_key) return null
-
-  // The embeddings key is optional and independent of the chat key —
-  // a corrupt/undecryptable one should downgrade to lexical KB, not
-  // take down draft/auto-reply, so decrypt failures are swallowed here.
-  let embeddingsApiKey: string | null = null
-  if (row.embeddings_api_key) {
-    try {
-      embeddingsApiKey = decrypt(row.embeddings_api_key)
-    } catch {
-      console.error(
-        `[ai config] embeddings key for account ${accountId} could not be decrypted — check ENCRYPTION_KEY; semantic search is disabled until it is re-entered.`,
-      )
-      embeddingsApiKey = null
-    }
-  }
+  const row = (data ?? null) as AiConfigRow | null
+  if (requireActive && !row?.is_active) return null
 
   return {
-    provider: row.provider,
-    model: row.model,
-    apiKey: decrypt(row.api_key),
-    systemPrompt: row.system_prompt,
-    isActive: row.is_active,
-    autoReplyEnabled: row.auto_reply_enabled,
-    autoReplyMaxPerConversation: row.auto_reply_max_per_conversation,
-    embeddingsApiKey,
-    activationPrompt: row.activation_prompt?.trim() || null,
+    provider: platform.provider,
+    model: platform.model,
+    apiKey: platform.apiKey,
+    systemPrompt: row?.system_prompt ?? null,
+    isActive: row?.is_active ?? false,
+    autoReplyEnabled: row?.auto_reply_enabled ?? false,
+    autoReplyMaxPerConversation:
+      row?.auto_reply_max_per_conversation ?? DEFAULT_MAX_PER_CONVERSATION,
+    embeddingsApiKey: platform.embeddingsApiKey,
+    activationPrompt: row?.activation_prompt?.trim() || null,
     // Before migration 114 these columns don't exist; the defaults are
     // how she behaved then.
     responseDelaySeconds:
-      parseSeconds(row.response_delay_seconds, RESPONSE_DELAY) ?? RESPONSE_DELAY.default,
-    snoozeSeconds: parseSeconds(row.snooze_seconds, SNOOZE) ?? SNOOZE.default,
-    operatingHours: parseOperatingHours(row.operating_hours),
+      parseSeconds(row?.response_delay_seconds, RESPONSE_DELAY) ?? RESPONSE_DELAY.default,
+    snoozeSeconds: parseSeconds(row?.snooze_seconds, SNOOZE) ?? SNOOZE.default,
+    operatingHours: parseOperatingHours(row?.operating_hours),
+    personality: toPersonality(row?.personality),
+    restrictions: row?.restrictions?.trim() || null,
   }
 }
 
 /**
- * Load + decrypt just the embeddings key, independent of `is_active`.
- * Used by the knowledge-base ingest routes so the KB gets embedded (and
- * semantic search works) whenever an embeddings key is present, even if
- * the assistant's master switch is currently off.
- *
- * Returns `{ key, corrupt }`: `key` is null when there's no key OR it
- * can't be decrypted; `corrupt` distinguishes those cases so callers can
- * warn ("a key is set but unusable") rather than silently indexing
- * lexical-only and reporting success.
+ * The embeddings key for knowledge-base ingest — the platform's, whether
+ * or not the account has Maya switched on, so documents are embedded as
+ * they're added. `corrupt` flags a stored key that won't decrypt, so the
+ * caller can warn rather than quietly index lexical-only.
  */
-export async function loadEmbeddingsKey(
-  db: SupabaseClient,
-  accountId: string,
-): Promise<{ key: string | null; corrupt: boolean }> {
-  const { data, error } = await db
-    .from('ai_configs')
-    .select('embeddings_api_key')
-    .eq('account_id', accountId)
-    .maybeSingle()
-  if (error || !data?.embeddings_api_key) return { key: null, corrupt: false }
+export async function loadEmbeddingsKey(): Promise<{ key: string | null; corrupt: boolean }> {
   try {
-    return { key: decrypt(data.embeddings_api_key), corrupt: false }
-  } catch {
-    console.error(
-      `[ai config] embeddings key for account ${accountId} could not be decrypted — check ENCRYPTION_KEY.`,
-    )
+    const platform = await loadPlatformAi()
+    return {
+      key: platform?.embeddingsApiKey ?? null,
+      corrupt: platform?.embeddingsKeyCorrupt ?? false,
+    }
+  } catch (err) {
+    console.error('[ai config] platform AI could not be loaded:', err)
     return { key: null, corrupt: true }
   }
 }

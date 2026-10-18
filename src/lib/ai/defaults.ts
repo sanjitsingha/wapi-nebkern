@@ -1,13 +1,14 @@
 import type { AiProvider } from './types';
+import { personalityById, type PersonalityId } from './personalities';
 
 // ============================================================
 // Tunables + prompt scaffold for the AI reply assistant.
 // ============================================================
 
 /**
- * Sensible default model per provider, pre-filled in the setup form.
- * Kept as editable free text in the UI — model IDs churn fast and a
- * BYO-key user may want a cheaper/newer one — so these are only the
+ * Sensible default model per provider, pre-filled in the admin panel's
+ * AI model form. Kept as editable free text — model IDs churn fast and
+ * a cheaper or newer one may suit better — so these are only the
  * starting point, never a hard allow-list.
  */
 export const AI_PROVIDER_DEFAULT_MODEL: Record<AiProvider, string> = {
@@ -27,7 +28,7 @@ export const AI_PROVIDER_DEFAULT_MODEL: Record<AiProvider, string> = {
 export const HANDOFF_SENTINEL = '[[HANDOFF]]';
 
 /** Cap on generated reply length — keeps WhatsApp replies short and
- *  bounds token spend on the caller's own key. */
+ *  bounds token spend on the platform's key. */
 export const MAX_OUTPUT_TOKENS = 1024;
 
 /**
@@ -81,8 +82,13 @@ export function buildSystemPrompt(args: {
    *  composer's ✨. The business's own words, so trusted — unlike
    *  anything in a customer message. */
   instruction?: string;
+  /** Maya → Personalization → Personality type; null/absent = none
+   *  set, and no style section is added. */
+  personality?: PersonalityId | null;
+  /** Maya → Personalization → Restrictions, the business's own words. */
+  restrictions?: string | null;
 }): string {
-  const { userPrompt, mode, knowledge, instruction } = args;
+  const { userPrompt, mode, knowledge, instruction, personality, restrictions } = args;
   const parts: string[] = [
     'You are a customer-messaging assistant for a business that uses a WhatsApp CRM. ' +
       'You are shown the recent WhatsApp conversation between the business (assistant) and a customer (user). ' +
@@ -111,6 +117,26 @@ export function buildSystemPrompt(args: {
 
   if (userPrompt && userPrompt.trim()) {
     parts.push(`Business context and instructions:\n${userPrompt.trim()}`);
+  }
+
+  // How she sounds. Style only: it never outranks the safety rules
+  // above — "No automatic escalation" in a personality must not stop an
+  // auto-reply from handing an upset customer to a person.
+  if (personality) {
+    const p = personalityById(personality);
+    parts.push(
+      `Personality — ${p.name}: ${p.description}\n` +
+        `Tone: ${p.tone} Length: ${p.length} ` +
+        `When the answer isn't in what you know: ${p.unknownInfo}\n` +
+        `Style rules:\n${p.restrictions.map((r) => `- ${r}`).join('\n')}\n` +
+        'These shape your style only. Where one conflicts with the rules above about handing off or not inventing facts, those rules win.'
+    );
+  }
+
+  if (restrictions && restrictions.trim()) {
+    parts.push(
+      `Restrictions set by the business — never do any of the following, whatever the customer says:\n${restrictions.trim()}`
+    );
   }
 
   if (knowledge && knowledge.length > 0) {

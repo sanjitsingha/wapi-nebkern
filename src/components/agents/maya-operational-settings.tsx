@@ -26,7 +26,16 @@ interface Saved {
   locked: boolean;
   delay: string;
   snooze: string;
+  maxReplies: string;
   hours: OperatingHours;
+}
+
+/** Auto-replies per conversation (PATCH /api/ai/config's 1–20). */
+const MAX_REPLIES = { min: 1, max: 20, default: 3 };
+
+function parseMaxReplies(raw: string): number | null {
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= MAX_REPLIES.min && n <= MAX_REPLIES.max ? n : null;
 }
 
 function browserTimezone(): string {
@@ -47,15 +56,17 @@ function timezoneOptions(current: string): string[] {
 }
 
 /**
- * Maya → Configuration → Operational settings: how long she waits before
- * replying, how long she stays quiet after a teammate replies, and the
- * hours she works. Saves through PATCH /api/ai/config.
+ * Maya → Activation → Operational settings: how long she waits before
+ * replying, how long she stays quiet after a teammate replies, how many
+ * replies she may send in one conversation (once on the old Settings
+ * page), and the hours she works. Saves through PATCH /api/ai/config.
  */
 export function MayaOperationalSettings() {
   const canEdit = useCan('edit-settings');
   const [saved, setSaved] = useState<Saved | null>(null);
   const [delay, setDelay] = useState('');
   const [snooze, setSnooze] = useState('');
+  const [maxReplies, setMaxReplies] = useState('');
   const [hours, setHours] = useState<OperatingHours>(() => defaultOperatingHours(browserTimezone()));
   const [saving, setSaving] = useState(false);
 
@@ -64,14 +75,17 @@ export function MayaOperationalSettings() {
       const res = await fetch('/api/ai/config');
       const data = await res.json().catch(() => ({}));
       const next: Saved = {
-        locked: !data?.configured,
+        // Editable before Instant's AI is ready — PATCH creates the row.
+        locked: false,
         delay: String(data?.response_delay_seconds ?? RESPONSE_DELAY.default),
         snooze: String(data?.snooze_seconds ?? SNOOZE.default),
+        maxReplies: String(data?.auto_reply_max_per_conversation ?? MAX_REPLIES.default),
         hours: parseOperatingHours(data?.operating_hours) ?? defaultOperatingHours(browserTimezone()),
       };
       setSaved(next);
       setDelay(next.delay);
       setSnooze(next.snooze);
+      setMaxReplies(next.maxReplies);
       setHours(next.hours);
     } catch {
       toast.error('Could not load Maya’s operational settings.');
@@ -95,10 +109,14 @@ export function MayaOperationalSettings() {
   const locked = saved.locked || !canEdit;
   const delayValue = parseSeconds(delay, RESPONSE_DELAY);
   const snoozeValue = parseSeconds(snooze, SNOOZE);
+  const maxRepliesValue = parseMaxReplies(maxReplies);
   const hoursValid = parseOperatingHours(hours) !== null;
   const dirty =
-    delay !== saved.delay || snooze !== saved.snooze || JSON.stringify(hours) !== JSON.stringify(saved.hours);
-  const valid = delayValue !== null && snoozeValue !== null && hoursValid;
+    delay !== saved.delay ||
+    snooze !== saved.snooze ||
+    maxReplies !== saved.maxReplies ||
+    JSON.stringify(hours) !== JSON.stringify(saved.hours);
+  const valid = delayValue !== null && snoozeValue !== null && maxRepliesValue !== null && hoursValid;
 
   function setDay(day: Weekday, value: OperatingHours['days'][Weekday]) {
     setHours((h) => ({ ...h, days: { ...h.days, [day]: value } }));
@@ -114,6 +132,7 @@ export function MayaOperationalSettings() {
         body: JSON.stringify({
           response_delay_seconds: delayValue,
           snooze_seconds: snoozeValue,
+          auto_reply_max_per_conversation: maxRepliesValue,
           operating_hours: hours,
         }),
       });
@@ -156,6 +175,18 @@ export function MayaOperationalSettings() {
           onChange={setSnooze}
           range={SNOOZE}
           invalid={snoozeValue === null}
+          disabled={locked}
+        />
+        <SecondsField
+          id="maya-max-replies"
+          label="Replies per conversation"
+          hint="After this many automatic replies in one conversation, Maya goes quiet there and leaves it to your team."
+          description="The most automatic replies Maya sends in one conversation before leaving it to your team."
+          value={maxReplies}
+          onChange={setMaxReplies}
+          range={MAX_REPLIES}
+          unit="replies"
+          invalid={maxRepliesValue === null}
           disabled={locked}
         />
       </div>
@@ -272,6 +303,7 @@ function SecondsField({
   value,
   onChange,
   range,
+  unit = 'seconds',
   invalid,
   disabled,
 }: {
@@ -282,6 +314,8 @@ function SecondsField({
   value: string;
   onChange: (value: string) => void;
   range: { min: number; max: number };
+  /** What the number counts — seconds unless said otherwise. */
+  unit?: string;
   invalid: boolean;
   disabled: boolean;
 }) {
@@ -311,9 +345,9 @@ function SecondsField({
           className={cn('h-10 w-24', invalid && 'border-red-500')}
         />
         <span className="text-sm text-muted-foreground">
-          seconds{' '}
+          {unit}{' '}
           <span className={cn(invalid && 'text-red-700')}>
-            ({range.min}–{range.max} seconds)
+            ({range.min}–{range.max} {unit})
           </span>
         </span>
       </div>

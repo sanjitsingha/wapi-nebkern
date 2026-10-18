@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { requireRole, toErrorResponse } from '@/lib/auth/account';
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit';
 import { loadAiConfig } from '@/lib/ai/config';
+import { aiUnavailableMessage } from '@/lib/ai/platform';
 import { generateText } from '@/lib/ai/generate';
 import { STRUCTURED_MAX_OUTPUT_TOKENS, STRUCTURED_TIMEOUT_MS } from '@/lib/ai/defaults';
 import { AiError } from '@/lib/ai/types';
@@ -68,7 +69,7 @@ export async function POST(request: Request) {
     if (!config) {
       return NextResponse.json(
         {
-          error: 'Connect an AI provider in Maya settings to write templates with Maya.',
+          error: await aiUnavailableMessage('write templates with Maya'),
           code: 'ai_not_configured',
         },
         { status: 400 },

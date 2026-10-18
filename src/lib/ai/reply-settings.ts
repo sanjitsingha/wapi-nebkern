@@ -1,5 +1,5 @@
 /**
- * Maya's reply settings — what Maya → Configuration edits and the
+ * Maya's reply settings — what Maya → Activation edits and the
  * auto-reply engine obeys. Pure and dependency-free so the browser can
  * load it: the editor uses the same limits and the same open/closed
  * check as the server.

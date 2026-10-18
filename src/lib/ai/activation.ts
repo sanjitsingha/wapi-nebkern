@@ -5,7 +5,7 @@ import type { AiConfig, ChatMessage } from './types';
  * Maya's activation rules: before she writes a reply, one short yes/no
  * call asks whether the customer's latest message needs one at all.
  *
- * The rules are the account's own prompt (Maya → Configuration; the
+ * The rules are the account's own prompt (Maya → Activation; the
  * suggested default is in reply-settings.ts). This module only adds
  * the instruction to answer YES or NO, and reads the answer.
  */

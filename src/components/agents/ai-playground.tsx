@@ -3,16 +3,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
-  Bot,
   RotateCcw,
   Send,
   UserRound,
-  ArrowRight,
   UserCircle2,
   Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { MayaLockup } from '@/components/lp2/maya-lockup';
 
 interface Turn {
   role: 'user' | 'assistant';
@@ -28,16 +27,12 @@ const SUGGESTIONS = [
   'Can I speak to a human?',
 ];
 
-export function AiPlayground({
-  onGoToSetup,
-  subtitle,
-  configured = true,
-}: {
-  onGoToSetup?: () => void;
-  /** e.g. "OpenRouter · deepseek/…:free" — shown under the agent name. */
-  subtitle?: string;
-  configured?: boolean;
-}) {
+/**
+ * Chat with Maya as a customer would, on Instant's model, without
+ * touching WhatsApp. `configured` is whether Instant's AI is ready
+ * (GET /api/ai/config); she can be tested while switched off.
+ */
+export function AiPlayground({ configured = true }: { configured?: boolean }) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -77,11 +72,8 @@ export function AiPlayground({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        if (data.code === 'ai_not_configured') {
-          toast.error('No agent configured yet — finish Setup first.');
-        } else {
-          toast.error(data.error ?? "Couldn't get a reply.");
-        }
+        // The server's message says why — including "not available yet".
+        toast.error(data.error ?? "Couldn't get a reply.");
         setTurns(turns);
         setInput(text);
         return;
@@ -117,27 +109,18 @@ export function AiPlayground({
     <div className="flex h-[65vh] min-h-[460px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
       {/* Header — agent identity */}
       <div className="flex items-center justify-between gap-3 border-b border-border bg-muted/30 px-4 py-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="relative">
-            <span className="flex size-9 items-center justify-center rounded-full bg-linear-to-br from-primary to-primary/70 text-primary-foreground shadow-sm">
-              <Bot className="h-5 w-5" />
-            </span>
+        {/* Her "ask maya" wordmark in place of a picture and a name —
+            the lockup spells her name, so nothing repeats it in text. */}
+        <div className="min-w-0">
+          <MayaLockup variant="ask" className="h-[22px]" />
+          <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
             <span
               className={cn(
-                'absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-card',
+                'size-1.5 rounded-full',
                 configured ? 'bg-emerald-500' : 'bg-muted-foreground/50',
               )}
             />
-          </div>
-          <div className="min-w-0">
-            <div className="text-sm font-semibold text-foreground">
-              Your agent
-            </div>
-            <div className="truncate text-xs text-muted-foreground">
-              {configured
-                ? (subtitle ?? 'Ready to chat')
-                : 'Not configured yet'}
-            </div>
+            {configured ? 'Ready to chat' : 'Not available yet'}
           </div>
         </div>
         <Button
@@ -184,11 +167,9 @@ export function AiPlayground({
                 ))}
               </div>
             ) : (
-              onGoToSetup && (
-                <Button size="sm" onClick={onGoToSetup} className="mt-5">
-                  Finish setup <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-                </Button>
-              )
+              <p className="mt-5 max-w-sm text-xs text-muted-foreground">
+                Maya isn&apos;t available yet — AI is still being set up for Instant.
+              </p>
             )}
           </div>
         ) : (
@@ -200,11 +181,6 @@ export function AiPlayground({
                 t.role === 'user' ? 'justify-end' : 'justify-start',
               )}
             >
-              {t.role === 'assistant' && (
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
-                  <Bot className="h-4 w-4" />
-                </span>
-              )}
               <div
                 className={cn(
                   'max-w-[78%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm',
@@ -213,6 +189,11 @@ export function AiPlayground({
                     : 'rounded-bl-md border border-border bg-background text-foreground',
                 )}
               >
+                {/* Her "maya" wordmark over each reply, where a sender's
+                    name sits in a WhatsApp group. */}
+                {t.role === 'assistant' && (
+                  <MayaLockup variant="bare" alt="Maya" className="mb-1.5 block h-[13px]" />
+                )}
                 {t.content && (
                   <p className="whitespace-pre-wrap leading-relaxed">
                     {t.content}
@@ -241,13 +222,9 @@ export function AiPlayground({
 
         {sending && (
           <div className="flex items-end gap-2">
-            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
-              <Bot className="h-4 w-4" />
-            </span>
-            <div className="flex items-center gap-1 rounded-2xl rounded-bl-md border border-border bg-background px-4 py-3">
-              <Dot delay="0ms" />
-              <Dot delay="150ms" />
-              <Dot delay="300ms" />
+            <div className="rounded-2xl rounded-bl-md border border-border bg-background px-3.5 py-2.5 shadow-sm">
+              <MayaLockup variant="bare" alt="Maya" className="mb-1.5 block h-[13px]" />
+              <ThinkingLine />
             </div>
           </div>
         )}
@@ -284,11 +261,37 @@ export function AiPlayground({
   );
 }
 
-function Dot({ delay }: { delay: string }) {
+/**
+ * What Maya is doing while a reply is on its way — the steps
+ * /api/ai/playground really takes (the latest message, retrieveKnowledge,
+ * buildSystemPrompt with the business context, generateReply), one at a
+ * time under a light sweep. It holds on the last until the reply lands, rather than
+ * looping back and implying she started over.
+ */
+const THINKING_STEPS = [
+  'Reading your message…',
+  'Searching your knowledge base…',
+  'Checking your business context…',
+  'Writing a reply…',
+];
+const STEP_MS = 1400;
+
+function ThinkingLine() {
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    if (step >= THINKING_STEPS.length - 1) return;
+    const t = setTimeout(() => setStep((n) => n + 1), STEP_MS);
+    return () => clearTimeout(t);
+  }, [step]);
+
   return (
-    <span
-      className="size-1.5 animate-bounce rounded-full bg-muted-foreground/60"
-      style={{ animationDelay: delay }}
-    />
+    <p
+      key={step}
+      role="status"
+      className="text-shimmer animate-in fade-in slide-in-from-bottom-1 text-sm duration-300"
+    >
+      {THINKING_STEPS[step]}
+    </p>
   );
 }

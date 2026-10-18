@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireRole, toErrorResponse } from '@/lib/auth/account'
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit'
 import { loadAiConfig } from '@/lib/ai/config'
+import { aiUnavailableMessage } from '@/lib/ai/platform'
 import { buildConversationContext } from '@/lib/ai/context'
 import { retrieveKnowledge } from '@/lib/ai/knowledge'
 import { generateReply } from '@/lib/ai/generate'
@@ -84,7 +85,7 @@ export async function POST(request: Request) {
     if (!config) {
       return NextResponse.json(
         {
-          error: 'AI assistant is not set up. Enable it under AI Agents → Setup.',
+          error: await aiUnavailableMessage('draft replies with AI'),
           code: 'ai_not_configured',
         },
         { status: 400 },
@@ -160,6 +161,8 @@ export async function POST(request: Request) {
       userPrompt: config.systemPrompt,
       mode: 'draft',
       knowledge,
+      personality: config.personality,
+      restrictions: config.restrictions,
       instruction,
     })
 

@@ -31,10 +31,7 @@ export async function POST() {
       )
     }
 
-    const { key: embeddingsApiKey, corrupt } = await loadEmbeddingsKey(
-      supabase,
-      accountId,
-    )
+    const { key: embeddingsApiKey, corrupt } = await loadEmbeddingsKey()
     // The whole point of Reindex is usually to backfill embeddings — so
     // if a key is configured but can't be decrypted, don't quietly do a
     // lexical-only pass and report success. Stop and tell the admin.
@@ -44,7 +41,7 @@ export async function POST() {
           success: false,
           reindexed: 0,
           error:
-            'Your embeddings key could not be decrypted (check ENCRYPTION_KEY, then re-enter the key under AI Agents → Setup). Nothing was reindexed.',
+            'Smart search is unavailable right now, so nothing was reindexed. Please try again later.',
         },
         { status: 200 },
       )

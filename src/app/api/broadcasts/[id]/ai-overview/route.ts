@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { requireRole, toErrorResponse } from '@/lib/auth/account';
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit';
 import { loadAiConfig } from '@/lib/ai/config';
+import { aiUnavailableMessage } from '@/lib/ai/platform';
 import { generateText } from '@/lib/ai/generate';
 import { AiError } from '@/lib/ai/types';
 import {
@@ -79,7 +80,7 @@ export async function POST(
     if (!config) {
       return NextResponse.json(
         {
-          error: 'Connect an AI provider in Maya settings to get an overview.',
+          error: await aiUnavailableMessage('get an AI overview of this campaign'),
           code: 'ai_not_configured',
         },
         { status: 400 },

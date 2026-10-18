@@ -23,6 +23,7 @@ import {
   X,
   Clock,
   Gauge,
+  Sparkles,
 } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
@@ -99,6 +100,8 @@ const NAV: {
     group: 'Platform',
     items: [
       { label: 'Usage & Quotas', href: '/admin/usage', icon: Gauge },
+      // The model and paid key every account's Maya runs on.
+      { label: 'AI model', href: '/admin/ai', icon: Sparkles },
     ],
   },
 ];

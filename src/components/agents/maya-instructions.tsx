@@ -2,10 +2,15 @@
 
 import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
-import { FileText, ScrollText, ShieldAlert, Sparkles, type LucideIcon } from 'lucide-react';
+import { FileText, Loader2, ScrollText, ShieldAlert, Sparkles, type LucideIcon } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { PromptEditor } from './prompt-editor';
+
+/** The server's limits (PATCH /api/ai/config). */
+const ROLE_MAX_CHARS = 8000;
+const RESTRICTIONS_MAX_CHARS = 4000;
 
 /** Filled in by "Use template" on the Restrictions card. */
 const RESTRICTIONS_TEMPLATE = `<restrictions>
@@ -19,12 +24,35 @@ const RESTRICTIONS_TEMPLATE = `<restrictions>
 
 /**
  * Maya → Personalization: her role and instructions, and what she must
- * not do. UI only for now — nothing here is saved or used in her
- * replies yet.
+ * not do. The role is ai_configs.system_prompt — what the old Settings
+ * page called "Business context & instructions", carried over as is —
+ * and the restrictions ai_configs.restrictions; both go into every
+ * reply's prompt. Each card saves on its own.
  */
-export function MayaInstructions() {
-  const [role, setRole] = useState('');
-  const [restrictions, setRestrictions] = useState('');
+export function MayaInstructions({
+  savedRole,
+  savedRestrictions,
+  disabled,
+  onSave,
+}: {
+  savedRole: string;
+  savedRestrictions: string;
+  disabled: boolean;
+  onSave: (patch: { system_prompt?: string | null; restrictions?: string | null }) => Promise<boolean>;
+}) {
+  const [role, setRole] = useState(savedRole);
+  const [restrictions, setRestrictions] = useState(savedRestrictions);
+  const [saving, setSaving] = useState<'role' | 'restrictions' | null>(null);
+
+  async function save(which: 'role' | 'restrictions') {
+    setSaving(which);
+    await onSave(
+      which === 'role'
+        ? { system_prompt: role.trim() || null }
+        : { restrictions: restrictions.trim() || null },
+    );
+    setSaving(null);
+  }
 
   function applyTemplate() {
     if (
@@ -57,6 +85,8 @@ export function MayaInstructions() {
         <PromptEditor
           value={role}
           onChange={setRole}
+          disabled={disabled}
+          maxChars={ROLE_MAX_CHARS}
           rows={10}
           labelledBy="maya-role-heading"
           placeholder={
@@ -64,6 +94,12 @@ export function MayaInstructions() {
           }
           editorTitle="Agent role and instructions"
           editorDescription="Who Maya is, what she knows about your business, and how she should help."
+        />
+        <SaveRow
+          dirty={role.trim() !== savedRole.trim()}
+          saving={saving === 'role'}
+          disabled={disabled || saving !== null || role.trim().length > ROLE_MAX_CHARS}
+          onSave={() => save('role')}
         />
       </MayaCard>
 
@@ -87,13 +123,44 @@ export function MayaInstructions() {
         <PromptEditor
           value={restrictions}
           onChange={setRestrictions}
+          disabled={disabled}
+          maxChars={RESTRICTIONS_MAX_CHARS}
           rows={8}
           labelledBy="maya-restrictions-heading"
           placeholder="Specific topics or actions the AI should avoid…"
           editorTitle="Restrictions"
           editorDescription="Topics and actions Maya should stay away from."
         />
+        <SaveRow
+          dirty={restrictions.trim() !== savedRestrictions.trim()}
+          saving={saving === 'restrictions'}
+          disabled={
+            disabled || saving !== null || restrictions.trim().length > RESTRICTIONS_MAX_CHARS
+          }
+          onSave={() => save('restrictions')}
+        />
       </MayaCard>
+    </div>
+  );
+}
+
+function SaveRow({
+  dirty,
+  saving,
+  disabled,
+  onSave,
+}: {
+  dirty: boolean;
+  saving: boolean;
+  disabled: boolean;
+  onSave: () => void;
+}) {
+  return (
+    <div className="mt-4 flex justify-end">
+      <Button onClick={onSave} disabled={disabled || !dirty}>
+        {saving && <Loader2 className="size-4 animate-spin" />}
+        Save changes
+      </Button>
     </div>
   );
 }

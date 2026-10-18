@@ -5,7 +5,7 @@ import { SettingsPanelHead } from '@/components/settings/settings-panel-head';
 export default function MayaConfigurationPage() {
   return (
     <section>
-      <SettingsPanelHead title="Configuration" description="How and when Maya replies." />
+      <SettingsPanelHead title="Activation" description="How and when Maya replies." />
       <div className="space-y-6">
         <MayaActivationSettings />
         <MayaOperationalSettings />

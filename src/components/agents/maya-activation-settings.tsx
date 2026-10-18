@@ -40,7 +40,7 @@ interface Saved {
 }
 
 /**
- * Maya → Configuration: when she replies. Activation rules (which
+ * Maya → Activation: when she replies. Activation rules (which
  * messages need an answer) and chat activation mode (every chat, or
  * only chats assigned to her). Both save through PATCH /api/ai/config.
  */
@@ -83,7 +83,9 @@ export function MayaActivationSettings() {
     );
   }
 
-  const locked = !saved.configured || !canEdit;
+  // Editable before Instant's AI is ready: PATCH creates the row, and
+  // the rules apply once she can answer.
+  const locked = !canEdit;
   const tooLong = rules.trim().length > ACTIVATION_PROMPT_MAX_CHARS;
   const rulesChanged = rules.trim() !== (saved.rules ?? '').trim();
   const dirty = rulesChanged || mode !== saved.mode;
@@ -123,11 +125,8 @@ export function MayaActivationSettings() {
     <div className="space-y-4">
       {!saved.configured && (
         <Notice>
-          Set up Maya first — connect a model provider in{' '}
-          <Link href="/settings/developer-hub" className="font-medium underline underline-offset-2">
-            Settings → AI &amp; models
-          </Link>
-          .
+          Maya isn&apos;t available yet — AI is still being set up for Instant. You can set
+          these now; they apply once she&apos;s ready.
         </Notice>
       )}
       {saved.configured && !saved.isActive && (
@@ -139,7 +138,7 @@ export function MayaActivationSettings() {
           .
         </Notice>
       )}
-      {saved.configured && !canEdit && (
+      {!canEdit && (
         <p className="text-sm text-muted-foreground">Only admins can change these settings.</p>
       )}
 

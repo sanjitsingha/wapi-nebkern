@@ -1,10 +1,7 @@
-import { MayaSectionPlaceholder } from '@/components/agents/maya-section-placeholder';
+import { MayaKnowledgeBase } from '@/components/agents/maya-knowledge-base';
 
+// The header lives in the component: its "Add knowledge" menu opens the
+// component's forms.
 export default function MayaKnowledgeBasePage() {
-  return (
-    <MayaSectionPlaceholder
-      title="Knowledge base"
-      description="What Maya answers from."
-    />
-  );
+  return <MayaKnowledgeBase />;
 }

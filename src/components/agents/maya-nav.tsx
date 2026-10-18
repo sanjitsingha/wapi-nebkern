@@ -2,7 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BookOpen, Bot, LayoutDashboard, Palette, Settings2, type LucideIcon } from 'lucide-react';
+import {
+  BookOpen,
+  Bot,
+  LayoutDashboard,
+  MessagesSquare,
+  Palette,
+  Settings2,
+  type LucideIcon,
+} from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
@@ -11,7 +19,8 @@ const MAYA_SECTIONS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: '/askmaya', label: 'Overview', icon: LayoutDashboard },
   { href: '/askmaya/personalization', label: 'Personalization', icon: Palette },
   { href: '/askmaya/knowledge-base', label: 'Knowledge base', icon: BookOpen },
-  { href: '/askmaya/configuration', label: 'Configuration', icon: Settings2 },
+  { href: '/askmaya/configuration', label: 'Activation', icon: Settings2 },
+  { href: '/askmaya/playground', label: 'Playground', icon: MessagesSquare },
 ];
 
 /**

@@ -15,7 +15,7 @@ import { RESPONSE_DELAY, SNOOZE, isWithinOperatingHours } from './reply-settings
 
 // How long a conversation must go quiet (no new customer message)
 // before the bot actually replies is the account's response delay
-// (Maya → Configuration; RESPONSE_DELAY in reply-settings.ts). A wait up
+// (Maya → Activation; RESPONSE_DELAY in reply-settings.ts). A wait up
 // to IN_PROCESS_WAIT_MAX_MS is held right here, comfortably inside the
 // reply-engine invocation's 60s budget (see reply-engine/route.ts); a
 // longer one is left to the minute cron, which finds it by its DB
@@ -296,6 +296,8 @@ async function replyNow(ctx: {
     userPrompt: config.systemPrompt,
     mode: 'auto_reply',
     knowledge,
+    personality: config.personality,
+    restrictions: config.restrictions,
   })
 
   const { text, handoff } = await generateWithRetry({
