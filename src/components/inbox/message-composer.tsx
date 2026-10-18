@@ -39,6 +39,7 @@ import {
   uploadAccountMedia,
   deleteAccountMedia,
   MEDIA_MAX_BYTES_BY_KIND,
+  CHAT_MEDIA_BUCKET,
 } from "@/lib/storage/upload-media";
 import { compressImage } from "@/lib/storage/compress-image";
 import { ReplyQuote } from "./reply-quote";
@@ -46,8 +47,8 @@ import { ReplyQuote } from "./reply-quote";
 /** Media content types an agent can send from the composer. */
 export type ComposerMediaKind = "image" | "video" | "document" | "audio";
 
-/** Supabase Storage bucket holding agent-sent chat attachments (migration 023). */
-export const CHAT_MEDIA_BUCKET = "chat-media";
+/** Defined with the storage helpers; re-exported for existing imports. */
+export { CHAT_MEDIA_BUCKET };
 
 /** Meta caps media captions at 1024 chars. Enforced here and in the send route. */
 export const MEDIA_CAPTION_MAX = 1024;
@@ -68,6 +69,12 @@ export interface SendMediaPayload {
   filename?: string;
   replyToId?: string;
 }
+
+/** What the `/` menu needs of a quick reply — text and any attachment. */
+type QuickReplyOption = Pick<
+  QuickReply,
+  "id" | "shortcut" | "body" | "media_url" | "media_kind" | "media_name"
+>;
 
 interface ReplyDraft {
   /** Internal UUID of the message being replied to — sent back through onSend. */
@@ -147,9 +154,7 @@ export function MessageComposer({
   // Loaded once per mount; if the table doesn't exist yet (migration not
   // applied) the query errors, the list stays empty, and the `/` menu
   // simply never opens — no crash.
-  const [quickReplies, setQuickReplies] = useState<
-    Pick<QuickReply, "id" | "shortcut" | "body">[]
-  >([]);
+  const [quickReplies, setQuickReplies] = useState<QuickReplyOption[]>([]);
   const [qrIndex, setQrIndex] = useState(0);
   // Escape hides the menu without clearing the draft; typing re-opens it.
   const [qrDismissed, setQrDismissed] = useState(false);
@@ -159,11 +164,14 @@ export function MessageComposer({
     let cancelled = false;
     void supabase
       .from("quick_replies")
-      .select("id, shortcut, body")
+      // `*`, not a column list: the attachment columns arrive with
+      // migration 117, and naming them would fail the read — and every
+      // quick reply with it — on a database without it.
+      .select("*")
       .order("shortcut", { ascending: true })
       .then(({ data }) => {
         if (!cancelled && data) {
-          setQuickReplies(data as Pick<QuickReply, "id" | "shortcut" | "body">[]);
+          setQuickReplies(data as QuickReplyOption[]);
         }
       });
     return () => {
@@ -323,8 +331,33 @@ export function MessageComposer({
   const qrActive = Math.min(qrIndex, qrMatches.length - 1);
 
   const applyQuickReply = useCallback(
-    (reply: Pick<QuickReply, "id" | "shortcut" | "body">) => {
-      setText(reply.body);
+    (reply: QuickReplyOption) => {
+      const kind = reply.media_kind;
+      // Documents and voice notes are WhatsApp-only; images and videos
+      // go everywhere — the same split as the 📎 menu below.
+      const attachable =
+        Boolean(reply.media_url && kind) &&
+        (channel === "whatsapp" || kind === "image" || kind === "video");
+      if (reply.media_url && kind && !attachable) {
+        toast.info(`This channel can't send a ${kind} — inserted the text only.`);
+      }
+      if (attachable && reply.media_url && kind) {
+        // Staged like an upload, with no storage path: the file belongs
+        // to the quick reply, so discarding the draft must not delete it.
+        removeStaged(draftRef.current?.path);
+        setDraft({
+          kind,
+          mediaUrl: reply.media_url,
+          path: "",
+          filename: reply.media_name || kind,
+          // Audio takes no caption, so its text stays in the box to go
+          // as a message of its own.
+          caption: kind === "audio" ? "" : reply.body,
+        });
+        setText(kind === "audio" ? reply.body : "");
+      } else {
+        setText(reply.body);
+      }
       setQrIndex(0);
       setQrDismissed(false);
       // Let the value land before measuring, then restore focus/caret.
@@ -333,7 +366,7 @@ export function MessageComposer({
         adjustHeight();
       });
     },
-    [adjustHeight]
+    [adjustHeight, channel, removeStaged]
   );
 
   const handleKeyDown = useCallback(
@@ -570,7 +603,10 @@ export function MessageComposer({
                     /{r.shortcut}
                   </code>
                   <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-                    {r.body}
+                    {r.media_url && (
+                      <Paperclip className="mr-1 inline h-3 w-3 align-[-2px]" />
+                    )}
+                    {r.body || r.media_name || r.media_kind}
                   </span>
                 </button>
               </li>

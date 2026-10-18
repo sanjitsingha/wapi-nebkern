@@ -620,7 +620,8 @@ export function MessageThread({
           onUpdateMessage(tempId, { status: "failed", error_message: reason });
           // The upload never reached the recipient — GC the orphaned
           // object rather than leaving it in the public bucket forever.
-          void deleteAccountMedia(CHAT_MEDIA_BUCKET, payload.path).catch(() => {});
+          // No path = a quick reply's own file, which must outlive this send.
+          if (payload.path) void deleteAccountMedia(CHAT_MEDIA_BUCKET, payload.path).catch(() => {});
           return;
         }
 
@@ -630,7 +631,8 @@ export function MessageThread({
         const reason = err instanceof Error ? err.message : "network error";
         toast.error(`Failed to send: ${reason}`);
         onUpdateMessage(tempId, { status: "failed", error_message: reason });
-        void deleteAccountMedia(CHAT_MEDIA_BUCKET, payload.path).catch(() => {});
+        // No path = a quick reply's own file, which must outlive this send.
+        if (payload.path) void deleteAccountMedia(CHAT_MEDIA_BUCKET, payload.path).catch(() => {});
       }
     },
     [conversation, onNewMessage, onUpdateMessage],
@@ -1132,7 +1134,7 @@ export function MessageThread({
               hide both rather than offer a control that silently no-ops. */}
           {!isMetaDm && (
             <>
-              {/* Maya toggle — the BYO-key assistant handles this chat
+              {/* Maya toggle — the AI assistant handles this chat
                   on its own (KB-grounded replies to every inbound, no cap,
                   even with the account-wide auto-reply toggle off). Kept as
                   a stand-alone switch since it's a distinct mode, not a

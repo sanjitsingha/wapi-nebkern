@@ -56,6 +56,10 @@ export const MEDIA_MAX_BYTES = 16 * 1024 * 1024;
  * (Meta allows 100 MB, but the bucket — and shared-hosting upload UX —
  * caps lower).
  */
+/** The bucket holding agent-sent chat attachments (migration 023) —
+ *  and the files saved on quick replies (migration 117). */
+export const CHAT_MEDIA_BUCKET = 'chat-media';
+
 export const MEDIA_MAX_BYTES_BY_KIND = {
   image: 5 * 1024 * 1024,
   video: 16 * 1024 * 1024,

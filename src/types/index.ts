@@ -806,7 +806,16 @@ export interface QuickReply {
   user_id: string | null;
   /** Token typed after '/'. Matches ^[A-Za-z0-9_-]{1,32}$, unique per account. */
   shortcut: string;
+  /** The text; may be empty when there's an attachment (migration 117). */
   body: string;
+  /** Optional attachment (migration 117) — staged in the composer as the
+   *  message's media, with `body` as its caption. */
+  media_url?: string | null;
+  media_kind?: 'image' | 'video' | 'audio' | 'document' | null;
+  media_name?: string | null;
+  /** Set only for a file uploaded for this reply, so it can be deleted
+   *  with it; a media-library file is shared and has none. */
+  media_path?: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -23,7 +23,8 @@ import { Loader2, Upload, Search, FileText, FolderOpen } from 'lucide-react';
 
 /**
  * Modal picker for choosing a media-library file of a given kind —
- * used by the template builder's media header. Lists the account's
+ * used by the template builder's media header — or of any kind
+ * (`kind="any"`, the quick-reply editor's "Media library"). Lists the account's
  * saved files, lets you search or upload a new one, and calls
  * `onSelect(item)` with the chosen file (whose `public_url` the caller
  * drops into the template's header_media_url).
@@ -36,7 +37,7 @@ export function MediaLibraryPicker({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  kind: MediaKind;
+  kind: MediaKind | 'any';
   onSelect: (item: MediaLibraryItem) => void;
 }) {
   const [items, setItems] = useState<MediaLibraryItem[]>([]);
@@ -63,7 +64,9 @@ export function MediaLibraryPicker({
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return items.filter(
-      (i) => i.kind === kind && (q === '' || i.name.toLowerCase().includes(q)),
+      (i) =>
+        (kind === 'any' || i.kind === kind) &&
+        (q === '' || i.name.toLowerCase().includes(q)),
     );
   }, [items, kind, search]);
 
@@ -77,7 +80,7 @@ export function MediaLibraryPicker({
     setUploading(true);
     try {
       const item = await uploadToLibrary(file);
-      if (item.kind !== kind) {
+      if (kind !== 'any' && item.kind !== kind) {
         // Uploaded, but it's the wrong kind for this header — keep it in
         // the library and tell the user rather than silently selecting.
         setItems((prev) => [item, ...prev]);
@@ -98,10 +101,10 @@ export function MediaLibraryPicker({
       <DialogContent className="border-border bg-popover text-popover-foreground sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="capitalize text-popover-foreground">
-            Pick {kind} from library
+            {kind === 'any' ? 'Pick from media library' : `Pick ${kind} from library`}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Choose a saved {kind}, or upload a new one.
+            Choose a saved {kind === 'any' ? 'file' : kind}, or upload a new one.
           </DialogDescription>
         </DialogHeader>
 
@@ -118,7 +121,13 @@ export function MediaLibraryPicker({
           <input
             ref={fileRef}
             type="file"
-            accept={MEDIA_KIND_SPECS[kind].accept}
+            accept={
+              kind === 'any'
+                ? Object.values(MEDIA_KIND_SPECS)
+                    .map((s) => s.accept)
+                    .join(',')
+                : MEDIA_KIND_SPECS[kind].accept
+            }
             className="hidden"
             onChange={(e) => {
               handleUpload(e.target.files?.[0]);
@@ -150,7 +159,7 @@ export function MediaLibraryPicker({
             <div className="flex flex-col items-center gap-2 py-12 text-center">
               <FolderOpen className="size-7 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
-                No {kind}s in your library yet. Upload one above.
+                No {kind === 'any' ? 'file' : kind}s in your library yet. Upload one above.
               </p>
             </div>
           ) : (
