@@ -54,7 +54,8 @@ export default function AccountSettingsDocsPage() {
         <DocsFieldTable
           columns={['Tab', 'What it holds']}
           rows={[
-            { cells: ['Fields & tags', 'Your tag list, and any custom contact fields you’ve defined — used across contacts, segments, and automations.'] },
+            { cells: ['Tags', 'Your tag list — colour-coded labels for grouping and filtering contacts and conversations.'] },
+            { cells: ['Custom fields', 'Extra contact fields you define (admins only) — used across contacts, segments, and automations.'] },
           ]}
         />
         <p>

@@ -7,6 +7,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { formatCurrency } from '@/lib/currency';
 import { toast } from 'sonner';
 import type { Contact, Tag, ContactNote, CustomField, Deal, Message, CallLog } from '@/types';
+import { CustomFieldEditor } from '@/components/contacts/custom-field-editor';
+import { customValueProblems } from '@/lib/contacts/custom-field-types';
 import {
   ContactMedia,
   ContactLinks,
@@ -416,6 +418,9 @@ export default function ContactDetailPage() {
   }
 
   async function saveCustomFields() {
+    // Mandatory fields filled, numbers numbers, dates dates…
+    const problems = customValueProblems(customFields, customValues);
+    if (problems.length > 0) { toast.error(problems[0]); return; }
     setSavingCustom(true);
     try {
       await supabase.from('contact_custom_values').delete().eq('contact_id', contactId);
@@ -1073,14 +1078,13 @@ export default function ContactDetailPage() {
               <>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {customFields.map((field) => (
-                    <div key={field.id} className="space-y-1.5">
-                      <Label className="text-muted-foreground text-xs capitalize">{field.field_name}</Label>
-                      <Input
-                        value={customValues[field.id] ?? ''}
-                        onChange={(e) => setCustomValues((prev) => ({ ...prev, [field.id]: e.target.value }))}
-                        placeholder={`Enter ${field.field_name}...`}
-                        className="bg-background border-border text-foreground placeholder:text-muted-foreground" />
-                    </div>
+                    <CustomFieldEditor
+                      key={field.id}
+                      field={field}
+                      value={customValues[field.id] ?? ''}
+                      onChange={(v) => setCustomValues((prev) => ({ ...prev, [field.id]: v }))}
+                      inputClassName="bg-background border-border text-foreground placeholder:text-muted-foreground"
+                    />
                   ))}
                 </div>
                 <div className="mt-6 flex justify-end border-t border-border pt-5">

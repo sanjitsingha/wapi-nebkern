@@ -178,6 +178,8 @@ export interface Tag {
   user_id: string;
   name: string;
   color: string;
+  /** What the tag is for, up to 200 characters (migration 118). */
+  description?: string | null;
   created_at: string;
 }
 
@@ -193,8 +195,12 @@ export interface CustomField {
   /** Tenancy key — NOT NULL since migration 017. */
   account_id: string;
   field_name: string;
+  /** text | number | dropdown | date (migration 119). */
   field_type: string;
-  field_options?: Record<string, unknown>;
+  /** For a dropdown: { options: string[] }. */
+  field_options?: Record<string, unknown> | null;
+  /** Every contact must have it filled (migration 119). */
+  is_required?: boolean;
   created_at: string;
 }
 

@@ -10,9 +10,9 @@ import {
   Phone,
   PlugZap,
   ScrollText,
-  Sparkles,
   Store,
   Tags,
+  TextCursorInput,
   User,
   UserCog,
   UsersRound,
@@ -46,8 +46,8 @@ export const SETTINGS_SECTIONS = [
   'members',
   'activity-log',
   'billing',
-  'customization',
-  'developer-hub',
+  'tags',
+  'custom-fields',
   // Channels — every way a conversation can reach the inbox.
   'whatsapp',
   'calling',
@@ -105,8 +105,9 @@ export interface SectionMeta {
  * Declared in the same order as SETTINGS_SECTIONS.
  */
 export const SECTION_META: Record<SettingsSection, SectionMeta> = {
-  // Maya herself lives in the app sidebar (/askmaya); only her
-  // credentials — "AI & models" — stay in Settings.
+  // Maya lives in the app sidebar (/askmaya) — every one of her settings
+  // is there. The old "AI behaviour" / "AI & models" / "Developer hub"
+  // section here is gone; /settings/developer-hub redirects to her.
 
   /* ── Account ─────────────────────────────────────────────────────── */
   profile: {
@@ -148,26 +149,22 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     icon: Wallet,
     group: 'workspace',
   },
-  // Named for its contents, not the drawer: the page is the fields and
-  // tags manager and nothing else, now that the currency control has
-  // moved to the pipeline board.
-  customization: {
-    id: 'customization',
-    label: 'Fields & tags',
+  // Tags and custom fields were one "Fields & tags" page (route
+  // `customization`, which now redirects to Tags). Two different jobs —
+  // quick colour labels anyone uses, and an admin-defined data schema —
+  // so two pages.
+  tags: {
+    id: 'tags',
+    label: 'Tags',
     icon: Tags,
     group: 'workspace',
   },
-  // "Developer hub" said where it sat, not what it held: the page is the
-  // AI provider, its credentials and the model behind the agent. A
-  // workspace setting — the whole team's Maya runs on it — rather than
-  // an integration. The route id stays `developer-hub`.
-  'developer-hub': {
-    id: 'developer-hub',
-    label: 'AI & models',
-    icon: Sparkles,
+  'custom-fields': {
+    id: 'custom-fields',
+    label: 'Custom fields',
+    icon: TextCursorInput,
     group: 'workspace',
   },
-
   /* ── Channels ────────────────────────────────────────────────────── */
   whatsapp: {
     id: 'whatsapp',
@@ -283,16 +280,15 @@ export function sectionHref(section: SettingsSection): string {
 /**
  * Resolve a raw `?tab=` value to a section. Legacy tabs collapse onto
  * their new homes:
- *   - Tags / Custom fields / Fields → "Customization"
+ *   - Fields / Customization        → "Custom fields" / "Tags"
  *   - Security / Overview / Plan    → "Profile" (Plan is a card there)
  *   - Quick replies / Catalogue     → "Business Profile" (tabs)
  * Anything unknown falls back to the default section. (The former "Deals"
  * tab is gone — its currency control moved to the pipeline board.)
  */
 export function resolveSection(raw: string | null): SettingsSection {
-  if (raw === 'tags' || raw === 'custom-fields' || raw === 'fields') {
-    return 'customization';
-  }
+  if (raw === 'fields') return 'custom-fields';
+  if (raw === 'customization') return 'tags';
   if (raw === 'security' || raw === 'overview' || raw === 'plan') return 'profile';
   if (raw === 'quick-replies' || raw === 'catalog') return 'business-profile';
   if (isSection(raw)) return raw;

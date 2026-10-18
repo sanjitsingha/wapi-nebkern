@@ -46,7 +46,7 @@ export default function ContactsDocsPage() {
         <p>
           Beyond the built-in fields, an admin can define{' '}
           <strong>custom fields</strong> for your account — under{' '}
-          <strong>Settings → Customization</strong> — each with its own name
+          <strong>Settings → Custom fields</strong> — each with its own name
           and type. Every contact then carries one value per custom field.
           Custom fields also show up as filterable options when building a
           segment, with a smaller set of operators (equals, contains, is

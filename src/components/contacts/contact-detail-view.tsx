@@ -6,6 +6,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { formatCurrency } from '@/lib/currency';
 import { toast } from 'sonner';
 import type { Contact, Tag, ContactTag, ContactNote, CustomField, ContactCustomValue, Deal } from '@/types';
+import { CustomFieldEditor } from '@/components/contacts/custom-field-editor';
+import { customValueProblems } from '@/lib/contacts/custom-field-types';
 import {
   Sheet,
   SheetContent,
@@ -304,6 +306,12 @@ export function ContactDetailView({
 
   async function saveCustomFields() {
     if (!contactId) return;
+    // Mandatory fields filled, numbers numbers, dates dates…
+    const problems = customValueProblems(customFields, customValues);
+    if (problems.length > 0) {
+      toast.error(problems[0]);
+      return;
+    }
     setSavingCustom(true);
 
     try {
@@ -628,22 +636,15 @@ export function ContactDetailView({
                 ) : (
                   <div className="space-y-3">
                     {customFields.map((field) => (
-                      <div key={field.id} className="space-y-1.5">
-                        <Label className="text-muted-foreground text-xs capitalize">
-                          {field.field_name}
-                        </Label>
-                        <Input
-                          value={customValues[field.id] ?? ''}
-                          onChange={(e) =>
-                            setCustomValues((prev) => ({
-                              ...prev,
-                              [field.id]: e.target.value,
-                            }))
-                          }
-                          placeholder={`Enter ${field.field_name}...`}
-                          className="bg-muted border-border text-foreground h-8 text-sm placeholder:text-muted-foreground"
-                        />
-                      </div>
+                      <CustomFieldEditor
+                        key={field.id}
+                        field={field}
+                        value={customValues[field.id] ?? ''}
+                        onChange={(v) =>
+                          setCustomValues((prev) => ({ ...prev, [field.id]: v }))
+                        }
+                        inputClassName="bg-muted border-border text-foreground h-8 text-sm placeholder:text-muted-foreground"
+                      />
                     ))}
                     <Button
                       onClick={saveCustomFields}

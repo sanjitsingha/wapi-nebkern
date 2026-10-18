@@ -1,19 +1,31 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2, Plus, Tag as TagIcon, X } from 'lucide-react';
+import {
+  Loader2,
+  Pencil,
+  Plus,
+  Search,
+  Tag as TagIcon,
+  Trash2,
+} from 'lucide-react';
+import { MdOutlineOpenInNew } from 'react-icons/md';
+import { HexColorInput, HexColorPicker } from 'react-colorful';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
+import { useCan } from '@/hooks/use-can';
+import { docHref } from '@/lib/docs/nav';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +36,7 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import type { Tag } from '@/types';
+import { SettingsPanelHead } from './settings-panel-head';
 
 const PRESET_COLORS = [
   { name: 'Red', value: '#ef4444' },
@@ -36,23 +49,72 @@ const PRESET_COLORS = [
   { name: 'Pink', value: '#ec4899' },
 ];
 
+const NAME_MAX = 40;
+
+/** `#abc` → `#aabbcc`, lower-cased: tags store six-digit hex, which
+ *  other screens extend with a two-digit alpha for their tints. */
+function toSixDigitHex(hex: string): string {
+  const h = hex.toLowerCase();
+  return /^#[0-9a-f]{3}$/.test(h)
+    ? `#${h[1]}${h[1]}${h[2]}${h[2]}${h[3]}${h[3]}`
+    : h;
+}
+/** tags.description CHECK (migration 118). */
+const DESCRIPTION_MAX = 200;
+
 /**
- * Tags card — colour-coded contact labels. Creation is an inline row
- * (name + colour swatch + Add); deletion goes through a confirmation
- * dialog since it detaches the tag from every contact.
+ * A tag drawn as a horizontal price tag: pointed on the left with a
+ * punched hole, the name on the body. Solid colours (the tag's colour
+ * mixed into the card colour) rather than a translucent tint, so the
+ * point and the body — two shapes that overlap — read as one.
+ */
+export function TagShape({ name, color }: { name: string; color: string }) {
+  const fill = `color-mix(in srgb, ${color} 16%, var(--card))`;
+  return (
+    <span className="relative inline-flex h-7 max-w-full items-center pl-[14px]">
+      {/* The point: a square turned 45°, its tip at the left edge. */}
+      <span
+        aria-hidden
+        className="absolute top-1/2 left-[4px] size-[20px] -translate-y-1/2 rotate-45 rounded-[3px]"
+        style={{ backgroundColor: fill }}
+      />
+      <span
+        className="relative inline-flex h-full min-w-0 items-center rounded-r-md pr-3 pl-2 text-sm font-medium"
+        style={{ backgroundColor: fill, color }}
+      >
+        <span className="truncate">{name}</span>
+      </span>
+      {/* The hole. */}
+      <span
+        aria-hidden
+        className="bg-card absolute top-1/2 left-[9px] size-1.5 -translate-y-1/2 rounded-full"
+      />
+    </span>
+  );
+}
+
+/**
+ * Settings → Tags: colour-coded contact labels. Laid out like Quick
+ * replies — search, Delete (for ticked tags) and Create tag above the
+ * list, one card per tag with a pencil to edit it. Creating, editing
+ * and deleting are admin+ (the tags RLS policies); others browse.
+ * Deleting detaches a tag from every contact, so it asks first.
  */
 export function TagManager() {
   const supabase = createClient();
   const { user, accountId, loading: authLoading } = useAuth();
+  const canEdit = useCan('edit-settings');
 
   const [loading, setLoading] = useState(true);
   const [tags, setTags] = useState<Tag[]>([]);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [tagToDelete, setTagToDelete] = useState<Tag | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [newTagName, setNewTagName] = useState('');
-  const [selectedColor, setSelectedColor] = useState(PRESET_COLORS[3].value);
+  // The create/edit window: `editing` is the tag being edited, or null
+  // when creating one.
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<Tag | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -83,186 +145,267 @@ export function TagManager() {
     }
   }
 
-  async function handleCreate() {
-    if (!newTagName.trim()) {
-      toast.error('Tag name is required');
-      return;
-    }
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return tags;
+    return tags.filter(
+      (t) =>
+        t.name.toLowerCase().includes(q) ||
+        (t.description ?? '').toLowerCase().includes(q)
+    );
+  }, [tags, search]);
 
-    try {
-      setSaving(true);
-      if (!user || !accountId) {
-        toast.error('Not authenticated');
-        return;
-      }
+  const toDelete = useMemo(
+    () => tags.filter((t) => selected.has(t.id)),
+    [tags, selected]
+  );
 
-      // account_id is mandatory on every account-scoped insert (NOT
-      // NULL + RLS, no DB default).
-      const { error } = await supabase.from('tags').insert({
-        user_id: user.id,
-        account_id: accountId,
-        name: newTagName.trim(),
-        color: selectedColor,
-      });
-
-      if (error) throw error;
-
-      toast.success('Tag created');
-      setNewTagName('');
-      setSelectedColor(PRESET_COLORS[3].value);
-      await fetchTags(user.id);
-    } catch (err) {
-      console.error('Create error:', err);
-      toast.error('Failed to create tag');
-    } finally {
-      setSaving(false);
-    }
+  function toggle(id: string, on: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
   }
 
-  function confirmDelete(tag: Tag) {
-    setTagToDelete(tag);
-    setDeleteDialogOpen(true);
+  function openCreate() {
+    setEditing(null);
+    setDialogOpen(true);
+  }
+
+  function openEdit(tag: Tag) {
+    setEditing(tag);
+    setDialogOpen(true);
+  }
+
+  /** Create, or update the tag being edited. True on success. */
+  async function saveTag(values: {
+    name: string;
+    color: string;
+    description: string;
+  }) {
+    if (!user || !accountId) {
+      toast.error('Not authenticated');
+      return false;
+    }
+    const row = {
+      name: values.name.trim(),
+      color: values.color,
+      description: values.description.trim() || null,
+    };
+    try {
+      if (editing) {
+        const { error } = await supabase
+          .from('tags')
+          .update(row)
+          .eq('id', editing.id);
+        if (error) throw error;
+        setTags((prev) =>
+          prev.map((t) => (t.id === editing.id ? { ...t, ...row } : t))
+        );
+        toast.success('Tag updated');
+      } else {
+        // account_id is mandatory on every account-scoped insert (NOT
+        // NULL + RLS, no DB default).
+        const { error } = await supabase
+          .from('tags')
+          .insert({ ...row, user_id: user.id, account_id: accountId });
+        if (error) throw error;
+        toast.success('Tag created');
+        await fetchTags(user.id);
+      }
+      setDialogOpen(false);
+      return true;
+    } catch (err) {
+      console.error('Save tag error:', err);
+      toast.error(editing ? 'Failed to update tag' : 'Failed to create tag');
+      return false;
+    }
   }
 
   async function handleDelete() {
-    if (!tagToDelete) return;
-
+    if (toDelete.length === 0) return;
     try {
       setDeleting(true);
-      const { error } = await supabase
-        .from('tags')
-        .delete()
-        .eq('id', tagToDelete.id);
-
+      const ids = toDelete.map((t) => t.id);
+      const { error } = await supabase.from('tags').delete().in('id', ids);
       if (error) throw error;
 
-      toast.success('Tag deleted');
-      setTags((prev) => prev.filter((t) => t.id !== tagToDelete.id));
-      setDeleteDialogOpen(false);
-      setTagToDelete(null);
+      toast.success(
+        ids.length === 1 ? 'Tag deleted' : `${ids.length} tags deleted`
+      );
+      setTags((prev) => prev.filter((t) => !selected.has(t.id)));
+      setSelected(new Set());
+      setConfirmDelete(false);
     } catch (err) {
       console.error('Delete error:', err);
-      toast.error('Failed to delete tag');
+      toast.error('Failed to delete');
     } finally {
       setDeleting(false);
     }
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-foreground">
-          <TagIcon className="size-4 text-primary" />
-          Tags
-        </CardTitle>
-        <CardDescription className="text-muted-foreground">
-          Colour-coded labels for grouping and filtering contacts.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="size-6 animate-spin text-primary" />
-          </div>
-        ) : (
-          <>
-            {tags.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {tags.map((tag) => (
-                  <span
-                    key={tag.id}
-                    className="group inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors"
-                    style={{
-                      backgroundColor: `${tag.color}20`,
-                      color: tag.color,
-                      border: `1px solid ${tag.color}40`,
-                    }}
-                  >
-                    <span
-                      className="size-2 rounded-full"
-                      style={{ backgroundColor: tag.color }}
-                    />
-                    {tag.name}
-                    <button
-                      type="button"
-                      onClick={() => confirmDelete(tag)}
-                      aria-label={`Delete ${tag.name}`}
-                      className="ml-0.5 rounded-full p-0.5 opacity-60 transition-opacity hover:bg-black/10 hover:opacity-100 dark:hover:bg-white/10"
-                    >
-                      <X className="size-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No tags yet — create your first one below.
-              </p>
-            )}
-
-            {/* Inline create row */}
-            <div className="flex flex-wrap items-center gap-2.5">
-              <Input
-                placeholder="e.g. Newsletter"
-                value={newTagName}
-                onChange={(e) => setNewTagName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleCreate();
-                }}
-                disabled={saving}
-                maxLength={40}
-                className="min-w-[180px] flex-1"
+    <section className="animate-in fade-in-50 max-w-3xl space-y-5 duration-200">
+      <SettingsPanelHead
+        title="Tags"
+        description="Colour-coded labels for grouping and filtering contacts and conversations."
+        // A clear gap between the header and the search row below it.
+        className="mb-8"
+        action={
+          // The Contacts guide has the Tags section.
+          <Button
+            variant="outline"
+            size="lg"
+            nativeButton={false}
+            render={
+              <a
+                href={docHref('contacts')}
+                target="_blank"
+                rel="noopener noreferrer"
               />
-              <div className="flex gap-1.5">
-                {PRESET_COLORS.map((color) => (
-                  <button
-                    key={color.value}
-                    type="button"
-                    onClick={() => setSelectedColor(color.value)}
-                    aria-label={`Use ${color.name}`}
-                    aria-pressed={selectedColor === color.value}
-                    className={cn(
-                      'size-6 rounded-md transition-transform hover:scale-110',
-                      selectedColor === color.value &&
-                        'outline outline-2 outline-offset-2 outline-primary',
-                    )}
-                    style={{ backgroundColor: color.value }}
-                    title={color.name}
-                  />
-                ))}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCreate}
-                disabled={saving || !newTagName.trim()}
-              >
-                {saving ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Plus className="size-4" />
-                )}
-                Add tag
-              </Button>
-            </div>
-          </>
-        )}
-      </CardContent>
+            }
+          >
+            Documentation
+            <MdOutlineOpenInNew className="size-4" />
+          </Button>
+        }
+      />
 
-      {/* Delete confirmation */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full max-w-sm">
+          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-0 size-4 -translate-y-1/2" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search tags..."
+            aria-label="Search tags"
+            // Underline only, as on the other settings lists.
+            className="border-border focus-visible:border-primary h-10 rounded-none border-0 border-b bg-transparent pr-0 pl-6 focus-visible:ring-0 dark:bg-transparent"
+          />
+        </div>
+        {canEdit && (
+          <div className="flex shrink-0 items-center gap-2">
+            {/* Grey until tags are ticked; then deletes those. */}
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDelete(true)}
+              disabled={selected.size === 0}
+              title={
+                selected.size === 0 ? 'Tick tags to delete them' : undefined
+              }
+              className={cn(
+                'h-10 disabled:opacity-100',
+                selected.size === 0
+                  ? 'text-muted-foreground'
+                  : 'text-foreground'
+              )}
+            >
+              <Trash2 className="size-4" />
+              Delete
+            </Button>
+            <Button
+              onClick={openCreate}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 h-10"
+            >
+              <Plus className="size-4" />
+              Create tag
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-10">
+          <Loader2 className="text-primary size-6 animate-spin" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="border-border bg-card flex flex-col items-center justify-center rounded-xl border border-dashed px-6 py-12 text-center">
+          <TagIcon className="text-muted-foreground/60 size-8" />
+          <p className="text-foreground mt-3 text-sm font-medium">
+            {tags.length === 0 ? 'No tags yet' : 'No tags match your search'}
+          </p>
+          {tags.length === 0 && (
+            <p className="text-muted-foreground mt-1 max-w-sm text-xs">
+              Create one to start grouping contacts and conversations.
+            </p>
+          )}
+        </div>
+      ) : (
+        // All the tags in one bordered box, a line between rows.
+        <ul className="divide-border border-border bg-card divide-y overflow-hidden rounded-xl border">
+          {filtered.map((tag) => (
+            // Top-aligned so the checkbox and pencil sit level with the
+            // tag itself (28px tall), not centred on tag + description.
+            <li key={tag.id} className="flex items-start gap-3 px-4 py-3.5">
+              {canEdit && (
+                <Checkbox
+                  checked={selected.has(tag.id)}
+                  onCheckedChange={(on) => toggle(tag.id, on)}
+                  aria-label={`Select ${tag.name}`}
+                  className="mt-1.5"
+                />
+              )}
+              <div className="min-w-0 flex-1">
+                <TagShape name={tag.name} color={tag.color} />
+                <p
+                  className={cn(
+                    'mt-1.5 text-sm',
+                    tag.description
+                      ? 'text-muted-foreground'
+                      : 'text-muted-foreground/50'
+                  )}
+                >
+                  {tag.description || 'No description'}
+                </p>
+              </div>
+              {canEdit && (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => openEdit(tag)}
+                  title="Edit tag"
+                  aria-label={`Edit ${tag.name}`}
+                  className="text-muted-foreground hover:text-foreground shrink-0"
+                >
+                  <Pencil className="size-4" />
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <TagDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        tag={editing}
+        onSave={saveTag}
+      />
+
+      {/* Delete the ticked tags */}
+      <Dialog
+        open={confirmDelete}
+        onOpenChange={(open) => !deleting && setConfirmDelete(open)}
+      >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Delete tag</DialogTitle>
+            <DialogTitle>
+              {toDelete.length === 1
+                ? 'Delete tag'
+                : `Delete ${toDelete.length} tags`}
+            </DialogTitle>
             <DialogDescription>
-              Delete the tag &quot;{tagToDelete?.name}&quot;? This removes it
-              from all contacts and cannot be undone.
+              Delete {toDelete.map((t) => `“${t.name}”`).join(', ')}? This
+              removes {toDelete.length === 1 ? 'it' : 'them'} from all contacts
+              and cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               variant="ghost"
-              onClick={() => setDeleteDialogOpen(false)}
+              onClick={() => setConfirmDelete(false)}
               disabled={deleting}
             >
               Cancel
@@ -272,18 +415,201 @@ export function TagManager() {
               onClick={handleDelete}
               disabled={deleting}
             >
-              {deleting ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                'Delete tag'
-              )}
+              {deleting && <Loader2 className="size-4 animate-spin" />}
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+    </section>
+  );
+}
+
+/** Create a tag, or edit one: name, colour, description, and a preview. */
+function TagDialog({
+  open,
+  onOpenChange,
+  tag,
+  onSave,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** The tag being edited; null to create one. */
+  tag: Tag | null;
+  onSave: (values: {
+    name: string;
+    color: string;
+    description: string;
+  }) => Promise<boolean>;
+}) {
+  const [name, setName] = useState('');
+  const [color, setColor] = useState(PRESET_COLORS[3].value);
+  const [description, setDescription] = useState('');
+  const [saving, setSaving] = useState(false);
+  const isCustom = !PRESET_COLORS.some((c) => c.value === color.toLowerCase());
+
+  // Start from the tag (or a blank one) each time the window opens.
+  useEffect(() => {
+    if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setName(tag?.name ?? '');
+    setColor(tag?.color ?? PRESET_COLORS[3].value);
+    setDescription(tag?.description ?? '');
+  }, [open, tag]);
+
+  const unchanged =
+    tag !== null &&
+    name.trim() === tag.name &&
+    color === tag.color &&
+    description.trim() === (tag.description ?? '');
+  const canSave = name.trim().length > 0 && !unchanged && !saving;
+
+  async function submit() {
+    if (!canSave) return;
+    setSaving(true);
+    await onSave({ name, color, description });
+    setSaving(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => !saving && onOpenChange(next)}>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>{tag ? 'Edit tag' : 'Create tag'}</DialogTitle>
+          <DialogDescription>
+            Tags group contacts and conversations, and filter the inbox.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="tag-name">Name</Label>
+            <Input
+              id="tag-name"
+              placeholder="e.g. Newsletter"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void submit();
+              }}
+              disabled={saving}
+              maxLength={NAME_MAX}
+              autoFocus
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Colour</Label>
+            <div className="flex flex-wrap gap-2">
+              {PRESET_COLORS.map((c) => (
+                <button
+                  key={c.value}
+                  type="button"
+                  onClick={() => setColor(c.value)}
+                  aria-label={`Use ${c.name}`}
+                  aria-pressed={color === c.value}
+                  className={cn(
+                    'size-7 rounded-md transition-transform hover:scale-110',
+                    color === c.value &&
+                      'outline-primary outline outline-2 outline-offset-2'
+                  )}
+                  style={{ backgroundColor: c.value }}
+                  title={c.name}
+                />
+              ))}
+
+              {/* Any other colour: a picker with a hex box, behind a
+                  swatch that shows the custom colour once one is chosen. */}
+              <Popover>
+                <PopoverTrigger
+                  title="Custom colour"
+                  aria-label="Pick a custom colour"
+                  className={cn(
+                    'flex size-7 items-center justify-center rounded-md transition-transform hover:scale-110',
+                    isCustom &&
+                      'outline-primary outline outline-2 outline-offset-2'
+                  )}
+                  style={{
+                    background: isCustom
+                      ? color
+                      : 'conic-gradient(#ef4444, #f59e0b, #10b981, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #ef4444)',
+                  }}
+                >
+                  {!isCustom && (
+                    <Plus className="size-3.5 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]" />
+                  )}
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-auto gap-3 p-3">
+                  <HexColorPicker
+                    color={color}
+                    onChange={(c) => setColor(c.toLowerCase())}
+                  />
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="border-border size-8 shrink-0 rounded-md border"
+                      style={{ backgroundColor: color }}
+                    />
+                    {/* Six digits stored: other screens add a two-digit
+                        alpha to the colour for their tints. */}
+                    <HexColorInput
+                      color={color}
+                      onChange={(c) => setColor(toSixDigitHex(c))}
+                      prefixed
+                      aria-label="Hex colour code"
+                      className="border-border focus-visible:border-primary h-8 w-full min-w-0 rounded-md border bg-transparent px-2.5 font-mono text-sm uppercase outline-none"
+                    />
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="tag-description">
+                Description{' '}
+                <span className="text-muted-foreground font-normal">
+                  (optional)
+                </span>
+              </Label>
+              <span className="text-muted-foreground text-xs tabular-nums">
+                {description.length}/{DESCRIPTION_MAX}
+              </span>
+            </div>
+            <Textarea
+              id="tag-description"
+              placeholder="When to use it — e.g. Asked about bulk pricing"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              disabled={saving}
+              maxLength={DESCRIPTION_MAX}
+              rows={2}
+              className="resize-none"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Preview</Label>
+            <div>
+              <TagShape name={name.trim() || 'Tag name'} color={color} />
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={saving}
+          >
+            Cancel
+          </Button>
+          <Button onClick={submit} disabled={!canSave}>
+            {saving && <Loader2 className="size-4 animate-spin" />}
+            {tag ? 'Save changes' : 'Create tag'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
