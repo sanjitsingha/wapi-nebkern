@@ -20,8 +20,11 @@ import {
   Square,
   X,
   Loader2,
+  Smile,
 } from "lucide-react";
 import { AiWritePopover } from "./ai-write-popover";
+import { EmojiPicker } from "./emoji-picker";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { GatedButton } from "@/components/ui/gated-button";
 import {
@@ -133,6 +136,9 @@ function formatDuration(seconds: number): string {
  *  Meta-accepted format means no server ffmpeg / transcode step. */
 const OPUS_ENCODER_PATH = "/opus/encoderWorker.min.js";
 
+/** The attach menu's rows: roomy, with a grey icon before the label. */
+const ATTACH_ITEM = "gap-3 px-3 py-2.5 text-sm";
+
 export function MessageComposer({
   conversationId,
   sessionExpired,
@@ -179,7 +185,7 @@ export function MessageComposer({
     };
   }, []);
 
-  // ✨ "Write with AI" — only surfaced when the account has an active AI
+  // ✨ "Write with Maya" — only surfaced when the account has an active AI
   // config (checked once on mount). The panel itself is AiWritePopover.
   const [aiActive, setAiActive] = useState(false);
 
@@ -275,6 +281,27 @@ export function MessageComposer({
     // Max 4 lines (~96px)
     el.style.height = `${Math.min(el.scrollHeight, 96)}px`;
   }, []);
+
+  // 🙂 — the emoji goes in where the cursor is, and typing carries on
+  // from just after it.
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const insertEmoji = useCallback(
+    (emoji: string) => {
+      const el = textareaRef.current;
+      const start = el?.selectionStart ?? text.length;
+      const end = el?.selectionEnd ?? text.length;
+      setText(text.slice(0, start) + emoji + text.slice(end));
+      setEmojiOpen(false);
+      requestAnimationFrame(() => {
+        if (!el) return;
+        el.focus();
+        const at = start + emoji.length;
+        el.setSelectionRange(at, at);
+        adjustHeight();
+      });
+    },
+    [text, adjustHeight]
+  );
 
   // A message written in the ✨ panel goes into the box, ready to edit
   // and send.
@@ -710,86 +737,10 @@ export function MessageComposer({
           </Button>
         </div>
       ) : (
-        <div className="flex items-end gap-2">
-          {/* Attach menu — photo / video / document / voice. */}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              disabled={inputsDisabled || busy}
-              title={
-                readOnly
-                  ? "Read-only — your role can't send messages"
-                  : inputsDisabled
-                    ? undefined
-                    : "Attach media"
-              }
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md p-0 text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {busy ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Paperclip className="h-5 w-5" />
-              )}
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="border-border bg-popover">
-              <DropdownMenuItem onClick={() => imageInputRef.current?.click()}>
-                <ImageIcon className="mr-2 h-4 w-4" />
-                Photo
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => videoInputRef.current?.click()}>
-                <Video className="mr-2 h-4 w-4" />
-                Video
-              </DropdownMenuItem>
-              {channel === "whatsapp" && (
-                <>
-                  <DropdownMenuItem onClick={() => documentInputRef.current?.click()}>
-                    <FileText className="mr-2 h-4 w-4" />
-                    Document
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => void startRecording()}>
-                    <Mic className="mr-2 h-4 w-4" />
-                    Voice note
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {channel === "whatsapp" && (
-            <GatedButton
-              variant="ghost"
-              size="sm"
-              canAct={!readOnly}
-              gateReason="send messages"
-              title={readOnly ? undefined : "Send template"}
-              className="h-10 w-10 shrink-0 p-0 text-muted-foreground hover:text-foreground"
-              onClick={onOpenTemplates}
-            >
-              <LayoutTemplate className="h-5 w-5" />
-            </GatedButton>
-          )}
-
-          {channel === "whatsapp" && onOpenForms && (
-            <GatedButton
-              variant="ghost"
-              size="sm"
-              canAct={!readOnly}
-              gateReason="send messages"
-              title={readOnly ? undefined : "Send form"}
-              className="h-10 w-10 shrink-0 p-0 text-muted-foreground hover:text-foreground"
-              onClick={onOpenForms}
-            >
-              <ClipboardList className="h-5 w-5" />
-            </GatedButton>
-          )}
-
-          {aiActive && (
-            <AiWritePopover
-              conversationId={conversationId}
-              disabled={inputsDisabled}
-              onInsert={insertAiMessage}
-            />
-          )}
-
+        // The message across the full width, the actions in a row
+        // underneath — attach, template, form, AI on the left, send on
+        // the right. No frame: the composer's top line is the only one.
+        <div className={cn((sessionExpired || readOnly) && "opacity-60")}>
           <textarea
             ref={textareaRef}
             value={text}
@@ -809,31 +760,126 @@ export function MessageComposer({
             // The placeholder text also surfaces the read-only state.
             title={readOnly ? "Read-only — your role can't send messages" : undefined}
             className={cn(
-              "flex-1 resize-none rounded-xl border border-border bg-muted px-4 py-3 text-[15px] text-foreground placeholder-muted-foreground outline-none transition-colors focus:border-primary/50",
-              (sessionExpired || readOnly) && "cursor-not-allowed opacity-50"
+              "block w-full resize-none bg-transparent px-2 pt-1 pb-1 text-[15px] text-foreground placeholder-muted-foreground outline-none",
+              (sessionExpired || readOnly) && "cursor-not-allowed"
             )}
           />
 
-          <GatedButton
-            size="sm"
-            canAct={!readOnly}
-            gateReason="send messages"
-            disabled={!text.trim() || sessionExpired || sending}
-            onClick={handleSend}
-            className="h-10 w-10 shrink-0 bg-primary p-0 hover:bg-primary/90 disabled:opacity-40"
-          >
-            <Send className="h-5 w-5" />
-          </GatedButton>
-        </div>
-      )}
+          <div className="flex items-center gap-0.5 pt-5">
+            {/* Attach menu — photo / video / document / voice. */}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                disabled={inputsDisabled || busy}
+                title={
+                  readOnly
+                    ? "Read-only — your role can't send messages"
+                    : inputsDisabled
+                      ? undefined
+                      : "Attach media"
+                }
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md p-0 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {busy ? (
+                  <Loader2 className="h-[18px] w-[18px] animate-spin" />
+                ) : (
+                  <Paperclip className="h-[18px] w-[18px]" />
+                )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-52 border-border bg-popover p-1.5">
+                <DropdownMenuItem onClick={() => imageInputRef.current?.click()} className={ATTACH_ITEM}>
+                  <ImageIcon className="size-[18px] text-muted-foreground" />
+                  Photo
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => videoInputRef.current?.click()} className={ATTACH_ITEM}>
+                  <Video className="size-[18px] text-muted-foreground" />
+                  Video
+                </DropdownMenuItem>
+                {channel === "whatsapp" && (
+                  <>
+                    <DropdownMenuItem onClick={() => documentInputRef.current?.click()} className={ATTACH_ITEM}>
+                      <FileText className="size-[18px] text-muted-foreground" />
+                      Document
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => void startRecording()} className={ATTACH_ITEM}>
+                      <Mic className="size-[18px] text-muted-foreground" />
+                      Voice note
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-      {/* Hint sits outside the flex row so its height doesn't push
-          `items-end` buttons below the textarea. Indented to line up
-          under the textarea left edge. */}
-      {!draft && !recording && quickReplies.length > 0 && (
-        <p className="mt-1 pl-[5.5rem] text-[10px] text-muted-foreground">
-          Type &apos;/&apos; for quick replies
-        </p>
+            <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+              <PopoverTrigger
+                disabled={inputsDisabled}
+                title="Emoji"
+                aria-label="Emoji"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md p-0 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-popup-open:bg-muted data-popup-open:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Smile className="h-[18px] w-[18px]" />
+              </PopoverTrigger>
+              <PopoverContent align="start" side="top" sideOffset={8} className="w-auto gap-0 p-0">
+                <EmojiPicker onPick={insertEmoji} />
+              </PopoverContent>
+            </Popover>
+
+            {channel === "whatsapp" && (
+              <GatedButton
+                variant="ghost"
+                size="sm"
+                canAct={!readOnly}
+                gateReason="send messages"
+                title={readOnly ? undefined : "Send template"}
+                className="h-8 w-8 shrink-0 p-0 text-muted-foreground hover:text-foreground"
+                onClick={onOpenTemplates}
+              >
+                <LayoutTemplate className="h-[18px] w-[18px]" />
+              </GatedButton>
+            )}
+
+            {channel === "whatsapp" && onOpenForms && (
+              <GatedButton
+                variant="ghost"
+                size="sm"
+                canAct={!readOnly}
+                gateReason="send messages"
+                title={readOnly ? undefined : "Send form"}
+                className="h-8 w-8 shrink-0 p-0 text-muted-foreground hover:text-foreground"
+                onClick={onOpenForms}
+              >
+                <ClipboardList className="h-[18px] w-[18px]" />
+              </GatedButton>
+            )}
+
+            {aiActive && (
+              <AiWritePopover
+                conversationId={conversationId}
+                disabled={inputsDisabled}
+                onInsert={insertAiMessage}
+              />
+            )}
+
+            <div className="flex-1" />
+
+            {quickReplies.length > 0 && (
+              <span className="mr-2 hidden text-[11px] text-muted-foreground sm:inline">
+                Type &apos;/&apos; for quick replies
+              </span>
+            )}
+
+            <GatedButton
+              size="sm"
+              canAct={!readOnly}
+              gateReason="send messages"
+              disabled={!text.trim() || sessionExpired || sending}
+              onClick={handleSend}
+              title="Send"
+              className="h-8 w-8 shrink-0 bg-primary p-0 hover:bg-primary/90 disabled:opacity-40"
+            >
+              <Send className="h-4 w-4" />
+            </GatedButton>
+          </div>
+        </div>
       )}
     </div>
   );

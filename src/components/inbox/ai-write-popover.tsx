@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 // ============================================================
-// The composer's ✨ "Write with AI": a panel above the message box where
+// The composer's ✨ "Write with Maya": a panel above the message box where
 // the agent says what to write ("ask for their delivery address"),
 // Generate writes it right there, and a tick — or Enter — puts it in
 // the message box to send. Editing the prompt after a message is ready
@@ -105,24 +105,26 @@ export function AiWritePopover({
     >
       <PopoverTrigger
         disabled={disabled}
-        title="Write with AI"
-        aria-label="Write with AI"
-        className="text-primary hover:bg-primary-soft/60 data-popup-open:bg-primary-soft/60 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md p-0 transition-colors disabled:opacity-50"
+        title="Write with Maya"
+        aria-label="Write with Maya"
+        className="text-primary hover:bg-primary-soft/60 data-popup-open:bg-primary-soft/60 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md p-0 transition-colors disabled:opacity-50"
       >
-        <Sparkles className="h-5 w-5" />
+        <Sparkles className="h-[18px] w-[18px]" />
       </PopoverTrigger>
       <PopoverContent
         side="top"
         align="start"
         sideOffset={8}
-        className="w-[26rem] max-w-[calc(100vw-2rem)] gap-3 p-4"
+        className="w-[34rem] max-w-[calc(100vw-2rem)] gap-3 p-4"
       >
         <p className="text-foreground flex items-center gap-1.5 text-sm font-semibold">
           <Sparkles className="text-primary size-4" />
-          Write with AI
+          Write with Maya
         </p>
 
-        <div className="flex items-end gap-2">
+        {/* One box: the prompt, with its button inside at the bottom
+            right — Generate, then "Use this" once a draft is ready. */}
+        <div className="border-border bg-background focus-within:border-primary/50 rounded-lg border transition-colors">
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -132,41 +134,50 @@ export function AiWritePopover({
                 if (phase !== 'writing') primary();
               }
             }}
-            placeholder="Tell AI what to write…"
+            placeholder="Tell Maya what to write…"
+            aria-label="What to write"
             maxLength={500}
-            rows={2}
+            rows={3}
             autoFocus
             disabled={phase === 'writing'}
-            className="border-border bg-background text-foreground placeholder:text-muted-foreground focus:border-primary/50 min-h-16 min-w-0 flex-1 resize-none rounded-lg border px-3 py-2 text-sm leading-relaxed outline-none disabled:opacity-60"
+            className="text-foreground placeholder:text-muted-foreground block min-h-20 w-full resize-none bg-transparent px-3 pt-2.5 pb-1 text-sm leading-relaxed outline-none disabled:opacity-60"
           />
-          {canAccept ? (
-            <Button
-              type="button"
-              size="icon"
-              onClick={accept}
-              title="Use this message"
-              aria-label="Use this message"
-              className="size-10 shrink-0"
-            >
-              <Check className="size-5" />
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              onClick={() => void generate()}
-              disabled={phase === 'writing'}
-              className="h-10 shrink-0"
-            >
-              {phase === 'writing' ? <Loader2 className="size-4 animate-spin" /> : 'Generate'}
-            </Button>
-          )}
+          <div className="flex justify-end px-2 pb-2">
+            {canAccept ? (
+              <Button
+                type="button"
+                size="sm"
+                onClick={accept}
+                title="Put this in the message box"
+                className="h-8"
+              >
+                <Check className="size-4" />
+                Use this
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => void generate()}
+                disabled={phase === 'writing'}
+                className="h-8"
+              >
+                {phase === 'writing' ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Sparkles className="size-4" />
+                )}
+                Generate
+              </Button>
+            )}
+          </div>
         </div>
 
         {phase === 'writing' && (
           <div className="border-border bg-muted/40 space-y-2 rounded-lg border p-3">
             <span className="text-muted-foreground inline-flex items-center gap-1.5 text-xs">
               <Loader2 className="size-3.5 animate-spin" />
-              AI is writing…
+              Maya is writing…
             </span>
             <div className="bg-muted h-2.5 w-full animate-pulse rounded" />
             <div className="bg-muted h-2.5 w-11/12 animate-pulse rounded" />
@@ -200,7 +211,7 @@ export function AiWritePopover({
                 accept();
               }
             }}
-            rows={6}
+            rows={8}
             className="border-border bg-muted/40 text-foreground focus:border-primary/50 w-full resize-none rounded-lg border px-3 py-2 text-sm leading-relaxed outline-none"
           />
         )}
