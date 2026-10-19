@@ -35,7 +35,6 @@ import {
   Search,
   Trash2,
 } from 'lucide-react';
-import { MdOutlineOpenInNew } from 'react-icons/md';
 
 import {
   Avatar,
@@ -50,6 +49,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
+import { DocsButton } from '@/components/ui/docs-button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -407,15 +407,7 @@ export function MembersTab() {
         title="Team members"
         description="People with access to this account. Roles control what each teammate can do."
         action={
-          <Button
-            variant="outline"
-            size="lg"
-            nativeButton={false}
-            render={<a href={docHref('team')} target="_blank" rel="noopener noreferrer" />}
-          >
-            Documentation
-            <MdOutlineOpenInNew className="size-4" />
-          </Button>
+          <DocsButton href={docHref('team')} />
         }
       />
 

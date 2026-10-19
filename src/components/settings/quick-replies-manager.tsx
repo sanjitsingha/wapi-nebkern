@@ -31,6 +31,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useCan } from '@/hooks/use-can';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
+import { DocsButton } from '@/components/ui/docs-button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { GatedButton } from '@/components/ui/gated-button';
 import { Input } from '@/components/ui/input';
@@ -68,7 +69,6 @@ import { cn } from '@/lib/utils';
 import type { QuickReply } from '@/types';
 import { SettingsPanelHead } from './settings-panel-head';
 import { docHref } from '@/lib/docs/nav';
-import { MdOutlineOpenInNew } from 'react-icons/md';
 
 /** Mirrors the CHECK constraint in migration 052. */
 const SHORTCUT_RE = /^[A-Za-z0-9_-]{1,32}$/;
@@ -215,21 +215,7 @@ export function QuickRepliesManager() {
         description="Canned replies your team can insert in the inbox by typing '/' followed by the shortcut. Shared across the whole account."
         action={
           // The inbox guide: quick replies are used from its composer.
-          <Button
-            variant="outline"
-            size="lg"
-            nativeButton={false}
-            render={
-              <a
-                href={docHref('inbox')}
-                target="_blank"
-                rel="noopener noreferrer"
-              />
-            }
-          >
-            Documentation
-            <MdOutlineOpenInNew className="size-4" />
-          </Button>
+          <DocsButton href={docHref('inbox')} />
         }
       />
 

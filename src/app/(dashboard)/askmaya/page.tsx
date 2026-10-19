@@ -5,7 +5,6 @@ import Link from 'next/link';
 import {
   BookOpen,
   ChevronRight,
-  ExternalLink,
   MessagesSquare,
   SlidersHorizontal,
   UserRound,
@@ -15,6 +14,7 @@ import {
 
 import { useCan } from '@/hooks/use-can';
 import { Button } from '@/components/ui/button';
+import { DocsButton } from '@/components/ui/docs-button';
 import { MayaPowerCard } from '@/components/agents/maya-power-card';
 import { SettingsPanelHead } from '@/components/settings/settings-panel-head';
 
@@ -96,15 +96,7 @@ export default function AskMayaPage() {
         title="Overview"
         action={
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              nativeButton={false}
-              render={<a href="/docs/ai-agents" target="_blank" rel="noopener noreferrer" />}
-            >
-              Go to documentation
-              <ExternalLink className="size-3.5" />
-            </Button>
+            <DocsButton href="/docs/ai-agents" />
             {TUTORIAL_URL && (
               <Button
                 variant="outline"

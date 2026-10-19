@@ -6,6 +6,7 @@ import { ArrowUpRight, Loader2 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { DocsButton } from '@/components/ui/docs-button';
 import { BrandLogo } from '@/components/brand/logo';
 import { INTEGRATIONS_DOCS_HREF, type Integration } from './integrations-catalog';
 
@@ -141,15 +142,7 @@ export function IntegrationHeader({
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Link
-          href={INTEGRATIONS_DOCS_HREF}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(buttonVariants({ variant: 'outline' }), 'h-9 px-3')}
-        >
-          Go to documentation
-          <ArrowUpRight className="size-4" />
-        </Link>
+<DocsButton href={INTEGRATIONS_DOCS_HREF} />
         {actions}
       </div>
     </div>

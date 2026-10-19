@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import {
-  BookOpen,
   ChevronDown,
   CircleAlert,
   CircleCheck,
@@ -32,6 +31,7 @@ import {
   extractText,
 } from '@/lib/files/extract-text';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { DocsButton } from '@/components/ui/docs-button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -375,21 +375,7 @@ export function MayaKnowledgeBase() {
         description="What Maya answers from."
         action={
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="lg"
-              nativeButton={false}
-              render={
-                <a
-                  href={docHref('ai-agents')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                />
-              }
-            >
-              <BookOpen className="size-4" />
-              Documentation
-            </Button>
+            <DocsButton href={docHref('ai-agents')} />
             {canEdit && (
               <DropdownMenu>
                 <DropdownMenuTrigger className={buttonVariants({ size: 'lg' })}>

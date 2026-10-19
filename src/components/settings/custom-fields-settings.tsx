@@ -16,7 +16,6 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react';
-import { MdOutlineOpenInNew } from 'react-icons/md';
 
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -33,6 +32,7 @@ import {
 } from '@/lib/contacts/custom-field-types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { DocsButton } from '@/components/ui/docs-button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
@@ -226,21 +226,7 @@ export function CustomFieldsSettings() {
         className="mb-8"
         action={
           // The Contacts guide has the Custom fields section.
-          <Button
-            variant="outline"
-            size="lg"
-            nativeButton={false}
-            render={
-              <a
-                href={docHref('contacts')}
-                target="_blank"
-                rel="noopener noreferrer"
-              />
-            }
-          >
-            Documentation
-            <MdOutlineOpenInNew className="size-4" />
-          </Button>
+          <DocsButton href={docHref('contacts')} />
         }
       />
 

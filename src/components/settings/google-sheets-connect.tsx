@@ -280,9 +280,13 @@ export function GoogleSheetsConnect({ item }: { item: Integration }) {
     <IntegrationHeader
       item={item}
       actions={
-        <Button onClick={onAddNewSheet} disabled={!configured || accounts === undefined} className="h-9 px-3">
-          Add New Sheet
-        </Button>
+        // Only once a Google account is connected: before that the page
+        // is the Connect card, and the one thing to do is connect.
+        accounts && accounts.length > 0 ? (
+          <Button onClick={onAddNewSheet} disabled={!configured} className="h-9 px-3">
+            Add New Sheet
+          </Button>
+        ) : undefined
       }
     />
   );
