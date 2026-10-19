@@ -13,8 +13,8 @@ import { buttonVariants } from '@/components/ui/button';
 //
 // The person's record in each connected CRM, read live — Zoho CRM and
 // HubSpot: the record they are synced with, the fields worth having
-// mid-conversation, their deals, and a way in. Only connected CRMs are
-// shown, and only fields with a value.
+// mid-conversation, their deals, and a way in. Each connected CRM has a
+// tab of its own; only fields with a value are shown.
 // ============================================================
 
 const ZOHO_LOGO = '/images/integrations/zoho-crm.png';
@@ -143,6 +143,8 @@ export function IntegrationsTab({ contactId }: { contactId: string }) {
     '/api/integrations/hubspot/record',
     contactId,
   );
+  // Which connected CRM is showing; the first one until another is picked.
+  const [picked, setPicked] = useState<'zoho' | 'hubspot' | null>(null);
 
   if (zoho.kind === 'loading' || hubspot.kind === 'loading') {
     return (
@@ -168,16 +170,53 @@ export function IntegrationsTab({ contactId }: { contactId: string }) {
     );
   }
 
+  // One tab per connected CRM.
+  const crms = (
+    [
+      { key: 'zoho', name: 'Zoho CRM', logo: ZOHO_LOGO, connected: zoho.kind !== 'not-connected' },
+      { key: 'hubspot', name: 'HubSpot', logo: HUBSPOT_LOGO, connected: hubspot.kind !== 'not-connected' },
+    ] as const
+  ).filter((c) => c.connected);
+  const current = crms.find((c) => c.key === picked) ?? crms[0];
+
   return (
-    <div className="space-y-5 px-4 py-3">
-      {hubspot.kind !== 'not-connected' && (
-        <CrmSection logo={HUBSPOT_LOGO} name="HubSpot" state={hubspot} onRetry={retryHubSpot}>
-          {(record) => <HubSpotRecordView record={record} />}
-        </CrmSection>
-      )}
-      {zoho.kind !== 'not-connected' && (
-        <CrmSection logo={ZOHO_LOGO} name="Zoho CRM" state={zoho} onRetry={retryZoho}>
+    <div className="px-4 py-3">
+      <div
+        role="tablist"
+        aria-label="Connected integrations"
+        className="bg-muted mb-3 flex gap-0.5 rounded-lg p-0.5"
+      >
+        {crms.map((c) => {
+          const active = c.key === current.key;
+          return (
+            <button
+              key={c.key}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setPicked(c.key)}
+              className={cn(
+                'flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
+                active
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={c.logo} alt="" className="h-3.5 w-auto shrink-0 object-contain" />
+              <span className="truncate">{c.name}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {current.key === 'zoho' ? (
+        <CrmSection name="Zoho CRM" state={zoho} onRetry={retryZoho}>
           {(record) => <ZohoRecordView record={record} />}
+        </CrmSection>
+      ) : (
+        <CrmSection name="HubSpot" state={hubspot} onRetry={retryHubSpot}>
+          {(record) => <HubSpotRecordView record={record} />}
         </CrmSection>
       )}
     </div>
@@ -185,26 +224,18 @@ export function IntegrationsTab({ contactId }: { contactId: string }) {
 }
 
 function CrmSection<R>({
-  logo,
   name,
   state,
   onRetry,
   children,
 }: {
-  logo: string;
   name: string;
   state: RecordState<R>;
   onRetry: () => void;
   children: (record: R) => ReactNode;
 }) {
   return (
-    <div>
-      <div className="text-muted-foreground mb-2 flex items-center gap-2 text-[11px] font-medium">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={logo} alt="" className="h-3.5 w-auto object-contain" />
-        {name}
-      </div>
-
+    <div role="tabpanel">
       {state.kind === 'error' && (
         <div className="border-border rounded-lg border p-3 text-center">
           <p className="text-muted-foreground text-xs">Couldn&apos;t load this from {name}.</p>
