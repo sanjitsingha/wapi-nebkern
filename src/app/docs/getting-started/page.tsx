@@ -6,6 +6,7 @@ import {
   DocsCallout,
   DocsHero,
   DocsPager,
+  DocsScreenshot,
   DocsWalkthrough,
 } from '@/components/docs/docs-components';
 
@@ -134,6 +135,29 @@ export default function GettingStartedDocsPage() {
           <strong>owner</strong>, and your free trial has started. Next,{' '}
           <Link href="/docs/connect-whatsapp">connect your WhatsApp number</Link>.
         </p>
+        <p>
+          You land on the <strong>Dashboard</strong>. Until a WhatsApp number
+          is connected, it shows how to connect one: what to have ready, the
+          steps, and a <strong>Connect WhatsApp</strong> button that takes
+          you straight there. Below it, quick links open every main feature
+          and its guide.
+        </p>
+        <DocsScreenshot
+          image={{
+            src: '/images/docs/getting-started/dashboard.webp',
+            alt: 'The Instant Dashboard before WhatsApp is connected: a Connect your WhatsApp number panel listing what to have ready (a Facebook account, a business phone number, a number not active on WhatsApp, a display name) beside the four steps, with Connect WhatsApp and Read the full guide buttons, and quick links below.',
+            width: 2880,
+            height: 1800,
+            caption: 'The Dashboard before WhatsApp is connected: how to connect your number',
+          }}
+        />
+        <p>
+          Once your number is connected, that panel makes way for the
+          last 30 days at a glance — new conversations and contacts, open
+          deal value, messages sent and failed deliveries — and who on your
+          team is online.
+        </p>
+
 
         <DocsCallout type="info" title="Invited to someone else's account?">
           If you followed a teammate&apos;s invite link, finish the same

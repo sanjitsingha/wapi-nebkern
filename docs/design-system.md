@@ -53,9 +53,11 @@ Every settings or list page opens with `SettingsPanelHead`, given
 `className="mb-8"`:
 
 - a title and a one-line description;
-- on the right, a **Documentation** button: `variant="outline" size="lg"`,
-  the text first, then `<MdOutlineOpenInNew className="size-4" />` after
-  it, opening `docHref('<guide>')` in a new tab.
+- on the right, the **Documentation** button. Always `<DocsButton
+  href={docHref('<guide>')} />` from `src/components/ui/docs-button.tsx`
+  (outlined, the word, then the open-in-new mark, opening in a new
+  tab). Never a hand-made one with another icon or label like "Go to
+  documentation".
 - Documentation buttons go in page headers only, never inside a modal.
 
 ## 4. Lists (tags, custom fields, quick replies, members…)
@@ -89,6 +91,10 @@ muted icon, a single line, and at most one hint line.
 
 ## 5. Panels and sections (inbox side panel, cards)
 
+- The inbox's two side columns are the same width: the conversation
+  list and the contact panel are both `w-96` (384px). The chat column
+  in the middle takes the rest.
+
 - A section's frame is the section. Anything inside it (a composer, a
   list) has no border or box of its own.
 - **Adding something inside a section** (a tag, a note) uses a small
@@ -110,6 +116,23 @@ muted icon, a single line, and at most one hint line.
   `bg-muted flex gap-0.5 rounded-lg p-0.5`, with the active item
   `bg-card text-foreground shadow-sm`, each with a logo and name.
 
+## 5a. Message composer
+
+- No box around it: the composer's top line, separating it from the
+  chat, is its only frame. The text box spans the full width at the top
+  with no border of its own. Underneath, one row: action icons on the
+  left (attach, emoji, template, form, AI — `h-8 w-8`, grey), any hint and the
+  **Send** button on the right.
+- Copy `src/components/inbox/message-composer.tsx` for any new box
+  where people type a message.
+- A prompt box with one action (Write with Maya's Generate / Use this) is
+  one bordered box: the text on top, the action button inside it at the
+  bottom right. Not a button beside the box. Copy
+  `src/components/inbox/ai-write-popover.tsx`.
+- Menus opened from an icon (attach) are roomy: `w-52 p-1.5`, rows
+  `gap-3 px-3 py-2.5 text-sm`, each with an 18px grey icon before the
+  label.
+
 ## 6. Modals and forms
 
 - Width fits the content: `sm:max-w-lg` for a simple form, up to
@@ -118,9 +141,16 @@ muted icon, a single line, and at most one hint line.
   name". When a field has no label, give it an `aria-label`.
 - A dropdown with no choice yet reads **"Choose &lt;thing&gt;"** in grey,
   and Save stays disabled until something is chosen.
-- A choice between kinds (field type, role) is a **dropdown** (`Select`),
-  not a grid of cards. Its items may carry a small grey icon and a
-  one-line hint.
+- A choice between kinds (field type, role), or of one item from a list
+  (a template to send), is a **dropdown** (`Select`), not a grid or
+  list of cards. Its items may carry a small grey icon and a one-line
+  hint. Whatever the choice needs (a preview, its fields) appears below
+  the dropdown once something is chosen. Copy `template-picker.tsx`.
+- A dropdown over a list that can grow (templates, tags) has a **search
+  row at the top**: a grey search icon and a borderless input, with the
+  line beneath it as its underline. It filters as you type and the list
+  closes on a pick. Build it as a popover list (as `template-picker.tsx`
+  and the inbox tag picker do), since `Select` has no room for one.
 - A field that can't be changed any more is disabled, with one small
   muted line under it saying so.
 - Required fields are marked with a red `*` after the label. A
@@ -141,12 +171,28 @@ muted icon, a single line, and at most one hint line.
   avatar and name, then the date and time (`d MMM yyyy, HH:mm`).
 - Dates in compact panels: `d MMM, HH:mm`.
 
+## 7a. Tags
+
+- A tag always looks like a **price tag**: `TagShape` from
+  `src/components/tags/tag-shape.tsx`, with a pointed end, a punched
+  hole and a soft wash of the tag's colour. Never a round chip or a
+  coloured dot.
+- `size="sm"` in panels and pickers. Pass `onRemove` when the tag can
+  be taken off right there; it adds a × after the name.
+- A picker (the "+ Add" dropdown) lists tags in that same shape, and
+  **closes after each pick**.
+
 ## 8. Dashboards and metrics
 
 - Related metrics share **one** white box, with vertical dividers between
   them and a small grey icon before each label. Not one card per metric.
 - No charts or activity feeds on the dashboard. Those belong on an
   analytics page.
+- Until WhatsApp is connected, the figures and the Team panel give way
+  to **how to connect it**, shaped like the Team panel: "Before you
+  start" (what to have ready) beside numbered "Steps", then a
+  Connect WhatsApp button (admins only) and "Read the full guide".
+  Copy `src/components/dashboard/connect-whatsapp-guide.tsx`.
 
 ## 9. Integrations
 

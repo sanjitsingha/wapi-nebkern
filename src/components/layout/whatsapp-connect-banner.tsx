@@ -87,7 +87,12 @@ export function WhatsAppConnectBanner() {
     // One colour, chosen against the light background this app always
     // renders. amber-950 and semibold because the bar has to survive
     // being ignored on every page.
-    <div className="flex items-center justify-center gap-2.5 border-b border-amber-500/40 bg-amber-500/15 px-4 py-3 text-center text-sm font-semibold text-amber-950">
+    // data-slot: the docs screenshot script (scripts/docs-demo) hides
+    // this bar, since its demo workspace has no number connected.
+    <div
+      data-slot="whatsapp-connect-banner"
+      className="flex items-center justify-center gap-2.5 border-b border-amber-500/40 bg-amber-500/15 px-4 py-3 text-center text-sm font-semibold text-amber-950"
+    >
       <MessageSquareWarning className="size-4 shrink-0" />
       <span>
         {needsReauth
