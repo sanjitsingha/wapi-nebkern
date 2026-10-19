@@ -22,6 +22,7 @@ import { MetricCard } from '@/components/dashboard/metric-card'
 import { SkeletonCard } from '@/components/dashboard/skeleton'
 import { QuickLinks } from '@/components/dashboard/quick-links'
 import { TeamPresence } from '@/components/dashboard/team-presence'
+import { ConnectWhatsAppGuide } from '@/components/dashboard/connect-whatsapp-guide'
 import { DateRangeSelector } from '@/components/dashboard/date-range-selector'
 
 // Default window: the last 30 local days (inclusive of today).
@@ -38,6 +39,27 @@ export default function DashboardPage() {
   const [metricsLoading, setMetricsLoading] = useState(true)
 
   const [range, setRange] = useState<DashboardDateRange>(defaultRange)
+
+  // Is a WhatsApp number connected? Until one is, every figure is zero,
+  // so the dashboard shows how to connect one in their place. Null
+  // while checking — the figures' skeletons show meanwhile, since most
+  // accounts are connected.
+  const [waConnected, setWaConnected] = useState<boolean | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/whatsapp/connection')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled) setWaConnected(typeof d?.connected === 'boolean' ? d.connected : true)
+      })
+      .catch(() => {
+        if (!cancelled) setWaConnected(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+  const showSetup = waConnected === false
 
   const loadRangeMetrics = useCallback((r: DashboardDateRange) => {
     const db = createClient()
@@ -74,95 +96,105 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <DateRangeSelector
-            value={range}
-            onChange={handleRangeChange}
-            disabled={metricsLoading}
-          />
-        </div>
-      </div>
-
-      {/* Headline numbers — five figures in one white panel. Five
-          columns at xl rather than 4, or the fifth is stranded alone on
-          a second row. The vertical rules only at xl, where the five
-          share one row: `divide-x` on a wrapped grid would also rule the
-          first figure of every later row. The panel's own py keeps them
-          short of its top and bottom edges. */}
-      <div className="grid grid-cols-1 gap-y-2 rounded-xl bg-card py-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 xl:divide-x xl:divide-border">
-        {metricsLoading || !metrics ? (
-          Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
-        ) : (
-          <>
-            <MetricCard
-              title="New Conversations"
-              icon={MessageSquare}
-              value={metrics.newConversations.current.toLocaleString()}
-              delta={{
-                sign:
-                  metrics.newConversations.current - metrics.newConversations.previous,
-                label: deltaLabel(
-                  metrics.newConversations.current - metrics.newConversations.previous,
-                  prevPeriodSuffix,
-                ),
-              }}
+        {!showSetup && (
+          <div className="flex flex-wrap items-center gap-2.5">
+            <DateRangeSelector
+              value={range}
+              onChange={handleRangeChange}
+              disabled={metricsLoading}
             />
-            <MetricCard
-              title="New Contacts"
-              icon={UserPlus}
-              value={metrics.newContacts.current.toLocaleString()}
-              delta={{
-                sign:
-                  metrics.newContacts.current - metrics.newContacts.previous,
-                label: deltaLabel(
-                  metrics.newContacts.current - metrics.newContacts.previous,
-                  prevPeriodSuffix,
-                ),
-              }}
-            />
-            <MetricCard
-              title="Open Deals Value"
-              icon={IndianRupee}
-              value={formatCurrency(metrics.openDealsValue, defaultCurrency)}
-              subtitle={`${metrics.openDealsCount} open deal${metrics.openDealsCount === 1 ? '' : 's'}`}
-            />
-            <MetricCard
-              title="Messages Sent"
-              icon={Send}
-              value={metrics.messagesSent.current.toLocaleString()}
-              delta={{
-                sign:
-                  metrics.messagesSent.current - metrics.messagesSent.previous,
-                label: deltaLabel(
-                  metrics.messagesSent.current - metrics.messagesSent.previous,
-                  prevPeriodSuffix,
-                ),
-              }}
-            />
-            {/* `invertDelta`: more failures is worse, and the default
-                colouring would paint a rise green. */}
-            <MetricCard
-              title="Failed Deliveries"
-              icon={AlertTriangle}
-              value={metrics.messagesFailed.current.toLocaleString()}
-              invertDelta
-              delta={{
-                sign:
-                  metrics.messagesFailed.current -
-                  metrics.messagesFailed.previous,
-                label: deltaLabel(
-                  metrics.messagesFailed.current -
-                    metrics.messagesFailed.previous,
-                  prevPeriodSuffix,
-                ),
-              }}
-            />
-          </>
+          </div>
         )}
       </div>
 
-      {/* Team — who is on now and since when, who was last seen when. */}
-      <TeamPresence />
+      {showSetup ? (
+        // No number connected yet: how to connect one, in place of
+        // the figures and the Team panel.
+        <ConnectWhatsAppGuide />
+      ) : (
+        <>
+          {/* Headline numbers — five figures in one white panel. Five
+              columns at xl rather than 4, or the fifth is stranded alone on
+              a second row. The vertical rules only at xl, where the five
+              share one row: `divide-x` on a wrapped grid would also rule the
+              first figure of every later row. The panel's own py keeps them
+              short of its top and bottom edges. */}
+          <div className="grid grid-cols-1 gap-y-2 rounded-xl bg-card py-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 xl:divide-x xl:divide-border">
+            {metricsLoading || !metrics ? (
+              Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
+            ) : (
+              <>
+                <MetricCard
+                  title="New Conversations"
+                  icon={MessageSquare}
+                  value={metrics.newConversations.current.toLocaleString()}
+                  delta={{
+                    sign:
+                      metrics.newConversations.current - metrics.newConversations.previous,
+                    label: deltaLabel(
+                      metrics.newConversations.current - metrics.newConversations.previous,
+                      prevPeriodSuffix,
+                    ),
+                  }}
+                />
+                <MetricCard
+                  title="New Contacts"
+                  icon={UserPlus}
+                  value={metrics.newContacts.current.toLocaleString()}
+                  delta={{
+                    sign:
+                      metrics.newContacts.current - metrics.newContacts.previous,
+                    label: deltaLabel(
+                      metrics.newContacts.current - metrics.newContacts.previous,
+                      prevPeriodSuffix,
+                    ),
+                  }}
+                />
+                <MetricCard
+                  title="Open Deals Value"
+                  icon={IndianRupee}
+                  value={formatCurrency(metrics.openDealsValue, defaultCurrency)}
+                  subtitle={`${metrics.openDealsCount} open deal${metrics.openDealsCount === 1 ? '' : 's'}`}
+                />
+                <MetricCard
+                  title="Messages Sent"
+                  icon={Send}
+                  value={metrics.messagesSent.current.toLocaleString()}
+                  delta={{
+                    sign:
+                      metrics.messagesSent.current - metrics.messagesSent.previous,
+                    label: deltaLabel(
+                      metrics.messagesSent.current - metrics.messagesSent.previous,
+                      prevPeriodSuffix,
+                    ),
+                  }}
+                />
+                {/* `invertDelta`: more failures is worse, and the default
+                    colouring would paint a rise green. */}
+                <MetricCard
+                  title="Failed Deliveries"
+                  icon={AlertTriangle}
+                  value={metrics.messagesFailed.current.toLocaleString()}
+                  invertDelta
+                  delta={{
+                    sign:
+                      metrics.messagesFailed.current -
+                      metrics.messagesFailed.previous,
+                    label: deltaLabel(
+                      metrics.messagesFailed.current -
+                        metrics.messagesFailed.previous,
+                      prevPeriodSuffix,
+                    ),
+                  }}
+                />
+              </>
+            )}
+          </div>
+
+          {/* Team — who is on now and since when, who was last seen when. */}
+          <TeamPresence />
+        </>
+      )}
 
       {/* Quick links — where to set things up, and the guide for each. */}
       <QuickLinks />
