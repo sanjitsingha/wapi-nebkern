@@ -10,13 +10,13 @@ import {
   Tag as TagIcon,
   Trash2,
 } from 'lucide-react';
-import { MdOutlineOpenInNew } from 'react-icons/md';
 import { HexColorInput, HexColorPicker } from 'react-colorful';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { useCan } from '@/hooks/use-can';
 import { docHref } from '@/lib/docs/nav';
 import { Button } from '@/components/ui/button';
+import { DocsButton } from '@/components/ui/docs-button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import type { Tag } from '@/types';
+import { TagShape } from '@/components/tags/tag-shape';
 import { SettingsPanelHead } from './settings-panel-head';
 
 const PRESET_COLORS = [
@@ -59,39 +60,9 @@ function toSixDigitHex(hex: string): string {
     ? `#${h[1]}${h[1]}${h[2]}${h[2]}${h[3]}${h[3]}`
     : h;
 }
+
 /** tags.description CHECK (migration 118). */
 const DESCRIPTION_MAX = 200;
-
-/**
- * A tag drawn as a horizontal price tag: pointed on the left with a
- * punched hole, the name on the body. Solid colours (the tag's colour
- * mixed into the card colour) rather than a translucent tint, so the
- * point and the body — two shapes that overlap — read as one.
- */
-export function TagShape({ name, color }: { name: string; color: string }) {
-  const fill = `color-mix(in srgb, ${color} 16%, var(--card))`;
-  return (
-    <span className="relative inline-flex h-7 max-w-full items-center pl-[14px]">
-      {/* The point: a square turned 45°, its tip at the left edge. */}
-      <span
-        aria-hidden
-        className="absolute top-1/2 left-[4px] size-[20px] -translate-y-1/2 rotate-45 rounded-[3px]"
-        style={{ backgroundColor: fill }}
-      />
-      <span
-        className="relative inline-flex h-full min-w-0 items-center rounded-r-md pr-3 pl-2 text-sm font-medium"
-        style={{ backgroundColor: fill, color }}
-      >
-        <span className="truncate">{name}</span>
-      </span>
-      {/* The hole. */}
-      <span
-        aria-hidden
-        className="bg-card absolute top-1/2 left-[9px] size-1.5 -translate-y-1/2 rounded-full"
-      />
-    </span>
-  );
-}
 
 /**
  * Settings → Tags: colour-coded contact labels. Laid out like Quick
@@ -255,21 +226,7 @@ export function TagManager() {
         className="mb-8"
         action={
           // The Contacts guide has the Tags section.
-          <Button
-            variant="outline"
-            size="lg"
-            nativeButton={false}
-            render={
-              <a
-                href={docHref('contacts')}
-                target="_blank"
-                rel="noopener noreferrer"
-              />
-            }
-          >
-            Documentation
-            <MdOutlineOpenInNew className="size-4" />
-          </Button>
+          <DocsButton href={docHref('contacts')} />
         }
       />
 

@@ -16,7 +16,7 @@ import {
   Tag as TagIcon,
   IndianRupee,
   Plus,
-  X,
+  Search,
   ShieldAlert,
   ShieldCheck,
   PanelRightClose,
@@ -40,6 +40,7 @@ import { ContactCallHistory } from "@/components/calls/contact-call-history";
 import { TeamThread } from "@/components/inbox/team-thread";
 import { IntegrationsTab } from "@/components/inbox/integrations-tab";
 import { ContactNotes } from "@/components/contacts/contact-notes";
+import { TagShape } from "@/components/tags/tag-shape";
 import { useCan } from "@/hooks/use-can";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PersonAvatar } from "@/components/ui/person-avatar";
@@ -87,6 +88,7 @@ export function ContactSidebar({
   const [tags, setTags] = useState<(Tag & { contact_tag_id: string })[]>([]);
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [tagSearch, setTagSearch] = useState("");
+  const [tagPickerOpen, setTagPickerOpen] = useState(false);
   const [savingTag, setSavingTag] = useState(false);
   // The Notes section's add box: open for one contact at a time, so it
   // closes by itself on a switch to the next chat.
@@ -382,7 +384,7 @@ export function ContactSidebar({
 
   if (!contact) {
     return (
-      <div className="flex h-full w-88 flex-col border-l border-border bg-card">
+      <div className="flex h-full w-96 flex-col border-l border-border bg-card">
         <div className="flex items-center border-b border-border px-3 py-2.5">
           {collapseButton}
         </div>
@@ -431,7 +433,7 @@ export function ContactSidebar({
   ];
 
   return (
-    <div className="flex h-full w-88 flex-col border-l border-border bg-card">
+    <div className="flex h-full w-96 flex-col border-l border-border bg-card">
       {/* Who this is, and what you can do to them, always in view
           whichever tab is open. */}
       <div className="flex items-center gap-3 border-b border-border px-4 py-3">
@@ -487,7 +489,7 @@ export function ContactSidebar({
       </div>
 
       {/* Icon tabs: the open one spells out its name, the rest are
-          icons with a tooltip, so five views fit the 352px panel. A
+          icons with a tooltip, so every view fits the 384px panel. A
           chat needs its own height and scroll, which is why the team
           thread is a tab rather than appended under the details. */}
       <div
@@ -601,7 +603,13 @@ export function ContactSidebar({
             <PanelSection
               title="Tags"
               action={
-                <Popover onOpenChange={(open) => !open && setTagSearch("")}>
+                <Popover
+                  open={tagPickerOpen}
+                  onOpenChange={(open) => {
+                    setTagPickerOpen(open);
+                    if (!open) setTagSearch("");
+                  }}
+                >
                   <PopoverTrigger className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none data-popup-open:bg-muted data-popup-open:text-foreground">
                     <Plus className="h-3 w-3" />
                     Add
@@ -613,13 +621,16 @@ export function ContactSidebar({
                       </p>
                     ) : (
                       <>
-                        <div className="border-b border-border p-2">
+                        {/* The line under the search is its underline. */}
+                        <div className="flex items-center gap-2 border-b border-border px-3">
+                          <Search className="size-3.5 shrink-0 text-muted-foreground" />
                           <input
                             value={tagSearch}
                             onChange={(e) => setTagSearch(e.target.value)}
                             placeholder="Search tags…"
+                            aria-label="Search tags"
                             autoFocus
-                            className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            className="h-9 w-full bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground"
                           />
                         </div>
                         <div className="max-h-56 overflow-y-auto p-1">
@@ -635,16 +646,18 @@ export function ContactSidebar({
                                 <button
                                   key={tag.id}
                                   type="button"
-                                  onClick={() => toggleTag(tag)}
+                                  onClick={() => {
+                                    // One pick per open: the list closes,
+                                    // and "+ Add" opens it for the next.
+                                    toggleTag(tag);
+                                    setTagPickerOpen(false);
+                                    setTagSearch("");
+                                  }}
                                   disabled={savingTag}
-                                  className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-muted disabled:opacity-60"
+                                  className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left transition-colors hover:bg-muted disabled:opacity-60"
                                 >
-                                  <span
-                                    className="size-2.5 shrink-0 rounded-full"
-                                    style={{ backgroundColor: tag.color }}
-                                  />
-                                  <span className="flex-1 truncate text-xs text-foreground">
-                                    {tag.name}
+                                  <span className="flex min-w-0 flex-1">
+                                    <TagShape name={tag.name} color={tag.color} size="sm" />
                                   </span>
                                   {active && (
                                     <Check className="size-3.5 shrink-0 text-primary" />
@@ -666,27 +679,16 @@ export function ContactSidebar({
                   hint="Tag this contact to filter and segment them later."
                 />
               ) : (
-                <div className="flex flex-wrap gap-1 px-1">
+                <div className="flex flex-wrap gap-1.5 px-1">
                   {tags.map((tag, idx) => (
-                    <span
+                    <TagShape
                       key={tag.contact_tag_id || `${tag.id}-${idx}`}
-                      className="group/tag inline-flex items-center gap-1 rounded-full py-0.5 pl-2 pr-1 text-[10px] font-medium"
-                      style={{
-                        backgroundColor: `${tag.color}20`,
-                        color: tag.color,
-                      }}
-                    >
-                      {tag.name}
-                      <button
-                        type="button"
-                        onClick={() => toggleTag(tag)}
-                        disabled={savingTag}
-                        aria-label={`Remove ${tag.name}`}
-                        className="flex size-3.5 items-center justify-center rounded-full opacity-60 transition-opacity hover:bg-black/10 hover:opacity-100 disabled:opacity-40"
-                      >
-                        <X className="size-2.5" />
-                      </button>
-                    </span>
+                      name={tag.name}
+                      color={tag.color}
+                      size="sm"
+                      onRemove={() => toggleTag(tag)}
+                      removeDisabled={savingTag}
+                    />
                   ))}
                 </div>
               )}
