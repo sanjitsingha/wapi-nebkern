@@ -8,6 +8,7 @@ import { formatCurrency } from '@/lib/currency';
 import { toast } from 'sonner';
 import type { Contact, Tag, ContactNote, CustomField, Deal, Message, CallLog } from '@/types';
 import { CustomFieldEditor } from '@/components/contacts/custom-field-editor';
+import { ContactNotes } from '@/components/contacts/contact-notes';
 import { customValueProblems } from '@/lib/contacts/custom-field-types';
 import {
   ContactMedia,
@@ -21,7 +22,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Popover,
@@ -52,8 +52,6 @@ import {
   Copy,
   Check,
   Loader2,
-  Plus,
-  Trash2,
   Save,
   ArrowLeft,
   IndianRupee,
@@ -157,7 +155,7 @@ export default function ContactDetailPage() {
   const router = useRouter();
   const contactId = params.id;
   const supabase = createClient();
-  const { accountId, defaultCurrency } = useAuth();
+  const { defaultCurrency } = useAuth();
 
   const [contact, setContact] = useState<Contact | null>(null);
   const [loading, setLoading] = useState(true);
@@ -183,10 +181,8 @@ export default function ContactDetailPage() {
   const [savingTags, setSavingTags] = useState(false);
   const [tagSearch, setTagSearch] = useState('');
 
+  // For the activity timeline; the Notes tab itself is <ContactNotes>.
   const [notes, setNotes] = useState<ContactNote[]>([]);
-  const [newNote, setNewNote] = useState('');
-  const [savingNote, setSavingNote] = useState(false);
-  const [loadingNotes, setLoadingNotes] = useState(false);
 
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
@@ -236,14 +232,12 @@ export default function ContactDetailPage() {
   }, [contactId, supabase]);
 
   const fetchNotes = useCallback(async () => {
-    setLoadingNotes(true);
     const { data } = await supabase
       .from('contact_notes')
       .select('*')
       .eq('contact_id', contactId)
       .order('created_at', { ascending: false });
     if (data) setNotes(data);
-    setLoadingNotes(false);
   }, [contactId, supabase]);
 
   const fetchCustomFields = useCallback(async () => {
@@ -392,29 +386,6 @@ export default function ContactDetailPage() {
       if (!error) setContactTagIds((prev) => [...prev, tagId]);
     }
     setSavingTags(false);
-  }
-
-  async function addNote() {
-    if (!newNote.trim()) return;
-    setSavingNote(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
-    if (!user || !accountId) { toast.error('Not authenticated'); setSavingNote(false); return; }
-    const { error } = await supabase.from('contact_notes').insert({
-      contact_id: contactId,
-      account_id: accountId,
-      user_id: user.id,
-      note_text: newNote.trim(),
-    });
-    if (error) { toast.error('Failed to add note'); }
-    else { setNewNote(''); fetchNotes(); toast.success('Note added'); }
-    setSavingNote(false);
-  }
-
-  async function deleteNote(noteId: string) {
-    const { error } = await supabase.from('contact_notes').delete().eq('id', noteId);
-    if (error) { toast.error('Failed to delete note'); }
-    else { setNotes((prev) => prev.filter((n) => n.id !== noteId)); toast.success('Note deleted'); }
   }
 
   async function saveCustomFields() {
@@ -1008,42 +979,8 @@ export default function ContactDetailPage() {
 
         {/* Notes */}
         <TabsContent value="notes" className="mt-6">
-          <div className="space-y-4">
-            <div className="rounded-xl border border-border bg-card p-4">
-              <Textarea value={newNote} onChange={(e) => setNewNote(e.target.value)}
-                placeholder="Write a note..."
-                className="bg-background border-border text-foreground placeholder:text-muted-foreground min-h-[80px] resize-none" />
-              <div className="mt-3 flex justify-end">
-                <Button onClick={addNote} disabled={!newNote.trim() || savingNote}
-                  className="bg-primary hover:bg-primary-hover text-primary-foreground">
-                  {savingNote ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
-                  Add Note
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              {loadingNotes ? (
-                <div className="flex justify-center py-8"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
-              ) : notes.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">No notes yet.</div>
-              ) : notes.map((note) => (
-                <div key={note.id} className="group rounded-xl border border-border bg-card p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="flex-1 whitespace-pre-wrap text-sm text-foreground">{note.note_text}</p>
-                    <button onClick={() => deleteNote(note.id)}
-                      className="shrink-0 text-muted-foreground opacity-0 transition-all hover:text-destructive group-hover:opacity-100">
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  </div>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {new Date(note.created_at).toLocaleDateString('en-US', {
-                      month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit',
-                    })}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* The same notes the inbox panel shows, with their authors. */}
+          <ContactNotes contactId={contactId} onChange={fetchNotes} />
         </TabsContent>
 
         {/* Media */}

@@ -39,6 +39,8 @@ import { useCallCenter } from "@/components/calls/call-center";
 import { ContactCallHistory } from "@/components/calls/contact-call-history";
 import { TeamThread } from "@/components/inbox/team-thread";
 import { IntegrationsTab } from "@/components/inbox/integrations-tab";
+import { ContactNotes } from "@/components/contacts/contact-notes";
+import { useCan } from "@/hooks/use-can";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PersonAvatar } from "@/components/ui/person-avatar";
 import {
@@ -86,6 +88,11 @@ export function ContactSidebar({
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [tagSearch, setTagSearch] = useState("");
   const [savingTag, setSavingTag] = useState(false);
+  // The Notes section's add box: open for one contact at a time, so it
+  // closes by itself on a switch to the next chat.
+  const [noteOpenFor, setNoteOpenFor] = useState<string | null>(null);
+  const noteOpen = !!contact && noteOpenFor === contact.id;
+  const canWriteNotes = useCan("send-messages");
   const [recentFailures, setRecentFailures] = useState<{
     id: string;
     content_text: string | null;
@@ -685,6 +692,32 @@ export function ContactSidebar({
               )}
             </PanelSection>
 
+            {/* The contact's notes — the same ones as the contact
+                page's Notes tab. "+ Add" opens the box, as Tags' does. */}
+            <PanelSection
+              title="Notes"
+              action={
+                canWriteNotes && (
+                  <button
+                    type="button"
+                    onClick={() => setNoteOpenFor(noteOpen ? null : contact.id)}
+                    aria-expanded={noteOpen}
+                    className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none aria-expanded:bg-muted aria-expanded:text-foreground"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Add
+                  </button>
+                )
+              }
+            >
+              <ContactNotes
+                contactId={contact.id}
+                compact
+                composing={noteOpen}
+                onComposingChange={(open) => setNoteOpenFor(open ? contact.id : null)}
+              />
+            </PanelSection>
+
             <PanelSection title="Activity">
               <div className="grid grid-cols-3 gap-2">
                 {(
@@ -711,7 +744,7 @@ export function ContactSidebar({
                       {value}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
-                      {key === 'team' ? 'Unread notes' : label}
+                      {key === 'team' ? 'Team unread' : label}
                     </p>
                   </button>
                 ))}
