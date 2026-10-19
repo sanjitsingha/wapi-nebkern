@@ -47,8 +47,10 @@ describe('ZOHO_SCOPES', () => {
       'ZohoCRM.modules.deals.CREATE',
       'ZohoCRM.modules.deals.UPDATE',
       'ZohoCRM.modules.notes.CREATE',
+      'ZohoCRM.modules.notes.DELETE',
       'ZohoCRM.notifications.ALL',
       'ZohoCRM.settings.fields.READ',
+      'ZohoCRM.settings.tags.CREATE',
     ]);
   });
 
@@ -63,7 +65,8 @@ describe('ZOHO_SCOPES', () => {
   it('can write deals but never delete them', () => {
     // Deals are pushed (create, update) but removing one in Instant
     // only unlinks it, so DELETE — and ALL, which includes it — is
-    // never asked for. Notes stay append-only.
+    // never asked for. Notes get DELETE alone, for removing the copy of
+    // a note deleted in Instant; never ALL.
     expect(ZOHO_SCOPES).toContain('ZohoCRM.modules.deals.CREATE');
     expect(ZOHO_SCOPES).toContain('ZohoCRM.modules.deals.UPDATE');
     expect(ZOHO_SCOPES).not.toContain('ZohoCRM.modules.deals.DELETE');

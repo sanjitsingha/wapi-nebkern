@@ -3,10 +3,12 @@ import { describe, expect, it } from 'vitest';
 import type { ContactRow } from '@/lib/zoho/push';
 import {
   contactProperties,
+  e164,
   existingIdFromConflict,
   hubspotRecordUrl,
   invalidPropertyNames,
   mapHubSpotStage,
+  phoneNeedsRewrite,
   pickPipeline,
   type HubSpotStage,
 } from './push';
@@ -40,6 +42,22 @@ describe('contactProperties', () => {
     expect(update.lifecyclestage).toBeUndefined();
   });
 
+  it('gives a bare 10-digit number its +91', () => {
+    // Sent as "+9434001422" it reads in HubSpot as a Sri Lankan number.
+    expect(e164('9434001422')).toBe('+919434001422');
+    expect(e164('919434001422')).toBe('+919434001422');
+    expect(contactProperties(contact({ phone: '9434001422' }), { creating: true }).mobilephone).toBe(
+      '+919434001422',
+    );
+  });
+
+  it('rewrites HubSpot phone only when it is the same number in another form', () => {
+    expect(phoneNeedsRewrite('+9434001422', '+919434001422')).toBe(true);
+    expect(phoneNeedsRewrite('+919434001422', '+919434001422')).toBe(false);
+    expect(phoneNeedsRewrite('+91 11 2345 6789', '+919434001422')).toBe(false);
+    expect(phoneNeedsRewrite(null, '+919434001422')).toBe(false);
+  });
+
   it('never sends a name that is really the phone number', () => {
     const props = contactProperties(contact({ name: '+91 98765 43210' }), { creating: true });
     expect(props.firstname).toBeUndefined();
@@ -71,6 +89,11 @@ describe('mapHubSpotStage', () => {
   it('uses the stage metadata for won and lost', () => {
     expect(mapHubSpotStage(stages, 'Negotiation', 'won').stage?.id).toBe('won');
     expect(mapHubSpotStage(stages, 'Negotiation', 'lost').stage?.id).toBe('lost');
+  });
+
+  it('treats an Instant stage called Won or Lost as closed', () => {
+    expect(mapHubSpotStage(stages, 'Won', 'open').stage?.id).toBe('won');
+    expect(mapHubSpotStage(stages, 'Deal Lost', 'open').stage?.id).toBe('lost');
   });
 
   it('matches by name, then loosely, then falls back with a note', () => {

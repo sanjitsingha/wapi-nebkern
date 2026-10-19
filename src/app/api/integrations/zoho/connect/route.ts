@@ -134,7 +134,7 @@ async function syncStatus(
   conn: { watch_channel_id?: string | null; watch_error?: string | null },
 ) {
   const db = supabaseAdmin();
-  const [pending, synced, permission] = await Promise.all([
+  const [pending, synced, permission, notePermission] = await Promise.all([
     db
       .from('zoho_sync_queue')
       .select('id', { count: 'exact', head: true })
@@ -151,11 +151,21 @@ async function syncStatus(
       .in('status', ['pending', 'failed'])
       .or('last_error.ilike.%reconnect%,last_error.ilike.%scope%')
       .limit(1),
+    db
+      .from('crm_note_syncs')
+      .select('id')
+      .eq('account_id', accountId)
+      .eq('crm', 'zoho')
+      .in('status', ['pending', 'failed'])
+      .or('last_error.ilike.%reconnect%,last_error.ilike.%scope%')
+      .limit(1),
   ]);
 
   const watchError = conn.watch_error ?? null;
   const reconnect =
-    /reconnect|scope|permission/i.test(watchError ?? '') || (permission.data?.length ?? 0) > 0;
+    /reconnect|scope|permission/i.test(watchError ?? '') ||
+    (permission.data?.length ?? 0) > 0 ||
+    (notePermission.data?.length ?? 0) > 0;
 
   return {
     active: !!conn.watch_channel_id,
@@ -191,6 +201,7 @@ export async function PATCH(request: Request) {
       await db.from('zoho_connections').update({ deal_stages_at: null }).eq('id', conn.id);
       await syncZohoWatch(db, ctx.accountId).catch(() => null);
       await db.rpc('zoho_backfill', { p_account: ctx.accountId, p_deals: true });
+      await db.rpc('crm_notes_backfill', { p_account: ctx.accountId, p_crm: 'zoho' });
       return NextResponse.json({ ok: true });
     }
 

@@ -34,6 +34,7 @@
 import crypto from 'crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+import { contactTagNames, normaliseTags, tagDiff } from '@/lib/crm/tags';
 import { zohoApiFetch, type ZohoCallResult } from './api';
 
 type Db = SupabaseClient;
@@ -138,12 +139,14 @@ interface LinkRow {
   zoho_module: ZohoModule;
   zoho_id: string;
   synced_hash: string | null;
+  /** The tags Instant last put on the record (migration 121). */
+  synced_tags?: string[] | null;
 }
 
 async function getLink(db: Db, accountId: string, entity: 'contact' | 'deal', localId: string) {
   const { data } = await db
     .from('zoho_record_links')
-    .select('id, zoho_module, zoho_id, synced_hash')
+    .select('id, zoho_module, zoho_id, synced_hash, synced_tags')
     .eq('account_id', accountId)
     .eq('entity', entity)
     .eq('local_id', localId)
@@ -160,6 +163,8 @@ export async function saveLink(
   zohoId: string,
   hash: string | null,
   pushed: boolean,
+  /** The tags just put on the record; left as they were when omitted. */
+  syncedTags?: string[],
 ): Promise<void> {
   const now = new Date().toISOString();
   // A Zoho record can be linked to one Instant record only. If another
@@ -181,6 +186,7 @@ export async function saveLink(
       zoho_id: zohoId,
       synced_hash: hash,
       ...(pushed ? { pushed_at: now } : {}),
+      ...(syncedTags !== undefined ? { synced_tags: syncedTags } : {}),
       updated_at: now,
     },
     { onConflict: 'account_id,entity,local_id' },
@@ -301,6 +307,88 @@ async function findInZoho(db: Db, c: ContactRow): Promise<SearchHit | null> {
   return null;
 }
 
+// ── Tags ────────────────────────────────────────────────────
+
+/** Zoho allows ten tags on a record, of up to 25 characters each. */
+export const ZOHO_MAX_TAGS = 10;
+const ZOHO_TAG_NAME_MAX = 25;
+
+/** The tags as Zoho can hold them: names cut to 25 characters, then the
+ *  first ten alphabetically. */
+export function capZohoTags(tags: string[]): string[] {
+  return normaliseTags(tags.map((t) => t.slice(0, ZOHO_TAG_NAME_MAX))).slice(0, ZOHO_MAX_TAGS);
+}
+
+type TagResponse = { data?: { status?: string; code?: string; message?: string }[] };
+
+function tagCallFailed(res: ZohoCallResult<TagResponse>): string | null {
+  if (res.error) return res.error;
+  const row = res.data?.data?.[0];
+  return row && row.status !== 'success' ? (row.message ?? row.code ?? 'Zoho refused the tags.') : null;
+}
+
+/**
+ * Put a contact's Instant tags on its Zoho record (migration 121): add
+ * what is new, remove only what Instant put there before — a tag
+ * someone added in Zoho stays. A tag Zoho does not have yet is created
+ * in the module, then added. Returns the tags now on the record from
+ * Instant, to remember as synced.
+ */
+async function syncZohoTags(
+  db: Db,
+  accountId: string,
+  zohoModule: 'Leads' | 'Contacts',
+  zohoId: string,
+  tags: string[],
+  previous: string[] | null | undefined,
+): Promise<string[]> {
+  const wanted = capZohoTags(tags);
+  const { add, remove } = tagDiff(wanted, previous);
+  const record = `/crm/v5/${zohoModule}/${encodeURIComponent(zohoId)}/actions`;
+  const body = (names: string[]) => JSON.stringify({ tags: names.map((name) => ({ name })) });
+
+  if (remove.length > 0) {
+    const res = await zohoApiFetch<TagResponse>(db, accountId, `${record}/remove_tags`, {
+      method: 'POST',
+      body: body(remove),
+    });
+    const failed = tagCallFailed(res);
+    if (failed) throw new PushError(`Could not remove tags in Zoho: ${failed}`);
+  }
+
+  if (add.length > 0) {
+    let res = await zohoApiFetch<TagResponse>(db, accountId, `${record}/add_tags`, {
+      method: 'POST',
+      body: body(add),
+    });
+    if (tagCallFailed(res)) {
+      // Most likely a tag the module does not have: create it (one that
+      // already exists is refused as a duplicate, which is fine), then
+      // add again.
+      const created = await zohoApiFetch(db, accountId, `/crm/v5/settings/tags?module=${zohoModule}`, {
+        method: 'POST',
+        body: body(add),
+      });
+      res = await zohoApiFetch<TagResponse>(db, accountId, `${record}/add_tags`, {
+        method: 'POST',
+        body: body(add),
+      });
+      const failed = tagCallFailed(res);
+      if (failed) {
+        // A connection from before tags were synced lacks the scope to
+        // create one. Say so in the words Settings looks for, so it asks
+        // the admin to reconnect.
+        throw new PushError(
+          created.error && /reconnect|permission/i.test(created.error)
+            ? created.error
+            : `Could not add tags in Zoho: ${failed}`,
+        );
+      }
+    }
+  }
+  return wanted;
+}
+
 export interface PushOutcome {
   /** Set when the push did something worth noting without failing —
    *  kept on the queue row for diagnosis; Settings does not show it. */
@@ -340,28 +428,32 @@ async function pushContact(
   }
 
   const hash = contactHash(c);
+  const tags = await contactTagNames(db, c.id);
   const existing = await getLink(db, c.account_id, 'contact', c.id);
 
   if (existing && existing.zoho_module !== 'Deals') {
-    if (existing.synced_hash === hash || !opts.create) return { link: existing, outcome: {} };
-    try {
-      await writeRecord(
-        db,
-        c.account_id,
-        existing.zoho_module,
-        contactPayload(c, existing.zoho_module, false),
-        existing.zoho_id,
-      );
-    } catch (err) {
-      // Deleted in Zoho since we linked it: forget the link and fall
-      // through to find-or-create, rather than failing forever.
-      if (err instanceof PushError && err.code === 'INVALID_DATA' && err.field === 'id') {
-        await db.from('zoho_record_links').delete().eq('id', existing.id);
-        return pushContact(db, contactId, opts);
+    const zohoModule = existing.zoho_module;
+    const tagsChanged = tagDiff(capZohoTags(tags), existing.synced_tags).changed;
+    const fieldsChanged = existing.synced_hash !== hash;
+    if ((!fieldsChanged && !tagsChanged) || !opts.create) return { link: existing, outcome: {} };
+    if (fieldsChanged) {
+      try {
+        await writeRecord(db, c.account_id, zohoModule, contactPayload(c, zohoModule, false), existing.zoho_id);
+      } catch (err) {
+        // Deleted in Zoho since we linked it: forget the link and fall
+        // through to find-or-create, rather than failing forever.
+        if (err instanceof PushError && err.code === 'INVALID_DATA' && err.field === 'id') {
+          await db.from('zoho_record_links').delete().eq('id', existing.id);
+          return pushContact(db, contactId, opts);
+        }
+        throw err;
       }
-      throw err;
+      await saveLink(db, c.account_id, 'contact', c.id, zohoModule, existing.zoho_id, hash, true);
     }
-    await saveLink(db, c.account_id, 'contact', c.id, existing.zoho_module, existing.zoho_id, hash, true);
+    if (tagsChanged) {
+      const applied = await syncZohoTags(db, c.account_id, zohoModule, existing.zoho_id, tags, existing.synced_tags);
+      await saveLink(db, c.account_id, 'contact', c.id, zohoModule, existing.zoho_id, hash, true, applied);
+    }
     return { link: { ...existing, synced_hash: hash }, outcome: {} };
   }
 
@@ -371,6 +463,11 @@ async function pushContact(
     // their record may be more complete than ours, and Zoho's PUT has
     // no "only if blank". Edits made in Instant from now on flow over.
     await saveLink(db, c.account_id, 'contact', c.id, found.module, found.id, hash, false);
+    // Their fields are left alone, but Instant's tags go on.
+    if (tags.length > 0) {
+      const applied = await syncZohoTags(db, c.account_id, found.module, found.id, tags, null);
+      await saveLink(db, c.account_id, 'contact', c.id, found.module, found.id, hash, true, applied);
+    }
     return {
       link: { id: '', zoho_module: found.module, zoho_id: found.id, synced_hash: hash },
       outcome: { note: `Linked to an existing Zoho ${found.module === 'Leads' ? 'Lead' : 'Contact'}.` },
@@ -382,6 +479,10 @@ async function pushContact(
   const target: 'Leads' | 'Contacts' = c.created_via === 'conversation' ? opts.chatModule : 'Contacts';
   const id = await writeRecord(db, c.account_id, target, contactPayload(c, target, true));
   await saveLink(db, c.account_id, 'contact', c.id, target, id, hash, true);
+  if (tags.length > 0) {
+    const applied = await syncZohoTags(db, c.account_id, target, id, tags, null);
+    await saveLink(db, c.account_id, 'contact', c.id, target, id, hash, true, applied);
+  }
   return {
     link: { id: '', zoho_module: target, zoho_id: id, synced_hash: hash },
     outcome: {},

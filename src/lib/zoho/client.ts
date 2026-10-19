@@ -72,9 +72,19 @@ const ACCOUNTS_BY_LOCATION: Record<string, string> = {
  *                         record events without a Workflow Rule. See
  *                         lib/zoho/watch.ts.
  *
- *   notes.CREATE          CREATE only. Logging a WhatsApp conversation
- *                         onto a record appends notes; it never edits
- *                         or deletes what someone else wrote there.
+ *   notes.CREATE          Logging a WhatsApp conversation onto a record
+ *                         appends notes, as does copying a note written
+ *                         on the contact in Instant (lib/crm/note-sync).
+ *   notes.DELETE          Deleting that Instant note deletes the copy
+ *                         Instant made — only ever a note whose id
+ *                         Instant recorded when creating it. Nothing
+ *                         someone else wrote is edited or deleted.
+ *
+ *   settings.tags.CREATE  CREATE only: a contact's Instant tag that the
+ *                         module has no tag for yet is created before
+ *                         it is added (lib/zoho/push.ts). Adding and
+ *                         removing tags on a record is covered by the
+ *                         contacts and leads scopes above.
  *
  * ── Grammar, if this is extended ──
  *
@@ -91,8 +101,10 @@ export const ZOHO_SCOPES = [
   'ZohoCRM.modules.deals.CREATE',
   'ZohoCRM.modules.deals.UPDATE',
   'ZohoCRM.modules.notes.CREATE',
+  'ZohoCRM.modules.notes.DELETE',
   'ZohoCRM.notifications.ALL',
   'ZohoCRM.settings.fields.READ',
+  'ZohoCRM.settings.tags.CREATE',
 ] as const;
 
 /**
@@ -108,9 +120,11 @@ export const ZOHO_SCOPE_LABELS: Record<(typeof ZOHO_SCOPES)[number], string> = {
   'ZohoCRM.modules.deals.READ': 'Deals — read, create and update',
   'ZohoCRM.modules.deals.CREATE': 'Deals — read, create and update',
   'ZohoCRM.modules.deals.UPDATE': 'Deals — read, create and update',
-  'ZohoCRM.modules.notes.CREATE': 'Notes — add',
+  'ZohoCRM.modules.notes.CREATE': 'Notes — add and delete',
+  'ZohoCRM.modules.notes.DELETE': 'Notes — add and delete',
   'ZohoCRM.notifications.ALL': 'Record change notifications',
   'ZohoCRM.settings.fields.READ': 'Field settings — read',
+  'ZohoCRM.settings.tags.CREATE': 'Tags — create',
 };
 
 /** The granted permissions, as Settings lists them (deduplicated). */

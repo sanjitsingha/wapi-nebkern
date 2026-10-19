@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { hubspotTriggerMatches } from './events';
-import { hubspotEventType, parseHubSpotEvents } from './webhook';
+import { changeOrigin, hubspotEventType, parseHubSpotEvents } from './webhook';
 
 describe('parseHubSpotEvents', () => {
   it('reads the generic object.* format by objectTypeId', () => {
@@ -64,6 +64,23 @@ describe('hubspotEventType', () => {
     expect(hubspotEventType(e, { closed: true, won: false })).toBe('deal.lost');
     expect(hubspotEventType(e, { closed: false, won: false })).toBe('deal.stage_changed');
     expect(hubspotEventType(e, null)).toBe('deal.stage_changed');
+  });
+});
+
+describe('changeOrigin', () => {
+  it('recognises our own writes by the app id HubSpot tags them with', () => {
+    expect(
+      changeOrigin({ changeSource: 'INTEGRATION', sourceId: '57626200', appId: 57626200 }),
+    ).toEqual({ byApp: true, dealId: null });
+    expect(changeOrigin({ changeSource: 'INTEGRATION', sourceId: '999', appId: 57626200 }).byApp).toBe(false);
+    expect(changeOrigin({ changeSource: 'CRM_UI', appId: 57626200 }).byApp).toBe(false);
+  });
+
+  it('names the deal behind a lifecycle sync', () => {
+    expect(
+      changeOrigin({ changeSource: 'DEALS', sourceId: 'deals-lifecycle-sync;dealId=355658323684' }),
+    ).toEqual({ byApp: false, dealId: '355658323684' });
+    expect(changeOrigin(null)).toEqual({ byApp: false, dealId: null });
   });
 });
 

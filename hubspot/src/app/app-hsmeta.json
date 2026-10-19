@@ -16,6 +16,8 @@
         "crm.objects.deals.read",
         "crm.objects.deals.write",
         "crm.objects.owners.read",
+        "crm.schemas.contacts.read",
+        "crm.schemas.contacts.write",
         "oauth"
       ],
       "optionalScopes": [],

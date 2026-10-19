@@ -36,6 +36,8 @@ import {
   splitName,
   type ContactRow,
 } from '@/lib/zoho/push';
+import { toIndianE164 } from '@/lib/whatsapp/phone-utils';
+import { contactTagNames, tagDiff } from '@/lib/crm/tags';
 import { hubspotApiFetch } from './api';
 import { isLifecycleStage, type LifecycleStage } from './lifecycle';
 
@@ -54,10 +56,24 @@ export { isLifecycleStage, type LifecycleStage } from './lifecycle';
 const CONTACT_SELECT =
   'id, account_id, name, phone, email, company, instagram_id, messenger_id, created_via, is_spam, is_blocked';
 
-/** Digits → "+digits", the form HubSpot shows and dials. */
-function e164(phone: string | null): string | null {
-  const digits = (phone ?? '').replace(/\D/g, '');
+/** The number in E.164 — "+919434001422" — the form HubSpot shows and
+ *  dials. Canonicalised the way Instant stores numbers, so a contact
+ *  imported as a bare 10-digit "9434001422" still gets its +91 rather
+ *  than reading in HubSpot as a +94 (Sri Lanka) number. */
+export function e164(phone: string | null): string | null {
+  const digits = toIndianE164(phone ?? '');
   return digits ? `+${digits}` : null;
+}
+
+/**
+ * Should an update also rewrite HubSpot's primary `phone`? Only when it
+ * already holds the same number in another form — e.g. "+9434001422",
+ * written before numbers were canonicalised. A different number (a
+ * landline someone keeps there) is left alone.
+ */
+export function phoneNeedsRewrite(current: string | null | undefined, ours: string | null): boolean {
+  if (!current || !ours || current === ours) return false;
+  return phoneKey(current) !== null && phoneKey(current) === phoneKey(ours);
 }
 
 /** The HubSpot properties for an Instant contact. */
@@ -213,17 +229,121 @@ async function findContact(db: Db, c: ContactRow): Promise<string | null> {
   return match ? String(match.id) : null;
 }
 
+// ── Tags ────────────────────────────────────────────────────
+//
+// HubSpot contacts have no tags, so Instant's go in a multiple-checkbox
+// property of its own, created on first use: "Instant tags". It filters
+// and builds lists like any HubSpot field. Each Instant tag is an
+// option, added when a contact first carries it; a contact's value is
+// its tags. The property is Instant's, so it is always written whole.
+
+export const TAGS_PROPERTY = 'instant_tags';
+
+const TAGS_NOT_ALLOWED =
+  'Tags not synced: reconnect HubSpot so Instant may create its "Instant tags" field.';
+
+/** A tag as a checkbox option. Multiple values are joined with ";", so
+ *  one inside a tag name cannot stand. */
+export function tagOptionValue(name: string): string {
+  return name.replace(/;/g, ',').trim();
+}
+
+/** A contact's tags as the property's value ("" clears it). */
+export function tagsPropertyValue(tags: string[]): string {
+  return tags.map(tagOptionValue).filter(Boolean).join(';');
+}
+
+interface TagOption {
+  label: string;
+  value: string;
+  displayOrder?: number;
+  hidden?: boolean;
+}
+
+/** Options known to exist, per account — saves reading the property on
+ *  every push. A stale entry costs one rejected write, then a re-read. */
+const knownTagOptions = new Map<string, { at: number; values: Set<string> }>();
+const TAG_OPTIONS_TTL_MS = 10 * 60_000;
+
+/**
+ * Make sure "Instant tags" exists with an option for each of `tags`.
+ * False when HubSpot will not let us — a connection made before the
+ * permission was asked for — so tags wait for a reconnect while the
+ * rest of the contact still syncs.
+ */
+async function ensureTagOptions(db: Db, accountId: string, tags: string[]): Promise<boolean> {
+  const wanted = [...new Set(tags.map(tagOptionValue).filter(Boolean))];
+  if (wanted.length === 0) return true;
+  const known = knownTagOptions.get(accountId);
+  if (known && Date.now() - known.at < TAG_OPTIONS_TTL_MS && wanted.every((v) => known.values.has(v))) {
+    return true;
+  }
+
+  const path = `/crm/v3/properties/contacts/${TAGS_PROPERTY}`;
+  const read = await hubspotApiFetch<{ options?: TagOption[] }>(db, accountId, path);
+  if (read.status === 403) return false;
+
+  let options: TagOption[];
+  if (read.status === 404) {
+    const created = await hubspotApiFetch<{ options?: TagOption[] }>(db, accountId, '/crm/v3/properties/contacts', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: TAGS_PROPERTY,
+        label: 'Instant tags',
+        description: 'Tags from Instant, kept in sync by the Instant integration.',
+        groupName: 'contactinformation',
+        type: 'enumeration',
+        fieldType: 'checkbox',
+        options: wanted.map((value, i) => ({ label: value, value, displayOrder: i, hidden: false })),
+      }),
+    });
+    if (created.status === 403) return false;
+    if (!created.data) {
+      throw new PushError(created.error ?? 'Could not create the Instant tags field in HubSpot.', created.status);
+    }
+    options = created.data.options ?? [];
+  } else if (read.data) {
+    options = read.data.options ?? [];
+  } else {
+    throw new PushError(read.error ?? 'Could not read the Instant tags field in HubSpot.', read.status);
+  }
+
+  const have = new Set(options.map((o) => o.value));
+  const missing = wanted.filter((v) => !have.has(v));
+  if (missing.length > 0) {
+    // HubSpot replaces the option list wholesale, so send it whole.
+    const next = [
+      ...options,
+      ...missing.map((value, i) => ({ label: value, value, displayOrder: options.length + i, hidden: false })),
+    ];
+    const patched = await hubspotApiFetch<{ options?: TagOption[] }>(db, accountId, path, {
+      method: 'PATCH',
+      body: JSON.stringify({ options: next }),
+    });
+    if (patched.status === 403) return false;
+    if (!patched.data) {
+      throw new PushError(patched.error ?? 'Could not add tags to the Instant tags field in HubSpot.', patched.status);
+    }
+    options = patched.data.options ?? next;
+  }
+
+  knownTagOptions.set(accountId, { at: Date.now(), values: new Set(options.map((o) => o.value)) });
+  return true;
+}
+
 interface LinkRow {
   id: string;
   hubspot_object: HubSpotObject;
   hubspot_id: string;
   synced_hash: string | null;
+  /** The tags last written to HubSpot (migration 121); null = none yet. */
+  synced_tags?: string[] | null;
 }
 
 async function getLink(db: Db, accountId: string, entity: 'contact' | 'deal', localId: string) {
   const { data } = await db
     .from('hubspot_record_links')
-    .select('id, hubspot_object, hubspot_id, synced_hash')
+    .select('id, hubspot_object, hubspot_id, synced_hash, synced_tags')
     .eq('account_id', accountId)
     .eq('entity', entity)
     .eq('local_id', localId)
@@ -231,6 +351,34 @@ async function getLink(db: Db, accountId: string, entity: 'contact' | 'deal', lo
   return (data as LinkRow | null) ?? null;
 }
 
+/**
+ * Which Instant record holds a HubSpot record's link, if any.
+ *
+ * A HubSpot record links to one Instant record, and the first one keeps
+ * it. Instant can hold the same person twice (an old import with a bare
+ * 10-digit number beside a later copy with +91), and "newest link wins"
+ * made the two take the HubSpot contact back and forth on every sync —
+ * and made HubSpot's echoes of our own writes look like someone else's.
+ */
+export async function hubspotLinkHolder(
+  db: Db,
+  accountId: string,
+  object: HubSpotObject,
+  hubspotId: string,
+): Promise<string | null> {
+  const { data } = await db
+    .from('hubspot_record_links')
+    .select('local_id')
+    .eq('account_id', accountId)
+    .eq('hubspot_object', object)
+    .eq('hubspot_id', hubspotId)
+    .maybeSingle();
+  return (data?.local_id as string | undefined) ?? null;
+}
+
+/** Save a link. Callers check hubspotLinkHolder first; a HubSpot record
+ *  another Instant record already holds is refused by the unique index,
+ *  never taken over. */
 export async function saveHubSpotLink(
   db: Db,
   accountId: string,
@@ -240,16 +388,10 @@ export async function saveHubSpotLink(
   hubspotId: string,
   hash: string | null,
   pushed: boolean,
+  /** The tags just written to HubSpot; left as they were when omitted. */
+  syncedTags?: string[],
 ): Promise<void> {
   const now = new Date().toISOString();
-  // A HubSpot record links to one Instant record; the newer link wins.
-  await db
-    .from('hubspot_record_links')
-    .delete()
-    .eq('account_id', accountId)
-    .eq('hubspot_object', object)
-    .eq('hubspot_id', hubspotId)
-    .neq('local_id', localId);
   await db.from('hubspot_record_links').upsert(
     {
       account_id: accountId,
@@ -259,6 +401,7 @@ export async function saveHubSpotLink(
       hubspot_id: hubspotId,
       synced_hash: hash,
       ...(pushed ? { pushed_at: now } : {}),
+      ...(syncedTags !== undefined ? { synced_tags: syncedTags } : {}),
       updated_at: now,
     },
     { onConflict: 'account_id,entity,local_id' },
@@ -294,14 +437,36 @@ async function pushContact(
   if (!c.phone && !c.email?.trim()) return { link: null, outcome: { skipped: true } };
 
   const hash = contactHash(c);
+  const tags = await contactTagNames(db, c.id);
   const existing = await getLink(db, c.account_id, 'contact', c.id);
 
   if (existing) {
-    if (existing.synced_hash === hash || !opts.create) return { link: existing, outcome: {} };
+    const tagChange = tagDiff(tags, existing.synced_tags);
+    const fieldsChanged = existing.synced_hash !== hash;
+    if ((!fieldsChanged && !tagChange.changed) || !opts.create) return { link: existing, outcome: {} };
+    const props: Record<string, string> = fieldsChanged ? contactProperties(c, { creating: false }) : {};
+    let syncedTags: string[] | undefined;
     try {
-      await writeObject(db, c.account_id, 'contacts', contactProperties(c, { creating: false }), {
-        id: existing.hubspot_id,
-      });
+      // HubSpot's primary `phone` is left alone on updates — unless it
+      // holds this same number in another form, which it is then put
+      // right in.
+      if (props.mobilephone) {
+        const current = await hubspotApiFetch<HsObject>(
+          db,
+          c.account_id,
+          `/crm/v3/objects/contacts/${encodeURIComponent(existing.hubspot_id)}?properties=phone`,
+        );
+        if (phoneNeedsRewrite(current.data?.properties?.phone, props.mobilephone)) {
+          props.phone = props.mobilephone;
+        }
+      }
+      if (tagChange.changed && (await ensureTagOptions(db, c.account_id, tags))) {
+        props[TAGS_PROPERTY] = tagsPropertyValue(tags);
+        syncedTags = tags;
+      }
+      if (Object.keys(props).length > 0) {
+        await writeObject(db, c.account_id, 'contacts', props, { id: existing.hubspot_id });
+      }
     } catch (err) {
       // Deleted in HubSpot since we linked it: forget the link and find
       // or create again, rather than failing forever.
@@ -311,15 +476,49 @@ async function pushContact(
       }
       throw err;
     }
-    await saveHubSpotLink(db, c.account_id, 'contact', c.id, 'contacts', existing.hubspot_id, hash, true);
-    return { link: { ...existing, synced_hash: hash }, outcome: {} };
+    await saveHubSpotLink(
+      db,
+      c.account_id,
+      'contact',
+      c.id,
+      'contacts',
+      existing.hubspot_id,
+      hash,
+      true,
+      syncedTags,
+    );
+    return {
+      link: { ...existing, synced_hash: hash },
+      outcome: tagChange.changed && !syncedTags ? { note: TAGS_NOT_ALLOWED } : {},
+    };
+  }
+
+  // The same number on another Instant contact that is already linked:
+  // one person held twice in Instant. Attach to their HubSpot contact
+  // rather than searching — HubSpot may still hold the number in a form
+  // a search misses — and never create a second one.
+  const twinId = await linkedTwin(db, c);
+  if (twinId) {
+    return {
+      link: { id: '', hubspot_object: 'contacts', hubspot_id: twinId, synced_hash: hash },
+      outcome: {
+        note: 'Another Instant contact with the same number is already linked to this HubSpot contact.',
+      },
+    };
   }
 
   const found = await findContact(db, c);
   if (found) {
-    // Link without writing: their record may be more complete than
-    // ours. Edits made in Instant from now on flow over.
+    const twin = await sameRecordElsewhere(db, c, found, hash);
+    if (twin) return twin;
+    // Link without writing their fields: their record may be more
+    // complete than ours. Edits made in Instant from now on flow over.
+    // Our tags go on, though — that field is Instant's own.
     await saveHubSpotLink(db, c.account_id, 'contact', c.id, 'contacts', found, hash, false);
+    if (tags.length > 0 && (await ensureTagOptions(db, c.account_id, tags))) {
+      await writeObject(db, c.account_id, 'contacts', { [TAGS_PROPERTY]: tagsPropertyValue(tags) }, { id: found });
+      await saveHubSpotLink(db, c.account_id, 'contact', c.id, 'contacts', found, hash, true, tags);
+    }
     return {
       link: { id: '', hubspot_object: 'contacts', hubspot_id: found, synced_hash: hash },
       outcome: { note: 'Linked to an existing HubSpot contact.' },
@@ -328,19 +527,69 @@ async function pushContact(
 
   if (!opts.create) return { link: null, outcome: { skipped: true } };
 
-  const id = await writeObject(
-    db,
-    c.account_id,
-    'contacts',
-    contactProperties(c, {
-      creating: true,
-      lifecycle: c.created_via === 'conversation' ? opts.lifecycle : null,
-    }),
-  );
-  await saveHubSpotLink(db, c.account_id, 'contact', c.id, 'contacts', id, hash, true);
+  const props: Record<string, string> = contactProperties(c, {
+    creating: true,
+    lifecycle: c.created_via === 'conversation' ? opts.lifecycle : null,
+  });
+  const withTags = tags.length > 0 && (await ensureTagOptions(db, c.account_id, tags));
+  if (withTags) props[TAGS_PROPERTY] = tagsPropertyValue(tags);
+  const id = await writeObject(db, c.account_id, 'contacts', props);
+  // A 409 hands back an existing contact, which may be a twin's.
+  const twin = await sameRecordElsewhere(db, c, id, hash);
+  if (twin) return twin;
+  await saveHubSpotLink(db, c.account_id, 'contact', c.id, 'contacts', id, hash, true, withTags ? tags : undefined);
   return {
     link: { id: '', hubspot_object: 'contacts', hubspot_id: id, synced_hash: hash },
     outcome: {},
+  };
+}
+
+/** The HubSpot contact linked to another Instant contact with this
+ *  contact's number (same last ten digits), if there is one. */
+async function linkedTwin(db: Db, c: ContactRow): Promise<string | null> {
+  const key = phoneKey(c.phone);
+  if (!key) return null;
+  const { data: twins } = await db
+    .from('contacts')
+    .select('id')
+    .eq('account_id', c.account_id)
+    .neq('id', c.id)
+    .like('phone_normalized', `%${key}`)
+    .limit(10);
+  if (!twins?.length) return null;
+  const { data: link } = await db
+    .from('hubspot_record_links')
+    .select('hubspot_id')
+    .eq('account_id', c.account_id)
+    .eq('entity', 'contact')
+    .in(
+      'local_id',
+      twins.map((t) => t.id as string),
+    )
+    .limit(1)
+    .maybeSingle();
+  return (link?.hubspot_id as string | undefined) ?? null;
+}
+
+/**
+ * When the HubSpot contact this person matches is already linked to
+ * another Instant contact — the same person held twice in Instant —
+ * leave that link alone. Their deals still attach to the HubSpot
+ * contact; this record simply stays unlinked.
+ */
+async function sameRecordElsewhere(
+  db: Db,
+  c: ContactRow,
+  hubspotId: string,
+  hash: string,
+): Promise<{ link: LinkRow; outcome: PushOutcome } | null> {
+  const holder = await hubspotLinkHolder(db, c.account_id, 'contacts', hubspotId);
+  if (!holder || holder === c.id) return null;
+  return {
+    link: { id: '', hubspot_object: 'contacts', hubspot_id: hubspotId, synced_hash: hash },
+    outcome: {
+      note: 'Another Instant contact with the same number is already linked to this HubSpot contact.',
+    },
   };
 }
 
@@ -418,6 +667,16 @@ export function mapHubSpotStage(
     const n = norm(stageName);
     const exact = stages.find((s) => norm(s.label) === n);
     if (exact) return { stage: exact };
+    // An Instant stage called "Won" or "Lost" means closed, whatever
+    // HubSpot calls its closed stages ("Closed won", "Deal lost"…).
+    if (/won|win/.test(n)) {
+      const won = stages.find((s) => s.won);
+      if (won) return { stage: won };
+    }
+    if (/lost|lose/.test(n)) {
+      const lost = stages.find((s) => s.closed && !s.won);
+      if (lost) return { stage: lost };
+    }
     const loose = open.find((s) => n && (norm(s.label).includes(n) || n.includes(norm(s.label))));
     if (loose) return { stage: loose };
   }

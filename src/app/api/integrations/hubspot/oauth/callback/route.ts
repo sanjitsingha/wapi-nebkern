@@ -140,6 +140,8 @@ export async function GET(request: Request) {
     // unchanged records cost the worker a lookup and nothing in HubSpot.
     try {
       await db.rpc('hubspot_backfill', { p_account: ctx.accountId, p_deals: true });
+      // And the notes already written on contacts (migration 122).
+      await db.rpc('crm_notes_backfill', { p_account: ctx.accountId, p_crm: 'hubspot' });
     } catch {
       // Queued edits still flow; only the catch-up is missed.
     }

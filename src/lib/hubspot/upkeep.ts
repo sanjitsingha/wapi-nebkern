@@ -3,13 +3,14 @@
 // integration needs no cron of its own:
 //
 //   every minute   push queued records, finish events the webhook's
-//                  own run did not, and log quiet chats.
+//                  own run did not, log quiet chats, and copy notes.
 //   once an hour   give pushes that ran out of retries a fresh round a
 //                  day later, and trim the event log to a month.
 // ============================================================
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+import { syncCrmNotes } from '@/lib/crm/note-sync';
 import { logHubSpotChats } from './chat-log';
 import { processHubSpotEvents } from './process';
 import { drainHubSpotQueue } from './push';
@@ -69,6 +70,7 @@ export async function runHubSpotCron(db: SupabaseClient): Promise<Record<string,
   await step('push', () => drainHubSpotQueue(db, { budgetMs: 12_000 }));
   await step('events', () => processHubSpotEvents(db, { budgetMs: 6_000 }));
   await step('chats', () => logHubSpotChats(db, { budgetMs: 6_000 }));
+  await step('notes', () => syncCrmNotes(db, 'hubspot', { budgetMs: 5_000 }));
   if (new Date().getUTCMinutes() === 30) await step('requeued', () => hourly(db));
   return out;
 }

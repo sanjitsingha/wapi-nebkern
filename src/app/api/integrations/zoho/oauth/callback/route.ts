@@ -255,6 +255,8 @@ export async function GET(request: Request) {
     // Zoho, so a reconnect running this again is harmless.
     try {
       await db.rpc('zoho_backfill', { p_account: ctx.accountId, p_deals: true });
+      // And the notes already written on contacts (migration 122).
+      await db.rpc('crm_notes_backfill', { p_account: ctx.accountId, p_crm: 'zoho' });
     } catch {
       // Queued edits still flow; only the catch-up is missed.
     }

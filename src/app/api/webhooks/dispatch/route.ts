@@ -8,6 +8,7 @@ import { drainSheetQueue, exportFinishedCampaigns } from '@/lib/google-sheets/sy
 import { drainZohoQueue } from '@/lib/zoho/push';
 import { logZohoChats } from '@/lib/zoho/chat-log';
 import { runHubSpotCron } from '@/lib/hubspot/upkeep';
+import { syncCrmNotes } from '@/lib/crm/note-sync';
 import { sweepDueAiReplies } from '@/lib/ai/due-replies';
 
 /**
@@ -80,6 +81,13 @@ export async function GET(request: Request) {
     } catch (err) {
       console.error('[webhooks-cron] zoho chat log failed:', err);
       zoho.chats = { error: err instanceof Error ? err.message : String(err) };
+    }
+    // Contact notes written in Instant, copied to Zoho (migration 122).
+    try {
+      zoho.notes = await syncCrmNotes(admin, 'zoho', { budgetMs: 5_000 });
+    } catch (err) {
+      console.error('[webhooks-cron] zoho notes failed:', err);
+      zoho.notes = { error: err instanceof Error ? err.message : String(err) };
     }
 
     // HubSpot: pushes, events the webhook's own run did not finish, and

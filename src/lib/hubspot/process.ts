@@ -19,8 +19,13 @@ import { runAutomationsForTrigger } from '@/lib/automations/engine';
 import { contactHash, type ContactRow } from '@/lib/zoho/push';
 import { hubspotApiFetch } from './api';
 import { personFromProperties, upsertContactFromHubSpot } from './ingest';
-import { pickPipeline, saveHubSpotLink, type HubSpotPipeline } from './push';
-import { hubspotEventType, type ParsedHubSpotEvent } from './webhook';
+import { hubspotLinkHolder, pickPipeline, saveHubSpotLink, type HubSpotPipeline } from './push';
+import {
+  changeOrigin,
+  hubspotEventType,
+  type ParsedHubSpotEvent,
+  type RawHubSpotEvent,
+} from './webhook';
 
 type Db = SupabaseClient;
 
@@ -105,6 +110,8 @@ interface EventRow {
   property_value: string | null;
   subscription_type: string | null;
   attempts: number;
+  /** The event as HubSpot sent it — says who made the change. */
+  payload: RawHubSpotEvent | null;
 }
 
 interface HsRecord {
@@ -254,48 +261,63 @@ async function handleEvent(db: Db, row: EventRow): Promise<Outcome> {
   const ownerUserId = account?.owner_user_id as string | undefined;
   if (!ownerUserId) return { status: 'skipped', eventType, skipReason: 'no_owner' };
 
-  let echo = await recentlyPushed(db, row.account_id, row.object_id);
-  const ingest = await upsertContactFromHubSpot(db, row.account_id, ownerUserId, personFromProperties(props));
-  if (!ingest.contactId) {
-    return { status: 'skipped', eventType, skipReason: ingest.skippedReason ?? 'no_phone' };
-  }
-  if (!echo) echo = await ownPushInFlight(db, row.account_id, ingest.contactId);
+  // Our own write coming back? HubSpot says so itself: our app id as the
+  // source, or its deal lifecycle sync reacting to a deal we pushed. The
+  // link-based checks below catch anything it does not label.
+  const origin = changeOrigin(row.payload);
+  let echo =
+    origin.byApp ||
+    (!!origin.dealId && (await recentlyPushed(db, row.account_id, origin.dealId))) ||
+    (await recentlyPushed(db, row.account_id, row.object_id));
 
-  // Remember which HubSpot contact this person is, so Instant → HubSpot
-  // updates it instead of searching. Only when they have no link yet.
-  const { data: existingLink } = await db
-    .from('hubspot_record_links')
-    .select('id')
-    .eq('account_id', row.account_id)
-    .eq('entity', 'contact')
-    .eq('local_id', ingest.contactId)
-    .maybeSingle();
-  if (!existingLink) {
-    const { data: contact } = await db
-      .from('contacts')
-      .select('id, account_id, name, phone, email, company, instagram_id, messenger_id, created_via')
-      .eq('id', ingest.contactId)
+  // The Instant contact: whoever this HubSpot contact is already linked
+  // to, and only otherwise a match (or a new contact) by phone. Matching
+  // first would pick the other copy of someone Instant holds twice.
+  let contactId = await hubspotLinkHolder(db, row.account_id, 'contacts', contactHsId);
+  if (!contactId) {
+    const ingest = await upsertContactFromHubSpot(db, row.account_id, ownerUserId, personFromProperties(props));
+    if (!ingest.contactId) {
+      return { status: 'skipped', eventType, skipReason: ingest.skippedReason ?? 'no_phone' };
+    }
+    contactId = ingest.contactId;
+
+    // Remember which HubSpot contact this person is, so Instant →
+    // HubSpot updates it instead of searching — when they have no link.
+    const { data: existingLink } = await db
+      .from('hubspot_record_links')
+      .select('id')
+      .eq('account_id', row.account_id)
+      .eq('entity', 'contact')
+      .eq('local_id', contactId)
       .maybeSingle();
-    if (contact) {
-      await saveHubSpotLink(
-        db,
-        row.account_id,
-        'contact',
-        ingest.contactId,
-        'contacts',
-        contactHsId,
-        contactHash(contact as ContactRow),
-        false,
-      );
+    if (!existingLink) {
+      const { data: contact } = await db
+        .from('contacts')
+        .select('id, account_id, name, phone, email, company, instagram_id, messenger_id, created_via')
+        .eq('id', contactId)
+        .maybeSingle();
+      if (contact) {
+        await saveHubSpotLink(
+          db,
+          row.account_id,
+          'contact',
+          contactId,
+          'contacts',
+          contactHsId,
+          contactHash(contact as ContactRow),
+          false,
+        );
+      }
     }
   }
+  if (!echo) echo = await ownPushInFlight(db, row.account_id, contactId);
 
-  if (echo) return { status: 'done', eventType, contactId: ingest.contactId, skipReason: 'own_change' };
+  if (echo) return { status: 'done', eventType, contactId, skipReason: 'own_change' };
 
   await runAutomationsForTrigger({
     accountId: row.account_id,
     triggerType: 'hubspot_event',
-    contactId: ingest.contactId,
+    contactId,
     context: {
       vars: {
         ...stringVars(props, CONTACT_PROPERTIES),
@@ -313,7 +335,7 @@ async function handleEvent(db: Db, row: EventRow): Promise<Outcome> {
       },
     },
   });
-  return { status: 'done', eventType, contactId: ingest.contactId };
+  return { status: 'done', eventType, contactId };
 }
 
 export interface ProcessSummary {
@@ -335,7 +357,7 @@ export async function processHubSpotEvents(
 
   let query = db
     .from('hubspot_events')
-    .select('id, account_id, object_type, object_id, property_name, property_value, subscription_type, attempts')
+    .select('id, account_id, object_type, object_id, property_name, property_value, subscription_type, attempts, payload')
     .eq('status', 'pending')
     .order('occurred_at', { ascending: true, nullsFirst: true })
     .limit(limit);

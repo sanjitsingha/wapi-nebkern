@@ -41,6 +41,9 @@ export const HUBSPOT_API = 'https://api.hubapi.com';
  *                                    pipeline's stages.
  *   crm.objects.owners.read          the record owner's name in the
  *                                    inbox panel.
+ *   crm.schemas.contacts.read/write  the "Instant tags" contact field:
+ *                                    create it, and add an option for
+ *                                    each new tag (lib/hubspot/push.ts).
  *   oauth                            HubSpot's base OAuth scope.
  */
 export const HUBSPOT_SCOPES = [
@@ -49,6 +52,8 @@ export const HUBSPOT_SCOPES = [
   'crm.objects.deals.read',
   'crm.objects.deals.write',
   'crm.objects.owners.read',
+  'crm.schemas.contacts.read',
+  'crm.schemas.contacts.write',
   'oauth',
 ] as const;
 
@@ -60,6 +65,8 @@ export const HUBSPOT_SCOPE_LABELS: Record<(typeof HUBSPOT_SCOPES)[number], strin
   'crm.objects.deals.read': 'Deals — read and write',
   'crm.objects.deals.write': 'Deals — read and write',
   'crm.objects.owners.read': 'Owners — read',
+  'crm.schemas.contacts.read': 'Contact fields — add the Instant tags field',
+  'crm.schemas.contacts.write': 'Contact fields — add the Instant tags field',
   // Not a permission anyone needs explained.
   oauth: null,
 };
@@ -69,7 +76,7 @@ export function hubspotPermissionLabels(): string[] {
   const labels = HUBSPOT_SCOPES.map((s) => HUBSPOT_SCOPE_LABELS[s]).filter(
     (l): l is string => !!l,
   );
-  return [...new Set([...labels, 'Timeline — log WhatsApp chats'])];
+  return [...new Set([...labels, 'Timeline — log WhatsApp chats', 'Notes — add and delete'])];
 }
 
 /**

@@ -70,7 +70,7 @@ export async function GET() {
  */
 async function syncStatus(accountId: string, scopes: string[] | null) {
   const db = supabaseAdmin();
-  const [pending, synced, permission] = await Promise.all([
+  const [pending, synced, permission, notePermission] = await Promise.all([
     db
       .from('hubspot_sync_queue')
       .select('id', { count: 'exact', head: true })
@@ -87,6 +87,14 @@ async function syncStatus(accountId: string, scopes: string[] | null) {
       .in('status', ['pending', 'failed'])
       .or('last_error.ilike.%reconnect%,last_error.ilike.%permission%')
       .limit(1),
+    db
+      .from('crm_note_syncs')
+      .select('id')
+      .eq('account_id', accountId)
+      .eq('crm', 'hubspot')
+      .in('status', ['pending', 'failed'])
+      .or('last_error.ilike.%reconnect%,last_error.ilike.%permission%')
+      .limit(1),
   ]);
   // A connection made before a scope was added is missing it.
   const missingScope =
@@ -95,7 +103,8 @@ async function syncStatus(accountId: string, scopes: string[] | null) {
   return {
     pending: pending.count ?? 0,
     synced: synced.count ?? 0,
-    needsReconnect: missingScope || (permission.data?.length ?? 0) > 0,
+    needsReconnect:
+      missingScope || (permission.data?.length ?? 0) > 0 || (notePermission.data?.length ?? 0) > 0,
   };
 }
 
@@ -121,6 +130,7 @@ export async function PATCH(request: Request) {
     if (body.action === 'resync') {
       await db.from('hubspot_connections').update({ deal_pipeline_at: null }).eq('id', conn.id);
       await db.rpc('hubspot_backfill', { p_account: ctx.accountId, p_deals: true });
+      await db.rpc('crm_notes_backfill', { p_account: ctx.accountId, p_crm: 'hubspot' });
       return NextResponse.json({ ok: true });
     }
 

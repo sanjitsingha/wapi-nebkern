@@ -95,6 +95,26 @@ export function parseHubSpotEvents(body: unknown): ParsedHubSpotEvent[] {
 }
 
 /**
+ * Who made a change, by HubSpot's own account of it:
+ *   byApp   Instant wrote it — HubSpot tags our writes with
+ *           changeSource INTEGRATION and our app id as the source.
+ *   dealId  HubSpot's deal lifecycle sync moved a contact's stage
+ *           because of this deal — ours, if we pushed the deal.
+ */
+export function changeOrigin(raw: RawHubSpotEvent | null | undefined): {
+  byApp: boolean;
+  dealId: string | null;
+} {
+  const source = raw?.changeSource ?? '';
+  const sourceId = raw?.sourceId === undefined || raw?.sourceId === null ? '' : String(raw.sourceId);
+  const appId = raw?.appId === undefined || raw?.appId === null ? '' : String(raw.appId);
+  return {
+    byApp: source === 'INTEGRATION' && !!appId && sourceId === appId,
+    dealId: source === 'DEALS' ? (sourceId.match(/dealId=(\d+)/)?.[1] ?? null) : null,
+  };
+}
+
+/**
  * What an event is called for automations ({{vars.hubspot_event}}), or
  * null when it is not one we run anything on. A deal stage change needs
  * to know whether the new stage is closed, which the caller looks up.
