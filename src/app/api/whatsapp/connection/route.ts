@@ -6,8 +6,9 @@ import { loadWhatsAppAccess } from '@/lib/whatsapp/server-config'
 /**
  * GET /api/whatsapp/connection
  *
- * Whether this account has usable WhatsApp credentials stored. One
- * database read and a decrypt — deliberately no call to Meta.
+ * Whether this account has usable WhatsApp credentials stored, for a
+ * number Meta finished registering. Two small database reads and a
+ * decrypt — deliberately no call to Meta.
  *
  * WHY NOT REUSE /api/whatsapp/config OR /api/whatsapp/phone-health
  *
@@ -28,12 +29,26 @@ export async function GET() {
   try {
     const { supabase, accountId } = await getCurrentAccount()
 
-    const access = await loadWhatsAppAccess(supabase, accountId)
-    if (access.ok) return NextResponse.json({ connected: true })
+    const [access, { data: row }] = await Promise.all([
+      loadWhatsAppAccess(supabase, accountId),
+      supabase.from('whatsapp_config').select('status').eq('account_id', accountId).maybeSingle(),
+    ])
 
     // `reason` distinguishes "never set up" from "set up, but the token
     // no longer decrypts" — a different sentence and a different fix.
-    return NextResponse.json({ connected: false, reason: access.reason })
+    if (!access.ok) return NextResponse.json({ connected: false, reason: access.reason })
+
+    // Saved, but Meta never finished registering the number (it wanted
+    // the number's PIN, or the number is still on the WhatsApp app): the
+    // connect flows keep the row with status 'disconnected' so Settings
+    // can offer to finish, and nothing is sent or received until then.
+    // Rows from before `status` existed carry no such mark and stay
+    // connected.
+    if (row?.status === 'disconnected') {
+      return NextResponse.json({ connected: false, reason: 'not_registered' })
+    }
+
+    return NextResponse.json({ connected: true })
   } catch (err) {
     return toErrorResponse(err)
   }

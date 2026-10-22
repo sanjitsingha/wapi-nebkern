@@ -34,7 +34,8 @@ type Connection = {
   connected: boolean;
   /** 'no_config' — never set up. 'token_corrupted' — set up once, but
    *  the stored token no longer decrypts (usually a changed
-   *  ENCRYPTION_KEY). Different sentence, different fix. */
+   *  ENCRYPTION_KEY). 'not_registered' — saved, but Meta never finished
+   *  registering the number. Different sentence, different fix. */
   reason?: string;
 };
 
@@ -71,6 +72,7 @@ export function WhatsAppConnectBanner() {
   if (!conn || conn.connected) return null;
 
   const needsReauth = conn.reason === 'token_corrupted';
+  const unfinished = conn.reason === 'not_registered';
 
   return (
     // NO `dark:` variant here, deliberately, and it is not an oversight.
@@ -97,13 +99,15 @@ export function WhatsAppConnectBanner() {
       <span>
         {needsReauth
           ? 'Your WhatsApp connection needs re-authorising — messages cannot be sent or received.'
-          : 'Connect your WhatsApp number to start sending and receiving messages.'}
+          : unfinished
+            ? 'Your WhatsApp number isn’t fully connected yet — messages cannot be sent or received.'
+            : 'Connect your WhatsApp number to start sending and receiving messages.'}
       </span>
       <Link
         href="/settings/whatsapp"
         className="inline-flex items-center gap-1 font-semibold underline underline-offset-2 hover:no-underline"
       >
-        {needsReauth ? 'Fix it' : 'Connect now'}
+        {needsReauth ? 'Fix it' : unfinished ? 'Finish connecting' : 'Connect now'}
         <ArrowRight className="size-4 shrink-0" />
       </Link>
     </div>
