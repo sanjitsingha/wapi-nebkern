@@ -88,6 +88,7 @@ export function AccountsTable({
       if (!q) return true;
       return (
         r.name.toLowerCase().includes(q) ||
+        (qDigits.length > 0 && String(r.accountNumber ?? '').includes(qDigits)) ||
         (r.ownerEmail ?? '').toLowerCase().includes(q) ||
         (qDigits.length >= 4 && (r.ownerPhone ?? '').includes(qDigits))
       );
@@ -102,7 +103,7 @@ export function AccountsTable({
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by account, owner email or phone"
+            placeholder="Search by account, account ID, owner email or phone"
             className="h-9 pl-9"
           />
         </div>
@@ -126,6 +127,7 @@ export function AccountsTable({
           filename="accounts"
           columns={[
             { header: 'Account', value: (r) => r.name },
+            { header: 'Account ID', value: (r) => r.accountNumber },
             { header: 'Owner email', value: (r) => r.ownerEmail },
             { header: 'Owner phone', value: (r) => r.ownerPhone },
             { header: 'Plan', value: (r) => r.plan },
@@ -138,7 +140,7 @@ export function AccountsTable({
             { header: 'Members', value: (r) => r.memberCount },
             { header: 'Trial ends', value: (r) => r.trialEndsAt },
             { header: 'Created', value: (r) => r.createdAt },
-            { header: 'Account id', value: (r) => r.id },
+            { header: 'Account uuid', value: (r) => r.id },
           ]}
         />
       </div>
@@ -181,8 +183,13 @@ export function AccountsTable({
                   onClick={() => router.push(`/admin/accounts/${r.id}`)}
                   className="border-border hover:bg-muted/50 cursor-pointer"
                 >
-                  <TableCell className="text-foreground font-medium">
-                    {r.name}
+                  <TableCell>
+                    <div className="text-foreground font-medium">{r.name}</div>
+                    {r.accountNumber != null && (
+                      <div className="text-muted-foreground font-mono text-[11px] tabular-nums">
+                        ID {r.accountNumber}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     <div className="text-muted-foreground">

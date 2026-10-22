@@ -61,6 +61,8 @@ export interface AccountRow {
   trial_started_at: string | null;
   trial_ends_at: string | null;
   created_at: string;
+  /** The short account ID customers quote to support (migration 123). */
+  account_number: number | null;
 }
 
 /**
@@ -73,14 +75,21 @@ export interface AccountRow {
 export const getAccounts = cache(
   async (): Promise<AccountRow[]> =>
     cachedRead(ADMIN_TAGS.accounts, ['all'], async () => {
+      const columns =
+        'id, name, owner_user_id, plan, subscription_status, trial_started_at, trial_ends_at, created_at';
+      const withNumber = await adminDb()
+        .from('accounts')
+        .select(`${columns}, account_number`)
+        .order('created_at', { ascending: false });
+      if (!withNumber.error) return (withNumber.data ?? []) as AccountRow[];
+
+      // Before migration 123 there is no account_number: the panel
+      // still lists every account, just without its ID.
       const { data } = await adminDb()
         .from('accounts')
-        .select(
-          'id, name, owner_user_id, plan, subscription_status, trial_started_at, trial_ends_at, created_at'
-        )
+        .select(columns)
         .order('created_at', { ascending: false });
-
-      return (data ?? []) as AccountRow[];
+      return (data ?? []).map((a) => ({ ...a, account_number: null })) as AccountRow[];
     })
 );
 
@@ -180,6 +189,12 @@ export const getAccountsIndex = cache(async (): Promise<AccountRef[]> => {
 export const getAccountsMap = cache(async (): Promise<Map<string, string>> => {
   const rows = await getAccountsIndex();
   return new Map(rows.map((a) => [a.id, a.name]));
+});
+
+/** id → the short account ID customers quote to support. */
+export const getAccountNumbers = cache(async (): Promise<Map<string, number | null>> => {
+  const rows = await getAccounts();
+  return new Map(rows.map((a) => [a.id, a.account_number]));
 });
 
 /** owner/member email by user id, for "who owns this account?". */
@@ -296,6 +311,8 @@ export const getOverviewStats = cache(async (): Promise<OverviewStats> => {
  */
 export interface AccountView {
   id: string;
+  /** The short account ID customers quote to support. */
+  accountNumber: number | null;
   name: string;
   ownerEmail: string | null;
   plan: string;
@@ -339,6 +356,7 @@ export const getAccountViews = cache(async (): Promise<AccountView[]> => {
     const wa = whatsappByAccount.get(a.id);
     return {
       id: a.id,
+      accountNumber: a.account_number,
       name: a.name,
       ownerEmail: emailByUserId.get(a.owner_user_id) ?? null,
       ownerPhone: phoneByUserId.get(a.owner_user_id) ?? null,

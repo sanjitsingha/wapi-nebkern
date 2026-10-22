@@ -4,7 +4,7 @@ import { ArrowLeft, Users, Radio, LifeBuoy, MessageCircle } from 'lucide-react';
 
 import { computeSubscription } from '@/lib/billing/subscription';
 import { adminDb } from '../../../_lib/admin-db';
-import { getPlans, getProfiles } from '../../../_lib/admin-data';
+import { getAccountNumbers, getPlans, getProfiles } from '../../../_lib/admin-data';
 import { getWhatsAppDetail } from '../../../_lib/admin-whatsapp';
 import { fmtDate, fmtDateTime, fmtMoney } from '../../../_lib/format';
 import { SubscriptionBadge, WhatsAppBadge } from '../../../_components/badges';
@@ -76,6 +76,7 @@ export default async function AdminAccountDetailPage({
     ticketsRes,
     plans,
     invoicesRes,
+    numberByAccount,
   ] = await Promise.all([
     getProfiles(),
     // Live Meta lookup for the readable number, capped at 5s so a slow
@@ -101,7 +102,10 @@ export default async function AdminAccountDetailPage({
       )
       .eq('account_id', id)
       .order('issued_at', { ascending: false }),
+    getAccountNumbers(),
   ]);
+
+  const accountNumber = numberByAccount.get(id) ?? null;
 
   const invoices = ((invoicesRes.data ?? []) as InvoiceRow[]).map(
     mapInvoiceRow
@@ -140,6 +144,9 @@ export default async function AdminAccountDetailPage({
             <SubscriptionBadge status={sub.status} />
           </div>
           <p className="text-muted-foreground mt-1 text-sm">
+            {accountNumber != null && (
+              <span className="text-foreground font-mono tabular-nums">ID {accountNumber} · </span>
+            )}
             Owner {ownerEmail ?? '—'} · Created {fmtDate(account.created_at)}
             {billingLabel ? ` · ${billingLabel}` : ''}
           </p>

@@ -37,6 +37,8 @@ export interface TicketView {
   id: string;
   subject: string;
   accountName: string;
+  /** The short account ID customers quote to support. */
+  accountNumber: number | null;
   creatorEmail: string | null;
   category: string;
   priority: SupportTicketPriority;
@@ -88,6 +90,7 @@ export function TicketsTable({
         ref.slice(1).startsWith(q.replace(/^#/, '')) ||
         r.subject.toLowerCase().includes(q) ||
         r.accountName.toLowerCase().includes(q) ||
+        (r.accountNumber != null && String(r.accountNumber).includes(q)) ||
         (r.creatorEmail ?? '').toLowerCase().includes(q)
       );
     });
@@ -101,7 +104,7 @@ export function TicketsTable({
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search subject, account, or email"
+            placeholder="Search subject, account, account ID, or email"
             className="h-11 pl-9"
           />
         </div>
@@ -205,6 +208,11 @@ export function TicketsTable({
                   </TableCell>
                   <TableCell className="text-muted-foreground hidden md:table-cell">
                     {r.accountName}
+                    {r.accountNumber != null && (
+                      <span className="block font-mono text-[11px] tabular-nums">
+                        ID {r.accountNumber}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="hidden lg:table-cell">
                     <PriorityBadge priority={r.priority} />

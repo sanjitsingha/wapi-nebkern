@@ -6,6 +6,7 @@ import { Check, Loader2 } from 'lucide-react';
 
 import { formatMoney } from '@/lib/billing/plans';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useActivationCode } from '@/components/settings/activation-code-card';
 import { payForPlan } from './razorpay-checkout';
 
 export interface PlanOption {
@@ -45,8 +47,9 @@ function priceLabel(plan: PlanOption): string {
  * the tiers above the current one for a paid account; every plan for a
  * trial/expired one) and passes them in — this dialog just lets the user
  * pick one from a dropdown and pay for it through Razorpay Standard
- * Checkout. On success the plan is already active server-side, so
- * `onUpgraded` lets the parent refresh.
+ * Checkout — or redeem an activation code instead, which is the other
+ * way to buy a plan. On success the plan is already active server-side,
+ * so `onUpgraded` lets the parent refresh.
  */
 export function UpgradeDialog({
   open,
@@ -62,6 +65,10 @@ export function UpgradeDialog({
 }) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
+  const activation = useActivationCode(() => {
+    onOpenChange(false);
+    onUpgraded?.();
+  });
 
   // Default the dropdown to the featured plan (else the first offered)
   // each time the dialog opens or the choices change; keep a still-valid
@@ -138,7 +145,13 @@ export function UpgradeDialog({
                 onValueChange={(v) => setSelectedKey(v)}
               >
                 <SelectTrigger id="plan-select" className="w-full">
-                  <SelectValue placeholder="Select a plan" />
+                  {/* Base UI shows the raw value unless told the label. */}
+                  <SelectValue placeholder="Choose a plan">
+                    {(v: string) => {
+                      const p = plans.find((x) => x.key === v);
+                      return p ? `${p.name} — ${priceLabel(p)}` : 'Choose a plan';
+                    }}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {plans.map((p) => (
@@ -183,12 +196,37 @@ export function UpgradeDialog({
           </div>
         )}
 
+        {/* The other way to buy: a code turns its plan on at once. */}
+        <div className="flex items-center gap-3 border-t border-border pt-4">
+          <Input
+            value={activation.code}
+            onChange={(e) => activation.setCode(e.target.value.toUpperCase())}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void activation.redeem();
+            }}
+            placeholder="Have an activation code?"
+            aria-label="Activation code"
+            maxLength={40}
+            disabled={paying}
+            className="focus-visible:border-primary h-9 flex-1 rounded-none border-0 border-b bg-transparent px-0 shadow-none focus-visible:ring-0 dark:bg-transparent"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void activation.redeem()}
+            disabled={paying || activation.redeeming || !activation.code.trim()}
+          >
+            {activation.redeeming && <Loader2 className="size-4 animate-spin" />}
+            Redeem
+          </Button>
+        </div>
+
         <DialogFooter>
           <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={paying}
+            disabled={paying || activation.redeeming}
           >
             Cancel
           </Button>

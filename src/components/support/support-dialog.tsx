@@ -29,6 +29,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { AccountId } from '@/components/account/account-id';
 import {
   Select,
   SelectContent,
@@ -349,6 +350,8 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
                   ? 'Describe your issue and our team will reply right here.'
                   : 'Raise a ticket or continue a conversation with our team.'}
               </DialogDescription>
+              {/* Quote it when reaching the team any other way. */}
+              <AccountId />
             </>
           )}
         </DialogHeader>

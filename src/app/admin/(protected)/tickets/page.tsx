@@ -1,5 +1,5 @@
 import { adminDb } from '../../_lib/admin-db';
-import { getAccountsMap, getEmailsByUserId } from '../../_lib/admin-data';
+import { getAccountNumbers, getAccountsMap, getEmailsByUserId } from '../../_lib/admin-data';
 import { TicketsTable, type TicketView } from '../../_components/tickets-table';
 import { CacheNote, PageHeader } from '../../_components/ui';
 import type { SupportTicketStatus, SupportTicketPriority } from '@/types';
@@ -38,7 +38,7 @@ export default async function AdminTicketsPage({
   // one place a minute-old view sends you away from a queue that isn't
   // actually clear. Both label lookups beside them are cached, and both
   // are derivations of reads other pages have already paid for.
-  const [ticketsRes, nameByAccount, emailByUser] = await Promise.all([
+  const [ticketsRes, nameByAccount, emailByUser, numberByAccount] = await Promise.all([
     db
       .from('support_tickets')
       .select(
@@ -47,6 +47,7 @@ export default async function AdminTicketsPage({
       .order('updated_at', { ascending: false }),
     getAccountsMap(),
     getEmailsByUserId(),
+    getAccountNumbers(),
   ]);
 
   const tickets = (ticketsRes.data ?? []) as TicketRow[];
@@ -55,6 +56,7 @@ export default async function AdminTicketsPage({
     id: t.id,
     subject: t.subject,
     accountName: nameByAccount.get(t.account_id) ?? '—',
+    accountNumber: numberByAccount.get(t.account_id) ?? null,
     creatorEmail: t.user_id ? (emailByUser.get(t.user_id) ?? null) : null,
     category: t.category,
     priority: t.priority as SupportTicketPriority,

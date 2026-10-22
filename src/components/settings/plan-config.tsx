@@ -3,30 +3,24 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
-  Loader2,
-  Sparkles,
-  AlertTriangle,
-  BadgeCheck,
   ArrowUpRight,
+  BadgeCheck,
+  CalendarDays,
+  Hourglass,
+  Loader2,
   Receipt,
-  Users,
-  Contact,
-  HardDrive,
-  Check,
-  X,
-  Zap,
-  Megaphone,
-  Bot,
+  Repeat,
+  TriangleAlert,
+  Wallet,
+  type LucideIcon,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { softBadge } from '@/lib/badge-colors';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { formatMoney } from '@/lib/billing/plans';
 import { type Invoice } from '@/lib/billing/invoice';
-import { TRIAL_DAYS, type SubscriptionState } from '@/lib/billing/subscription';
-import { useEntitlements } from '@/hooks/use-entitlements';
+import { type SubscriptionState } from '@/lib/billing/subscription';
 import { UpgradeDialog, type PlanOption } from '@/components/billing/upgrade-dialog';
 
 /** Mirrors AccountBilling from /api/account/subscription. */
@@ -42,9 +36,9 @@ interface AccountBilling {
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-US', {
-    month: 'long',
+  return new Date(iso).toLocaleDateString('en-IN', {
     day: 'numeric',
+    month: 'short',
     year: 'numeric',
   });
 }
@@ -55,303 +49,94 @@ function intervalSuffix(interval: 'monthly' | 'yearly' | null): string {
   return '';
 }
 
+const PILL = 'rounded-full border px-2 py-0.5 text-[11px] font-medium';
+
+type Fact = { icon: LucideIcon; label: string; value: string };
+
 /**
- * The current subscription block — reflects the plan the admin assigned
- * (name, price, billing period) plus trial/expiry state. Rendered as a
- * plain bordered block (PlanSection is itself a Card, so nesting Cards
- * would read as a box-in-a-box).
+ * What the account is on, as one row of facts — the dashboard's
+ * figures idiom: a grey icon and label over each value, a rule between
+ * them. Only facts that exist are shown.
  */
-function CurrentPlan({
-  sub,
-  billing,
-}: {
-  sub: SubscriptionState;
-  billing: AccountBilling | null;
-}) {
-  // Trial — show progress + end date.
+function planFacts(sub: SubscriptionState, billing: AccountBilling | null): Fact[] {
+  const rawName = billing?.planName ?? billing?.planKey ?? null;
+  // A bare key ('growth') reads as a name with its first letter up.
+  const paidName = rawName ? rawName.charAt(0).toUpperCase() + rawName.slice(1) : null;
+
   if (sub.status === 'trialing') {
-    const elapsed = Math.min(
-      100,
-      Math.max(0, ((TRIAL_DAYS - sub.trialDaysLeft) / TRIAL_DAYS) * 100),
-    );
-    return (
-      <div className="rounded-xl border border-border bg-muted/30 p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
-              <Sparkles className="size-4" />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-foreground">Free trial</p>
-              <p className="text-xs text-muted-foreground">
-                Full access to every feature
-              </p>
-            </div>
-          </div>
-          <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300">
-            {sub.trialDaysLeft > 0
-              ? `${sub.trialDaysLeft} day${sub.trialDaysLeft === 1 ? '' : 's'} left`
-              : 'Ends today'}
-          </span>
-        </div>
-        <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-amber-500 transition-[width] duration-500"
-            style={{ width: `${elapsed}%` }}
-          />
-        </div>
-        <p className="mt-2 text-xs text-muted-foreground">
-          Your trial ends on {formatDate(sub.trialEndsAt)}. Upgrade to a plan
-          before then to keep sending without interruption.
-        </p>
-      </div>
-    );
+    return [
+      { icon: BadgeCheck, label: 'Plan', value: 'Free trial' },
+      {
+        icon: Hourglass,
+        label: 'Days left',
+        value:
+          sub.trialDaysLeft > 0
+            ? `${sub.trialDaysLeft} day${sub.trialDaysLeft === 1 ? '' : 's'}`
+            : 'Ends today',
+      },
+      { icon: CalendarDays, label: 'Ends on', value: formatDate(sub.trialEndsAt) },
+    ];
   }
 
-  // Expired / past due / canceled — access is paused.
   if (sub.status !== 'active') {
-    const title =
-      sub.status === 'expired'
-        ? 'Your free trial has ended'
-        : sub.status === 'past_due'
-          ? 'Your payment is past due'
-          : 'Your subscription is canceled';
-    return (
-      <Alert variant="destructive">
-        <AlertTriangle className="size-4" />
-        <AlertTitle>{title}</AlertTitle>
-        <AlertDescription>
-          Sending messages and broadcasts is paused. Upgrade to resume.
-        </AlertDescription>
-      </Alert>
-    );
+    const facts: Fact[] = [{ icon: BadgeCheck, label: 'Plan', value: paidName ?? 'Free trial' }];
+    const endedAt = billing?.periodEnd ?? sub.trialEndsAt;
+    if (endedAt) facts.push({ icon: CalendarDays, label: 'Ended on', value: formatDate(endedAt) });
+    return facts;
   }
 
-  // Active with a plan the admin assigned — show name, price, renewal.
-  if (billing && (billing.planName || billing.planKey)) {
-    const priceLabel =
-      billing.amount != null
-        ? `${formatMoney(billing.amount, billing.currency)}${intervalSuffix(
-            billing.interval,
-          )}`
-        : null;
-    return (
-      <div className="rounded-xl border border-border bg-muted/30 p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <BadgeCheck className="size-4" />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-foreground capitalize">
-                {billing.planName ?? billing.planKey} plan
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {billing.interval === 'yearly'
-                  ? 'Billed yearly'
-                  : 'Billed monthly'}
-              </p>
-            </div>
-          </div>
-          {priceLabel && (
-            <span className="rounded-full bg-primary-soft px-2.5 py-1 text-xs font-semibold text-primary">
-              {priceLabel}
-            </span>
-          )}
-        </div>
-        {billing.periodEnd && (
-          <p className="mt-3 text-xs text-muted-foreground">
-            Current period ends on {formatDate(billing.periodEnd)}.
-          </p>
-        )}
-      </div>
-    );
+  // Active with no plan assigned: grandfathered, or full access given
+  // by hand.
+  if (!paidName) return [{ icon: BadgeCheck, label: 'Plan', value: 'Full access' }];
+
+  const facts: Fact[] = [{ icon: BadgeCheck, label: 'Plan', value: paidName }];
+  if (billing?.amount != null) {
+    facts.push({
+      icon: Wallet,
+      label: 'Price',
+      value: `${formatMoney(billing.amount, billing.currency)}${intervalSuffix(billing.interval)}`,
+    });
   }
-
-  // Active but no billing assigned (grandfathered / manual full access).
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-4">
-      <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-        <BadgeCheck className="size-4" />
-      </span>
-      <div>
-        <p className="text-sm font-semibold text-foreground">Full access</p>
-        <p className="text-xs text-muted-foreground">
-          Your account is active with full access.
-        </p>
-      </div>
-    </div>
-  );
+  if (billing?.interval) {
+    facts.push({
+      icon: Repeat,
+      label: 'Billing',
+      value: billing.interval === 'yearly' ? 'Yearly' : 'Monthly',
+    });
+  }
+  if (billing?.periodEnd) {
+    facts.push({ icon: CalendarDays, label: 'Paid until', value: formatDate(billing.periodEnd) });
+  }
+  return facts;
 }
 
-/** One usage meter row — mirrors the trial bar's idiom above. */
-function UsageMeter({
-  icon: Icon,
-  label,
-  used,
-  limit,
-  format = (n: number) => n.toLocaleString(),
-}: {
-  icon: typeof Users;
-  label: string;
-  used: number;
-  limit: number | null;
-  format?: (n: number) => string;
-}) {
-  const pct = limit === null ? 0 : Math.min(100, (used / Math.max(1, limit)) * 100);
-  const tone =
-    limit !== null && used >= limit
-      ? 'bg-destructive'
-      : pct >= 90
-        ? 'bg-amber-500'
-        : 'bg-primary';
-  return (
-    <div>
-      <div className="flex items-center justify-between gap-3">
-        <span className="flex items-center gap-1.5 text-xs font-medium text-foreground">
-          <Icon className="size-3.5 text-muted-foreground" />
-          {label}
-        </span>
-        <span className="text-xs tabular-nums text-muted-foreground">
-          {format(used)}
-          {limit !== null ? ` / ${format(limit)}` : ' · Unlimited'}
-        </span>
-      </div>
-      {limit !== null && (
-        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
-          <div
-            className={cn('h-full rounded-full transition-[width] duration-500', tone)}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-      )}
-    </div>
-  );
+function StatusPill({ status }: { status: SubscriptionState['status'] }) {
+  const [label, color] =
+    status === 'trialing'
+      ? (['Trial', softBadge.amber] as const)
+      : status === 'active'
+        ? (['Active', softBadge.green] as const)
+        : status === 'past_due'
+          ? (['Payment due', softBadge.red] as const)
+          : status === 'canceled'
+            ? (['Canceled', softBadge.red] as const)
+            : (['Ended', softBadge.red] as const);
+  return <span className={cn(PILL, color)}>{label}</span>;
 }
 
-/**
- * Plan usage — live meters for seats / contacts / storage plus which
- * features the current plan includes. Hidden entirely when the account
- * has no plan limits (trial / grandfathered / everything unlimited with
- * all features on), where meters would just be noise.
- */
-function UsageSection() {
-  const { snapshot } = useEntitlements();
-  if (!snapshot) return null;
-
-  const { entitlements: ent, usage } = snapshot;
-  const hasAnyLimit =
-    ent.maxUsers !== null ||
-    ent.maxContacts !== null ||
-    ent.storageMb !== null ||
-    ent.maxAutomations !== null ||
-    ent.maxCampaigns !== null ||
-    ent.maxFlows !== null;
-  const features: { label: string; on: boolean }[] = [
-    { label: 'WhatsApp calling', on: ent.allowCalling },
-    { label: 'Instagram DMs', on: ent.allowInstagram },
-    { label: 'Automations', on: ent.allowAutomations },
-    { label: 'Flows', on: ent.allowFlows },
-    { label: 'API & webhooks', on: ent.allowIntegrations },
-  ];
-  const hasAnyGate = features.some((f) => !f.on);
-  if (!hasAnyLimit && !hasAnyGate) return null;
-
-  const usedMb = usage.storageBytes / (1024 * 1024);
-  const fmtMb = (n: number) =>
-    n >= 1024 ? `${(n / 1024).toFixed(1)} GB` : `${Math.round(n)} MB`;
-
+/** Paid / Due pill on an invoice row. */
+function InvoiceStatus({ status }: { status: Invoice['status'] }) {
   return (
-    <div>
-      <p className="mb-3 text-sm font-medium text-foreground">Usage</p>
-      <div className="space-y-4 rounded-xl border border-border p-4">
-        <UsageMeter icon={Users} label="Team members" used={usage.users} limit={ent.maxUsers} />
-        <UsageMeter icon={Contact} label="Contacts" used={usage.contacts} limit={ent.maxContacts} />
-        <UsageMeter
-          icon={HardDrive}
-          label="Media storage"
-          used={usedMb}
-          limit={ent.storageMb}
-          format={fmtMb}
-        />
-
-        {/* Unlike the three above, these render only when the plan
-            actually caps them. They default to unlimited for every
-            existing plan, so always showing them would add three
-            permanent "· Unlimited" rows of pure noise. */}
-        {ent.maxCampaigns !== null && (
-          <UsageMeter
-            icon={Megaphone}
-            label="Campaigns"
-            used={usage.campaigns}
-            limit={ent.maxCampaigns}
-          />
-        )}
-        {ent.maxAutomations !== null && (
-          <UsageMeter
-            icon={Zap}
-            label="Automations"
-            used={usage.automations}
-            limit={ent.maxAutomations}
-          />
-        )}
-        {ent.maxFlows !== null && (
-          <UsageMeter
-            icon={Bot}
-            label="Flows"
-            used={usage.flows}
-            limit={ent.maxFlows}
-          />
-        )}
-
-        <div className="border-t border-border pt-3">
-          <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-            {features.map((f) => (
-              <span
-                key={f.label}
-                className={cn(
-                  'inline-flex items-center gap-1 text-xs',
-                  f.on ? 'text-foreground' : 'text-muted-foreground line-through',
-                )}
-              >
-                {f.on ? (
-                  <Check className="size-3 text-primary" />
-                ) : (
-                  <X className="size-3" />
-                )}
-                {f.label}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function InvoiceStatusBadge({ status }: { status: Invoice['status'] }) {
-  return (
-    <span
-      className={cn(
-        'rounded-full px-2 py-0.5 text-[11px] font-medium',
-        status === 'paid'
-          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-          : 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-      )}
-    >
+    <span className={cn(PILL, status === 'paid' ? softBadge.green : softBadge.amber)}>
       {status === 'paid' ? 'Paid' : 'Due'}
     </span>
   );
 }
 
-/**
- * Invoices / billing history — fetched from /api/account/invoices. Each
- * row links to a printable copy (opens in a new tab). Empty state until a
- * payment is recorded by the admin.
- */
+/** Invoices from /api/account/invoices, each opening a printable copy
+ *  in a new tab. */
 function Invoices() {
   const [invoices, setInvoices] = useState<Invoice[] | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -362,9 +147,6 @@ function Invoices() {
       })
       .catch(() => {
         if (!cancelled) setInvoices([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
@@ -372,70 +154,69 @@ function Invoices() {
   }, []);
 
   return (
-    <div>
-      <p className="mb-3 text-sm font-medium text-foreground">Invoices</p>
+    <section className="border-border bg-card rounded-xl border">
+      <header className="border-border border-b px-5 py-4">
+        <h3 className="text-foreground text-sm font-semibold">Invoices</h3>
+      </header>
 
-      {loading ? (
-        <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+      {invoices === null ? (
+        <div className="text-muted-foreground flex items-center gap-2 px-5 py-6 text-sm">
           <Loader2 className="size-4 animate-spin" />
           Loading invoices…
         </div>
-      ) : invoices && invoices.length > 0 ? (
-        <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
+      ) : invoices.length === 0 ? (
+        <div className="text-muted-foreground flex min-h-32 flex-col items-center justify-center gap-2 px-5 py-8 text-sm">
+          <Receipt className="size-5" />
+          No invoices yet
+        </div>
+      ) : (
+        <ul className="divide-border divide-y">
           {invoices.map((inv) => (
-            <div
-              key={inv.id}
-              className="flex items-center justify-between gap-3 px-4 py-3"
-            >
+            <li key={inv.id} className="flex items-center justify-between gap-4 px-5 py-3.5">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="truncate text-sm font-medium text-foreground">
+                  <p className="text-foreground truncate text-sm font-medium">
                     {inv.invoiceNumber ?? 'Invoice'}
                   </p>
-                  <InvoiceStatusBadge status={inv.status} />
+                  <InvoiceStatus status={inv.status} />
                 </div>
-                <p className="truncate text-xs text-muted-foreground">
+                <p className="text-muted-foreground mt-0.5 truncate text-xs">
                   {formatDate(inv.issuedAt)} · {inv.description}
                 </p>
               </div>
-              <div className="flex shrink-0 items-center gap-3">
-                <span className="text-sm font-medium tabular-nums text-foreground">
+              <div className="flex shrink-0 items-center gap-4">
+                <span className="text-foreground text-sm font-medium tabular-nums">
                   {formatMoney(inv.amount, inv.currency)}
                 </span>
                 <Link
                   href={`/invoices/${inv.id}`}
                   target="_blank"
-                  className="text-xs font-medium text-primary hover:text-primary/80"
+                  className="text-primary hover:text-primary/80 inline-flex items-center gap-1 text-xs font-medium"
                 >
                   View
+                  <ArrowUpRight className="size-3.5" />
                 </Link>
               </div>
-            </div>
+            </li>
           ))}
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 px-4 py-8 text-center">
-          <span className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-            <Receipt className="size-4.5" />
-          </span>
-          <p className="mt-3 text-sm font-medium text-foreground">
-            No invoices yet
-          </p>
-          <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-            Your invoices will appear here once a payment is recorded on your
-            account.
-          </p>
-        </div>
+        </ul>
       )}
-    </div>
+    </section>
   );
 }
 
 /**
- * Plan & subscription block on the Profile settings page. Reflects the
- * plan the admin assigned, offers an upgrade action, and lists invoices.
- * The old "available plans" grid was removed — plan changes are handled
- * via upgrade/contact, not self-serve tier cards.
+ * Settings → Profile → Plan. Two sections:
+ *
+ *   - Current plan: a status pill and the upgrade action in its header,
+ *     and the plan as one row of facts.
+ *   - Invoices.
+ *
+ * Activation codes are redeemed where a plan is bought — the upgrade
+ * dialog and onboarding — not here.
+ *
+ * No usage meters: limits are enforced where they bite, not tracked
+ * here. Plan changes go through the upgrade dialog, not tier cards.
  */
 export function PlanSection() {
   const [sub, setSub] = useState<SubscriptionState | null>(null);
@@ -470,7 +251,8 @@ export function PlanSection() {
 
   // What can this account move to?
   //   • Active on a paid plan → only the tiers priced ABOVE the current
-  //     one (a genuine upgrade). Empty ⇒ they're on the top plan.
+  //     one (a genuine upgrade). Empty ⇒ they're on the top plan, and
+  //     there is no button at all.
   //   • Trial / expired / grandfathered (no paid plan) → every plan.
   // Compared by price, so a retired/renamed current plan that no longer
   // appears in the catalog still resolves correctly off billing.amount.
@@ -481,61 +263,65 @@ export function PlanSection() {
     isActivePaid && currentAmount != null
       ? sortedPlans.filter((p) => p.amount > currentAmount)
       : sortedPlans;
-  const onTopPlan = isActivePaid && sortedPlans.length > 0 && choices.length === 0;
-  const canUpgrade = choices.length > 0;
+  const paused = !!sub && sub.status !== 'active' && sub.status !== 'trialing';
+  const facts = sub ? planFacts(sub, billing) : [];
 
   return (
-    <Card className="gap-0 overflow-hidden py-0">
-      <CardContent className="space-y-5 px-6 py-6">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h3 className="text-base font-semibold text-foreground">Plan</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {onTopPlan
-                ? "You're on our top plan — nothing higher to upgrade to."
-                : 'Your current subscription and invoices.'}
-            </p>
+    <div className="space-y-5">
+      <section className="border-border bg-card rounded-xl border">
+        <header className="border-border flex items-center justify-between gap-3 border-b px-5 py-4">
+          <div className="flex items-center gap-2">
+            <h3 className="text-foreground text-sm font-semibold">Current plan</h3>
+            {sub && <StatusPill status={sub.status} />}
           </div>
-          <Button
-            type="button"
-            size="sm"
-            variant={canUpgrade ? 'default' : 'outline'}
-            onClick={() => setUpgradeOpen(true)}
-            disabled={loading || !canUpgrade}
-            title={
-              onTopPlan
-                ? "You're already on the highest plan"
-                : isActivePaid
-                  ? 'Move to a higher plan'
-                  : 'Choose a plan'
-            }
-            className="shrink-0"
-          >
-            {onTopPlan ? 'Top plan' : 'Upgrade'}
-            {!onTopPlan && <ArrowUpRight className="size-4" />}
-          </Button>
-        </div>
-
-        <UpgradeDialog
-          open={upgradeOpen}
-          onOpenChange={setUpgradeOpen}
-          plans={choices}
-          onUpgraded={() => setReloadKey((k) => k + 1)}
-        />
+          {!loading && choices.length > 0 && (
+            <Button type="button" size="lg" className="px-4" onClick={() => setUpgradeOpen(true)}>
+              {isActivePaid ? 'Upgrade' : 'Choose a plan'}
+            </Button>
+          )}
+        </header>
 
         {loading ? (
-          <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+          <div className="text-muted-foreground flex items-center gap-2 px-5 py-6 text-sm">
             <Loader2 className="size-4 animate-spin" />
             Loading your plan…
           </div>
         ) : (
-          <>
-            {sub && <CurrentPlan sub={sub} billing={billing} />}
-            <UsageSection />
-            <Invoices />
-          </>
+          <div className="px-5 py-5">
+            <dl className="grid grid-cols-2 gap-y-5 sm:grid-cols-4 sm:divide-x sm:divide-border">
+              {facts.map((f) => (
+                <div key={f.label} className="sm:px-5 sm:first:pl-0">
+                  <dt className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
+                    <f.icon className="size-3.5 shrink-0" />
+                    {f.label}
+                  </dt>
+                  <dd className="text-foreground mt-1.5 text-base font-semibold">
+                    {f.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+
+            {/* Only when the account must act. */}
+            {paused && (
+              <p className="mt-5 flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900">
+                <TriangleAlert className="size-4 shrink-0 text-amber-600" />
+                Sending is paused. Choose a plan to keep going.
+              </p>
+            )}
+          </div>
         )}
-      </CardContent>
-    </Card>
+
+      </section>
+
+      <UpgradeDialog
+        open={upgradeOpen}
+        onOpenChange={setUpgradeOpen}
+        plans={choices}
+        onUpgraded={() => setReloadKey((k) => k + 1)}
+      />
+
+      <Invoices />
+    </div>
   );
 }

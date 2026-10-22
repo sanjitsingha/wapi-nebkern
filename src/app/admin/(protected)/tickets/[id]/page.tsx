@@ -40,7 +40,9 @@ export default async function AdminTicketDetailPage({
       .order('created_at', { ascending: true }),
     db
       .from('accounts')
-      .select('id, name')
+      // `*` rather than naming account_number: before migration 123
+      // that column is missing and a named select would fail the row.
+      .select('*')
       .eq('id', ticket.account_id)
       .maybeSingle(),
     ticket.user_id
@@ -54,6 +56,8 @@ export default async function AdminTicketDetailPage({
 
   const messages = (messagesRes.data ?? []) as SupportTicketMessage[];
   const accountName = accountRes.data?.name ?? '—';
+  const accountNumber =
+    (accountRes.data as { account_number?: number | null } | null)?.account_number ?? null;
   const creatorEmail =
     (creatorRes.data as { email?: string | null } | null)?.email ?? null;
 
@@ -81,6 +85,9 @@ export default async function AdminTicketDetailPage({
             >
               {accountName}
             </Link>
+            {accountNumber != null && (
+              <span className="font-mono tabular-nums">ID {accountNumber}</span>
+            )}
             <span>·</span>
             <span>{creatorEmail ?? 'unknown'}</span>
             <span>·</span>

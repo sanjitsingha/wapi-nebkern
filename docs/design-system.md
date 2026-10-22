@@ -60,6 +60,12 @@ Every settings or list page opens with `SettingsPanelHead`, given
   documentation".
 - Documentation buttons go in page headers only, never inside a modal.
 
+## 3a. Top bar
+
+- **Help** is a plain link: one click opens the docs (`/docs`) in a
+  new tab. No menu behind it. Support lives at the foot of the
+  sidebar, with its unread count.
+
 ## 4. Lists (tags, custom fields, quick replies, members…)
 
 The toolbar has a search box on the left and actions on the right:
@@ -208,6 +214,16 @@ Follow the Periskope-style pattern in `zoho-manage.tsx` and
 
 Show a "Syncing…" bar only while work is in flight, and a message only
 when the user must act (Reconnect). No event lists or status lines.
+
+## 9a. Plan and billing
+
+- Settings → Profile → Plan is two sections: **Current plan** (a
+  status pill and Upgrade / Choose a plan in its header, then the plan
+  as one row of facts with dividers) and **Invoices** (a plain list).
+- No usage meters or feature lists there.
+- **Activation codes are redeemed only where a plan is bought**: the
+  upgrade dialog and onboarding. Never on a settings page.
+- Copy `src/components/settings/plan-config.tsx`.
 
 ## 10. Copy
 

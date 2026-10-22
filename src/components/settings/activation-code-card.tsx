@@ -23,11 +23,9 @@ import { Input } from '@/components/ui/input';
  * `onRedeemed` lets the plan panel beside it refetch, so the new plan
  * appears without a reload.
  */
-export function ActivationCodeCard({
-  onRedeemed,
-}: {
-  onRedeemed?: () => void;
-}) {
+/** The redeem action, shared by this card (onboarding) and the upgrade
+ *  dialog — the two places a plan is bought. */
+export function useActivationCode(onRedeemed?: () => void) {
   const [code, setCode] = useState('');
   const [redeeming, setRedeeming] = useState(false);
 
@@ -67,6 +65,16 @@ export function ActivationCodeCard({
       setRedeeming(false);
     }
   };
+
+  return { code, setCode, redeeming, redeem };
+}
+
+export function ActivationCodeCard({
+  onRedeemed,
+}: {
+  onRedeemed?: () => void;
+}) {
+  const { code, setCode, redeeming, redeem } = useActivationCode(onRedeemed);
 
   return (
     <Card>
