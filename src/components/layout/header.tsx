@@ -154,8 +154,10 @@ export function Header({ onOpenSidebar }: HeaderProps) {
                 <p className="text-muted-foreground truncate text-xs">
                   {profile?.email}
                 </p>
-                {/* What support asks for first. */}
-                <AccountId className="mt-0.5" />
+                {/* What support asks for first. It sits with the
+                    business's number below once one is connected;
+                    until then, here, so it is always in this menu. */}
+                {!waInfo && <AccountId className="mt-0.5" />}
               </div>
             </div>
 
@@ -198,6 +200,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
                   <p className="truncate text-xs text-muted-foreground">
                     {waInfo.display_phone_number}
                   </p>
+                  <AccountId className="mt-0.5" />
                 </div>
                 <span className="ml-auto shrink-0 rounded-full bg-[#25D366]/10 px-2 py-0.5 text-[11px] font-medium text-[#25D366]">
                   Connected
