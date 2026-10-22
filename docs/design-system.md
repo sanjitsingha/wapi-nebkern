@@ -189,9 +189,10 @@ muted icon, a single line, and at most one hint line.
 - No charts or activity feeds on the dashboard. Those belong on an
   analytics page.
 - Until WhatsApp is connected, the figures and the Team panel give way
-  to **how to connect it**, shaped like the Team panel: "Before you
-  start" (what to have ready) beside numbered "Steps", then a
-  Connect WhatsApp button (admins only) and "Read the full guide".
+  to **how to connect it**, shaped like the Team panel: just the four
+  numbered steps side by side with room to breathe (one short line
+  each — no requirement lists; those live in the docs), then Connect
+  WhatsApp (admins only) and the Documentation button.
   Copy `src/components/dashboard/connect-whatsapp-guide.tsx`.
 
 ## 9. Integrations
@@ -215,6 +216,22 @@ when the user must act (Reconnect). No event lists or status lines.
 - Plain words. Never surface internal names (`field_options`,
   `push_contacts`).
 
+## 11. Docs screenshots
+
+- **Every screenshot sits in a 5:3 frame**, full column width, so all
+  pictures on a page are the same shape whatever the crop. The shot
+  keeps its own ratio inside. The gap is filled with the shot's edge
+  colour: `#f9fafc` (the app and sign-in pages) by default, or
+  `background` on the image to match another.
+- **Corners are 6px** (`rounded-[6px]`). The site's WhatsApp theme
+  turns every `rounded-*` class into 25px, so docs use an exact value.
+- **Every screenshot enlarges on click.** It opens over a dark, blurred
+  page (`bg-black/80 backdrop-blur-sm`). Esc, a click anywhere or the ×
+  closes it.
+- Copy `src/components/docs/docs-zoom-image.tsx`. Pages pass images
+  through `DocsScreenshot` or a `DocsWalkthrough` step's `image`, never
+  a bare `<Image>`.
+
 ---
 
 ## Reference screens
@@ -228,3 +245,4 @@ when the user must act (Reconnect). No event lists or status lines.
 | Segmented choice inside a tab | `src/components/inbox/integrations-tab.tsx` |
 | Integration connected page | `src/components/settings/hubspot-manage.tsx` |
 | Metrics in one box | the dashboard metrics strip |
+| Docs screenshot (5:3 frame, click to enlarge) | `src/components/docs/docs-zoom-image.tsx` |

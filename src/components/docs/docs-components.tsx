@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import {
   AlertTriangle,
@@ -12,6 +11,7 @@ import {
 import { cn } from '@/lib/utils';
 import { docHref, docsSiblings } from '@/lib/docs/nav';
 import { JsonLd } from '@/components/json-ld';
+import { DocsZoomImage } from '@/components/docs/docs-zoom-image';
 import { SITE_URL, ORGANIZATION_SCHEMA, getBreadcrumbSchema } from '@/lib/marketing/schema';
 
 /**
@@ -192,28 +192,18 @@ export interface DocsImage {
   width: number;
   height: number;
   caption?: string;
+  /** The colour around the shot in its 5:3 frame, when it isn't cut
+   *  from the app's #f9fafc. Match the shot's own edge. */
+  background?: string;
 }
 
-/** A product screenshot: framed so its own white edges don't melt into
- *  the page, with an optional caption underneath. Never shown wider than
- *  the file itself — a tight crop of one form stays crisp and centred
- *  instead of being stretched to the column. */
+/** A product screenshot in a 5:3 frame, so every picture is the same
+ *  shape whatever the crop, with an optional caption underneath. Opens
+ *  full size over a dimmed page on click. */
 export function DocsScreenshot({ image }: { image: DocsImage }) {
   return (
     <figure className="mt-5">
-      <div
-        className="mx-auto overflow-hidden rounded-xl border border-(--lp2-ink)/10 bg-(--lp2-paper) shadow-sm"
-        style={{ maxWidth: image.width }}
-      >
-        <Image
-          src={image.src}
-          alt={image.alt}
-          width={image.width}
-          height={image.height}
-          sizes={`(min-width: 1024px) ${Math.min(image.width, 768)}px, 100vw`}
-          className="h-auto w-full"
-        />
-      </div>
+      <DocsZoomImage image={image} />
       {image.caption && (
         <figcaption className="mt-2 text-center text-xs text-(--lp2-ink-soft)">
           {image.caption}

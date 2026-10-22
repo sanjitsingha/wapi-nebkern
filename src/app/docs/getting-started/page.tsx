@@ -13,20 +13,24 @@ import {
 export const metadata: Metadata = {
   title: 'Create your account',
   description:
-    'Create your Instant account: sign up with Google or your email, verify it with a six-digit code, and start your 14-day free trial.',
+    'Create your Instant account: sign up with Google or your email, verify it, then pick a plan or start your 14-day free trial.',
   alternates: { canonical: '/docs/getting-started' },
 };
 
 // Step one of getting started: the account, and nothing else. Connecting
 // the WhatsApp number is its own guide (/docs/connect-whatsapp), and
 // roles live with the team docs.
+//
+// The flow it describes: /signup → (email) six-digit code, or (Google)
+// /welcome "Almost there" → /onboarding "Pick the plan that fits" →
+// /dashboard. Keep it in step with src/middleware.ts's two gates.
 export default function GettingStartedDocsPage() {
   return (
     <>
       <DocsHero
         eyebrow="Getting started"
         title="Create your account"
-        description="Sign up, verify your email, and your workspace is ready — with a 14-day free trial."
+        description="Sign up, verify your email, then pick a plan or start your 14-day free trial."
       />
 
       <DocsArticle>
@@ -80,10 +84,7 @@ export default function GettingStartedDocsPage() {
                     </li>
                   </ul>
                   <p>
-                    Then click <strong>Create account</strong>. Signing up
-                    with Google skips the password and the email code —
-                    you&apos;re asked for your organization and phone number
-                    on the next screen instead.
+                    Then click <strong>Create account</strong>.
                   </p>
                 </>
               ),
@@ -96,7 +97,7 @@ export default function GettingStartedDocsPage() {
               },
             },
             {
-              title: 'Verify your email',
+              title: 'Verify your email (email sign-up)',
               body: (
                 <>
                   <p>
@@ -118,6 +119,7 @@ export default function GettingStartedDocsPage() {
                       Codes expire. If yours has, resend and use the new one.
                     </li>
                   </ul>
+                  <p>Signing up with Google skips this step.</p>
                 </>
               ),
               image: {
@@ -128,27 +130,79 @@ export default function GettingStartedDocsPage() {
                 caption: 'Verifying your email with a six-digit code',
               },
             },
+            {
+              title: 'Tell us about yourself (Google sign-up)',
+              body: (
+                <>
+                  <p>
+                    Google gives us your name and email, but not the rest. On
+                    the <strong>Almost there</strong> screen, fill in:
+                  </p>
+                  <ul>
+                    <li>
+                      <strong>Full name</strong> and{' '}
+                      <strong>Phone number</strong>, as on the sign-up form.
+                    </li>
+                    <li>
+                      <strong>Organization</strong> — your business&apos;s
+                      name, which names your workspace.
+                    </li>
+                    <li>
+                      <strong>Where did you find us?</strong> — pick one. It
+                      helps us learn where people hear about Instant.
+                    </li>
+                  </ul>
+                  <p>
+                    Then continue. Signing up with email skips this step — the
+                    sign-up form already asked.
+                  </p>
+                </>
+              ),
+            },
+            {
+              title: 'Pick a plan, or start your free trial',
+              body: (
+                <>
+                  <p>
+                    On <strong>Pick the plan that fits</strong>, either:
+                  </p>
+                  <ul>
+                    <li>
+                      choose a plan and pay for it there, or
+                    </li>
+                    <li>
+                      click <strong>Skip and start a 14-day free trial</strong>{' '}
+                      at the bottom — no card needed.
+                    </li>
+                  </ul>
+                  <p>
+                    Start on the trial and you can upgrade any time from{' '}
+                    <strong>Settings → Profile → Plan</strong>.
+                  </p>
+                </>
+              ),
+            },
           ]}
         />
         <p>
-          That&apos;s it — you&apos;re signed in to your new workspace as its{' '}
-          <strong>owner</strong>, and your free trial has started. Next,{' '}
-          <Link href="/docs/connect-whatsapp">connect your WhatsApp number</Link>.
+          That&apos;s it — you&apos;re in your new workspace as its{' '}
+          <strong>owner</strong>.
         </p>
         <p>
           You land on the <strong>Dashboard</strong>. Until a WhatsApp number
-          is connected, it shows how to connect one: what to have ready, the
-          steps, and a <strong>Connect WhatsApp</strong> button that takes
-          you straight there. Below it, quick links open every main feature
-          and its guide.
+          is connected, it shows the four steps to connect one and a{' '}
+          <strong>Connect WhatsApp</strong> button that takes you straight
+          there. Below it, quick links open every main feature and its
+          guide. Next,{' '}
+          <Link href="/docs/connect-whatsapp">connect your WhatsApp number</Link>.
         </p>
         <DocsScreenshot
           image={{
             src: '/images/docs/getting-started/dashboard.webp',
-            alt: 'The Instant Dashboard before WhatsApp is connected: a Connect your WhatsApp number panel listing what to have ready (a Facebook account, a business phone number, a number not active on WhatsApp, a display name) beside the four steps, with Connect WhatsApp and Read the full guide buttons, and quick links below.',
+            alt: 'The Instant Dashboard before WhatsApp is connected: a Connect your WhatsApp number panel with four steps — Open Settings → WhatsApp, Log in to Facebook, Add your number, You’re live — then Connect WhatsApp and Documentation buttons, and quick links below.',
             width: 2880,
             height: 1800,
-            caption: 'The Dashboard before WhatsApp is connected: how to connect your number',
+            caption: 'The Dashboard before WhatsApp is connected',
           }}
         />
         <p>
@@ -158,32 +212,38 @@ export default function GettingStartedDocsPage() {
           team is online.
         </p>
 
-
         <DocsCallout type="info" title="Invited to someone else's account?">
-          If you followed a teammate&apos;s invite link, finish the same
-          signup or log-in flow — you&apos;ll land on the invite acceptance
-          page automatically afterward instead of creating a new account.
+          Open the invite link and sign up (or log in) as usual. The sign-up
+          form has no <strong>Organization</strong> field — you&apos;re
+          joining their workspace, not creating one — and there&apos;s no
+          plan to pick: once you&apos;re verified, you land on the invite and
+          join with the role they gave you.
         </DocsCallout>
 
         <h2>Your 14-day free trial</h2>
         <p>
-          Every new account starts on a <strong>14-day free trial</strong>{' '}
-          with full access — no feature is held back and no credit card is
-          required to start. The countdown begins the moment your account is
-          created.
+          The trial starts when you click{' '}
+          <strong>Skip and start a 14-day free trial</strong>, and gives you
+          full access for 14 days — no feature is held back and no card is
+          needed. It&apos;s a one-time offer for each workspace.
         </p>
         <p>
-          While the trial is active you&apos;ll see a &ldquo;days
-          left&rdquo; banner in the app. Once it ends:
+          While it runs, an amber <strong>days left</strong> chip sits in
+          the top bar. When it ends:
         </p>
         <ul>
           <li>
-            Everything you&apos;ve built stays fully visible — contacts,
-            conversation history, campaigns, automations, all of it.
+            The app pauses: every page shows{' '}
+            <strong>Choose a plan to keep going</strong> until you pick a
+            plan.
           </li>
           <li>
-            Sending new messages and launching broadcasts pauses until you
-            choose a plan.
+            <strong>Settings</strong> and your invoices stay open, so you
+            can choose a plan and see what you&apos;ve paid.
+          </li>
+          <li>
+            Nothing is deleted — your contacts, conversations, campaigns and
+            automations are all there when you come back.
           </li>
         </ul>
         <p>
