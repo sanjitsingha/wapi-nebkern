@@ -11,7 +11,7 @@ import {
 
 export const metadata: Metadata = {
   title: 'Billing & plans',
-  description: "Billing & plans in Instant: The trial, plan tiers, checkout, activation codes, and invoices. A step-by-step guide for teams selling on WhatsApp.",
+  description: "Billing & plans in Instant: the 14-day trial, how long a plan lasts and how to renew it, what pauses when it ends, activation codes and invoices.",
   alternates: { canonical: '/docs/billing' },
 };
 
@@ -27,17 +27,50 @@ export default function BillingDocsPage() {
       <DocsArticle>
         <h2>The 14-day trial</h2>
         <p>
-          Every account gets 14 days of full access from the moment it&rsquo;s
-          created — no feature held back, no credit card needed to start.
-          You&rsquo;ll see a countdown in the app the whole time.
+          Every workspace can have one 14-day trial with full access — no
+          feature held back, no card needed. It starts when you click{' '}
+          <strong>Skip and start a 14-day free trial</strong> on the plan
+          screen after signing up, and a <strong>days left</strong> chip
+          sits in the top bar while it runs.
         </p>
+
+        <h2>How long a plan lasts</h2>
         <p>
-          Once the trial ends, everything you&rsquo;ve built stays fully
-          visible — nothing is deleted or hidden. What pauses is{' '}
-          <strong>sending</strong>: new outbound messages and campaigns are
-          blocked until you choose a plan. Reading your conversations,
-          contacts, and history is never affected.
+          Each purchase covers one billing period — a month, or a year on a
+          yearly plan — and plans don&rsquo;t renew by themselves. A week
+          before yours ends, a <strong>Plan ends in N days</strong> chip
+          appears in the top bar. To keep going, open{' '}
+          <strong>Settings → Profile → Plan</strong> and click{' '}
+          <strong>Renew</strong>:
         </p>
+        <ul>
+          <li>
+            Paying for the <strong>same plan</strong> adds another period
+            after your current one ends, so renewing early never loses a day.
+          </li>
+          <li>
+            Choosing a <strong>different plan</strong> starts it today, in
+            place of the current one.
+          </li>
+        </ul>
+
+        <h2>When a trial or plan ends</h2>
+        <ul>
+          <li>
+            The app pauses: every page shows{' '}
+            <strong>Choose a plan to keep going</strong>, and sending,
+            campaigns, automations, flows, Maya&rsquo;s replies and the API
+            stop.
+          </li>
+          <li>
+            <strong>Settings</strong> and your invoices stay open, so you can
+            pay from there.
+          </li>
+          <li>
+            Nothing is deleted. Choose a plan and everything picks up where
+            it left off.
+          </li>
+        </ul>
 
         <h2>What differs between plans</h2>
         <p>Plans can vary on:</p>
@@ -58,28 +91,30 @@ export default function BillingDocsPage() {
           <Link href="/pricing">pricing page</Link>.
         </p>
 
-        <h2>Choosing a plan</h2>
+        <h2>Paying for a plan</h2>
         <p>
           Checkout is handled through Razorpay, supporting cards, UPI, and
           the usual range of Indian payment methods. Only an admin or owner
-          can complete a purchase. Once payment is confirmed, your plan is
-          active immediately — no waiting.
+          can pay. Once payment is confirmed, your plan is active
+          immediately — no waiting.
         </p>
 
         <h2>Activation codes</h2>
         <p>
           If you&rsquo;ve been given an activation code — for a promotion, a
-          partner arrangement, or by our support team — redeem it from{' '}
-          <strong>Settings → Billing</strong> to apply a plan directly,
-          without going through checkout. An admin or owner can redeem a
-          code.
+          partner arrangement, or by our support team — enter it where you
+          choose a plan: under <strong>Have an activation code?</strong> on
+          the plan screen after signing up, or in the{' '}
+          <strong>Renew</strong> / <strong>Choose a plan</strong> window in{' '}
+          <strong>Settings → Profile → Plan</strong>. The plan turns on at
+          once. An admin or owner can redeem a code.
         </p>
 
         <h2>Invoices</h2>
         <p>
-          Every completed payment appears under{' '}
-          <strong>Settings → Billing</strong>, viewable by anyone on the
-          account.
+          Every payment appears under{' '}
+          <strong>Settings → Profile → Plan</strong>, each opening a
+          printable copy.
         </p>
 
         <DocsCallout type="tip">

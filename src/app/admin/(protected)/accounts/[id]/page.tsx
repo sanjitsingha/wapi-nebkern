@@ -230,12 +230,14 @@ export default async function AdminAccountDetailPage({
             without the key, saving billing (which activates the plan)
             left this card still reading "trialing" until a full reload. */}
         <SubscriptionEditor
-          key={`${sub.plan}:${sub.status}:${account.trial_ends_at ?? ''}`}
+          key={`${sub.plan}:${sub.status}:${account.trial_ends_at ?? ''}:${sub.periodEndsAt ?? ''}`}
           accountId={account.id}
           plan={sub.plan}
           status={sub.status}
           trialEndsAt={account.trial_ends_at}
           trialDaysLeft={sub.isTrial ? sub.trialDaysLeft : null}
+          periodEndsAt={sub.periodEndsAt}
+          periodDaysLeft={sub.periodDaysLeft}
         />
 
         <div className="border-border bg-card rounded-xl border p-4">

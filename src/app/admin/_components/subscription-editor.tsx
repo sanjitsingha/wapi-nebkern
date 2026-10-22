@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Loader2, CalendarClock } from 'lucide-react';
 
 import type { SubscriptionStatus } from '@/lib/billing/subscription';
+import { fmtDate } from '../_lib/format';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -49,12 +50,17 @@ export function SubscriptionEditor({
   status: initialStatus,
   trialEndsAt,
   trialDaysLeft,
+  periodEndsAt = null,
+  periodDaysLeft = 0,
 }: {
   accountId: string;
   plan: string;
   status: SubscriptionStatus;
   trialEndsAt: string | null;
   trialDaysLeft: number | null;
+  /** End of the paid period (Billing), which is what ends a paid plan. */
+  periodEndsAt?: string | null;
+  periodDaysLeft?: number;
 }) {
   const router = useRouter();
   const [plan, setPlan] = useState(initialPlan);
@@ -112,6 +118,15 @@ export function SubscriptionEditor({
       {trialDaysLeft !== null && (
         <p className="text-muted-foreground mt-1 text-xs">
           {trialDaysLeft} day{trialDaysLeft === 1 ? '' : 's'} left in trial.
+        </p>
+      )}
+      {/* A paid plan ends with its period, whatever the status says, so
+          "Mark active" can't bring one back — a new period can. */}
+      {periodEndsAt && trialDaysLeft === null && (
+        <p className="text-muted-foreground mt-1 text-xs">
+          {periodDaysLeft > 0
+            ? `Paid until ${fmtDate(periodEndsAt)} — ${periodDaysLeft} day${periodDaysLeft === 1 ? '' : 's'} left.`
+            : `Paid period ended ${fmtDate(periodEndsAt)}. Set a new period under Billing to turn the plan back on.`}
         </p>
       )}
 

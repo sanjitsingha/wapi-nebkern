@@ -246,3 +246,39 @@ Steps 1–4 give a visible, working trial countdown. 5–6 add enforcement.
    sends-only soft gate.)*
 3. **Trial length:** ✅ 14 days (kept as a single const for easy change).
 ```
+
+---
+
+## 9. Paid plan periods (current behaviour, migration 124)
+
+A plan is bought (Razorpay, `api/billing/razorpay/verify`), redeemed
+(activation code, `redeem_activation_code`) or assigned (admin panel,
+`admin/api/accounts/[id]/billing`). All three set
+`subscription_status = 'active'` and a `current_period_end`.
+
+- **A paid plan ends with its period.** `computeSubscription` reports an
+  `active` row past `current_period_end` as `expired`, the same way it
+  ends a trial at `trial_ends_at`. No cron is needed. An active row with
+  no period end (grandfathered, full access by hand) never ends. A
+  `canceled` row keeps access until its period ends.
+  Before 124 nothing read the period end, so every paid plan ran forever.
+- **The paywall sees it without a query.** `current_period_end` is
+  mirrored into `app_metadata` with the other plan claims
+  (`sync_user_app_metadata`), and re-synced when it changes.
+- **Renewing.** Plans don't renew by themselves (one-time Razorpay
+  orders). Settings → Profile → Plan offers the current plan again
+  (**Renew**) next to the higher tiers. The same plan stacks onto the
+  current period; another plan starts today and replaces it. The header
+  chip warns 7 days before the end.
+- **Everything outward stops when it ends**, not only the paywall:
+  - `assertActiveSubscription` — WhatsApp, Instagram and Messenger
+    sends, broadcasts, form sends, the public API (`/api/v1/messages`);
+  - `accountHasAccess` (`src/lib/billing/access.ts`, cached a minute) —
+    automations, flows, and Maya's AI replies, which run on Instant's
+    own AI key. A paused automation wait is put back and retried
+    hourly, so it carries on after a renewal instead of being lost.
+- **Only Instant changes a plan.** The `accounts_protect_server_columns`
+  trigger refuses changes to the plan, status, trial, billing and period
+  columns, `owner_user_id` and the deletion columns from a workspace's own
+  users. Server routes use the service role; activation codes and
+  ownership transfer run as SECURITY DEFINER functions.

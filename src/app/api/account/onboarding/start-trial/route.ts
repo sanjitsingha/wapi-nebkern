@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { requireRole, toErrorResponse } from '@/lib/auth/account';
 import { TRIAL_DAYS } from '@/lib/billing/subscription';
+import { supabaseAdmin } from '@/lib/billing/admin-client';
 import { logAudit } from '@/lib/audit/log';
 import { AUDIT } from '@/lib/audit/events';
 
@@ -16,14 +17,17 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * from NOW — so the countdown begins when the user actually opts in, not
  * at the moment their auth row was created.
  *
- * Owner/admin only (RLS accounts_update requires admin+; requireRole
- * makes the 403 explicit). Idempotent: once onboarded it just reports the
- * existing state, and it never downgrades an already-active (paid or
- * activation-coded) account back to trialing.
+ * Owner/admin only (requireRole). Written with the service role: since
+ * migration 124 a workspace's own users can't change the plan columns
+ * directly, or anyone could have given themselves a plan through the API.
+ * Idempotent: once onboarded it just reports the existing state, and it
+ * never downgrades an already-active (paid or activation-coded) account
+ * back to trialing.
  */
 export async function POST(request: Request) {
   try {
-    const { supabase, accountId, userId } = await requireRole('admin');
+    const { accountId, userId } = await requireRole('admin');
+    const supabase = supabaseAdmin();
 
     const { data: account, error: readErr } = await supabase
       .from('accounts')

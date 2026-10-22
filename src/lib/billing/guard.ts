@@ -5,18 +5,23 @@
 // client code) because this pulls NextResponse / the Supabase server
 // types — route-handler territory.
 //
-// Enforcement policy (docs/billing-and-trial.md §5): an EXPIRED trial
-// blocks costly outward actions (send, broadcast) but leaves reads
-// intact. This guard is the single seam those routes call.
+// Enforcement policy (docs/billing-and-trial.md §5): an ended trial or
+// paid period blocks costly outward actions (send, broadcast) but leaves
+// reads intact. This guard is the seam the user-facing send routes call;
+// background senders use accountHasAccess (./access).
 // ============================================================
 
 import { NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-import { computeSubscription } from './subscription'
+import { computeSubscription, SUBSCRIPTION_COLUMNS, type SubscriptionState } from './subscription'
 
-const BLOCK_MESSAGE =
-  'Your free trial has ended. Sending is paused until you choose a plan.'
+/** Why sending is paused, in the customer's terms. */
+export function blockMessage(subscription: SubscriptionState): string {
+  return subscription.plan === 'trial'
+    ? 'Your free trial has ended. Sending is paused until you choose a plan.'
+    : 'Your plan has ended. Sending is paused until you renew or choose a plan.'
+}
 
 /**
  * Guard for the raw createClient()+accountId route pattern (send /
@@ -34,7 +39,7 @@ export async function assertActiveSubscription(
 ): Promise<NextResponse | null> {
   const { data, error } = await supabase
     .from('accounts')
-    .select('plan, subscription_status, trial_started_at, trial_ends_at')
+    .select(SUBSCRIPTION_COLUMNS)
     .eq('id', accountId)
     .maybeSingle()
 
@@ -45,7 +50,7 @@ export async function assertActiveSubscription(
 
   return NextResponse.json(
     {
-      error: BLOCK_MESSAGE,
+      error: blockMessage(subscription),
       code: 'subscription_required',
       status: subscription.status,
     },

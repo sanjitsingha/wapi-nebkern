@@ -250,10 +250,11 @@ export function PlanSection() {
   }, [reloadKey]);
 
   // What can this account move to?
-  //   • Active on a paid plan → only the tiers priced ABOVE the current
-  //     one (a genuine upgrade). Empty ⇒ they're on the top plan, and
-  //     there is no button at all.
-  //   • Trial / expired / grandfathered (no paid plan) → every plan.
+  //   • Live on a paid plan → that same plan again (a renewal, which
+  //     stacks onto the current period) and the tiers priced ABOVE it.
+  //     Without the renewal a customer could never pay for next month
+  //     until the plan had lapsed and paused their account.
+  //   • Trial / ended / grandfathered (no live paid plan) → every plan.
   // Compared by price, so a retired/renamed current plan that no longer
   // appears in the catalog still resolves correctly off billing.amount.
   const sortedPlans = [...(plans ?? [])].sort((a, b) => a.amount - b.amount);
@@ -261,8 +262,9 @@ export function PlanSection() {
   const currentAmount = billing?.amount ?? null;
   const choices =
     isActivePaid && currentAmount != null
-      ? sortedPlans.filter((p) => p.amount > currentAmount)
+      ? sortedPlans.filter((p) => p.key === billing?.planKey || p.amount > currentAmount)
       : sortedPlans;
+  const canRenew = isActivePaid && choices.some((p) => p.key === billing?.planKey);
   const paused = !!sub && sub.status !== 'active' && sub.status !== 'trialing';
   const facts = sub ? planFacts(sub, billing) : [];
 
@@ -276,7 +278,7 @@ export function PlanSection() {
           </div>
           {!loading && choices.length > 0 && (
             <Button type="button" size="lg" className="px-4" onClick={() => setUpgradeOpen(true)}>
-              {isActivePaid ? 'Upgrade' : 'Choose a plan'}
+              {canRenew ? 'Renew' : isActivePaid ? 'Upgrade' : 'Choose a plan'}
             </Button>
           )}
         </header>
@@ -306,7 +308,7 @@ export function PlanSection() {
             {paused && (
               <p className="mt-5 flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900">
                 <TriangleAlert className="size-4 shrink-0 text-amber-600" />
-                Sending is paused. Choose a plan to keep going.
+                The app is paused. Choose a plan to turn it back on — nothing has been deleted.
               </p>
             )}
           </div>
@@ -319,6 +321,8 @@ export function PlanSection() {
         onOpenChange={setUpgradeOpen}
         plans={choices}
         onUpgraded={() => setReloadKey((k) => k + 1)}
+        currentPlanKey={isActivePaid ? billing?.planKey : null}
+        currentPeriodEnd={isActivePaid ? billing?.periodEnd : null}
       />
 
       <Invoices />

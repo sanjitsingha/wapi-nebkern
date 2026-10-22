@@ -56,12 +56,17 @@ export function UpgradeDialog({
   onOpenChange,
   plans,
   onUpgraded,
+  currentPlanKey = null,
+  currentPeriodEnd = null,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** The plans the user may switch to, cheapest first. */
   plans: PlanOption[];
   onUpgraded?: () => void;
+  /** A live paid plan, if any: offered as a renewal and preselected. */
+  currentPlanKey?: string | null;
+  currentPeriodEnd?: string | null;
 }) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
@@ -70,9 +75,9 @@ export function UpgradeDialog({
     onUpgraded?.();
   });
 
-  // Default the dropdown to the featured plan (else the first offered)
-  // each time the dialog opens or the choices change; keep a still-valid
-  // prior choice.
+  // Default the dropdown to the current plan (a renewal), else the
+  // featured plan, else the first offered, each time the dialog opens or
+  // the choices change; keep a still-valid prior choice.
   useEffect(() => {
     if (!open) return;
     if (plans.length === 0) {
@@ -82,14 +87,38 @@ export function UpgradeDialog({
     setSelectedKey((prev) =>
       prev && plans.some((p) => p.key === prev)
         ? prev
-        : (plans.find((p) => p.isFeatured)?.key ?? plans[0].key),
+        : ((currentPlanKey && plans.some((p) => p.key === currentPlanKey) ? currentPlanKey : null) ??
+            plans.find((p) => p.isFeatured)?.key ??
+            plans[0].key),
     );
-  }, [open, plans]);
+  }, [open, plans, currentPlanKey]);
 
   const selected = useMemo(
     () => plans.find((p) => p.key === selectedKey) ?? null,
     [plans, selectedKey],
   );
+
+  // What paying does, said before the click. The same plan stacks onto
+  // the current period (api/billing/razorpay/verify); another plan
+  // starts today.
+  const optionLabel = (p: PlanOption) =>
+    `${p.name} — ${priceLabel(p)}${p.key === currentPlanKey ? ' (current)' : ''}`;
+  const effect = (() => {
+    if (!selected) return null;
+    const unit = selected.interval === 'yearly' ? '1 year' : '1 month';
+    const liveEnd = currentPeriodEnd ? Date.parse(currentPeriodEnd) : NaN;
+    if (selected.key === currentPlanKey && liveEnd > Date.now()) {
+      const after = new Date(liveEnd).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+      return `Adds ${unit} after ${after}, when your current period ends.`;
+    }
+    return currentPlanKey
+      ? `Starts today for ${unit} and replaces your current plan.`
+      : `Starts today for ${unit}.`;
+  })();
 
   const pay = async () => {
     if (!selected) return;
@@ -121,7 +150,7 @@ export function UpgradeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Change plan</DialogTitle>
+          <DialogTitle>{currentPlanKey ? 'Renew or change plan' : 'Choose a plan'}</DialogTitle>
           <DialogDescription>
             Choose a plan and continue to secure payment.
           </DialogDescription>
@@ -149,14 +178,14 @@ export function UpgradeDialog({
                   <SelectValue placeholder="Choose a plan">
                     {(v: string) => {
                       const p = plans.find((x) => x.key === v);
-                      return p ? `${p.name} — ${priceLabel(p)}` : 'Choose a plan';
+                      return p ? optionLabel(p) : 'Choose a plan';
                     }}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {plans.map((p) => (
                     <SelectItem key={p.key} value={p.key}>
-                      {p.name} — {priceLabel(p)}
+                      {optionLabel(p)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -193,6 +222,8 @@ export function UpgradeDialog({
                 )}
               </div>
             )}
+
+            {effect && <p className="text-xs text-muted-foreground">{effect}</p>}
           </div>
         )}
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { getCurrentAccount, toErrorResponse } from '@/lib/auth/account'
+import { assertActiveSubscription } from '@/lib/billing/guard'
 import { loadInstagramAccess } from '@/lib/instagram/server-config'
 import {
   sendInstagramText,
@@ -27,6 +28,10 @@ const VALID_MESSAGE_TYPES = ['text', ...MEDIA_KINDS] as const
 export async function POST(request: Request) {
   try {
     const { supabase, accountId, userId } = await getCurrentAccount()
+
+    // A lapsed plan pauses every channel, not only WhatsApp.
+    const blocked = await assertActiveSubscription(supabase, accountId)
+    if (blocked) return blocked
 
     // Distinct bucket from WhatsApp's `send:${userId}` so a burst on
     // one channel can't starve the other.

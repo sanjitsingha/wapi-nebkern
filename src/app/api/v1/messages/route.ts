@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authenticateApiKey, requireApiKey } from '@/lib/api-keys/auth';
 import { supabaseAdmin } from '@/lib/webhooks/admin-client';
+import { assertActiveSubscription } from '@/lib/billing/guard';
 import { sanitizePhoneForMeta, isValidE164, normalizePhone } from '@/lib/whatsapp/phone-utils';
 import { decrypt } from '@/lib/whatsapp/encryption';
 import { findExistingContact, isUniqueViolation } from '@/lib/contacts/dedupe';
@@ -36,6 +37,10 @@ export async function POST(request: Request) {
     const auth = requireApiKey(apiAuth, ['send:messages']);
     if (auth instanceof NextResponse) return auth;
     const { accountId, userId } = auth;
+
+    // Same 402 as sending from the app: a lapsed plan pauses the API too.
+    const blocked = await assertActiveSubscription(supabaseAdmin(), accountId);
+    if (blocked) return blocked;
 
     const body = await request.json().catch(() => null);
     const { to, template, params, messageParams } = body ?? {};

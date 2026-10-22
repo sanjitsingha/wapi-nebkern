@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabaseAdmin } from '@/lib/flows/admin-client'
+import { accountHasAccess } from '@/lib/billing/access'
 import { engineSendText } from '@/lib/flows/meta-send'
 import { matchesKeywordTrigger } from '@/lib/automations/engine'
 import type { KeywordMatchTriggerConfig } from '@/types'
@@ -82,6 +83,9 @@ export async function dispatchInboundToAiReply(
 
   try {
     const db = supabaseAdmin()
+
+    // A lapsed plan pauses Maya — her replies run on Instant's own AI key.
+    if (!(await accountHasAccess(db, accountId))) return
 
     // A wait that outlived this engine's in-memory window, handed back by
     // the minute cron once due (due-replies.ts). The inbound gates ran

@@ -6,10 +6,11 @@ import { Timer, AlertTriangle } from 'lucide-react';
 import type { SubscriptionState } from '@/lib/billing/subscription';
 
 /**
- * Trial status, as a chip in the header beside the notifications bell.
- *   - trialing → amber "N days left"
- *   - expired  → red "Trial ended"
- *   - active   → nothing
+ * Plan status, as a chip in the header beside the notifications bell.
+ *   - trialing                     → amber "N days left"
+ *   - paid, ending within 7 days   → amber "Plan ends in N days"
+ *   - ended (trial or paid period) → red "Trial ended" / "Plan ended"
+ *   - otherwise                    → nothing
  *
  * This was a full-width bar under the header. It moved up here because
  * a permanent band across the window is a lot of screen to spend on a
@@ -32,6 +33,9 @@ import type { SubscriptionState } from '@/lib/billing/subscription';
  * setting, not from the app. A dark-mode colour here would fire on a
  * page that stayed light. See whatsapp-connect-banner.tsx.
  */
+/** How far ahead a paid plan's end shows in the header. */
+const RENEW_NOTICE_DAYS = 7;
+
 export function TrialStatusChip() {
   const [sub, setSub] = useState<SubscriptionState | null>(null);
 
@@ -90,15 +94,39 @@ export function TrialStatusChip() {
     );
   }
 
-  if (sub.status === 'expired') {
+  // A paid plan close to its end: a week's notice to renew, since a
+  // period that runs out pauses the whole app.
+  if (sub.hasAccess && sub.periodEndsAt && sub.periodDaysLeft > 0 && sub.periodDaysLeft <= RENEW_NOTICE_DAYS) {
+    const d = sub.periodDaysLeft;
     return (
       <Link
         href="/settings/profile?tab=plan"
-        title="Your free trial has ended — sending messages and broadcasts is paused."
+        title={`Your plan ends in ${d} day${d === 1 ? '' : 's'} — renew to keep going without a break.`}
+        className={`${shell} border-amber-500/40 bg-amber-500/15 text-amber-950 hover:bg-amber-500/25`}
+      >
+        <Timer className="size-3.5 shrink-0" />
+        <span className="hidden sm:inline">
+          {d === 1 ? 'Plan ends tomorrow' : `Plan ends in ${d} days`}
+        </span>
+        <span className="sm:hidden">{d}d</span>
+      </Link>
+    );
+  }
+
+  if (!sub.hasAccess) {
+    const trial = sub.plan === 'trial';
+    return (
+      <Link
+        href="/settings/profile?tab=plan"
+        title={
+          trial
+            ? 'Your free trial has ended — sending messages and broadcasts is paused.'
+            : 'Your plan has ended — sending messages and broadcasts is paused.'
+        }
         className={`${shell} border-red-500/40 bg-red-500/15 text-red-950 hover:bg-red-500/25`}
       >
         <AlertTriangle className="size-3.5 shrink-0" />
-        <span className="hidden sm:inline">Trial ended</span>
+        <span className="hidden sm:inline">{trial ? 'Trial ended' : 'Plan ended'}</span>
         <span className="sm:hidden">Ended</span>
       </Link>
     );

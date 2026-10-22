@@ -60,6 +60,8 @@ export interface AccountRow {
   subscription_status: string | null;
   trial_started_at: string | null;
   trial_ends_at: string | null;
+  /** End of the paid period — a paid plan ends with it. */
+  current_period_end: string | null;
   created_at: string;
   /** The short account ID customers quote to support (migration 123). */
   account_number: number | null;
@@ -76,7 +78,7 @@ export const getAccounts = cache(
   async (): Promise<AccountRow[]> =>
     cachedRead(ADMIN_TAGS.accounts, ['all'], async () => {
       const columns =
-        'id, name, owner_user_id, plan, subscription_status, trial_started_at, trial_ends_at, created_at';
+        'id, name, owner_user_id, plan, subscription_status, trial_started_at, trial_ends_at, current_period_end, created_at';
       const withNumber = await adminDb()
         .from('accounts')
         .select(`${columns}, account_number`)

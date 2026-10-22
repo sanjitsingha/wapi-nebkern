@@ -33,6 +33,7 @@
  */
 
 import { supabaseAdmin } from "./admin-client";
+import { accountHasAccess } from "@/lib/billing/access";
 import { runAutomationsForTrigger } from "@/lib/automations/engine";
 import {
   engineSendInteractiveButtons,
@@ -932,6 +933,10 @@ export async function dispatchInboundToFlows(
 ): Promise<DispatchInboundResult> {
   const db = supabaseAdmin();
   try {
+    // A lapsed plan pauses flows; unconsumed, the message falls through
+    // to automations and AI, which are paused the same way.
+    if (!(await accountHasAccess(db, input.accountId))) return { consumed: false };
+
     const activeRun = await loadActiveRunForContact(
       db,
       input.accountId,
@@ -1323,6 +1328,8 @@ export async function startFlowForConversation(args: {
 }): Promise<{ ok: boolean; flow_run_id?: string; error?: string }> {
   const db = supabaseAdmin();
   try {
+    if (!(await accountHasAccess(db, args.accountId))) return { ok: false, error: "plan_inactive" };
+
     const { data: flow, error: flowErr } = await db
       .from("flows")
       .select("*")

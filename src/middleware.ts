@@ -256,6 +256,10 @@ export async function middleware(request: NextRequest) {
         subscription_status: meta.subscription_status,
         trial_ends_at:
           typeof meta.trial_ends_at === 'string' ? meta.trial_ends_at : null,
+        // Mirrored by migration 124. A paid plan ends when its period
+        // does, so without this the paywall never closed on one.
+        current_period_end:
+          typeof meta.current_period_end === 'string' ? meta.current_period_end : null,
       };
     } else {
       // Fallback for sessions predating 079/087, and for the window during
@@ -263,7 +267,7 @@ export async function middleware(request: NextRequest) {
       const { data: prof } = await supabase
         .from('profiles')
         .select(
-          'profile_completed_at, account:accounts!inner(onboarded_at, plan, subscription_status, trial_ends_at)',
+          'profile_completed_at, account:accounts!inner(onboarded_at, plan, subscription_status, trial_ends_at, current_period_end)',
         )
         .eq('user_id', user.id)
         .maybeSingle();
@@ -284,6 +288,7 @@ export async function middleware(request: NextRequest) {
             plan: accountRow.plan,
             subscription_status: accountRow.subscription_status,
             trial_ends_at: accountRow.trial_ends_at,
+            current_period_end: accountRow.current_period_end,
           }
         : null;
     }
@@ -304,8 +309,9 @@ export async function middleware(request: NextRequest) {
       if (onWelcome || !onOnboarding) return redirectTo('/onboarding');
     } else {
       // Onboarded. A second, ONGOING gate now applies: has the plan lapsed?
-      // Trial expiry is folded in on read, so this catches a trial that ran
-      // out just as much as a paid plan gone canceled/past_due/expired.
+      // Both end dates are folded in on read, so this catches a trial that
+      // ran out, a paid period that ended, and a plan set canceled /
+      // past_due / expired.
       const { hasAccess } = computeSubscription(subRow);
 
       if (onWelcome) return redirectTo(hasAccess ? '/dashboard' : '/onboarding');

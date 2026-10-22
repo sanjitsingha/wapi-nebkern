@@ -69,6 +69,8 @@ export default function OnboardingPage() {
   // We tell them apart by the effective subscription status from the
   // server, which already folds trial expiry in.
   const [lapsed, setLapsed] = useState(false);
+  // What ended and when, for the lapsed copy: "Your plan ended on 3 Sep".
+  const [ended, setEnded] = useState<{ trial: boolean; on: string | null } | null>(null);
   // The activation-code entry stays folded away behind a link until asked
   // for — most people arriving here pay; a code is the exception path.
   const [showCode, setShowCode] = useState(false);
@@ -93,13 +95,14 @@ export default function OnboardingPage() {
     fetch('/api/account/subscription')
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        const status = data?.subscription?.status;
-        if (!cancelled)
-          setLapsed(
-            status === 'expired' ||
-              status === 'canceled' ||
-              status === 'past_due',
-          );
+        const sub = data?.subscription;
+        if (cancelled || !sub) return;
+        const isLapsed = sub.hasAccess === false;
+        setLapsed(isLapsed);
+        if (isLapsed) {
+          const trial = sub.plan === 'trial';
+          setEnded({ trial, on: (trial ? sub.trialEndsAt : sub.periodEndsAt) ?? null });
+        }
       })
       .catch(() => {
         // Network hiccup — default to the welcoming copy, which is safe
@@ -185,9 +188,17 @@ export default function OnboardingPage() {
                 Choose a plan to keep going
               </h1>
               <p className="mt-3 text-muted-foreground">
-                Your plan has ended, so the app is paused. Pick a plan below to
-                turn it back on — your conversations, contacts and campaigns are
-                all still here, exactly as you left them.
+                Your {ended?.trial ? 'free trial' : 'plan'}{' '}
+                {ended?.on
+                  ? `ended on ${new Date(ended.on).toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}`
+                  : 'has ended'}
+                , so the app is paused. Pick a plan below to turn it back on —
+                your conversations, contacts and campaigns are all still here,
+                exactly as you left them.
               </p>
             </>
           ) : (

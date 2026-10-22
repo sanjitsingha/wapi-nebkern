@@ -21,6 +21,7 @@ import type {
   MessageTemplate,
 } from '@/types'
 import { supabaseAdmin } from './admin-client'
+import { accountHasAccess } from '@/lib/billing/access'
 import { engineSendText, engineSendTemplate, engineSendInteractiveButtons } from './meta-send'
 import { DEFAULT_CURRENCY } from '@/lib/currency'
 
@@ -64,6 +65,9 @@ export interface DispatchInput {
 export async function runAutomationsForTrigger(input: DispatchInput): Promise<void> {
   try {
     const db = supabaseAdmin()
+
+    // A lapsed plan pauses automations along with everything else.
+    if (!(await accountHasAccess(db, input.accountId))) return
 
     // Tenant isolation. `contactId` can be caller-supplied (the manual
     // POST /api/automations/engine entrypoint reads it straight from the
@@ -139,6 +143,18 @@ export async function resumePendingExecution(pending: {
   reply_step_id?: string | null
 }): Promise<void> {
   const db = supabaseAdmin()
+
+  // Plan lapsed: hand the row back (the cron marked it running) and look
+  // again in an hour, so it neither crowds the cron's batch every minute
+  // nor gets lost — it carries on once the plan is renewed.
+  if (!(await accountHasAccess(db, pending.account_id))) {
+    await db
+      .from('automation_pending_executions')
+      .update({ status: 'pending', run_at: new Date(Date.now() + 60 * 60 * 1000).toISOString() })
+      .eq('id', pending.id)
+    return
+  }
+
   const { data: automation, error } = await db
     .from('automations')
     .select('*')
@@ -196,6 +212,7 @@ export async function resumeRunsAwaitingReply(args: {
   messageText: string
 }): Promise<number> {
   const db = supabaseAdmin()
+  if (!(await accountHasAccess(db, args.accountId))) return 0
 
   const { data: parked, error } = await db
     .from('automation_pending_executions')
