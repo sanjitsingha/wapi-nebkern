@@ -85,7 +85,7 @@ export function ConnectHero({
       </p>
 
       <div className="mt-6 flex items-center gap-5 sm:gap-8">
-        {/* The lockup spells "instant" itself, so no caption under it. */}
+        {/* The lockup spells "dripo" itself, so no caption under it. */}
         <BrandLogo className="h-7" />
         <SyncArrows className="h-8 w-24 shrink-0 text-muted-foreground/60" />
         <div className="flex flex-col items-center gap-2">
