@@ -45,7 +45,6 @@ export const ADMIN_TAGS = {
   plans: 'admin:plans',
   invoices: 'admin:invoices',
   announcements: 'admin:announcements',
-  notifications: 'admin:notifications',
   popups: 'admin:popups',
   codes: 'admin:codes',
   blog: 'admin:blog',

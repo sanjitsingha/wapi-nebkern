@@ -63,7 +63,23 @@ export interface FilterableConversation {
   assigned_agent_id?: string | null;
   assigned_flow_id?: string | null;
   ai_agent_assigned?: boolean | null;
+  ai_autoreply_disabled?: boolean | null;
   contact?: { contact_tags?: { tag_id: string }[] | null } | null;
+}
+
+/**
+ * Maya handed this chat to a human (lib/ai/auto-reply.ts) and nobody has
+ * picked it up — no teammate, and no bot it was passed on to. The
+ * inbox's "Needs a human" filter. A closed chat is finished, so it no
+ * longer waits on anyone.
+ */
+export function needsHuman(c: FilterableConversation): boolean {
+  return (
+    !!c.ai_autoreply_disabled &&
+    !c.assigned_agent_id &&
+    !c.assigned_flow_id &&
+    c.status !== 'closed'
+  );
 }
 
 export function isActive(filters: InboxFilters, key: FilterKey): boolean {

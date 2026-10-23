@@ -66,12 +66,16 @@ interface ContactSidebarProps {
   /** The open conversation, for the Details tab's chat facts. Optional
    *  so the panel still renders for a contact with no thread loaded. */
   conversation?: Conversation | null;
+  /** The tab to land on for this contact instead of Overview — Team,
+   *  when the chat was opened from the inbox's Mentions filter. */
+  openOn?: 'team';
   onTogglePanel?: () => void;
 }
 
 export function ContactSidebar({
   contact,
   conversation,
+  openOn,
   onTogglePanel,
 }: ContactSidebarProps) {
   // Null outside the dashboard shell (the provider lives there), which is
@@ -115,10 +119,16 @@ export function ContactSidebar({
   // Keyed on the id, not the object: the parent swaps in a fresh
   // contact object when a field changes (e.g. spam from the thread
   // menu), and that must not throw the agent back to Overview.
+  // `openOn` is read through a ref so it picks the landing tab for a
+  // new contact without itself switching tabs on the current one.
   const contactId = contact?.id;
+  const openOnRef = useRef(openOn);
+  useEffect(() => {
+    openOnRef.current = openOn;
+  }, [openOn]);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTab('overview');
+    setTab(openOnRef.current ?? 'overview');
   }, [contactId]);
 
   const fetchContactData = useCallback(async () => {

@@ -10,7 +10,10 @@ import {
   MESSAGE_SYNC_INTERVAL_MS,
   MESSAGE_SYNC_LIMIT,
 } from "@/lib/inbox/messages";
-import { ConversationList } from "@/components/inbox/conversation-list";
+import {
+  ConversationList,
+  type SelectOptions,
+} from "@/components/inbox/conversation-list";
 import { MessageThread } from "@/components/inbox/message-thread";
 import { ContactSidebar } from "@/components/inbox/contact-sidebar";
 import { WifiOff } from "lucide-react";
@@ -42,6 +45,14 @@ function InboxPageInner() {
   const [activeConversation, setActiveConversation] =
     useState<Conversation | null>(null);
   const [activeContact, setActiveContact] = useState<Contact | null>(null);
+  /** The contact panel's opening tab for the chat just picked — Team
+   *  when it came from the Mentions filter. Tied to that contact, so a
+   *  chat opened any other way (deep link, a new conversation) never
+   *  inherits it. */
+  const [panelOpenOn, setPanelOpenOn] = useState<{
+    contactId: string;
+    tab: "team";
+  } | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [whatsappConnected, setWhatsappConnected] = useState<boolean | null>(
     null
@@ -527,12 +538,17 @@ function InboxPageInner() {
   );
 
   const handleSelectConversation = useCallback(
-    (conv: Conversation) => {
+    (conv: Conversation, options?: SelectOptions) => {
       // Re-clicking the already-active conversation would clear the
       // messages array, but the fetch effect in MessageThread only re-runs
       // when conversationId changes — so messages would stay empty until
       // the user navigated away and back. Bail out early instead.
       if (activeConversation?.id === conv.id) return;
+      setPanelOpenOn(
+        options?.panelTab
+          ? { contactId: conv.contact_id, tab: options.panelTab }
+          : null,
+      );
       setActiveConversation(conv);
       setActiveContact(conv.contact ?? null);
       setMessages([]);
@@ -745,6 +761,11 @@ function InboxPageInner() {
             <ContactSidebar
               contact={activeContact}
               conversation={activeConversation}
+              openOn={
+                panelOpenOn && panelOpenOn.contactId === activeContact?.id
+                  ? panelOpenOn.tab
+                  : undefined
+              }
               onTogglePanel={handleToggleContactPanel}
             />
           </div>

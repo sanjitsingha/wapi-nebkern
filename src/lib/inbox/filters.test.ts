@@ -6,6 +6,7 @@ import {
   customerWroteLast,
   dateWindow,
   matchesFilters,
+  needsHuman,
   type FilterableConversation,
   type InboxFilters,
 } from './filters';
@@ -93,5 +94,28 @@ describe('dateWindow', () => {
     const [openFrom, openTo] = dateWindow({ preset: 'custom', to: '2026-10-14' }, now);
     expect(openFrom).toBe(-Infinity);
     expect(openTo).toBe(new Date(2026, 9, 15).getTime());
+  });
+});
+
+describe('needsHuman', () => {
+  const handedOff = { ai_autoreply_disabled: true };
+
+  it('is a handed-off chat nobody has picked up', () => {
+    expect(needsHuman(conv(handedOff))).toBe(true);
+    expect(needsHuman(conv({ ...handedOff, status: 'pending' }))).toBe(true);
+  });
+
+  it('is not one Maya is still answering', () => {
+    expect(needsHuman(conv())).toBe(false);
+    expect(needsHuman(conv({ ai_autoreply_disabled: null }))).toBe(false);
+  });
+
+  it('stops once a teammate or a bot has it', () => {
+    expect(needsHuman(conv({ ...handedOff, assigned_agent_id: 'user-1' }))).toBe(false);
+    expect(needsHuman(conv({ ...handedOff, assigned_flow_id: 'flow-1' }))).toBe(false);
+  });
+
+  it('stops once the chat is closed', () => {
+    expect(needsHuman(conv({ ...handedOff, status: 'closed' }))).toBe(false);
   });
 });

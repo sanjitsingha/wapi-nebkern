@@ -7,15 +7,14 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 
 /**
  * Count of conversations with at least one unread inbound message for
- * the current user. Drives the green dot on the sidebar's Inbox entry
- * and the badge on the header bell.
+ * the current user. Drives the green dot on the sidebar's Inbox entry.
  *
  * ONE subscription for the whole app, however many components read it.
  *
- * This used to open a channel and run a query per mount, and it is
- * mounted twice on every page — sidebar.tsx and notifications-bell.tsx
- * — so every navigation cost two `conversations` queries and two
- * Realtime channels carrying identical traffic. The module-level store
+ * This used to open a channel and run a query per mount, and it was
+ * mounted twice on every page (the sidebar and a header bell, since
+ * removed) — so every navigation cost two `conversations` queries and
+ * two Realtime channels carrying identical traffic. The module-level store
  * below is the same shape as `use-entitlements.ts`: shared state, one
  * fetch, reference-counted teardown.
  */

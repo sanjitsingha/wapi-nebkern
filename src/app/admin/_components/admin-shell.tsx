@@ -9,7 +9,6 @@ import {
   Users,
   UserCog,
   KeyRound,
-  Bell,
   Megaphone,
   MonitorPlay,
   Newspaper,
@@ -91,7 +90,6 @@ const NAV: {
     group: 'Publishing',
     items: [
       { label: 'Blog', href: '/admin/blog', icon: Newspaper },
-      { label: 'Notifications', href: '/admin/notifications', icon: Bell },
       { label: 'Announcements', href: '/admin/announcements', icon: Megaphone },
       { label: 'Popups', href: '/admin/popups', icon: MonitorPlay },
     ],

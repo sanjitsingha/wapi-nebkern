@@ -17,7 +17,7 @@ const TIER_LABELS: Record<string, string> = {
 };
 
 /**
- * Compact plan/trial pill for the header, beside the notification bell.
+ * Compact plan/trial pill for the header.
  * Clickable → Settings → Profile, where the Plan section lives.
  * Self-fetches from the tolerant
  * /api/account/subscription endpoint (fails open pre-migration → renders

@@ -134,9 +134,10 @@ export function TeamThread({ contactId }: { contactId: string }) {
   }, [load]);
 
   /** Opening the thread is reading it — clear this contact's mentions
-   *  so the bell badge does not keep claiming attention already paid. */
+   *  so the inbox's Mentions filter does not keep claiming attention
+   *  already paid. */
   useEffect(() => {
-    void fetch('/api/notifications/mentions', {
+    void fetch('/api/mentions', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contactId }),

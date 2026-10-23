@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useTags, useTeamMembers } from "@/hooks/reference-data";
 import { useConnectedChannels } from "@/hooks/use-connected-channels";
+import { useUnreadMentions } from "@/hooks/use-unread-mentions";
 import { cn } from "@/lib/utils";
 import type {
   Conversation,
@@ -20,9 +21,12 @@ import type {
   Tag,
 } from "@/types";
 import {
+  AtSign,
   Bot,
   Check,
   Search,
+  UserRound,
+  type LucideIcon,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { Input } from "@/components/ui/input";
@@ -40,6 +44,7 @@ import {
   EMPTY_FILTERS,
   activeCount,
   matchesFilters,
+  needsHuman,
   type InboxFilters,
 } from "@/lib/inbox/filters";
 import {
@@ -76,9 +81,14 @@ interface ConversationWithTags extends Omit<Conversation, "contact"> {
   contact?: ContactWithTags;
 }
 
+/** Which tab the contact panel should open on for a picked chat. */
+export interface SelectOptions {
+  panelTab?: "team";
+}
+
 interface ConversationListProps {
   activeConversationId: string | null;
-  onSelect: (conversation: Conversation) => void;
+  onSelect: (conversation: Conversation, options?: SelectOptions) => void;
   conversations: Conversation[];
   onConversationsLoaded: (conversations: Conversation[]) => void;
   resyncToken?: number;
@@ -169,6 +179,12 @@ export function ConversationList({
   // read, awaiting, assignee, dates, reply window), matched ALL or ANY.
   // See lib/inbox/filters.ts.
   const [filters, setFilters] = useState<InboxFilters>(EMPTY_FILTERS);
+  // The two chips under the search box: chats where a teammate
+  // @mentioned me, and chats Maya handed to a human that nobody has
+  // picked up. They replaced the header's notification bell, which was
+  // the only place either showed.
+  const [quick, setQuick] = useState<"mentions" | "handoff" | null>(null);
+  const unreadMentions = useUnreadMentions();
   // "Today", "Last 7 days" and the 24-hour window move with the clock;
   // ticking once a minute keeps them honest without re-filtering on
   // every render.
@@ -323,13 +339,39 @@ export function ConversationList({
     };
   }, [resyncToken]);
 
-  const filtered = useMemo(() => {
-    let result = conversations as ConversationWithTags[];
+  const inChannel = useMemo(() => {
+    const all = conversations as ConversationWithTags[];
+    if (channel === "all") return all;
+    // Legacy rows predating migration 044 have no channel — treat them
+    // as WhatsApp so they don't vanish under the WhatsApp tab.
+    return all.filter((c) => (c.channel ?? "whatsapp") === channel);
+  }, [conversations, channel]);
 
-    if (channel !== "all") {
-      // Legacy rows predating migration 044 have no channel — treat them
-      // as WhatsApp so they don't vanish under the WhatsApp tab.
-      result = result.filter((c) => (c.channel ?? "whatsapp") === channel);
+  // Counted within the channel tab and ignoring the other filters, so a
+  // chip's number is what clicking it shows on an unfiltered list.
+  const mentionCount = useMemo(
+    () => inChannel.filter((c) => unreadMentions.has(c.contact_id)).length,
+    [inChannel, unreadMentions],
+  );
+  const handoffCount = useMemo(
+    () => inChannel.filter(needsHuman).length,
+    [inChannel],
+  );
+
+  const filtered = useMemo(() => {
+    let result = inChannel;
+
+    if (quick) {
+      // The open chat stays put even once it stops matching — reading
+      // the mention clears it, and the row vanishing under the cursor
+      // would read as the chat being lost.
+      result = result.filter(
+        (c) =>
+          c.id === activeConversationId ||
+          (quick === "mentions"
+            ? unreadMentions.has(c.contact_id)
+            : needsHuman(c)),
+      );
     }
 
     result = result.filter((c) => matchesFilters(c, filters, now));
@@ -354,8 +396,10 @@ export function ConversationList({
 
     return result;
   }, [
-    conversations,
-    channel,
+    inChannel,
+    quick,
+    activeConversationId,
+    unreadMentions,
     filters,
     now,
     search,
@@ -366,9 +410,17 @@ export function ConversationList({
     []
   );
 
+  // From Mentions, a chat opens with the contact panel on its Team
+  // thread — where the mention is, and opening it marks it read.
   const handleSelect = useCallback(
-    (conv: Conversation) => onSelect(conv),
-    [onSelect]
+    (conv: Conversation) =>
+      onSelect(
+        conv,
+        quick === "mentions" && unreadMentions.has(conv.contact_id)
+          ? { panelTab: "team" }
+          : undefined,
+      ),
+    [onSelect, quick, unreadMentions]
   );
 
   const filterMembers = useMemo(
@@ -466,6 +518,25 @@ export function ConversationList({
         />
       </div>
 
+      {/* Mentions and handoffs: the two things addressed to a person
+          rather than to the inbox at large. A second click clears. */}
+      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+        <QuickFilterChip
+          icon={AtSign}
+          label="Mentions"
+          count={mentionCount}
+          active={quick === "mentions"}
+          onClick={() => setQuick((q) => (q === "mentions" ? null : "mentions"))}
+        />
+        <QuickFilterChip
+          icon={UserRound}
+          label="Needs a human"
+          count={handoffCount}
+          active={quick === "handoff"}
+          onClick={() => setQuick((q) => (q === "handoff" ? null : "handoff"))}
+        />
+      </div>
+
       {/* Conversation Items */}
       <ScrollArea className="min-h-0 flex-1">
         {loading ? (
@@ -475,11 +546,24 @@ export function ConversationList({
         ) : filtered.length === 0 ? (
           <div className="px-4 py-12 text-center">
             <p className="text-sm text-muted-foreground">
-              {activeCount(filters) > 0
-                ? "No chats match these filters"
-                : "No conversations found"}
+              {quick === "mentions"
+                ? "No unread mentions. When a teammate @mentions you on a contact, the chat shows up here."
+                : quick === "handoff"
+                  ? "Nobody is waiting for a human. Chats Maya hands over land here until someone takes them."
+                  : activeCount(filters) > 0
+                    ? "No chats match these filters"
+                    : "No conversations found"}
             </p>
-            {activeCount(filters) > 0 && (
+            {quick && (
+              <button
+                type="button"
+                onClick={() => setQuick(null)}
+                className="mt-2 text-xs font-medium text-primary hover:underline"
+              >
+                Show all chats
+              </button>
+            )}
+            {!quick && activeCount(filters) > 0 && (
               <button
                 type="button"
                 onClick={() => setFilters({ ...EMPTY_FILTERS, match: filters.match })}
@@ -514,6 +598,45 @@ export function ConversationList({
         )}
       </ScrollArea>
     </div>
+  );
+}
+
+// ─── Quick filter chip ─────────────────────────────────────────────────────
+
+/** A toggle under the search box, with how many chats it would show. */
+function QuickFilterChip({
+  icon: Icon,
+  label,
+  count,
+  active,
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold whitespace-nowrap transition-colors",
+        active
+          ? "border-primary/30 bg-primary-soft text-primary"
+          : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
+      )}
+    >
+      <Icon className="size-3.5 shrink-0" />
+      {label}
+      {count > 0 && (
+        <span className="bg-primary text-primary-foreground inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] leading-none font-bold">
+          {count > 99 ? "99+" : count}
+        </span>
+      )}
+    </button>
   );
 }
 

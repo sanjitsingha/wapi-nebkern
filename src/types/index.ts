@@ -370,6 +370,10 @@ export interface Conversation {
    *  toggle and without the per-conversation cap. Mutually exclusive
    *  with `assigned_agent_id` / `assigned_flow_id`. */
   ai_agent_assigned?: boolean;
+  /** Maya handed this conversation to a human and stopped replying
+   *  (lib/ai/auto-reply.ts). Cleared when someone assigns it back to
+   *  the AI. With no `assigned_agent_id`, nobody has picked it up. */
+  ai_autoreply_disabled?: boolean | null;
   last_message_text?: string;
   last_message_at?: string;
   /** Timestamp of the last inbound customer message — used to compute the WhatsApp 24-hour messaging window. */
