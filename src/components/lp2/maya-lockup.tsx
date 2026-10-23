@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 // for running text and small marks. Both end in the same chartreuse
 // sparkle cluster, which is what ties them to `--lp2-lime`.
 //
-// Bundled under public/ rather than served from media.instant.nebkern.com
+// Bundled under public/ rather than served from media.dripo.nebkern.com
 // like the company lockup in src/lib/brand.ts. That host is allow-listed
 // in next.config.ts for the corporate marks; these two are feature
 // artwork that only this page uses, so a local asset saves a DNS lookup

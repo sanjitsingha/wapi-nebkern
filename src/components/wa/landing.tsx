@@ -36,7 +36,7 @@ import { WaPill, waType } from './ui';
 // conversation instead of a photo of one.
 // ============================================================
 
-const META_LOGO = 'https://media.instant.nebkern.com/assets/meta-logo.png';
+const META_LOGO = '/images/brands/meta-logo.png';
 // See components/lp2/integrations.tsx for why this is bundled.
 const ORBIT_ART = '/images/integrations/dripo-orbit.png';
 

@@ -6,9 +6,9 @@ import { LEGAL_LINKS } from './legal-links';
 import { CookieSettingsLink } from '@/components/consent/cookie-settings-link';
 import { COMPARISONS } from '@/lib/marketing/comparisons';
 
-const META_LOGO = 'https://media.instant.nebkern.com/assets/meta-logo.png';
+const META_LOGO = '/images/brands/meta-logo.png';
 
-const MSME_LOGO = 'https://media.instant.nebkern.com/assets/msme-logo.png';
+const MSME_LOGO = '/images/brands/msme-logo.png';
 
 /** As issued. Displayed verbatim — it is a registration identifier, so
  *  it should be checkable against the Udyam portal character for

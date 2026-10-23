@@ -29,7 +29,7 @@ export const ORGANIZATION_SCHEMA = {
   name: 'Nebkern Technology',
   alternateName: 'Nebkern',
   url: 'https://nebkern.com/',
-  logo: 'https://media.instant.nebkern.com/assets/meta-logo.png',
+  logo: `${SITE_URL}/images/brands/meta-logo.png`,
   address: {
     '@type': 'PostalAddress',
     streetAddress: 'Ghoshpukur, Kamala Bagan',

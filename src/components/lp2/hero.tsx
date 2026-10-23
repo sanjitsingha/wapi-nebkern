@@ -227,7 +227,7 @@ function Copy() {
             rather than resizing a 150KB PNG in the browser, and `w-auto`
             keeps the true aspect ratio regardless. */}
         <Image
-          src="https://media.instant.nebkern.com/assets/meta-logo.png"
+          src="/images/brands/meta-logo.png"
           alt=""
           width={124}
           height={25}

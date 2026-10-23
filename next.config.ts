@@ -135,11 +135,21 @@ const nextConfig: NextConfig = {
    * media. Pointing the optimiser at arbitrary user content turns it
    * into an open image-resizing proxy for anything that lands there.
    *
-   * The Meta partner logo in the landing hero is the first consumer —
-   * a 4096px PNG that would otherwise ship whole to render at 16px.
+   * The site's own artwork (the Meta, MSME, Shopify and WooCommerce
+   * logos) is bundled under public/ now, so nothing in the code needs
+   * this; it is for brand artwork referenced from stored content.
+   *
+   * media.dripo is the current media host (bucket dripo-media).
+   * media.instant is the bucket from before the product became Dripo;
+   * records created then still carry its URLs.
    */
   images: {
     remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "media.dripo.nebkern.com",
+        pathname: "/assets/**",
+      },
       {
         protocol: "https",
         hostname: "media.instant.nebkern.com",

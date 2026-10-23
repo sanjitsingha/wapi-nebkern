@@ -215,7 +215,7 @@ const ALL_INTEGRATIONS: Integration[] = [
     group: 'builtin',
     href: '#',
     cta: 'Connect',
-    logo: 'https://media.instant.nebkern.com/assets/shopify-logo.png',
+    logo: '/images/brands/shopify-logo.png',
   },
   {
     // Native connect flow (rendered by <WooCommerceConnect>, not the
@@ -229,7 +229,7 @@ const ALL_INTEGRATIONS: Integration[] = [
     group: 'builtin',
     href: '#',
     cta: 'Connect',
-    logo: 'https://media.instant.nebkern.com/assets/woocommerce-logo.png',
+    logo: '/images/brands/woocommerce-logo.png',
   },
   {
     id: 'slack',

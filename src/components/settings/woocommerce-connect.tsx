@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 
 /** WooCommerce brand logo, served from our media CDN. */
-const WOO_LOGO = 'https://media.instant.nebkern.com/assets/woocommerce-logo.png';
+const WOO_LOGO = '/images/brands/woocommerce-logo.png';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';

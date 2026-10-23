@@ -19,7 +19,7 @@ import {
 import type { ReactNode } from 'react';
 import type { ConnectCardArgs } from './integrations-catalog';
 
-const SHOPIFY_LOGO = 'https://media.instant.nebkern.com/assets/shopify-logo.png';
+const SHOPIFY_LOGO = '/images/brands/shopify-logo.png';
 
 /**
  * Start on the access-token form rather than "Sign in with Shopify".
