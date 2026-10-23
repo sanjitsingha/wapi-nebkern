@@ -53,6 +53,15 @@
  * So `newsletter` needs its MAIL_FROM_NEWSLETTER override to send at
  * all. Re-check this list after adding a sender here — the dashboard
  * is the source of truth, not this file.
+ *
+ * Mail moved to dripo.nebkern.com on 2026-10-23, checked the same way:
+ *
+ *   contact@    yes        noreply@    yes        no-reply@   NO
+ *   support@    NO         billing@    NO
+ *
+ * DeoMail's address there is noreply@, without the hyphen, so `otp`
+ * runs on MAIL_FROM_OTP; `support` and `billing` go through contact@
+ * (MAIL_FROM_SUPPORT / MAIL_FROM_BILLING) until those addresses exist.
  */
 
 export const SENDERS = {
