@@ -4,8 +4,8 @@ import { LOGO_URL } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 
 /**
- * The brand lockup — pin mark plus the "dripo" wordmark, one asset.
- * See `lib/brand.ts` for where the file lives and why it is interim.
+ * The brand logo — the "dripo" wordmark, one asset. See `lib/brand.ts`
+ * for where the file lives.
  */
 const LOGO_SRC = LOGO_URL;
 
@@ -13,8 +13,8 @@ const LOGO_SRC = LOGO_URL;
  *  reserve the right box before the bytes land — get this wrong and the
  *  header jumps on first paint. Every caller then sizes by height and
  *  lets the width follow. */
-const INTRINSIC_WIDTH = 2931;
-const INTRINSIC_HEIGHT = 844;
+const INTRINSIC_WIDTH = 712;
+const INTRINSIC_HEIGHT = 240;
 
 export function BrandLogo({
   className,
@@ -35,10 +35,10 @@ export function BrandLogo({
       alt="Dripo WhatsApp for Business"
       width={INTRINSIC_WIDTH}
       height={INTRINSIC_HEIGHT}
-      // Drawn about 150px wide (h-8 / h-9). Without `sizes`, next/image
-      // offers only 1x/2x candidates of the ~3000px intrinsic width, so
-      // the nav downloaded a 3840px image — Lighthouse's "properly size
-      // images" failure, ~76 KB wasted on every page.
+      // Drawn about 100px wide (h-8 / h-9). Without `sizes`, next/image
+      // offers only 1x/2x candidates of the intrinsic width — with the
+      // old 3514px lockup the nav downloaded a 3840px image, Lighthouse's
+      // "properly size images" failure.
       sizes="240px"
       priority={priority}
       className={cn('w-auto', className)}

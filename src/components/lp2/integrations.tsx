@@ -38,14 +38,13 @@ const PANEL_WASH =
   'linear-gradient(to top, color-mix(in oklab, var(--lp2-lemon) 30%, #fff), #fff 88%)';
 
 /**
- * The orbit artwork: the Dripo mark ringed by the systems it talks to.
+ * The orbit artwork: the Dripo wordmark ringed by the systems it talks to.
  *
- * Served from the media host like the rest of the brand assets — it is
- * already covered by `next.config.ts`'s `images.remotePatterns` entry for
- * `/assets/**`, so a re-cut of the diagram is a file swap rather than a
- * deploy. (The filename's spelling is the asset's, not a typo here.)
+ * Bundled under public/, like the logo itself. The media host still holds
+ * the original (assets/intregation.png), which centres the old Instant
+ * lockup; this copy has the Dripo wordmark in its place.
  */
-const ORBIT_ART = 'https://media.instant.nebkern.com/assets/intregation.png';
+const ORBIT_ART = '/images/integrations/dripo-orbit.png';
 
 /** The asset's true pixel size — `next/image` needs the real ratio to
  *  reserve the box before the bytes land, or the panel reflows on first
@@ -128,7 +127,7 @@ function AppOrbit() {
           lazy and leave the hero's budget alone. */}
       <Image
         src={ORBIT_ART}
-        alt="The Dripo mark ringed by Shopify, Make, Zoho, Google Sheets, Zapier and a REST API badge"
+        alt="The Dripo wordmark ringed by Shopify, Make, Zoho, Google Sheets, Zapier and a REST API badge"
         width={ORBIT_SIZE}
         height={ORBIT_SIZE}
         sizes="(min-width: 1024px) 36rem, (min-width: 640px) 28rem, 100vw"

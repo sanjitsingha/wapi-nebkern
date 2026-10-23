@@ -1,17 +1,15 @@
-// The full company wordmark — the green pin mark plus "dripo".
+// The Dripo wordmark, in brand green.
 //
-// Bundled under public/ and served through the next/image optimiser
-// rather than shipping the 2931×844 original. Transparent alpha and
-// green throughout, so one file serves light and dark backgrounds alike.
+// Bundled under public/ and served through the next/image optimiser.
+// Transparent alpha and green throughout, so one file serves light and
+// dark backgrounds alike. Alongside it in public/brand:
+// dripo-wordmark-white.webp for solid colour grounds, and dripo-wordmark.png
+// for the link-preview image (next/og cannot read WebP).
 //
-// An interim cut: the old lockup's pin mark with "dripo" set in Manrope
-// 600, made when the product was renamed from Instant. Replace the file
-// (and the ratio below) when the designed logo arrives.
-//
-export const LOGO_URL = '/brand/dripo-logo.webp';
+export const LOGO_URL = '/brand/dripo-wordmark.webp';
 
-/** Intrinsic 2931 × 844. */
-const LOGO_RATIO = 2931 / 844;
+/** Intrinsic 712 × 240. */
+const LOGO_RATIO = 712 / 240;
 
 /**
  * Width to pair with a rendered `height`, for next/image's width/height

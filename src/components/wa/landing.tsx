@@ -37,7 +37,8 @@ import { WaPill, waType } from './ui';
 // ============================================================
 
 const META_LOGO = 'https://media.instant.nebkern.com/assets/meta-logo.png';
-const ORBIT_ART = 'https://media.instant.nebkern.com/assets/intregation.png';
+// See components/lp2/integrations.tsx for why this is bundled.
+const ORBIT_ART = '/images/integrations/dripo-orbit.png';
 
 /** Which hero to render. `centered` is the live design; `chat` is the
  *  earlier chat-bubble hero, still reachable at /?hero=chat. */
@@ -609,7 +610,7 @@ function Integrations() {
         <div className="overflow-hidden rounded-[25px] bg-white">
           <Image
             src={ORBIT_ART}
-            alt="The Dripo mark ringed by Shopify, Make, Zoho, Google Sheets, Zapier and a REST API badge"
+            alt="The Dripo wordmark ringed by Shopify, Make, Zoho, Google Sheets, Zapier and a REST API badge"
             width={1000}
             height={1000}
             sizes="(min-width: 1024px) 32rem, 100vw"

@@ -95,10 +95,10 @@ const NAV: {
 function Logo() {
   return (
     <Link href="/" className="group flex items-center">
-      {/* Mark and wordmark in one image. This replaced a rounded tile
-          with a chat glyph beside the word "Dripo" set in the display
-          face — a stand-in that matched neither the real lockup's
-          proportions nor its green. */}
+      {/* The wordmark, as one image. It replaced a rounded tile with a
+          chat glyph beside the brand name set in the display face — a
+          stand-in that matched neither the real logo's proportions nor
+          its green. */}
       <BrandLogo priority className="h-8" />
     </Link>
   );

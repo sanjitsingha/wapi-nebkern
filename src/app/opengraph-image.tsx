@@ -1,3 +1,6 @@
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+
 import { ImageResponse } from 'next/og';
 
 // ============================================================
@@ -14,7 +17,10 @@ export const alt = 'Dripo — WhatsApp CRM & Marketing Automation by Nebkern Tec
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
-export default function OpengraphImage() {
+export default async function OpengraphImage() {
+  // The wordmark as PNG: next/og draws PNG, JPEG and GIF, not WebP.
+  const logo = await readFile(join(process.cwd(), 'public/brand/dripo-wordmark.png'), 'base64');
+
   return new ImageResponse(
     (
       <div
@@ -29,17 +35,9 @@ export default function OpengraphImage() {
           color: '#1c1e21',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <div
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: 18,
-              background: '#25d366',
-              display: 'flex',
-            }}
-          />
-          <div style={{ fontSize: 56, letterSpacing: -1 }}>dripo</div>
+        <div style={{ display: 'flex' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- next/og renders <img>, not next/image */}
+          <img src={`data:image/png;base64,${logo}`} width={214} height={72} alt="" />
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
