@@ -12,11 +12,11 @@ import { WaClosingCta } from '@/components/wa/closing-cta';
 //
 // It was built as one, then the first logo supplied was Crunchbase —
 // a company-data directory, not a business that answers customers on
-// WhatsApp. Putting that mark under "these brands run on Instant"
+// WhatsApp. Putting that mark under "these brands run on Dripo"
 // would be a false claim about a real, named company.
 //
 // So the page says what is actually true and checkable: these are the
-// places Instant has a profile. Every logo added here must be a
+// places Dripo has a profile. Every logo added here must be a
 // platform we are genuinely listed on; a customer logo belongs on a
 // different page, and only with that customer's written permission.
 //
@@ -27,10 +27,10 @@ import { WaClosingCta } from '@/components/wa/closing-cta';
 // ============================================================
 
 const DESCRIPTION =
-  'Where to find Instant for WhatsApp Business — our profiles across the platforms that list software.';
+  'Where to find Dripo WhatsApp for Business — our profiles across the platforms that list software.';
 
 export const metadata: Metadata = {
-  title: { absolute: 'Brands — Instant for WhatsApp Business' },
+  title: { absolute: 'Brands — Dripo WhatsApp for Business' },
   description: DESCRIPTION,
   alternates: { canonical: '/brands' },
   // Not indexable while most of the row is empty — see the note at
@@ -51,7 +51,7 @@ const LISTINGS = [
   {
     name: 'Crunchbase',
     // The company profile, not a product one — Crunchbase lists
-    // Nebkern Technology, which is who builds Instant.
+    // Nebkern Technology, which is who builds Dripo.
     href: 'https://www.crunchbase.com/organization/nebkern-technology',
     src: '/images/brands/crunchbase.png',
     width: 2326,
@@ -99,7 +99,7 @@ export default function BrandsPage() {
               Where you&rsquo;ll find us
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-pretty text-(--lp2-ink-soft)">
-              The platforms that list Instant, review it, or carry our profile.
+              The platforms that list Dripo, review it, or carry our profile.
             </p>
           </div>
         </section>

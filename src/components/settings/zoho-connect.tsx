@@ -57,8 +57,8 @@ const ZOHO_LOGO = '/images/integrations/zoho-crm.png';
 //
 // ── Then it syncs, with nothing to set ──
 //
-// Connecting subscribes a Zoho notification channel (Zoho → Instant)
-// and queues everything already in Instant (Instant → Zoho); both run
+// Connecting subscribes a Zoho notification channel (Zoho → Dripo)
+// and queues everything already in Dripo (Dripo → Zoho); both run
 // from then on, for every lead, contact and deal. There are no
 // switches, event pickers or buttons, deliberately — the zoho cron
 // renews the channel, retries failures and trims the log. This dialog
@@ -233,7 +233,7 @@ export function ZohoConnect({
   const disconnect = async () => {
     if (
       !confirm(
-        'Disconnect Zoho? Instant and Zoho will stop syncing.'
+        'Disconnect Zoho? Dripo and Zoho will stop syncing.'
       )
     )
       return;
@@ -295,7 +295,7 @@ export function ZohoConnect({
                 <BrandLogo className="h-6" />
               </div>
               <span className="text-foreground text-xs font-medium">
-                Instant
+                Dripo
               </span>
             </div>
             <SyncArrows className="text-muted-foreground/60 h-7 w-20 shrink-0" />
@@ -337,7 +337,7 @@ export function ZohoConnect({
               >
                 <p>
                   To keep both sides in step: Zoho events come into
-                  Instant, and the people and deals you work on in Instant
+                  Dripo, and the people and deals you work on in Dripo
                   go to Zoho, with their WhatsApp chats saved as notes.
                   Matched by phone, never duplicated, never deleted, and no
                   other module is touched.
@@ -350,7 +350,7 @@ export function ZohoConnect({
               >
                 <p>
                   So new and changed leads, contacts and deals reach
-                  Instant on their own.
+                  Dripo on their own.
                 </p>
               </Permission>
 
@@ -384,7 +384,7 @@ export function ZohoConnect({
                 sends you straight back.
               </GuideStep>
               <GuideStep n={3}>
-                That&apos;s it — Instant and Zoho stay in sync from then
+                That&apos;s it — Dripo and Zoho stay in sync from then
                 on, both ways.
               </GuideStep>
             </ol>
@@ -398,7 +398,7 @@ export function ZohoConnect({
               <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
               <p className="text-[11px] leading-relaxed text-amber-900 dark:text-amber-200">
                 Zoho is not configured on this server yet. An administrator
-                needs to register the Instant application at{' '}
+                needs to register the Dripo application at{' '}
                 <a
                   href="https://api-console.zoho.com"
                   target="_blank"
@@ -484,8 +484,8 @@ export function ZohoConnect({
         <h4 className="text-foreground mt-3 text-sm font-semibold">Zoho CRM</h4>
         <p className="text-muted-foreground mt-1 flex-1 text-xs leading-relaxed">
           {connected && status
-            ? `${status.orgName ?? 'Your Zoho org'} — synced with Instant.`
-            : 'Keep Zoho CRM and Instant in sync, both ways.'}
+            ? `${status.orgName ?? 'Your Zoho org'} — synced with Dripo.`
+            : 'Keep Zoho CRM and Dripo in sync, both ways.'}
         </p>
 
         {connected ? (

@@ -83,7 +83,7 @@ export function MayaActivationSettings() {
     );
   }
 
-  // Editable before Instant's AI is ready: PATCH creates the row, and
+  // Editable before Dripo's AI is ready: PATCH creates the row, and
   // the rules apply once she can answer.
   const locked = !canEdit;
   const tooLong = rules.trim().length > ACTIVATION_PROMPT_MAX_CHARS;
@@ -109,7 +109,7 @@ export function MayaActivationSettings() {
       toast.success('Configuration saved.');
       await load();
     } catch {
-      toast.error('Could not reach Instant. Check your connection and try again.');
+      toast.error('Could not reach Dripo. Check your connection and try again.');
     } finally {
       setSaving(false);
     }
@@ -125,7 +125,7 @@ export function MayaActivationSettings() {
     <div className="space-y-4">
       {!saved.configured && (
         <Notice>
-          Maya isn&apos;t available yet — AI is still being set up for Instant. You can set
+          Maya isn&apos;t available yet — AI is still being set up for Dripo. You can set
           these now; they apply once she&apos;s ready.
         </Notice>
       )}

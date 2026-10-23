@@ -13,7 +13,7 @@ import {
 export const metadata: Metadata = {
   title: 'Create your account',
   description:
-    'Create your Instant account: sign up with Google or your email, verify it, then pick a plan or start your 14-day free trial.',
+    'Create your Dripo account: sign up with Google or your email, verify it, then pick a plan or start your 14-day free trial.',
   alternates: { canonical: '/docs/getting-started' },
 };
 
@@ -72,7 +72,7 @@ export default function GettingStartedDocsPage() {
                       can reach you. An Indian mobile needs no{' '}
                       <code>+91</code>; anywhere else, start with{' '}
                       <code>+</code> and your country code. This isn&apos;t
-                      the WhatsApp number you&apos;ll use in Instant — you
+                      the WhatsApp number you&apos;ll use in Dripo — you
                       connect that later.
                     </li>
                     <li>
@@ -90,7 +90,7 @@ export default function GettingStartedDocsPage() {
               ),
               image: {
                 src: '/images/docs/getting-started/sign-up.png',
-                alt: 'The Instant sign-up form: Sign up with Google, then Full name, Organization, Phone number, Email and Password fields, and a Create account button.',
+                alt: 'The Dripo sign-up form: Sign up with Google, then Full name, Organization, Phone number, Email and Password fields, and a Create account button.',
                 width: 450,
                 height: 900,
                 caption: 'The sign-up screen',
@@ -149,7 +149,7 @@ export default function GettingStartedDocsPage() {
                     </li>
                     <li>
                       <strong>Where did you find us?</strong> — pick one. It
-                      helps us learn where people hear about Instant.
+                      helps us learn where people hear about Dripo.
                     </li>
                   </ul>
                   <p>
@@ -199,7 +199,7 @@ export default function GettingStartedDocsPage() {
         <DocsScreenshot
           image={{
             src: '/images/docs/getting-started/dashboard.webp',
-            alt: 'The Instant Dashboard before WhatsApp is connected: a Connect your WhatsApp number panel with four steps — Open Settings → WhatsApp, Log in to Facebook, Add your number, You’re live — then Connect WhatsApp and Documentation buttons, and quick links below.',
+            alt: 'The Dripo Dashboard before WhatsApp is connected: a Connect your WhatsApp number panel with four steps — Open Settings → WhatsApp, Log in to Facebook, Add your number, You’re live — then Connect WhatsApp and Documentation buttons, and quick links below.',
             width: 2880,
             height: 1800,
             caption: 'The Dashboard before WhatsApp is connected',

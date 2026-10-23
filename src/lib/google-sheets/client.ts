@@ -1,12 +1,12 @@
 // ============================================================
-// Google OAuth + the two Sheets calls Instant makes.
+// Google OAuth + the two Sheets calls Dripo makes.
 //
 // Plain fetch against Google's REST endpoints — the official client
 // library is a large dependency for four requests.
 //
 // The scope is `drive.file`: access only to files this app created. It
 // is what lets the connection skip Google's app review (the broad
-// `spreadsheets` scope needs it), and it is also why Instant creates the
+// `spreadsheets` scope needs it), and it is also why Dripo creates the
 // spreadsheet itself ("Add new sheet") rather than linking one the user
 // already has — it could not open that one.
 // ============================================================
@@ -25,7 +25,7 @@ export const GOOGLE_SHEETS_SCOPES = [
 const TIMEOUT_MS = 20_000;
 
 /**
- * The OAuth client: Instant's own, from the same Google Cloud project as
+ * The OAuth client: Dripo's own, from the same Google Cloud project as
  * "Sign in with Google". The id is public (it is in that button too);
  * the secret is server-only.
  */

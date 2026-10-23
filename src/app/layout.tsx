@@ -59,7 +59,7 @@ const emoji = Noto_Color_Emoji({
 });
 
 const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://instant.nebkern.com'
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://dripo.nebkern.com'
 ).replace(/\/$/, '');
 
 export const metadata: Metadata = {
@@ -69,11 +69,11 @@ export const metadata: Metadata = {
   title: {
     // What a browser tab and a Google result say. `default` is the
     // homepage; `template` wraps every page that sets its own title.
-    default: 'Instant for WhatsApp Business — WhatsApp CRM & Automation',
-    template: '%s — Instant for WhatsApp Business',
+    default: 'Dripo WhatsApp for Business — WhatsApp CRM & Automation',
+    template: '%s — Dripo WhatsApp for Business',
   },
   description:
-    'Instant by Nebkern Technology — WhatsApp marketing automation with a shared team inbox, AI agents, campaigns and pipelines, on the official WhatsApp Business API.',
+    'Dripo by Nebkern Technology — WhatsApp marketing automation with a shared team inbox, AI agents, campaigns and pipelines, on the official WhatsApp Business API.',
   /**
    * `siteName` is what Google prints ABOVE the blue title line. With
    * nothing declared it falls back to the bare domain, which is why
@@ -92,7 +92,7 @@ export const metadata: Metadata = {
   // Without it, scrapers use the address they fetched, and the canonical
   // (`alternates.canonical` per page) stays the one authoritative URL.
   openGraph: {
-    siteName: 'Instant for WhatsApp Business',
+    siteName: 'Dripo WhatsApp for Business',
     type: 'website',
     locale: 'en_IN',
   },

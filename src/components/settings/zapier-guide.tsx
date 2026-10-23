@@ -20,7 +20,7 @@ import type { ConnectCardArgs } from './integrations-catalog';
 // ============================================================
 // Settings → Integrations → Zapier.
 //
-// Instant has no app in Zapier's directory (that listing is gated on
+// Dripo has no app in Zapier's directory (that listing is gated on
 // having ten active users first), so every customer wires this up by
 // hand: a Catch Hook on Zapier's side, an endpoint on ours. That path
 // works today and is not hard — it was just undocumented in the one
@@ -54,7 +54,7 @@ export function ZapierConnect({
         </span>
         <h4 className="text-foreground mt-3 text-sm font-semibold">Zapier</h4>
         <p className="text-muted-foreground mt-1 flex-1 text-xs leading-relaxed">
-          Connect Instant to 6,000+ apps with no code, using your API key and
+          Connect Dripo to 6,000+ apps with no code, using your API key and
           webhooks.
         </p>
         <Button
@@ -82,7 +82,7 @@ export function ZapierConnect({
               Connect Zapier
             </DialogTitle>
             <DialogDescription>
-              There is no Instant app to install — Zapier&apos;s built-in
+              There is no Dripo app to install — Zapier&apos;s built-in
               Webhooks step does both directions.
             </DialogDescription>
           </DialogHeader>
@@ -112,7 +112,7 @@ function ZapierGuideBody({ onGoToWebhooks }: { onGoToWebhooks: () => void }) {
 
   return (
     <div className="space-y-5">
-      {/* ── Receiving events from Instant ── */}
+      {/* ── Receiving events from Dripo ── */}
       <div>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-foreground text-xs font-semibold tracking-wide uppercase">
@@ -213,7 +213,7 @@ function ZapierGuideBody({ onGoToWebhooks }: { onGoToWebhooks: () => void }) {
         </div>
       </div>
 
-      {/* ── Sending back into Instant ── */}
+      {/* ── Sending back into Dripo ── */}
       <div className="border-border border-t pt-5">
         <h3 className="text-foreground text-xs font-semibold tracking-wide uppercase">
           To do something here from a Zap

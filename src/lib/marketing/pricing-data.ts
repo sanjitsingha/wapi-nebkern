@@ -1,14 +1,14 @@
 // ============================================================
 // Pricing page data — the single source of truth for /pricing.
 //
-// This is DISPLAY data for the public marketing page (Instant by
+// This is DISPLAY data for the public marketing page (Dripo by
 // Nebkern). The *sellable* plans — what checkout, onboarding and the
 // paywall actually charge — live in the `billing_plans` DB table
 // (migration 054 + the reseed in 088). The two must be kept in step by
 // hand: change a price here, change it in the migration too.
 //
 // Meta billing model = PASS-THROUGH. Meta charges the customer's own
-// WhatsApp Business Account directly; Instant never touches those
+// WhatsApp Business Account directly; Dripo never touches those
 // charges, so "0% markup" here means "we add nothing on top of Meta",
 // NOT "we resell Meta minutes at cost through a wallet". There is no
 // wallet. Keep every line on this page consistent with that.
@@ -168,7 +168,7 @@ export interface MetaRate {
 
 export const META_PRICING = {
   intro:
-    'Every WhatsApp message goes through Meta. Instant charges you exactly what Meta charges — not a paisa more. Compare this to Wati (20% markup), Interakt (25% markup), and AiSensy (~40% effective markup on marketing messages).',
+    'Every WhatsApp message goes through Meta. Dripo charges you exactly what Meta charges — not a paisa more. Compare this to Wati (20% markup), Interakt (25% markup), and AiSensy (~40% effective markup on marketing messages).',
   rates: [
     { type: 'Marketing', metaCharge: '₹0.78 per message', markup: '0%' },
     { type: 'Utility', metaCharge: '₹0.115 per message', markup: '0%' },
@@ -180,7 +180,7 @@ export const META_PRICING = {
     },
   ] as MetaRate[],
   footnote:
-    'Meta rates as per official WhatsApp Business API pricing for India, effective January 2026. Rates set by Meta, not Instant — we simply pass them through.',
+    'Meta rates as per official WhatsApp Business API pricing for India, effective January 2026. Rates set by Meta, not Dripo — we simply pass them through.',
 };
 
 // ---- How Maya works -------------------------------------------
@@ -271,7 +271,7 @@ export const COMPETITOR_COMPARISON = {
       save: '₹3,861',
     },
     {
-      provider: 'Instant Growth',
+      provider: 'Dripo Growth',
       platformFee: '₹799',
       aiIncluded: 'Unlimited Maya AI',
       metaCharges: '₹8,375 (0% markup)',
@@ -303,17 +303,17 @@ export const FAQS: Faq[] = [
   {
     id: 'zero_markup',
     q: 'What is "zero markup on Meta"?',
-    a: 'Every WhatsApp message you send is charged by Meta directly (₹0.78 for marketing, ₹0.115 for utility/auth). Most platforms add a 20–40% markup on top. Instant charges you exactly what Meta charges — not a paisa more.',
+    a: 'Every WhatsApp message you send is charged by Meta directly (₹0.78 for marketing, ₹0.115 for utility/auth). Most platforms add a 20–40% markup on top. Dripo charges you exactly what Meta charges — not a paisa more.',
   },
   {
     id: 'meta_billing',
-    q: 'Do I pay Meta charges to Instant, or to Meta?',
-    a: "Straight to Meta. Your message charges are billed by Meta to your own WhatsApp Business Account, at Meta's published rates — they never pass through Instant, so there is nothing for us to mark up or take a cut of. You pay Instant only the flat plan fee.",
+    q: 'Do I pay Meta charges to Dripo, or to Meta?',
+    a: "Straight to Meta. Your message charges are billed by Meta to your own WhatsApp Business Account, at Meta's published rates — they never pass through Dripo, so there is nothing for us to mark up or take a cut of. You pay Dripo only the flat plan fee.",
   },
   {
     id: 'what_is_maya',
     q: 'What is Maya?',
-    a: "Maya is Instant's built-in AI agent that replies to your customers on WhatsApp on your behalf — 24×7, in natural language, in multiple Indian languages. Maya is included in Growth and Business plans at no extra cost.",
+    a: "Maya is Dripo's built-in AI agent that replies to your customers on WhatsApp on your behalf — 24×7, in natural language, in multiple Indian languages. Maya is included in Growth and Business plans at no extra cost.",
   },
   {
     id: 'maya_knowledge',
@@ -337,7 +337,7 @@ export const FAQS: Faq[] = [
   },
   {
     id: 'vs_competitors',
-    q: 'How is Instant different from Wati, AiSensy, or Interakt?',
+    q: 'How is Dripo different from Wati, AiSensy, or Interakt?',
     a: 'Three ways: (1) Zero markup on Meta charges. (2) Maya AI included at no extra cost in Growth+. (3) Simpler, lower platform fees. See the comparison table above for exact numbers.',
   },
   {

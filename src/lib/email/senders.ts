@@ -15,7 +15,7 @@
  *
  * Verified against the live API:
  *
- *   from: "Instant <contact@instant.nebkern.com>"  -> SENDER_NOT_AUTHORIZED
+ *   from: "Dripo <contact@instant.nebkern.com>"  -> SENDER_NOT_AUTHORIZED
  *   from: "contact@instant.nebkern.com"            -> success
  *
  * DeoMail matches the whole `from` string against its verified list, so
@@ -63,19 +63,19 @@ export const SENDERS = {
    *  The NAME says "Contact" because production overrides the address
    *  to contact@ (MAIL_FROM_NEWSLETTER); the name has to match the
    *  address people actually see, not this default. */
-  newsletter: { local: 'newsletter', name: 'Contact - Instant' },
+  newsletter: { local: 'newsletter', name: 'Contact - Dripo' },
 
   /** Support ticket replies and notifications. Replies to this should
    *  reach a human, so it is deliberately not a no-reply. */
-  support: { local: 'support', name: 'Support - Instant' },
+  support: { local: 'support', name: 'Support - Dripo' },
 
   /** Invoices, receipts, dunning. Separated because finance mail is
    *  what people search their inbox for later. */
-  billing: { local: 'billing', name: 'Billing - Instant' },
+  billing: { local: 'billing', name: 'Billing - Dripo' },
 
   /** Anything automated with no meaningful reply address — alerts,
    *  confirmations, system notices. */
-  system: { local: 'no-reply', name: 'Instant' },
+  system: { local: 'no-reply', name: 'Dripo' },
 
   /**
    * Verification codes: the password reset code today, and any other
@@ -93,7 +93,7 @@ export const SENDERS = {
    * Keeping them separate means changing one does not silently move the
    * other.
    */
-  otp: { local: 'no-reply', name: 'Instant' },
+  otp: { local: 'no-reply', name: 'Dripo' },
 } as const;
 
 export type SenderKey = keyof typeof SENDERS;

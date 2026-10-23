@@ -74,7 +74,7 @@ const LINKS: QuickLink[] = [
   },
   {
     title: 'APIs & webhooks',
-    description: 'Build custom automations with the Instant API and webhooks',
+    description: 'Build custom automations with the Dripo API and webhooks',
     icon: Webhook,
     href: '/settings/api-access',
     doc: 'api-and-integrations',

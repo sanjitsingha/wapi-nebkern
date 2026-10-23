@@ -11,7 +11,7 @@ import {
 
 export const metadata: Metadata = {
   title: 'Contacts',
-  description: "Contacts in Instant: Contact fields, custom fields, tags, and duplicate handling. A step-by-step guide for teams selling on WhatsApp.",
+  description: "Contacts in Dripo: Contact fields, custom fields, tags, and duplicate handling. A step-by-step guide for teams selling on WhatsApp.",
   alternates: { canonical: '/docs/contacts' },
 };
 
@@ -63,7 +63,7 @@ export default function ContactsDocsPage() {
 
         <h2>Duplicate handling</h2>
         <p>
-          Instant matches phone numbers by their normalized, digits-only form
+          Dripo matches phone numbers by their normalized, digits-only form
           (tolerant of a missing or extra leading trunk digit, e.g. a leading
           0), so the same person can&apos;t quietly end up as two separate
           contacts just because a number was typed with or without a

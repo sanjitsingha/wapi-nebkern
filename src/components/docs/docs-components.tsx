@@ -79,7 +79,7 @@ export function DocsHero({
     inLanguage: 'en-IN',
     author: {
       '@type': 'Organization',
-      name: 'Instant',
+      name: 'Dripo',
       url: SITE_URL,
     },
     publisher: ORGANIZATION_SCHEMA,

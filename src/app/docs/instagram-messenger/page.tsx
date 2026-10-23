@@ -11,7 +11,7 @@ import {
 
 export const metadata: Metadata = {
   title: 'Instagram & Messenger',
-  description: "Instagram & Messenger in Instant: Connect both inboxes in a single Facebook login. A step-by-step guide for teams selling on WhatsApp.",
+  description: "Instagram & Messenger in Dripo: Connect both inboxes in a single Facebook login. A step-by-step guide for teams selling on WhatsApp.",
   alternates: { canonical: '/docs/instagram-messenger' },
 };
 

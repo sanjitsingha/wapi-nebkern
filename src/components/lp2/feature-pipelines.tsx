@@ -59,7 +59,7 @@ export function PipelinesHero() {
         <div className="mt-8 min-h-0 w-full flex-1 sm:mt-10 sm:ml-[50%] sm:w-[86vw] sm:max-w-[1500px] sm:-translate-x-1/2">
           <Image
             src="/images/features/sales-pipeline.png"
-            alt="The Instant sales pipeline board: deals in New Lead, Qualified, Proposal Sent, Negotiation and Won columns, with pipeline value and win totals above"
+            alt="The Dripo sales pipeline board: deals in New Lead, Qualified, Proposal Sent, Negotiation and Won columns, with pipeline value and win totals above"
             width={2152}
             height={1052}
             sizes="(min-width: 640px) 86vw, 100vw"

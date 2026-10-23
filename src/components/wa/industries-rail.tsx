@@ -9,7 +9,7 @@ import { WaRail } from './rail';
 import { waType } from './ui';
 
 // ============================================================
-// How each industry actually uses Instant — a card per trade, in the
+// How each industry actually uses Dripo — a card per trade, in the
 // same scrolling rail the features use.
 //
 // The short chip list further up the page names sixteen industries;

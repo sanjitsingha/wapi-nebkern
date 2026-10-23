@@ -66,7 +66,7 @@ const FEATURES: Feature[] = [
   { term: 'Flows & automations', icon: Workflow, image: '/images/features/flows-automations.jpg', body: 'No-code triggers, conditions, waits and actions. Greet, qualify, route and follow up at 3am, then hand to a human the moment it stops being routine.' },
   { term: 'AI agents', icon: Bot, image: '/images/features/ai-agent-v2.jpg', body: 'Answer in seconds from your own documents and past replies, in your own tone. Every answer is logged, and anything the agent is unsure of goes to a person instead of being guessed at.' },
   { term: 'Widget, QR & links', icon: QrCode, image: '/images/features/qr-link-v2.jpg', body: 'Turn a website visitor, a poster or a printed menu into a WhatsApp conversation in one tap. Every entry point is tracked, so you can see which ones actually bring people in.' },
-  { term: 'Easy integrations', icon: Plug, body: 'Push every message, contact and deal event into your own stack, or drive Instant from it. Your data stays yours, and stays reachable.' },
+  { term: 'Easy integrations', icon: Plug, body: 'Push every message, contact and deal event into your own stack, or drive Dripo from it. Your data stays yours, and stays reachable.' },
 ];
 
 export function WaFeatureCarousel() {
@@ -79,7 +79,7 @@ export function WaFeatureCarousel() {
       className="bg-(--wa-white)"
       title="Powerful WhatsApp marketing features to turn chats into customers"
       titleClassName="text-[clamp(1.75rem,3.8vw,3.125rem)] leading-[1.08]"
-      subtitle="With Instant, manage conversations, qualify leads, automate follow-ups, and track every opportunity in a single window."
+      subtitle="With Dripo, manage conversations, qualify leads, automate follow-ups, and track every opportunity in a single window."
     >
       {FEATURES.map((f) => (
         <article

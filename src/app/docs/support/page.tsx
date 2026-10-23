@@ -8,7 +8,7 @@ import {
 
 export const metadata: Metadata = {
   title: 'Support',
-  description: "Support in Instant: Getting help from the team. A step-by-step guide for teams selling on WhatsApp.",
+  description: "Support in Dripo: Getting help from the team. A step-by-step guide for teams selling on WhatsApp.",
   alternates: { canonical: '/docs/support' },
 };
 

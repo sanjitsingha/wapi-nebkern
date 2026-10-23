@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 /** Used as the origin until the browser can supply the real one, so a
  *  card's share links are already valid in the served HTML. */
 const SITE = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://instant.nebkern.com'
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://dripo.nebkern.com'
 ).replace(/\/$/, '');
 
 export function ShareButtons({

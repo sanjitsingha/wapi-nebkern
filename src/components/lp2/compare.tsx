@@ -68,7 +68,7 @@ const ROWS: { feature: string; hint: string; api: Cell; app: Cell }[] = [
   {
     feature: 'Coding required',
     hint: 'Whether you need a developer before you can send your first message.',
-    api: { text: 'None — Instant is the no-code layer', tone: 'yes' },
+    api: { text: 'None — Dripo is the no-code layer', tone: 'yes' },
     app: { text: 'None — it is just an app', tone: 'yes' },
   },
   {
@@ -185,7 +185,7 @@ export function Lp2Compare() {
 const COPY = {
   api: {
     title: 'WhatsApp Business API',
-    blurb: 'With Instant — growing businesses & enterprises',
+    blurb: 'With Dripo — growing businesses & enterprises',
   },
   app: {
     title: 'WhatsApp Business app',

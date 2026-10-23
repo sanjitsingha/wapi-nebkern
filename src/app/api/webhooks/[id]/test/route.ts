@@ -51,7 +51,7 @@ export async function POST(
       event: 'webhook.test',
       created_at: new Date().toISOString(),
       account_id: accountId,
-      data: { message: 'This is a test event from Instant.' },
+      data: { message: 'This is a test event from Dripo.' },
     });
 
     return NextResponse.json(result);

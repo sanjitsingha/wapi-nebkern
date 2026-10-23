@@ -11,7 +11,7 @@ import {
 
 export const metadata: Metadata = {
   title: 'WhatsApp channel',
-  description: "WhatsApp channel in Instant: Connect your WhatsApp Business number, catalog, and calling. A step-by-step guide for teams selling on WhatsApp.",
+  description: "WhatsApp channel in Dripo: Connect your WhatsApp Business number, catalog, and calling. A step-by-step guide for teams selling on WhatsApp.",
   alternates: { canonical: '/docs/whatsapp' },
 };
 
@@ -29,14 +29,14 @@ export default function WhatsAppDocsPage() {
         <p>
           Connecting is a one-time Facebook login from{' '}
           <strong>Settings → WhatsApp</strong>. The full walkthrough — what
-          you need first, each step, and what Instant sets up for you — is in{' '}
+          you need first, each step, and what Dripo sets up for you — is in{' '}
           <Link href="/docs/connect-whatsapp">Connect your WhatsApp number</Link>.
         </p>
 
         <p>
           Once connected, the same page shows whether your number is{' '}
           <strong>Live</strong> — Meta actually delivering message events to
-          Instant, not just accepting the credentials — with a one-click{' '}
+          Dripo, not just accepting the credentials — with a one-click{' '}
           <strong>Check connection</strong> if something seems off.
         </p>
 
@@ -114,9 +114,9 @@ export default function WhatsAppDocsPage() {
         </p>
         <DocsCallout type="warning" title="What this does — and doesn't — do yet">
           This setting controls <strong>whether the call button appears</strong>{' '}
-          for customers and whether Meta reports call events into Instant. It
+          for customers and whether Meta reports call events into Dripo. It
           does <strong>not</strong> yet let your team answer or place calls
-          from inside Instant — an incoming call currently shows up as a call
+          from inside Dripo — an incoming call currently shows up as a call
           entry in the conversation, not a live in-app call you can pick up.
           Full in-app calling is on the roadmap.
         </DocsCallout>

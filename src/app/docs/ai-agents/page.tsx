@@ -11,7 +11,7 @@ import {
 
 export const metadata: Metadata = {
   title: 'AI agents',
-  description: "AI agents in Instant: Knowledge base, playground, auto-reply, and handoff to a human. A step-by-step guide for teams selling on WhatsApp.",
+  description: "AI agents in Dripo: Knowledge base, playground, auto-reply, and handoff to a human. A step-by-step guide for teams selling on WhatsApp.",
   alternates: { canonical: '/docs/ai-agents' },
 };
 

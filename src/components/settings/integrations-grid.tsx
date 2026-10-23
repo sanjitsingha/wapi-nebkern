@@ -85,7 +85,7 @@ export function IntegrationsGrid() {
       <div>
         <h3 className="text-base font-semibold text-foreground">Integrations</h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          Connect Instant to the tools you already use. Everything runs on your
+          Connect Dripo to the tools you already use. Everything runs on your
           API keys and outbound webhooks — set those up once and the rest
           follows.
         </p>

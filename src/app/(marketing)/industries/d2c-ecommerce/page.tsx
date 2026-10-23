@@ -28,7 +28,7 @@ const DESCRIPTION =
 
 export const metadata: Metadata = {
   title: {
-    absolute: 'D2C & eCommerce — Instant for WhatsApp Business',
+    absolute: 'D2C & eCommerce — Dripo WhatsApp for Business',
   },
   description: DESCRIPTION,
   alternates: { canonical: '/industries/d2c-ecommerce' },
@@ -36,8 +36,8 @@ export const metadata: Metadata = {
   // Root openGraph is replaced wholesale rather than merged, so
   // siteName has to be repeated or the card loses the product's name.
   openGraph: {
-    siteName: 'Instant for WhatsApp Business',
-    title: 'D2C & eCommerce — Instant for WhatsApp Business',
+    siteName: 'Dripo WhatsApp for Business',
+    title: 'D2C & eCommerce — Dripo WhatsApp for Business',
     description: DESCRIPTION,
     url: '/industries/d2c-ecommerce',
     type: 'website',
@@ -78,7 +78,7 @@ export default function D2cEcommercePage() {
             },
             {
               href: '/pricing',
-              title: 'What Instant costs',
+              title: 'What Dripo costs',
               blurb:
                 'Three plans, the whole product on each, and Meta’s conversation charges billed to you at Meta’s own rates.',
             },

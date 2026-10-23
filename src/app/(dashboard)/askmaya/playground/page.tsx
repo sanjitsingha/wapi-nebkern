@@ -7,7 +7,7 @@ import { SettingsPanelHead } from '@/components/settings/settings-panel-head';
 
 /** Maya → Playground: chat with her before she talks to customers. */
 export default function MayaPlaygroundPage() {
-  // Whether Instant's AI is ready; assumed until the config says not.
+  // Whether Dripo's AI is ready; assumed until the config says not.
   const [configured, setConfigured] = useState(true);
 
   useEffect(() => {

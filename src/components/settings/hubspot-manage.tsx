@@ -231,7 +231,7 @@ export function HubSpotManage({
           <div className="divide-border divide-y">
             <SettingRow
               title="Create contacts in HubSpot"
-              description="New people in Instant are added to HubSpot automatically."
+              description="New people in Dripo are added to HubSpot automatically."
               checked={settings.createContacts}
               disabled={saving}
               onChange={(v) => void save({ createContacts: v })}

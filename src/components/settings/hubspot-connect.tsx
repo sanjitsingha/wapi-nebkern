@@ -40,7 +40,7 @@ const HUBSPOT_WORDMARK = '/images/integrations/hubspot.png';
 // ============================================================
 // Settings → Integrations → HubSpot.
 //
-// One click, like Zoho: the app is Instant's, so there is nothing to
+// One click, like Zoho: the app is Dripo's, so there is nothing to
 // fill in — approve at HubSpot and it syncs both ways from then on,
 // with nothing to set. The dialog says what is being granted before
 // the admin goes; the page shows the connection once it is made.
@@ -139,7 +139,7 @@ export function HubSpotConnect({ page }: { page?: Integration } = {}) {
   };
 
   const disconnect = async () => {
-    if (!confirm('Disconnect HubSpot? Instant and HubSpot will stop syncing.')) return;
+    if (!confirm('Disconnect HubSpot? Dripo and HubSpot will stop syncing.')) return;
     setBusy(true);
     try {
       const res = await fetch('/api/integrations/hubspot/connect', { method: 'DELETE' });
@@ -175,7 +175,7 @@ export function HubSpotConnect({ page }: { page?: Integration } = {}) {
             <span>Connect to HubSpot</span>
           </DialogTitle>
           <DialogDescription className="sr-only">
-            Sign in to HubSpot and approve access to connect it to Instant.
+            Sign in to HubSpot and approve access to connect it to Dripo.
           </DialogDescription>
         </DialogHeader>
 
@@ -203,7 +203,7 @@ export function HubSpotConnect({ page }: { page?: Integration } = {}) {
             <ul className="space-y-3.5">
               <Permission icon={ShieldCheck} title="Read and update your contacts and deals">
                 <p>
-                  To keep both sides in step: the people and deals you work on in Instant go to
+                  To keep both sides in step: the people and deals you work on in Dripo go to
                   HubSpot, with their chats on the contact&apos;s timeline. Matched by phone and
                   email, never duplicated, never deleted.
                 </p>
@@ -211,7 +211,7 @@ export function HubSpotConnect({ page }: { page?: Integration } = {}) {
               <Permission icon={Zap} title="Get notified when records change">
                 <p>
                   New contacts, lifecycle and lead status changes, new deals and deal stage changes
-                  reach Instant on their own.
+                  reach Dripo on their own.
                 </p>
               </Permission>
               <Permission icon={MessageSquareText} title="Send WhatsApp messages when HubSpot events fire">
@@ -229,7 +229,7 @@ export function HubSpotConnect({ page }: { page?: Integration } = {}) {
               </GuideStep>
               <GuideStep n={2}>Sign in, pick your HubSpot account and approve the access above.</GuideStep>
               <GuideStep n={3}>
-                That&apos;s it — Instant and HubSpot stay in sync from then on, both ways.
+                That&apos;s it — Dripo and HubSpot stay in sync from then on, both ways.
               </GuideStep>
             </ol>
           </section>
@@ -239,7 +239,7 @@ export function HubSpotConnect({ page }: { page?: Integration } = {}) {
               <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
               <p className="text-[11px] leading-relaxed text-amber-900 dark:text-amber-200">
                 HubSpot is not configured on this server yet. An administrator needs to create the
-                Instant app in a HubSpot developer account and set{' '}
+                Dripo app in a HubSpot developer account and set{' '}
                 <code className="font-mono">HUBSPOT_CLIENT_ID</code> and{' '}
                 <code className="font-mono">HUBSPOT_CLIENT_SECRET</code>.
               </p>
@@ -307,8 +307,8 @@ export function HubSpotConnect({ page }: { page?: Integration } = {}) {
         <h4 className="text-foreground mt-3 text-sm font-semibold">HubSpot</h4>
         <p className="text-muted-foreground mt-1 flex-1 text-xs leading-relaxed">
           {connected && status
-            ? `${status.hubDomain ?? 'Your HubSpot account'} — synced with Instant.`
-            : 'Keep HubSpot and Instant in sync, both ways.'}
+            ? `${status.hubDomain ?? 'Your HubSpot account'} — synced with Dripo.`
+            : 'Keep HubSpot and Dripo in sync, both ways.'}
         </p>
         {connected ? (
           <Link

@@ -36,8 +36,8 @@ export function BrandLogo({
       src={LOGO_SRC}
       // The wordmark reads "instant", so this is the brand name in
       // image form — not decoration. Callers that already print
-      // "Instant" beside it should not be doing that any more.
-      alt="Instant for WhatsApp Business"
+      // "Dripo" beside it should not be doing that any more.
+      alt="Dripo WhatsApp for Business"
       width={INTRINSIC_WIDTH}
       height={INTRINSIC_HEIGHT}
       // Drawn about 150px wide (h-8 / h-9). Without `sizes`, next/image

@@ -21,7 +21,7 @@ import { WaPill, waType } from './ui';
 //
 // Same product, same claims, same numbers as the playful landing — the
 // copy is lifted from components/lp2 so the two designs never disagree
-// about what Instant does. Only the design language changes:
+// about what Dripo does. Only the design language changes:
 //
 //   - warm cream floor, near-black ink, weight 400 at every size;
 //   - a 25px "photograph" tile for the hero with the headline in white
@@ -315,7 +315,7 @@ const ROWS: { feature: string; api: string; app: string; appYes?: boolean }[] = 
   { feature: 'Broadcast reach', api: 'Everyone who opted in', app: 'Only people who saved your number' },
   { feature: 'Multi-user access', api: 'Unlimited team members, one shared inbox', app: 'One phone plus four linked devices' },
   { feature: 'Automated messaging', api: 'AI agents, flows and no-code automations', app: 'Greeting and away messages only' },
-  { feature: 'Coding required', api: 'None — Instant is the no-code layer', app: 'None — it is just an app', appYes: true },
+  { feature: 'Coding required', api: 'None — Dripo is the no-code layer', app: 'None — it is just an app', appYes: true },
   { feature: 'Verified green tick', api: 'Eligible once your business is verified', app: 'Not available' },
   { feature: 'Clickable messages', api: 'Buttons, quick replies and link CTAs', app: 'Plain text only' },
   { feature: 'Campaign analytics', api: 'Sent, delivered, read, replied and clicked', app: 'No campaign reporting' },
@@ -350,7 +350,7 @@ function CompareTile({ side }: { side: 'api' | 'app' }) {
   return (
     <div className="lp2-hard-shadow rounded-[25px] bg-white p-7 shadow-[4px_4px_0_2px_rgba(0,0,0,0.05)] sm:p-8">
       <p className={cn(waType.caption, 'tracking-wide text-(--wa-ink-muted) uppercase')}>
-        {api ? 'With Instant — growing teams' : 'The free app — small businesses'}
+        {api ? 'With Dripo — growing teams' : 'The free app — small businesses'}
       </p>
       <h3 className="mt-2 text-[28px] leading-[32px] text-(--wa-ink)">
         {api ? 'WhatsApp Business API' : 'WhatsApp Business app'}
@@ -410,7 +410,7 @@ const STATS: WaStat[] = [
     label: 'Reseller markup',
     note: 'Meta bills you at Meta’s rates',
     detail:
-      'You connect on your own WhatsApp Business Account, so Meta invoices you directly at its published rates. Instant never sits in the middle of a conversation and never takes a cut of one — you pay a flat plan fee and nothing per message.',
+      'You connect on your own WhatsApp Business Account, so Meta invoices you directly at its published rates. Dripo never sits in the middle of a conversation and never takes a cut of one — you pay a flat plan fee and nothing per message.',
     href: '/pricing',
   },
   {
@@ -502,7 +502,7 @@ function Maya() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/images/maya/maya-enabled.gif"
-          alt="Maya answering a customer in the Instant inbox"
+          alt="Maya answering a customer in the Dripo inbox"
           width={1920}
           height={1040}
           loading="eager"
@@ -584,7 +584,7 @@ function Integrations() {
           <h2 className={cn(waType.displayMd, 'text-balance')}>Connect the stack you already run</h2>
           <p className={cn(waType.bodyLg, 'mt-6 text-pretty text-(--wa-ink-muted)')}>
             Your CRM, payment portals and eCommerce platforms — Shopify,
-            WooCommerce, HubSpot, Zapier — through the Instant REST API and
+            WooCommerce, HubSpot, Zapier — through the Dripo REST API and
             outbound webhooks. Then automate the message that should follow:
           </p>
           <ul className="mt-6 space-y-3">
@@ -609,7 +609,7 @@ function Integrations() {
         <div className="overflow-hidden rounded-[25px] bg-white">
           <Image
             src={ORBIT_ART}
-            alt="The Instant mark ringed by Shopify, Make, Zoho, Google Sheets, Zapier and a REST API badge"
+            alt="The Dripo mark ringed by Shopify, Make, Zoho, Google Sheets, Zapier and a REST API badge"
             width={1000}
             height={1000}
             sizes="(min-width: 1024px) 32rem, 100vw"
@@ -658,14 +658,14 @@ function Showcase() {
       {/* Title left, controls right — the same header shape WaRail uses
           for the features carousel. NOTE: the brief said "power users of
           Gallabox"; Gallabox is a different product, so this says
-          Instant. Change it back only if naming them is deliberate. */}
+          Dripo. Change it back only if naming them is deliberate. */}
       <div className="mx-auto flex max-w-[1328px] flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
         {/* 820px, not 720: this line measures 764px in Manrope at the
             clamp's 48px cap, so the old width was 44px short and broke it
             over two. The arrows beside it still fit the 1328px row. */}
         <div className="max-w-[820px]">
           <h2 className={cn(waType.displayMd, 'text-pretty')}>
-            Hear from the power users of Instant
+            Hear from the power users of Dripo
           </h2>
           <p className={cn(waType.bodyLg, 'mt-5 max-w-[560px] text-pretty text-(--wa-ink-muted)')}>
             Teams running their bookings, enquiries and follow-ups through one
@@ -814,9 +814,9 @@ async function RecentPosts() {
 /* ─── FAQ ─────────────────────────────────────────────────────────── */
 
 const FAQS = [
-  { q: 'Do I need the official WhatsApp Business API?', a: 'Yes — Instant is an official Meta Tech Provider and runs on Meta’s own Cloud API, which is what keeps your number safe from bans and your messages compliant. Connecting takes a few clicks through embedded signup, and we walk you through it.' },
-  { q: 'What does “official Meta Tech Provider” actually mean?', a: 'Meta reviews and approves the companies allowed to build on the WhatsApp Business Platform, and Instant is one of them. In practice it means you connect to Meta directly — embedded signup on your own WhatsApp Business Account, direct Cloud API access, and message charges billed to you by Meta at Meta’s published rates, with no reseller sitting in the middle taking a cut.' },
-  { q: 'Can my whole team use one WhatsApp number?', a: 'That is exactly what Instant is for. Everyone works from a shared inbox on the same number, with assignments, internal notes and the full conversation history — no more forwarding screenshots.' },
+  { q: 'Do I need the official WhatsApp Business API?', a: 'Yes — Dripo is an official Meta Tech Provider and runs on Meta’s own Cloud API, which is what keeps your number safe from bans and your messages compliant. Connecting takes a few clicks through embedded signup, and we walk you through it.' },
+  { q: 'What does “official Meta Tech Provider” actually mean?', a: 'Meta reviews and approves the companies allowed to build on the WhatsApp Business Platform, and Dripo is one of them. In practice it means you connect to Meta directly — embedded signup on your own WhatsApp Business Account, direct Cloud API access, and message charges billed to you by Meta at Meta’s published rates, with no reseller sitting in the middle taking a cut.' },
+  { q: 'Can my whole team use one WhatsApp number?', a: 'That is exactly what Dripo is for. Everyone works from a shared inbox on the same number, with assignments, internal notes and the full conversation history — no more forwarding screenshots.' },
   { q: 'How does the AI agent actually learn my business?', a: 'You upload your own knowledge base — product docs, FAQs, policies. It answers routine questions instantly, writes lead details into contact fields, and hands off to a human whenever it should. Test everything in the playground before it goes anywhere near a customer.' },
   { q: 'What happens when the free trial ends?', a: 'Your 14-day trial includes every feature. When it ends, pick a plan to keep sending — your data, contacts and history stay untouched either way.' },
   { q: 'Can I send bulk broadcasts?', a: 'Yes — build campaigns on Meta-approved templates, target them with tags, lists and segments, and watch delivery and read stats update in real time.' },

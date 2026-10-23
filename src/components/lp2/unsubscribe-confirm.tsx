@@ -75,7 +75,7 @@ export function UnsubscribeConfirm({
     <div className="rounded-2xl border-2 border-(--lp2-ink) bg-(--lp2-cream) p-8 shadow-(--lp2-shadow)">
       <p className="text-base leading-relaxed font-medium">
         Unsubscribe <span className="font-extrabold">{email}</span> from the
-        Instant newsletter?
+        Dripo newsletter?
       </p>
       <p className="mt-2 text-lg leading-relaxed text-(--lp2-ink-soft)">
         This only stops the newsletter. It does not touch your account, your

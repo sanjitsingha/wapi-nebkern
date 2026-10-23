@@ -56,7 +56,7 @@ export const DOCS_NAV: DocsCategory[] = [
         slug: 'connect-whatsapp',
         // Short for the sidebar, where the full page title is cut off.
         title: 'Connect WhatsApp',
-        description: 'Link your WhatsApp Business number to Instant in one Facebook login.',
+        description: 'Link your WhatsApp Business number to Dripo in one Facebook login.',
         icon: Smartphone,
       },
     ],

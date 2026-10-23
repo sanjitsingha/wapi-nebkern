@@ -165,7 +165,7 @@ export function useEmbeddedSignup({ onConnected }: { onConnected: () => void }) 
         onConnected();
       } catch (err) {
         console.error('Embedded Signup completion failed:', err);
-        fail({ message: 'Could not reach Instant to finish the setup. Check your connection and try again.' });
+        fail({ message: 'Could not reach Dripo to finish the setup. Check your connection and try again.' });
       }
     },
     [fail, onConnected],

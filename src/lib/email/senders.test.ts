@@ -33,8 +33,8 @@ describe('resolveSender', () => {
     // The name rides in `from_name`, never inside `from` — see the
     // note in senders.ts on why the combined header is rejected.
     process.env.MAIL_DOMAIN = 'example.test';
-    expect(resolveSender('newsletter')?.name).toBe('Contact - Instant');
-    expect(resolveSender('support')?.name).toBe('Support - Instant');
+    expect(resolveSender('newsletter')?.name).toBe('Contact - Dripo');
+    expect(resolveSender('support')?.name).toBe('Support - Dripo');
   });
 
   it('keeps the registry name when the address is overridden', () => {
@@ -43,7 +43,7 @@ describe('resolveSender', () => {
     process.env.MAIL_FROM_NEWSLETTER = 'Whatever <contact@example.test>';
     const s = resolveSender('newsletter');
     expect(s?.address).toBe('contact@example.test');
-    expect(s?.name).toBe('Contact - Instant');
+    expect(s?.name).toBe('Contact - Dripo');
   });
 
   it('never emits a display name — DeoMail rejects Name <addr>', () => {
@@ -59,7 +59,7 @@ describe('resolveSender', () => {
   it('strips a display name from an override rather than failing', () => {
     // People write this format from habit; passing it through produces
     // a 403 that reads like an unverified domain.
-    process.env.MAIL_FROM_NEWSLETTER = 'Instant <contact@example.test>';
+    process.env.MAIL_FROM_NEWSLETTER = 'Dripo <contact@example.test>';
     expect(resolveSender('newsletter')?.address).toBe('contact@example.test');
 
     process.env.MAIL_FROM_SUPPORT = '  Support <help@example.test>  ';

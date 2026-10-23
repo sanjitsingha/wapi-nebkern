@@ -1,5 +1,5 @@
 // ============================================================
-// HubSpot → Instant: store webhook events, then work through them
+// HubSpot → Dripo: store webhook events, then work through them
 // (server only).
 //
 // HubSpot gives a delivery five seconds, so the receiver only stores
@@ -8,9 +8,9 @@
 // that run did not finish.
 //
 // Each event: read the record from HubSpot (a webhook carries ids
-// only), match or create the Instant contact by phone, link the two,
+// only), match or create the Dripo contact by phone, link the two,
 // and run the `hubspot_event` automations — unless the event is
-// Instant's own push coming back, which is logged and runs nothing.
+// Dripo's own push coming back, which is logged and runs nothing.
 // ============================================================
 
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -29,7 +29,7 @@ import {
 
 type Db = SupabaseClient;
 
-/** A HubSpot event for a record Instant wrote within this window is our
+/** A HubSpot event for a record Dripo wrote within this window is our
  *  own change coming back, not something a person did in HubSpot. */
 const ECHO_WINDOW_MS = 3 * 60_000;
 /** Pending events older than this are the cron's to pick up. */
@@ -172,7 +172,7 @@ async function ownPushInFlight(db: Db, accountId: string, contactId: string): Pr
   return (count ?? 0) > 0;
 }
 
-/** Was this HubSpot record written by Instant a moment ago? */
+/** Was this HubSpot record written by Dripo a moment ago? */
 async function recentlyPushed(db: Db, accountId: string, hubspotId: string): Promise<boolean> {
   const { data: link } = await db
     .from('hubspot_record_links')
@@ -270,9 +270,9 @@ async function handleEvent(db: Db, row: EventRow): Promise<Outcome> {
     (!!origin.dealId && (await recentlyPushed(db, row.account_id, origin.dealId))) ||
     (await recentlyPushed(db, row.account_id, row.object_id));
 
-  // The Instant contact: whoever this HubSpot contact is already linked
+  // The Dripo contact: whoever this HubSpot contact is already linked
   // to, and only otherwise a match (or a new contact) by phone. Matching
-  // first would pick the other copy of someone Instant holds twice.
+  // first would pick the other copy of someone Dripo holds twice.
   let contactId = await hubspotLinkHolder(db, row.account_id, 'contacts', contactHsId);
   if (!contactId) {
     const ingest = await upsertContactFromHubSpot(db, row.account_id, ownerUserId, personFromProperties(props));
@@ -281,7 +281,7 @@ async function handleEvent(db: Db, row: EventRow): Promise<Outcome> {
     }
     contactId = ingest.contactId;
 
-    // Remember which HubSpot contact this person is, so Instant →
+    // Remember which HubSpot contact this person is, so Dripo →
     // HubSpot updates it instead of searching — when they have no link.
     const { data: existingLink } = await db
       .from('hubspot_record_links')

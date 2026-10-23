@@ -8,7 +8,7 @@ import { googleSheetsClient } from '@/lib/google-sheets/client';
  * GET /api/integrations/google-sheets  (admin+)
  *
  * The page's whole state: the Google accounts this workspace has
- * authorised, and the sheets Instant writes to. Never the tokens.
+ * authorised, and the sheets Dripo writes to. Never the tokens.
  */
 export async function GET() {
   try {

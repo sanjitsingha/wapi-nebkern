@@ -11,7 +11,7 @@ import {
 
 export const metadata: Metadata = {
   title: 'Billing & plans',
-  description: "Billing & plans in Instant: the 14-day trial, how long a plan lasts and how to renew it, what pauses when it ends, activation codes and invoices.",
+  description: "Billing & plans in Dripo: the 14-day trial, how long a plan lasts and how to renew it, what pauses when it ends, activation codes and invoices.",
   alternates: { canonical: '/docs/billing' },
 };
 

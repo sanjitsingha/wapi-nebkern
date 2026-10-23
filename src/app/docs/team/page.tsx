@@ -10,7 +10,7 @@ import {
 
 export const metadata: Metadata = {
   title: 'Team members & roles',
-  description: "Team members & roles in Instant: Inviting teammates, roles, and transferring ownership. A step-by-step guide for teams selling on WhatsApp.",
+  description: "Team members & roles in Dripo: Inviting teammates, roles, and transferring ownership. A step-by-step guide for teams selling on WhatsApp.",
   alternates: { canonical: '/docs/team' },
 };
 

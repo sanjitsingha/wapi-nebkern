@@ -12,7 +12,7 @@ import {
 export const metadata: Metadata = {
   title: 'Connect your WhatsApp number',
   description:
-    'Connect your WhatsApp Business number to Instant in one Facebook login with Meta Embedded Signup — what you need first, each step, and what Instant sets up for you.',
+    'Connect your WhatsApp Business number to Dripo in one Facebook login with Meta Embedded Signup — what you need first, each step, and what Dripo sets up for you.',
   alternates: { canonical: '/docs/connect-whatsapp' },
 };
 
@@ -25,15 +25,15 @@ export default function ConnectWhatsAppDocsPage() {
       <DocsHero
         eyebrow="Getting started"
         title="Connect your WhatsApp number"
-        description="Link your WhatsApp Business number to Instant in one Facebook login — no API keys to copy."
+        description="Link your WhatsApp Business number to Dripo in one Facebook login — no API keys to copy."
       />
 
       <DocsArticle>
         <h2>Overview</h2>
         <p>
-          Instant runs on the official WhatsApp Business Platform. You connect
+          Dripo runs on the official WhatsApp Business Platform. You connect
           your number through <strong>Meta Embedded Signup</strong> — a
-          guided Facebook login that opens from inside Instant, so you never
+          guided Facebook login that opens from inside Dripo, so you never
           have to create a developer app or copy credentials around. It takes
           a few minutes.
         </p>
@@ -42,7 +42,7 @@ export default function ConnectWhatsAppDocsPage() {
         <ul>
           <li>
             <strong>A Facebook account.</strong> You sign in with it to give
-            Instant access. If your business has no Meta Business portfolio
+            Dripo access. If your business has no Meta Business portfolio
             yet, you can create one during the flow.
           </li>
           <li>
@@ -68,13 +68,13 @@ export default function ConnectWhatsAppDocsPage() {
               title: 'Open Settings → WhatsApp',
               body: (
                 <p>
-                  In Instant, go to <strong>Settings → WhatsApp</strong>. Look
+                  In Dripo, go to <strong>Settings → WhatsApp</strong>. Look
                   over the <strong>Before you start</strong> list and click{' '}
                   <strong>I&apos;m ready</strong>. Choose{' '}
                   <strong>I&apos;m new to the WhatsApp Cloud API</strong>, click{' '}
                   <strong>Continue</strong>, then{' '}
                   <strong>Continue with Facebook</strong>. A Facebook window
-                  opens — if your browser blocks it, allow pop-ups for Instant
+                  opens — if your browser blocks it, allow pop-ups for Dripo
                   and click again.
                 </p>
               ),
@@ -107,24 +107,24 @@ export default function ConnectWhatsAppDocsPage() {
               ),
             },
             {
-              title: 'Instant finishes the setup',
+              title: 'Dripo finishes the setup',
               body: (
                 <>
                   <p>
-                    When the Facebook window closes, Instant does the rest —
+                    When the Facebook window closes, Dripo does the rest —
                     you can watch each step tick off on the page:
                   </p>
                   <ul>
                     <li>checks it can reach the WhatsApp Business Account you chose;</li>
                     <li>
                       makes sure the number isn&apos;t already connected to a
-                      different Instant account;
+                      different Dripo account;
                     </li>
                     <li>
                       subscribes the account so incoming messages reach your
                       inbox, and registers the number for messaging — setting a
                       two-step verification PIN for you. If your number already
-                      has a PIN of its own, Instant asks you for it once;
+                      has a PIN of its own, Dripo asks you for it once;
                     </li>
                     <li>stores the credentials encrypted.</li>
                   </ul>
@@ -141,12 +141,12 @@ export default function ConnectWhatsAppDocsPage() {
         <h2>Check it works</h2>
         <p>
           <strong>Live</strong> means Meta is delivering your messages to
-          Instant. Click <strong>Check connection</strong> any time to re-check
+          Dripo. Click <strong>Check connection</strong> any time to re-check
           with Meta.
         </p>
         <p>
           If the badge says <strong>One more step</strong>, click{' '}
-          <strong>Finish setup</strong>. Instant retries the registration for
+          <strong>Finish setup</strong>. Dripo retries the registration for
           you; if your number already has a two-step verification PIN, type it
           in there. Forgot it? Reset it in WhatsApp Manager under your
           number&apos;s <strong>Two-step verification</strong>, then enter the
@@ -159,7 +159,7 @@ export default function ConnectWhatsAppDocsPage() {
         </p>
 
         <DocsCallout type="warning" title="“Already connected to another account”">
-          A number can belong to only one Instant account. If it&apos;s
+          A number can belong to only one Dripo account. If it&apos;s
           connected somewhere else, disconnect it there first, then connect it
           here.
         </DocsCallout>
@@ -168,9 +168,9 @@ export default function ConnectWhatsAppDocsPage() {
           After <strong>I&apos;m ready</strong>, choose{' '}
           <strong>I already use the WhatsApp Cloud API</strong>. Paste a
           system-user access token, click{' '}
-          <strong>Find my numbers</strong>, and pick the number — Instant looks
+          <strong>Find my numbers</strong>, and pick the number — Dripo looks
           up the IDs and registers it for you. A token from a different Meta
-          app can send messages but can&apos;t receive replies; Instant warns
+          app can send messages but can&apos;t receive replies; Dripo warns
           you if yours is one.
         </DocsCallout>
 

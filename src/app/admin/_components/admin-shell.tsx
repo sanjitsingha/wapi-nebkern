@@ -223,7 +223,7 @@ export function AdminShell({
 
       {/* Desktop rail */}
       <aside className="bg-card hidden w-56 shrink-0 flex-col border-r border-(--admin-line-strong) sm:flex">
-        {/* The logo stands in for the word "Instant" the label used to
+        {/* The logo stands in for the word "Dripo" the label used to
             spell out, so the rail reads as the brand rather than a
             generic console. "/ admin" stays — it's what distinguishes
             this from the customer app. */}
@@ -233,7 +233,7 @@ export function AdminShell({
         >
           <Image
             src={LOGO_URL}
-            alt="Instant"
+            alt="Dripo"
             width={logoWidthFor(20)}
             height={20}
             priority
@@ -283,7 +283,7 @@ export function AdminShell({
               <span className="admin-label flex items-center gap-2">
                 <Image
                   src={LOGO_URL}
-                  alt="Instant"
+                  alt="Dripo"
                   width={logoWidthFor(20)}
                   height={20}
                 />

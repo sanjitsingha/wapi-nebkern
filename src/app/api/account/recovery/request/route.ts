@@ -11,7 +11,7 @@ import { mintRecoveryToken, recoveryEmail } from '@/lib/account/deletion';
  * The reply is deliberately identical whether or not the address maps
  * to a recoverable account. This endpoint is unauthenticated and takes
  * an email address, so a truthful answer would turn it into an oracle
- * for "does this business use Instant, and is it on the way out" —
+ * for "does this business use Dripo, and is it on the way out" —
  * useful to a competitor and to anyone phishing the owner mid-deletion.
  *
  * Verification is possession of the inbox: the link only ever goes to

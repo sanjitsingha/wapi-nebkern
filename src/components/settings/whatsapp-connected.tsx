@@ -48,7 +48,7 @@ const CHECK_LABELS: Record<string, string> = {
   config_exists: 'Connection saved',
   token_decryptable: 'Access key readable',
   phone_metadata_ok: 'Number found on Meta',
-  waba_subscribed_to_app: 'Incoming messages sent to Instant',
+  waba_subscribed_to_app: 'Incoming messages sent to Dripo',
   locally_marked_registered: 'Number registered with Meta',
 };
 
@@ -109,7 +109,7 @@ export function WhatsAppConnected({
         return;
       }
       if (data.registered) {
-        toast.success('Done — your number now receives messages in Instant.');
+        toast.success('Done — your number now receives messages in Dripo.');
         setPin('');
         setPinAsked(false);
       } else if (data.needs_pin) {
@@ -124,7 +124,7 @@ export function WhatsAppConnected({
       }
       await onChanged();
     } catch {
-      toast.error('Could not reach Instant. Check your connection and try again.');
+      toast.error('Could not reach Dripo. Check your connection and try again.');
     } finally {
       setFinishing(false);
     }
@@ -137,7 +137,7 @@ export function WhatsAppConnected({
       const res = await fetch('/api/whatsapp/config/verify-registration');
       const data = (await res.json()) as RegistrationProbe;
       setProbe(data);
-      if (data.live) toast.success('All good — Meta is delivering messages to Instant.');
+      if (data.live) toast.success('All good — Meta is delivering messages to Dripo.');
       await onChanged();
     } catch {
       toast.error('Could not run the check. Try again in a moment.');
@@ -149,7 +149,7 @@ export function WhatsAppConnected({
   async function disconnect() {
     if (
       !window.confirm(
-        'Disconnect this WhatsApp number from Instant? Your conversations and contacts stay, but nothing new is sent or received until you connect again.',
+        'Disconnect this WhatsApp number from Dripo? Your conversations and contacts stay, but nothing new is sent or received until you connect again.',
       )
     ) {
       return;
@@ -165,7 +165,7 @@ export function WhatsAppConnected({
       toast.success('WhatsApp number disconnected.');
       onDisconnected();
     } catch {
-      toast.error('Could not reach Instant. Check your connection and try again.');
+      toast.error('Could not reach Dripo. Check your connection and try again.');
     } finally {
       setDisconnecting(false);
     }
@@ -265,7 +265,7 @@ export function WhatsAppConnected({
             <XCircle className="mt-0.5 size-5 shrink-0 text-red-600" />
             <div className="min-w-0 flex-1 space-y-3">
               <div>
-                <p className="font-medium text-red-900">Instant can&rsquo;t reach this number</p>
+                <p className="font-medium text-red-900">Dripo can&rsquo;t reach this number</p>
                 <p className="mt-1 text-sm leading-relaxed text-red-800">
                   {health.tokenCorrupted
                     ? 'The saved access key can’t be read any more. Connect the number again to replace it.'
@@ -310,10 +310,10 @@ export function WhatsAppConnected({
                 <p className="font-medium text-amber-950">One more step: switch on incoming messages</p>
                 <p className="mt-1 text-sm leading-relaxed text-amber-900">
                   {needsPin
-                    ? 'This number already has a two-step verification PIN. Enter it so Meta hands the number over to Instant.'
+                    ? 'This number already has a two-step verification PIN. Enter it so Meta hands the number over to Dripo.'
                     : lastError
                       ? `Meta stopped the last attempt: “${lastError}”`
-                      : 'You can already send messages. To receive replies, Meta needs to register the number with Instant.'}
+                      : 'You can already send messages. To receive replies, Meta needs to register the number with Dripo.'}
                 </p>
               </div>
               {canEdit && (

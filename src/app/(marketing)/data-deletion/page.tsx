@@ -10,9 +10,9 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // is DELETION_WINDOW_DAYS (30) and recovery lives at /account-recovery.
 export const metadata: Metadata = {
   alternates: { canonical: '/data-deletion' },
-  title: { absolute: 'Data Deletion Instructions — Instant for WhatsApp Business' },
+  title: { absolute: 'Data Deletion Instructions — Dripo WhatsApp for Business' },
   description:
-    'How to delete your Instant account, your WhatsApp, Instagram or Messenger connection and the data received from Meta, or individual contacts — yourself, or by asking us.',
+    'How to delete your Dripo account, your WhatsApp, Instagram or Messenger connection and the data received from Meta, or individual contacts — yourself, or by asking us.',
   robots: { index: true, follow: true },
 };
 
@@ -103,7 +103,7 @@ const SECTIONS: LegalSection[] = [
   },
   {
     id: 'end-customers',
-    heading: 'If you messaged a business that uses Instant',
+    heading: 'If you messaged a business that uses Dripo',
     blocks: [
       {
         p: 'If you chatted with a business on WhatsApp, Instagram or Messenger and that business uses {{PRODUCT}}, the business controls your data and decides what is kept. To have your data deleted, ask that business directly.',
@@ -143,7 +143,7 @@ export default function DataDeletionPage() {
       title="Data Deletion Instructions"
       hue="sky"
       updated="14 October 2026"
-      intro="How to delete your Instant account, disconnect WhatsApp, Instagram or Messenger, or remove individual records — yourself in a few clicks, or by asking us."
+      intro="How to delete your Dripo account, disconnect WhatsApp, Instagram or Messenger, or remove individual records — yourself in a few clicks, or by asking us."
       sections={SECTIONS}
     />
   );

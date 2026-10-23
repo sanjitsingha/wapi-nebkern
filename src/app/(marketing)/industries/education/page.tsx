@@ -27,7 +27,7 @@ const DESCRIPTION =
 
 export const metadata: Metadata = {
   title: {
-    absolute: 'Coaching & Education — Instant for WhatsApp Business',
+    absolute: 'Coaching & Education — Dripo WhatsApp for Business',
   },
   description: DESCRIPTION,
   alternates: { canonical: '/industries/education' },
@@ -35,8 +35,8 @@ export const metadata: Metadata = {
   // Root openGraph is replaced wholesale rather than merged, so
   // siteName has to be repeated or the card loses the product's name.
   openGraph: {
-    siteName: 'Instant for WhatsApp Business',
-    title: 'Coaching & Education — Instant for WhatsApp Business',
+    siteName: 'Dripo WhatsApp for Business',
+    title: 'Coaching & Education — Dripo WhatsApp for Business',
     description: DESCRIPTION,
     url: '/industries/education',
     type: 'website',

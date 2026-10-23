@@ -12,7 +12,7 @@ import {
 
 export const metadata: Metadata = {
   title: 'API & integrations',
-  description: "API & integrations in Instant: API keys, the REST API, outbound webhooks, and Zapier/Make/n8n. A step-by-step guide for teams selling on WhatsApp.",
+  description: "API & integrations in Dripo: API keys, the REST API, outbound webhooks, and Zapier/Make/n8n. A step-by-step guide for teams selling on WhatsApp.",
   alternates: { canonical: '/docs/api-and-integrations' },
 };
 
@@ -22,7 +22,7 @@ export default function ApiAndIntegrationsDocsPage() {
       <DocsHero
         eyebrow="Developers"
         title="API & integrations"
-        description="Create contacts and send messages from your own systems, and get notified the moment something happens in Instant."
+        description="Create contacts and send messages from your own systems, and get notified the moment something happens in Dripo."
       />
 
       <DocsArticle>
@@ -88,7 +88,7 @@ export default function ApiAndIntegrationsDocsPage() {
         <p>
           Each delivery is a signed <code>POST</code> with the event payload
           as JSON. A signing secret is shown once, at creation time — use it
-          to verify the request really came from Instant rather than trusting
+          to verify the request really came from Dripo rather than trusting
           the payload blindly. If your endpoint doesn&rsquo;t respond
           successfully, delivery is retried several times with a growing
           delay before it&rsquo;s given up on.
@@ -97,12 +97,12 @@ export default function ApiAndIntegrationsDocsPage() {
         <h2>Zoho CRM</h2>
         <p>
           Let Zoho events — a new lead, a deal stage change, an overdue
-          invoice — send WhatsApp messages through Instant. It works in two
+          invoice — send WhatsApp messages through Dripo. It works in two
           halves: connect the account once, then point a Zoho{' '}
-          <strong>Workflow Rule</strong> at Instant so it delivers the event.
+          <strong>Workflow Rule</strong> at Dripo so it delivers the event.
         </p>
 
-        <h3>1. Connect Zoho in Instant</h3>
+        <h3>1. Connect Zoho in Dripo</h3>
         <p>
           Go to <strong>Settings → Integrations → Zoho CRM → Connect</strong>{' '}
           and approve read access. After connecting, open{' '}
@@ -130,7 +130,7 @@ export default function ApiAndIntegrationsDocsPage() {
             {
               cells: [
                 'URL to Notify',
-                'The webhook URL copied from Instant (the Manage view).',
+                'The webhook URL copied from Dripo (the Manage view).',
               ],
             },
             { cells: ['Authorization Type', 'General'] },
@@ -145,7 +145,7 @@ export default function ApiAndIntegrationsDocsPage() {
         <DocsCallout type="warning">
           Send the fields in the <strong>Body</strong>, not as Module or Custom
           Parameters. With Body set to <em>None</em>, a POST webhook delivers an
-          empty request and nothing reaches Instant — the event arrives with no
+          empty request and nothing reaches Dripo — the event arrives with no
           phone and no message goes out.
         </DocsCallout>
         <p>
@@ -160,7 +160,7 @@ export default function ApiAndIntegrationsDocsPage() {
   "email": "\${Leads.Email}"
 }`}</DocsCode>
         <p>
-          <code>phone</code> is the only required field — Instant matches the
+          <code>phone</code> is the only required field — Dripo matches the
           contact on it. <code>name</code> and <code>email</code> are optional.
           Use whichever module you chose (e.g. <code>{'${Deals.…}'}</code> for a
           Deals rule) and add any other fields you want to reference in the
@@ -177,7 +177,7 @@ export default function ApiAndIntegrationsDocsPage() {
           auto-prefixed with 91.
         </DocsCallout>
 
-        <h3>3. Build the automation in Instant</h3>
+        <h3>3. Build the automation in Dripo</h3>
         <p>
           Create an <Link href="/docs/automations">Automation</Link> with the
           trigger <strong>Zoho CRM Event</strong>. Every field you put in the
@@ -198,7 +198,7 @@ export default function ApiAndIntegrationsDocsPage() {
           connect them the same way any custom system would:{' '}
           <strong>outbound webhooks</strong> as the trigger into your
           automation tool, and the <strong>REST API</strong> (with an API
-          key) as the action it calls back into Instant.
+          key) as the action it calls back into Dripo.
         </p>
       </DocsArticle>
 

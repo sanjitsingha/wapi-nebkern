@@ -63,10 +63,10 @@ describe('ZOHO_SCOPES', () => {
   });
 
   it('can write deals but never delete them', () => {
-    // Deals are pushed (create, update) but removing one in Instant
+    // Deals are pushed (create, update) but removing one in Dripo
     // only unlinks it, so DELETE — and ALL, which includes it — is
     // never asked for. Notes get DELETE alone, for removing the copy of
-    // a note deleted in Instant; never ALL.
+    // a note deleted in Dripo; never ALL.
     expect(ZOHO_SCOPES).toContain('ZohoCRM.modules.deals.CREATE');
     expect(ZOHO_SCOPES).toContain('ZohoCRM.modules.deals.UPDATE');
     expect(ZOHO_SCOPES).not.toContain('ZohoCRM.modules.deals.DELETE');

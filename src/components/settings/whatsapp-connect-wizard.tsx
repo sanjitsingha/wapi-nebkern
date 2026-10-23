@@ -182,14 +182,14 @@ const SETUP_OPTIONS: {
     method: 'facebook',
     icon: Sparkles,
     title: 'I’m new to the WhatsApp Cloud API',
-    body: 'First time putting this number on the API. Log in with Facebook and Meta creates your WhatsApp Business Account and verifies your number — Instant does the rest.',
+    body: 'First time putting this number on the API. Log in with Facebook and Meta creates your WhatsApp Business Account and verifies your number — Dripo does the rest.',
     need: 'You’ll need: your Facebook login',
   },
   {
     method: 'token',
     icon: KeyRound,
     title: 'I already use the WhatsApp Cloud API',
-    body: 'Your number already runs on the Cloud API through your own Meta app. Paste an access token and Instant finds your numbers.',
+    body: 'Your number already runs on the Cloud API through your own Meta app. Paste an access token and Dripo finds your numbers.',
     need: 'You’ll need: a system-user access token',
   },
 ];
@@ -287,7 +287,7 @@ const FACEBOOK_PROGRESS = [
   { key: 'exchange', label: 'Get permission to manage your WhatsApp' },
   { key: 'account', label: 'Find your WhatsApp Business Account' },
   { key: 'number', label: 'Check your phone number' },
-  { key: 'subscribe', label: 'Send incoming messages to Instant' },
+  { key: 'subscribe', label: 'Send incoming messages to Dripo' },
   { key: 'register', label: 'Register your number with Meta' },
   { key: 'save', label: 'Save the connection securely' },
 ] as const;
@@ -386,7 +386,7 @@ function ConnectWithFacebook({ onConnected, onBack }: { onConnected: () => void;
         <h3 className="text-base font-semibold text-foreground">Connect with Facebook</h3>
         <p className="mt-1 text-sm text-muted-foreground">
           A Facebook window opens. Choose your business, add your number and type in the
-          code Meta sends you. Instant does the rest.
+          code Meta sends you. Dripo does the rest.
         </p>
       </div>
 
@@ -478,7 +478,7 @@ function ConnectWithToken({ onConnected, onBack }: { onConnected: () => void; on
       setSameApp(typeof data.sameApp === 'boolean' ? data.sameApp : null);
       setSelected(found.length === 1 ? found[0].phoneNumberId : '');
     } catch {
-      setFindError('Could not reach Instant. Check your connection and try again.');
+      setFindError('Could not reach Dripo. Check your connection and try again.');
     } finally {
       setFinding(false);
     }
@@ -507,7 +507,7 @@ function ConnectWithToken({ onConnected, onBack }: { onConnected: () => void; on
       // page asks for it — with the stored token, no re-paste.
       onConnected();
     } catch {
-      toast.error('Could not reach Instant. Check your connection and try again.');
+      toast.error('Could not reach Dripo. Check your connection and try again.');
     } finally {
       setConnecting(false);
     }
@@ -519,7 +519,7 @@ function ConnectWithToken({ onConnected, onBack }: { onConnected: () => void; on
         <h3 className="text-base font-semibold text-foreground">Connect with an access token</h3>
         <p className="mt-1 text-sm text-muted-foreground">
           For businesses already on the WhatsApp Cloud API. Paste a system-user access
-          token and Instant finds your numbers — no IDs to copy.
+          token and Dripo finds your numbers — no IDs to copy.
         </p>
       </div>
 
@@ -632,7 +632,7 @@ function ConnectWithToken({ onConnected, onBack }: { onConnected: () => void; on
             <div className="flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50 px-3.5 py-3 text-sm text-amber-900">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" />
               <span>
-                This token comes from a different Meta app. Instant can send messages with it,
+                This token comes from a different Meta app. Dripo can send messages with it,
                 but customers&rsquo; replies won&rsquo;t reach your inbox.
                 {facebookAvailable && ' For two-way messaging, connect with Facebook instead.'}
               </span>

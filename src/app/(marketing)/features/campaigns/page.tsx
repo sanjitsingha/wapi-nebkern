@@ -15,7 +15,7 @@ import { JsonLd } from '@/components/json-ld';
 import { getFeatureSchema } from '@/lib/marketing/schema';
 
 export const metadata: Metadata = {
-  title: { absolute: 'Broadcast Campaigns — Instant for WhatsApp Business' },
+  title: { absolute: 'Broadcast Campaigns — Dripo WhatsApp for Business' },
   description:
     'Send approved WhatsApp templates to a segment, personalised per recipient, with live delivery and read rates — opt-outs handled, sends paced.',
   alternates: { canonical: '/features/campaigns' },

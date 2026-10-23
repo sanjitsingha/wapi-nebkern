@@ -90,7 +90,7 @@ function destructiveAction(status: WhatsAppFormStatus) {
       label: 'Delete',
       title: 'Delete this form?',
       describe: (name: string) =>
-        `"${name}" will be removed from Meta and from Instant. This can't be undone.`,
+        `"${name}" will be removed from Meta and from Dripo. This can't be undone.`,
     };
   }
   if (status === 'DEPRECATED') {

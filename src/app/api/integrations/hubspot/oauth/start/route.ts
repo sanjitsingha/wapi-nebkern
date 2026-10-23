@@ -16,7 +16,7 @@ import { publicOrigin } from '@/lib/public-origin';
  * GET /api/integrations/hubspot/oauth/start?tab=1
  *
  * Admin+ only. The whole of connecting, as with Zoho: there is nothing
- * to fill in first — the app is Instant's — so this creates the row the
+ * to fill in first — the app is Dripo's — so this creates the row the
  * callback completes and sends the admin to HubSpot's consent screen.
  */
 export async function GET(request: Request) {

@@ -11,7 +11,7 @@ import {
 
 export const metadata: Metadata = {
   title: 'Automations',
-  description: "Automations in Instant: Trigger → condition → action rules that run without a bot builder. A step-by-step guide for teams selling on WhatsApp.",
+  description: "Automations in Dripo: Trigger → condition → action rules that run without a bot builder. A step-by-step guide for teams selling on WhatsApp.",
   alternates: { canonical: '/docs/automations' },
 };
 

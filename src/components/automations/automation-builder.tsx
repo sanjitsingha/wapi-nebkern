@@ -265,7 +265,7 @@ const TRIGGER_OPTIONS: { value: AutomationTriggerType; label: string; hint: stri
   {
     value: "zoho_event",
     label: "Zoho CRM Event",
-    hint: "When something happens in Zoho CRM — a new lead or contact, a deal update, or any Workflow Rule you point at Instant.",
+    hint: "When something happens in Zoho CRM — a new lead or contact, a deal update, or any Workflow Rule you point at Dripo.",
   },
   {
     value: "hubspot_event",

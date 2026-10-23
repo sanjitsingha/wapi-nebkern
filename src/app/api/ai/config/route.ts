@@ -18,7 +18,7 @@ import { DEFAULT_PERSONALITY, PERSONALITIES } from '@/lib/ai/personalities'
 // ============================================================
 // /api/ai/config — Maya's behaviour for this workspace.
 //
-// The model and the API key are Instant's (Admin → AI model,
+// The model and the API key are Dripo's (Admin → AI model,
 // lib/ai/platform.ts); accounts never see or set them. What lives here
 // is per-account: the master switch, auto-reply, the business context
 // prompt, activation rules, timing and hours.
@@ -37,7 +37,7 @@ function bad(message: string) {
  * GET /api/ai/config
  *
  * Any member may read it, so every page can reflect whether Maya is on.
- * `configured` now means "Instant's AI is ready" — the one thing an
+ * `configured` now means "Dripo's AI is ready" — the one thing an
  * account used to have to do itself — and `semantic_search` whether the
  * platform has an embeddings key (the knowledge base's search mode).
  * Neither reveals anything about the key. A workspace that has never

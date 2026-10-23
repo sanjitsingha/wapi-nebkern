@@ -19,10 +19,10 @@ import { getSiteDesign } from '@/lib/marketing/site-design.server';
 
 /** The search-result description, reused in the structured data below.
  *  Under 160 characters so Google shows it whole, and it names the
- *  company as well as the product: "instant" on its own is an ordinary
- *  word, so "Nebkern" is what ties a search to this site. */
+ *  company as well as the product, so a search for either one finds
+ *  this site. */
 const DESCRIPTION =
-  'Instant by Nebkern Technology: WhatsApp CRM and marketing automation on the official WhatsApp Business API — shared inbox, AI replies, campaigns and follow-ups.';
+  'Dripo by Nebkern Technology: WhatsApp CRM and marketing automation on the official WhatsApp Business API — shared inbox, AI replies, campaigns and follow-ups.';
 
 // The public marketing landing page — the "joyful rebuild," promoted to
 // `/` from its former home at /lp-2. The older design it replaced has
@@ -32,9 +32,9 @@ export const metadata: Metadata = {
   title: {
     // The exact string a search result and a shared link show. Leads
     // with the product name, then what it does, then who makes it — the
-    // brand is new, and "Instant" alone tells a stranger (and Google)
+    // brand is new, and "Dripo" alone tells a stranger (and Google)
     // nothing.
-    absolute: 'Instant for WhatsApp Business — WhatsApp CRM & Automation',
+    absolute: 'Dripo WhatsApp for Business — WhatsApp CRM & Automation',
   },
   description: DESCRIPTION,
   // One official address for the home page, whatever query string it is
@@ -47,31 +47,31 @@ export const metadata: Metadata = {
 // is served. Nothing here reads the database.
 
 const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://instant.nebkern.com'
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://dripo.nebkern.com'
 ).replace(/\/$/, '');
 
 const ORGANIZATION_ID = 'https://nebkern.com/#organization';
 
 /**
- * Structured data — who makes Instant, and what it is.
+ * Structured data — who makes Dripo, and what it is.
  *
  * Three linked entities in one graph:
  *
  *  - Organization: Nebkern Technology, at nebkern.com. The company site
  *    carries its own Organization markup; this ties the product to it,
- *    so Google can connect "Instant" and "Nebkern" as one brand.
+ *    so Google can connect "Dripo" and "Nebkern" as one brand.
  *  - WebSite: the site name Google prints above a result. Google reads it
  *    from the HOMEPAGE only, and it outranks `og:site_name` (declared in
  *    the root layout). `name` stays short on purpose — the title already
  *    says the long form, and repeating it in both slots reads as a bug.
- *  - SoftwareApplication: what Instant is, with its starting price. The
+ *  - SoftwareApplication: what Dripo is, with its starting price. The
  *    ₹499/month figure mirrors src/lib/marketing/pricing-data.ts, as the
  *    landing page's pricing note does — change them together.
  */
 const HOMEPAGE_FAQS = [
-  { q: 'Do I need the official WhatsApp Business API?', a: 'Yes — Instant is an official Meta Tech Provider and runs on Meta’s own Cloud API, which is what keeps your number safe from bans and your messages compliant. Connecting takes a few clicks through embedded signup, and we walk you through it.' },
-  { q: 'What does “official Meta Tech Provider” actually mean?', a: 'Meta reviews and approves the companies allowed to build on the WhatsApp Business Platform, and Instant is one of them. In practice it means you connect to Meta directly — embedded signup on your own WhatsApp Business Account, direct Cloud API access, and message charges billed to you by Meta at Meta’s published rates, with no reseller sitting in the middle taking a cut.' },
-  { q: 'Can my whole team use one WhatsApp number?', a: 'That is exactly what Instant is for. Everyone works from a shared inbox on the same number, with assignments, internal notes and the full conversation history — no more forwarding screenshots.' },
+  { q: 'Do I need the official WhatsApp Business API?', a: 'Yes — Dripo is an official Meta Tech Provider and runs on Meta’s own Cloud API, which is what keeps your number safe from bans and your messages compliant. Connecting takes a few clicks through embedded signup, and we walk you through it.' },
+  { q: 'What does “official Meta Tech Provider” actually mean?', a: 'Meta reviews and approves the companies allowed to build on the WhatsApp Business Platform, and Dripo is one of them. In practice it means you connect to Meta directly — embedded signup on your own WhatsApp Business Account, direct Cloud API access, and message charges billed to you by Meta at Meta’s published rates, with no reseller sitting in the middle taking a cut.' },
+  { q: 'Can my whole team use one WhatsApp number?', a: 'That is exactly what Dripo is for. Everyone works from a shared inbox on the same number, with assignments, internal notes and the full conversation history — no more forwarding screenshots.' },
   { q: 'How does the AI agent actually learn my business?', a: 'You upload your own knowledge base — product docs, FAQs, policies. It answers routine questions instantly, writes lead details into contact fields, and hands off to a human whenever it should. Test everything in the playground before it goes anywhere near a customer.' },
   { q: 'What happens when the free trial ends?', a: 'Your 14-day trial includes every feature. When it ends, pick a plan to keep sending — your data, contacts and history stay untouched either way.' },
   { q: 'Can I send bulk broadcasts?', a: 'Yes — build campaigns on Meta-approved templates, target them with tags, lists and segments, and watch delivery and read stats update in real time.' },
@@ -100,12 +100,12 @@ const STRUCTURED_DATA = {
     {
       '@type': 'WebSite',
       '@id': `${SITE_URL}/#website`,
-      name: 'Instant for WhatsApp Business',
+      name: 'Dripo WhatsApp for Business',
       // Names only. The two page titles that used to sit here are
       // slogans, and Google's site-name guide asks for alternate names
       // of the site ("a commonly recognized acronym or shorter name"),
       // not taglines — a list padded with them is weaker evidence.
-      alternateName: ['Instant', 'Instant WhatsApp', 'Instant by Nebkern'],
+      alternateName: ['Dripo', 'Dripo WhatsApp', 'Dripo by Nebkern'],
       url: `${SITE_URL}/`,
       inLanguage: 'en-IN',
       publisher: { '@id': ORGANIZATION_ID },
@@ -113,7 +113,7 @@ const STRUCTURED_DATA = {
     {
       '@type': 'SoftwareApplication',
       '@id': `${SITE_URL}/#software`,
-      name: 'Instant for WhatsApp Business',
+      name: 'Dripo WhatsApp for Business',
       applicationCategory: 'BusinessApplication',
       operatingSystem: 'Web',
       url: `${SITE_URL}/`,

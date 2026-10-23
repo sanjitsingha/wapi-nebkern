@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils';
 import { SectionHead } from './ui';
 
 // ============================================================
-// What sets Instant apart — the numbers band.
+// What sets Dripo apart — the numbers band.
 //
 // Sits between the testimonials and the FAQ, in the slot the pricing
 // block used to hold: proof, then a one-glance summary, then the
@@ -79,8 +79,8 @@ export function Lp2Apart() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHead
           hue="grass"
-          title="What sets Instant apart?"
-          highlight="Instant"
+          title="What sets Dripo apart?"
+          highlight="Dripo"
           highlightText="white"
           subtitle="Four things that are true the day you connect your number — not projections, and nothing you have to upgrade to reach."
         />

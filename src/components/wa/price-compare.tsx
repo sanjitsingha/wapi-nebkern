@@ -31,7 +31,7 @@ import { waType } from './ui';
 // ── One finding worth keeping in view ──
 //
 // All three state they add no markup on Meta's conversation rates, the
-// same as Instant. On this table that row is a level, not a win, and
+// same as Dripo. On this table that row is a level, not a win, and
 // it is rendered as one.
 // ============================================================
 
@@ -43,13 +43,13 @@ interface Col {
   /**
    * The wordmark for the header, when we have the file. Optional: a
    * column without one falls back to its name, so the table never
-   * waits on an asset. Only Instant and Interakt are on disk today —
+   * waits on an asset. Only Dripo and Interakt are on disk today —
    * drop a PNG in public/images/compare and add it here.
    */
   logo?: { src: string; width: number; height: number };
   /**
    * Height class for this mark. The four lockups have different
-   * proportions — Instant is about 4.2:1, Interakt 3:1 — so one shared
+   * proportions — Dripo is about 4.2:1, Interakt 3:1 — so one shared
    * height draws them at noticeably different widths. Sizing each to
    * land near the same *width* is what reads as balanced.
    */
@@ -69,7 +69,7 @@ const ROWS = [
 
 const COLS: Col[] = [
   {
-    name: 'Instant',
+    name: 'Dripo',
     us: true,
     cells: [
       '₹499/mo',
@@ -281,7 +281,7 @@ export function WaComparisonRail() {
 
           <div className="flex flex-1 flex-col p-7">
             <h3 className="text-[22px] leading-[26px] text-(--wa-ink)">
-              Instant vs {c.rival}
+              Dripo vs {c.rival}
             </h3>
             <p
               className={cn(

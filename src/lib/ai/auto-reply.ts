@@ -84,7 +84,7 @@ export async function dispatchInboundToAiReply(
   try {
     const db = supabaseAdmin()
 
-    // A lapsed plan pauses Maya — her replies run on Instant's own AI key.
+    // A lapsed plan pauses Maya — her replies run on Dripo's own AI key.
     if (!(await accountHasAccess(db, accountId))) return
 
     // A wait that outlived this engine's in-memory window, handed back by

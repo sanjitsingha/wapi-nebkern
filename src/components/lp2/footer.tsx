@@ -133,7 +133,7 @@ export function Lp2Footer() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/images/product-hunt-review.svg"
-                  alt="Instant — WhatsApp Automation Platform on Product Hunt"
+                  alt="Dripo — WhatsApp Automation Platform on Product Hunt"
                   width={250}
                   height={54}
                   loading="lazy"
@@ -161,7 +161,7 @@ export function Lp2Footer() {
                     href={`/compare/${c.slug}`}
                     className="text-sm font-medium text-(--lp2-ink-soft) transition-colors hover:text-(--lp2-ink)"
                   >
-                    Comparison between Instant and {c.rival}
+                    Comparison between Dripo and {c.rival}
                   </Link>
                 </li>
               ))}
@@ -264,7 +264,7 @@ export function Lp2Footer() {
             {/* Rendered per request rather than frozen at build time —
               same as the live footer, and the page is static enough
               that a hardcoded year would go stale silently. */}
-            <p>© {new Date().getFullYear()} Instant · Nebkern Technology</p>
+            <p>© {new Date().getFullYear()} Dripo · Nebkern Technology</p>
             {/* The Meta credential moved up into the chip above; repeating
               it here would say the same thing twice in 60px. */}
             <p>Built on the WhatsApp Business API</p>

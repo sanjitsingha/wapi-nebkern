@@ -242,7 +242,7 @@ export async function GET(request: Request) {
       metadata: { org_name: org.name ?? null, api_domain: tokens.apiDomain },
     });
 
-    // Zoho → Instant: subscribe the Notification API channel now, so
+    // Zoho → Dripo: subscribe the Notification API channel now, so
     // events start arriving without a Workflow Rule. Soft — a Zoho
     // edition without notifications, or any other refusal, leaves a
     // working connection and the reason on the row for Settings to
@@ -250,7 +250,7 @@ export async function GET(request: Request) {
     // hourly cron retries daily.
     await syncZohoWatch(db, ctx.accountId).catch(() => null);
 
-    // Instant → Zoho: bring over everything already here. Records that
+    // Dripo → Zoho: bring over everything already here. Records that
     // are linked and unchanged cost the worker a lookup and nothing in
     // Zoho, so a reconnect running this again is harmless.
     try {

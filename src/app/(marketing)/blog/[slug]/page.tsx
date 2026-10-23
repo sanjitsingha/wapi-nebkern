@@ -15,7 +15,7 @@ import '../post-content.css';
 export const revalidate = 300;
 
 const SITE = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://instant.nebkern.com'
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://dripo.nebkern.com'
 ).replace(/\/$/, '');
 
 const PUBLISHER = {
@@ -41,7 +41,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const post = await getPostBySlug(slug);
-  if (!post) return { title: 'Post not found — Instant for WhatsApp Business' };
+  if (!post) return { title: 'Post not found — Dripo WhatsApp for Business' };
 
   return {
     // A `meta_title` set in the admin wins outright, suffix included:
@@ -50,14 +50,14 @@ export async function generateMetadata({
     //
     // Otherwise the headline stands in. Google cuts titles off around
     // 60 characters, so a long one already fills that and the
-    // " — Instant blog" suffix would only be truncated away; shorter
+    // " — Dripo blog" suffix would only be truncated away; shorter
     // ones keep it.
     title: {
       absolute:
         post.metaTitle ??
         (() => {
           const headline = oneLine(post.title);
-          return headline.length > 45 ? headline : `${headline} — Instant blog`;
+          return headline.length > 45 ? headline : `${headline} — Dripo blog`;
         })(),
     },
     description: post.excerpt ?? undefined,

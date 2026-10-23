@@ -10,9 +10,9 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // SaaS equivalent of the shipping policy the gateway looks for.
 export const metadata: Metadata = {
   alternates: { canonical: '/refunds' },
-  title: { absolute: 'Cancellation & Refunds — Instant for WhatsApp Business' },
+  title: { absolute: 'Cancellation & Refunds — Dripo WhatsApp for Business' },
   description:
-    'How to cancel an Instant subscription, when refunds are and are not available, how failed or duplicate payments are handled, and when the service is delivered.',
+    'How to cancel a Dripo subscription, when refunds are and are not available, how failed or duplicate payments are handled, and when the service is delivered.',
   robots: { index: true, follow: true },
 };
 
@@ -34,7 +34,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'When the service is delivered',
     blocks: [
       {
-        p: 'Instant is software delivered online. There is nothing to ship. Your plan is activated on your account as soon as payment is confirmed — normally within a few seconds, and in rare cases up to 24 hours if a payment needs manual verification.',
+        p: 'Dripo is software delivered online. There is nothing to ship. Your plan is activated on your account as soon as payment is confirmed — normally within a few seconds, and in rare cases up to 24 hours if a payment needs manual verification.',
       },
       {
         p: 'Access is delivered to the account you signed up with, at the email address on that account. Connecting your WhatsApp Business number is a separate step you complete yourself through embedded signup, and how long Meta takes to approve it is outside our control.',

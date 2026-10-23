@@ -10,9 +10,9 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // than one that visibly needs filling in.
 export const metadata: Metadata = {
   alternates: { canonical: '/subprocessors' },
-  title: { absolute: 'Subprocessor List — Instant for WhatsApp Business' },
+  title: { absolute: 'Subprocessor List — Dripo WhatsApp for Business' },
   description:
-    'The third-party providers Instant uses to process personal data for customers — what each does, what data it sees, and how we notify you of changes.',
+    'The third-party providers Dripo uses to process personal data for customers — what each does, what data it sees, and how we notify you of changes.',
   robots: { index: true, follow: true },
 };
 
@@ -22,7 +22,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'What a subprocessor is',
     blocks: [
       {
-        p: 'To run Instant we rely on other companies — a database provider, the messaging platforms themselves, a payment processor. Where one of them processes personal data on our behalf in the course of providing the Service to you, it is a subprocessor, and you are entitled to know who it is.',
+        p: 'To run Dripo we rely on other companies — a database provider, the messaging platforms themselves, a payment processor. Where one of them processes personal data on our behalf in the course of providing the Service to you, it is a subprocessor, and you are entitled to know who it is.',
       },
       {
         p: 'This page is that list. It forms part of our Data Processing Agreement, and the authorisation you give us there is an authorisation to use the providers named below.',
@@ -133,7 +133,7 @@ export default function Lp2SubprocessorsPage() {
       title="Subprocessor List"
       hue="pop"
       updated="14 October 2026"
-      intro="Every third party that touches your data to make Instant work — what each one does, what it can see, and how to object if you would rather we did not use one."
+      intro="Every third party that touches your data to make Dripo work — what each one does, what it can see, and how to object if you would rather we did not use one."
       sections={SECTIONS}
     />
   );

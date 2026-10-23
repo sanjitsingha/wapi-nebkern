@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 
 // ============================================================
-// Integrations "app store" — a grid of everything Instant can wire into,
+// Integrations "app store" — a grid of everything Dripo can wire into,
 // grouped by how you actually connect it:
 //
 //   • Built in    — native surfaces that live in this app (API keys, the
@@ -98,7 +98,7 @@ const ALL_INTEGRATIONS: Integration[] = [
     id: 'rest-api',
     name: 'REST API',
     description:
-      'Generate API keys and call Instant from your own backend — contacts, messages, campaigns and more.',
+      'Generate API keys and call Dripo from your own backend — contacts, messages, campaigns and more.',
     icon: Code2,
     tone: 'bg-primary/10 text-primary',
     group: 'builtin',
@@ -125,7 +125,7 @@ const ALL_INTEGRATIONS: Integration[] = [
     id: 'zapier',
     name: 'Zapier',
     description:
-      'Connect Instant to 6,000+ apps with no code, using your API key and webhooks.',
+      'Connect Dripo to 6,000+ apps with no code, using your API key and webhooks.',
     icon: Zap,
     tone: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
     group: 'platform',
@@ -136,7 +136,7 @@ const ALL_INTEGRATIONS: Integration[] = [
     id: 'make',
     name: 'Make',
     description:
-      'Build multi-step scenarios visually and trigger them from Instant events.',
+      'Build multi-step scenarios visually and trigger them from Dripo events.',
     icon: Workflow,
     tone: 'bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400',
     group: 'platform',
@@ -145,7 +145,7 @@ const ALL_INTEGRATIONS: Integration[] = [
   },
   // ── Popular apps (via automation) ─────────────────────────────────
   {
-    // Native since migration 106: Instant creates a spreadsheet in the
+    // Native since migration 106: Dripo creates a spreadsheet in the
     // customer's Drive and writes to it directly. Its card links to its
     // page, where the connect flow lives.
     id: 'google-sheets',
@@ -249,7 +249,7 @@ export const GROUPS: { id: Group; title: string; blurb: string }[] = [
   {
     id: 'builtin',
     title: 'Built in',
-    blurb: 'Native to Instant — set up right here.',
+    blurb: 'Native to Dripo — set up right here.',
   },
   {
     id: 'platform',

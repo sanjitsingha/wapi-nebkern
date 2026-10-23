@@ -10,7 +10,7 @@ import {
 
 export const metadata: Metadata = {
   title: 'Pipelines & deals',
-  description: "Pipelines & deals in Instant: Kanban deal stages, deal value and currency, and the sales CRM. A step-by-step guide for teams selling on WhatsApp.",
+  description: "Pipelines & deals in Dripo: Kanban deal stages, deal value and currency, and the sales CRM. A step-by-step guide for teams selling on WhatsApp.",
   alternates: { canonical: '/docs/pipelines' },
 };
 

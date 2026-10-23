@@ -9,7 +9,7 @@
 //           be queued), then add the note there — a Zoho Note on the
 //           Lead or Contact, a HubSpot Note on the contact's timeline —
 //           headed with who wrote it.
-//   delete  remove the copy Instant made. Notes written in the CRM
+//   delete  remove the copy Dripo made. Notes written in the CRM
 //           itself are never touched.
 //
 // A contact that never reaches the CRM (spam, blocked, nothing to match
@@ -35,7 +35,7 @@ const BACKOFF_MIN = [1, 5, 30, 120, 360];
 
 /** How a note is headed in the CRM. */
 export function noteHeading(author: string): string {
-  return `Note by ${author} · Instant`;
+  return `Note by ${author} · Dripo`;
 }
 
 function escapeHtml(s: string): string {
@@ -157,7 +157,7 @@ async function createRemote(
   throw new NoteSyncError(res.error ?? 'HubSpot refused the note.', !!res.disconnected);
 }
 
-/** Remove the copy Instant made. Already gone counts as done. */
+/** Remove the copy Dripo made. Already gone counts as done. */
 async function deleteRemote(db: Db, crm: NoteCrm, accountId: string, remoteId: string): Promise<void> {
   if (crm === 'zoho') {
     const res = await zohoApiFetch<{ data?: { status?: string; code?: string; message?: string }[] }>(

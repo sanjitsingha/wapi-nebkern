@@ -33,7 +33,7 @@ export function ComparisonHero({ data }: { data: Comparison }) {
     <section className="relative -mt-19 bg-[var(--wa-white,#ffffff)] pt-19 sm:-mt-20 sm:pt-20">
       <div className="mx-auto max-w-4xl px-4 pt-14 pb-16 text-center sm:px-6 sm:pt-20 sm:pb-20">
         <h1 className="lp2-display text-4xl leading-[1.08] font-extrabold text-balance sm:text-6xl">
-          Instant vs <Highlight color={data.hue}>{data.rival}</Highlight>
+          Dripo vs <Highlight color={data.hue}>{data.rival}</Highlight>
         </h1>
 
         <p className="mx-auto mt-6 max-w-2xl text-xl leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-2xl">
@@ -118,8 +118,8 @@ export function ComparisonTable({ data }: { data: Comparison }) {
                   <span className="text-sm leading-relaxed text-(--lp2-ink)">
                     {/* Phones lose the header row, so each cell says whose
                         answer it is. */}
-                    <span className="font-bold sm:hidden">Instant: </span>
-                    {row.instant}
+                    <span className="font-bold sm:hidden">Dripo: </span>
+                    {row.dripo}
                   </span>
                 </div>
 

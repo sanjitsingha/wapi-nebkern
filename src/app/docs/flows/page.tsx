@@ -11,7 +11,7 @@ import {
 
 export const metadata: Metadata = {
   title: 'Flows',
-  description: "Flows in Instant: The visual, no-code conversation builder. A step-by-step guide for teams selling on WhatsApp.",
+  description: "Flows in Dripo: The visual, no-code conversation builder. A step-by-step guide for teams selling on WhatsApp.",
   alternates: { canonical: '/docs/flows' },
 };
 

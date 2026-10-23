@@ -95,7 +95,7 @@ export async function createOrderWebhooks(
       res = await wcRequest(creds, '/webhooks', {
         method: 'POST',
         body: JSON.stringify({
-          name: `Instant — ${topic}`,
+          name: `Dripo — ${topic}`,
           topic,
           delivery_url: deliveryUrl,
           secret,

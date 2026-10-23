@@ -22,7 +22,7 @@ import { publicOrigin } from '@/lib/public-origin';
  *
  * HubSpot sends the browser here after the admin approves. `state`
  * against the httpOnly cookie is the CSRF guard. On success the
- * connection goes live, and everything already in Instant is queued
+ * connection goes live, and everything already in Dripo is queued
  * for HubSpot — sync needs no setting up.
  */
 export async function GET(request: Request) {
@@ -136,7 +136,7 @@ export async function GET(request: Request) {
       metadata: { portal_id: portalId, hub_domain: about.hubDomain ?? null },
     });
 
-    // Instant → HubSpot: bring over everything already here. Linked,
+    // Dripo → HubSpot: bring over everything already here. Linked,
     // unchanged records cost the worker a lookup and nothing in HubSpot.
     try {
       await db.rpc('hubspot_backfill', { p_account: ctx.accountId, p_deals: true });

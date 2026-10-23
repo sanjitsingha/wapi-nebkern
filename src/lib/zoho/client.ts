@@ -60,11 +60,11 @@ const ACCOUNTS_BY_LOCATION: Record<string, string> = {
  *                         sync has to write back to it.
  *
  *   deals.READ/CREATE/    read to fill in deal events; create and
- *   UPDATE                update to push Instant deals and their stage
+ *   UPDATE                update to push Dripo deals and their stage
  *                         changes (lib/zoho/push.ts). Never DELETE:
- *                         removing a deal in Instant only unlinks it.
+ *                         removing a deal in Dripo only unlinks it.
  *
- *   settings.fields.READ  the org's Deal Stage picklist, so an Instant
+ *   settings.fields.READ  the org's Deal Stage picklist, so a Dripo
  *                         stage is mapped to a value Zoho accepts.
  *
  *   notifications.ALL     automatic sync: subscribe, renew and remove
@@ -74,13 +74,13 @@ const ACCOUNTS_BY_LOCATION: Record<string, string> = {
  *
  *   notes.CREATE          Logging a WhatsApp conversation onto a record
  *                         appends notes, as does copying a note written
- *                         on the contact in Instant (lib/crm/note-sync).
- *   notes.DELETE          Deleting that Instant note deletes the copy
- *                         Instant made — only ever a note whose id
- *                         Instant recorded when creating it. Nothing
+ *                         on the contact in Dripo (lib/crm/note-sync).
+ *   notes.DELETE          Deleting that Dripo note deletes the copy
+ *                         Dripo made — only ever a note whose id
+ *                         Dripo recorded when creating it. Nothing
  *                         someone else wrote is edited or deleted.
  *
- *   settings.tags.CREATE  CREATE only: a contact's Instant tag that the
+ *   settings.tags.CREATE  CREATE only: a contact's Dripo tag that the
  *                         module has no tag for yet is created before
  *                         it is added (lib/zoho/push.ts). Adding and
  *                         removing tags on a record is covered by the

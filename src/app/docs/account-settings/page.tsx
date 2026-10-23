@@ -10,7 +10,7 @@ import {
 
 export const metadata: Metadata = {
   title: 'Account settings',
-  description: "Account settings in Instant: Profile, security, business profile, and customization. A step-by-step guide for teams selling on WhatsApp.",
+  description: "Account settings in Dripo: Profile, security, business profile, and customization. A step-by-step guide for teams selling on WhatsApp.",
   alternates: { canonical: '/docs/account-settings' },
 };
 

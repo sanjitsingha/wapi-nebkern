@@ -23,7 +23,7 @@ export function welcomeEmail(email: string, name?: string | null) {
     subject: "You're on the list",
     html: shell(
       `<p style="margin:0 0 14px;">${greeting}</p>
-       <p style="margin:0 0 14px;">Thanks for subscribing to the Instant newsletter. We write about WhatsApp marketing, automation, and what we're building — occasionally, and only when there's something worth your time.</p>
+       <p style="margin:0 0 14px;">Thanks for subscribing to the Dripo newsletter. We write about WhatsApp marketing, automation, and what we're building — occasionally, and only when there's something worth your time.</p>
        <p style="margin:0 0 24px;">Nothing else to do. The next one will just arrive.</p>
        <p style="margin:0;">${button(`${site()}/blog`, 'Read the blog')}</p>`,
       `You're receiving this because ${email} was entered at ${site()}.<br>
@@ -31,7 +31,7 @@ export function welcomeEmail(email: string, name?: string | null) {
     ),
     text: `${greeting}
 
-Thanks for subscribing to the Instant newsletter. We write about WhatsApp
+Thanks for subscribing to the Dripo newsletter. We write about WhatsApp
 marketing, automation, and what we're building — occasionally, and only
 when there's something worth your time.
 
@@ -51,12 +51,12 @@ export function goodbyeEmail(email: string) {
   return {
     subject: "You've been unsubscribed",
     html: shell(
-      `<p style="margin:0 0 14px;">You've been removed from the Instant newsletter and won't get any more of them.</p>
+      `<p style="margin:0 0 14px;">You've been removed from the Dripo newsletter and won't get any more of them.</p>
        <p style="margin:0 0 24px;">If that wasn't what you meant, you can sign up again any time.</p>
        <p style="margin:0;">${button(`${site()}/newsletter`, 'Resubscribe')}</p>`,
       `This confirms the unsubscribe for ${email}. No further action is needed.`
     ),
-    text: `You've been removed from the Instant newsletter and won't get any
+    text: `You've been removed from the Dripo newsletter and won't get any
 more of them.
 
 If that wasn't what you meant, you can sign up again any time:

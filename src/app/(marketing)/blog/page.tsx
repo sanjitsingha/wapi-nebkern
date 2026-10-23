@@ -19,7 +19,7 @@ export const revalidate = 300;
 // the only page these posts render on.
 export const metadata: Metadata = {
   alternates: { canonical: '/blog' },
-  title: { absolute: 'Blog — Instant for WhatsApp Business' },
+  title: { absolute: 'Blog — Dripo WhatsApp for Business' },
   description:
     'Insights to scale your brand with WhatsApp automation and AI-powered business intelligence.',
   robots: { index: true, follow: true },
@@ -54,7 +54,7 @@ export default async function Lp2BlogIndexPage() {
       {
         '@type': 'Blog',
         '@id': `${SITE_URL}/blog#blog`,
-        name: 'Instant Blog',
+        name: 'Dripo Blog',
         description:
           'Insights to scale your brand with WhatsApp automation and AI-powered business intelligence.',
         url: `${SITE_URL}/blog`,

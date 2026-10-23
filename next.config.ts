@@ -222,6 +222,16 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
+        // The product was called Instant before it became Dripo, and the
+        // comparison pages were /compare/instant-vs-<rival>. Those URLs
+        // are indexed and linked, so they follow the pages to their new
+        // slugs. The rivals are listed rather than matched with a bare
+        // `:rival`, which would send msg91 (above) to a 404.
+        source: "/compare/instant-vs-:rival(interakt|wati|aisensy)",
+        destination: "/compare/dripo-vs-:rival",
+        permanent: true,
+      },
+      {
         source: "/autopilot",
         destination: "/ask-maya",
         permanent: true,

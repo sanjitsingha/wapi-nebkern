@@ -11,7 +11,7 @@ import {
 
 export const metadata: Metadata = {
   title: 'Shared inbox',
-  description: "Shared inbox in Instant: Conversations, assignment, tags, filters, and the 24-hour window. A step-by-step guide for teams selling on WhatsApp.",
+  description: "Shared inbox in Dripo: Conversations, assignment, tags, filters, and the 24-hour window. A step-by-step guide for teams selling on WhatsApp.",
   alternates: { canonical: '/docs/inbox' },
 };
 
@@ -86,7 +86,7 @@ export default function InboxDocsPage() {
           WhatsApp only allows free-form replies within{' '}
           <strong>24 hours of the customer&apos;s last message</strong> —
           outside that window, only pre-approved message templates can be
-          sent. Instant shows a countdown badge next to the customer&apos;s name in the
+          sent. Dripo shows a countdown badge next to the customer&apos;s name in the
           conversation list so you always know how much time is left: it
           turns amber under 6 hours, red under 2 hours, and disappears once
           the window has closed. When the window is closed, the message
@@ -94,7 +94,7 @@ export default function InboxDocsPage() {
           instead.
         </p>
         <DocsCallout type="info">
-          This 24-hour rule is a WhatsApp platform policy, not an Instant limit
+          This 24-hour rule is a WhatsApp platform policy, not a Dripo limit
           — it exists on every WhatsApp Business API tool. See{' '}
           <Link href="/docs/templates">Message templates</Link> for how to
           reach a customer outside the window.

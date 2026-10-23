@@ -1,5 +1,5 @@
 // ============================================================
-// Turn a HubSpot contact into an Instant contact — the same
+// Turn a HubSpot contact into a Dripo contact — the same
 // find-or-create as lib/zoho/ingest.ts: matched on the normalised
 // phone, blanks filled but nothing overwritten, created (owned by the
 // account owner) when there is no match, since a brand-new HubSpot

@@ -274,10 +274,10 @@ A plan is bought (Razorpay, `api/billing/razorpay/verify`), redeemed
   - `assertActiveSubscription` — WhatsApp, Instagram and Messenger
     sends, broadcasts, form sends, the public API (`/api/v1/messages`);
   - `accountHasAccess` (`src/lib/billing/access.ts`, cached a minute) —
-    automations, flows, and Maya's AI replies, which run on Instant's
+    automations, flows, and Maya's AI replies, which run on Dripo's
     own AI key. A paused automation wait is put back and retried
     hourly, so it carries on after a renewal instead of being lost.
-- **Only Instant changes a plan.** The `accounts_protect_server_columns`
+- **Only Dripo changes a plan.** The `accounts_protect_server_columns`
   trigger refuses changes to the plan, status, trial, billing and period
   columns, `owner_user_id` and the deletion columns from a workspace's own
   users. Server routes use the service role; activation codes and

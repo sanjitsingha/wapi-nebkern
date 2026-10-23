@@ -7,7 +7,7 @@ import type { Comparison } from '@/lib/marketing/comparisons';
 import { cn } from '@/lib/utils';
 
 // ============================================================
-// "Choose Instant when / Choose <rival> when", as a tab set on the
+// "Choose Dripo when / Choose <rival> when", as a tab set on the
 // black band — the same shape the homepage stats use
 // (components/wa/stats-tabs.tsx): rail down the left, the selected
 // panel filling the right.
@@ -25,7 +25,7 @@ import { cn } from '@/lib/utils';
 
 export function ComparisonVerdictTabs({ data }: { data: Comparison }) {
   const sides = [
-    { value: 'instant', name: 'Instant', points: data.verdict.instant },
+    { value: 'dripo', name: 'Dripo', points: data.verdict.dripo },
     { value: 'rival', name: data.rival, points: data.verdict.rival },
   ];
 
@@ -37,7 +37,7 @@ export function ComparisonVerdictTabs({ data }: { data: Comparison }) {
     <section className="flex min-h-[560px] items-center bg-black px-4 py-16 text-white sm:px-6 sm:py-20 lg:min-h-[620px]">
       <div className="mx-auto w-full max-w-5xl">
         <Tabs.Root
-          defaultValue="instant"
+          defaultValue="dripo"
           orientation="vertical"
           className="grid gap-10 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1fr)] lg:gap-16"
         >

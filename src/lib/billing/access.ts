@@ -4,7 +4,7 @@
 // For the senders nobody clicks: AI replies, automations, flows and
 // the public API. They run under the service role from webhooks and
 // crons, so the middleware's paywall never stands in front of them, and
-// before this a lapsed account kept sending — and kept spending Instant's
+// before this a lapsed account kept sending — and kept spending Dripo's
 // own AI key — forever.
 //
 // Answers are kept for a minute per account: a busy inbox asks on every

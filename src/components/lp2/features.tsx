@@ -38,7 +38,7 @@ const FEATURES: Feature[] = [
   {
     term: 'Embedded signup',
     hue: 'lemon',
-    body: 'Connect your number through Meta’s own flow, right inside Instant. No agency in the middle, no support ticket, no waiting a week to find out a form was filled in wrong.',
+    body: 'Connect your number through Meta’s own flow, right inside Dripo. No agency in the middle, no support ticket, no waiting a week to find out a form was filled in wrong.',
   },
   {
     term: 'Shared team inbox',
@@ -83,7 +83,7 @@ const FEATURES: Feature[] = [
   {
     term: 'Webhooks & API',
     hue: 'lemon',
-    body: 'Push every message, contact and deal event into your own stack, or drive Instant from it. Your data stays yours, and stays reachable.',
+    body: 'Push every message, contact and deal event into your own stack, or drive Dripo from it. Your data stays yours, and stays reachable.',
   },
 ];
 

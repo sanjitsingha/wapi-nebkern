@@ -1,4 +1,4 @@
-// The HubSpot events that reach Instant, and which of them run an
+// The HubSpot events that reach Dripo, and which of them run an
 // automation. Client-safe on purpose: the automation builder lists
 // these, so this file must not import anything server-only.
 //

@@ -2,7 +2,7 @@ import { PLANS, FAQS as PRICING_FAQS } from '@/lib/marketing/pricing-data';
 import type { Comparison } from '@/lib/marketing/comparisons';
 
 export const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://instant.nebkern.com'
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://dripo.nebkern.com'
 ).replace(/\/$/, '');
 
 export const ORGANIZATION_ID = 'https://nebkern.com/#organization';
@@ -16,12 +16,12 @@ export const ORGANIZATION_ID = 'https://nebkern.com/#organization';
  * engines read the brand would be the wrong half to be casual about.
  *
  * BRAND_SHORT is not a fallback — it is the name used in running prose
- * ("Instant answers them while you sleep"), where the full one would
+ * ("Dripo answers them while you sleep"), where the full one would
  * read as an advert. Both are declared to search engines: the full name
  * as `name`, the short one as `alternateName`.
  */
-export const BRAND = 'Instant for WhatsApp Business';
-export const BRAND_SHORT = 'Instant';
+export const BRAND = 'Dripo WhatsApp for Business';
+export const BRAND_SHORT = 'Dripo';
 
 export const ORGANIZATION_SCHEMA = {
   '@type': 'Organization',
@@ -40,7 +40,7 @@ export const ORGANIZATION_SCHEMA = {
   },
   contactPoint: {
     '@type': 'ContactPoint',
-    email: 'contact@instant.nebkern.com',
+    email: 'contact@dripo.nebkern.com',
     telephone: '+91-92390-64013',
     contactType: 'customer support',
     areaServed: 'IN',
@@ -55,7 +55,7 @@ export const WEBSITE_SCHEMA = {
   // Names only. A tagline in alternateName tells Google the brand is
   // called "Grow your business with the help of WhatsApp", which it is
   // not — these are the other things people actually type.
-  alternateName: [BRAND_SHORT, 'Instant WhatsApp', 'Instant by Nebkern'],
+  alternateName: [BRAND_SHORT, 'Dripo WhatsApp', 'Dripo by Nebkern'],
   url: `${SITE_URL}/`,
   inLanguage: 'en-IN',
   publisher: { '@id': ORGANIZATION_ID },
@@ -180,7 +180,7 @@ export function getComparisonPageSchema(comparison: Comparison) {
       getBreadcrumbSchema([
         { name: 'Home', path: '/' },
         { name: 'Compare', path: '/compare' },
-        { name: `Instant vs ${comparison.rival}`, path: `/compare/${comparison.slug}` },
+        { name: `Dripo vs ${comparison.rival}`, path: `/compare/${comparison.slug}` },
       ]),
       {
         '@type': 'WebPage',

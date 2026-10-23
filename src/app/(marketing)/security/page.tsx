@@ -10,9 +10,9 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // so the "what we do not claim" section stays until it is untrue.
 export const metadata: Metadata = {
   alternates: { canonical: '/security' },
-  title: { absolute: 'Security Policy — Instant for WhatsApp Business' },
+  title: { absolute: 'Security Policy — Dripo WhatsApp for Business' },
   description:
-    'How Instant protects your data: encryption, tenant isolation, access control, webhook verification, backups, incident response and vulnerability reports.',
+    'How Dripo protects your data: encryption, tenant isolation, access control, webhook verification, backups, incident response and vulnerability reports.',
   robots: { index: true, follow: true },
 };
 
@@ -22,7 +22,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'What we protect and how to read this',
     blocks: [
       {
-        p: 'Instant holds conversations between businesses and their customers — phone numbers, message content, attachments and the access tokens that let us send on your behalf. A compromise would matter, so this page describes the controls we actually operate rather than the ones that sound reassuring.',
+        p: 'Dripo holds conversations between businesses and their customers — phone numbers, message content, attachments and the access tokens that let us send on your behalf. A compromise would matter, so this page describes the controls we actually operate rather than the ones that sound reassuring.',
       },
       {
         p: 'It covers the Service operated by {{COMPANY}}. Security is shared: we secure the platform, and you secure your account, your team’s access and the credentials you connect. The sections below say which is which.',

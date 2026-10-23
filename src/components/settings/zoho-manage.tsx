@@ -285,7 +285,7 @@ export function ZohoManage({
         {sync?.unavailable && connection.webhookUrl && (
           <div className="mt-4 space-y-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
             <p className="text-[11px] leading-relaxed text-amber-900 dark:text-amber-200">
-              This Zoho can&apos;t send updates to Instant on its own. In Zoho, add a
+              This Zoho can&apos;t send updates to Dripo on its own. In Zoho, add a
               Workflow Rule with a webhook to this URL.
             </p>
             <div className="flex items-center gap-2">
@@ -310,7 +310,7 @@ export function ZohoManage({
         {connection.usesOwnApp && (
           <p className="text-muted-foreground mt-4 text-[11px] leading-relaxed">
             Connected through your own Zoho application. Delete and connect again to
-            move to Instant&apos;s.
+            move to Dripo&apos;s.
           </p>
         )}
       </section>
@@ -327,7 +327,7 @@ export function ZohoManage({
           <div className="divide-border divide-y">
             <SettingRow
               title="Create contacts and leads in Zoho"
-              description="New people in Instant are added to Zoho automatically."
+              description="New people in Dripo are added to Zoho automatically."
               checked={settings.createContacts}
               disabled={saving}
               onChange={(v) => void save({ createContacts: v })}

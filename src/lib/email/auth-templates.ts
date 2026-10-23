@@ -41,19 +41,19 @@ export function passwordResetEmail({
       : `${expiresMinutes} minutes`;
 
   return {
-    subject: `${code} is your Instant password reset code`,
+    subject: `${code} is your Dripo password reset code`,
     html: shell(
-      `<p style="margin:0 0 14px;">Someone asked to reset the password on your Instant account. Enter this code on the reset page to choose a new one:</p>
+      `<p style="margin:0 0 14px;">Someone asked to reset the password on your Dripo account. Enter this code on the reset page to choose a new one:</p>
        ${codeBlock(code)}
        <p style="margin:0 0 14px;">The code expires in ${window} and can be used once.</p>
        <p style="margin:0;color:${SOFT};">If this wasn't you, you can ignore this email — nothing has changed, and your password stays as it is.</p>`,
       // No unsubscribe link, deliberately: this is transactional mail
       // sent in response to a request, not something anyone opted into
       // or can opt out of without losing access to their own account.
-      `Sent by Instant · <a href="${site()}" style="color:${SOFT};">${site().replace(/^https?:\/\//, '')}</a><br>
+      `Sent by Dripo · <a href="${site()}" style="color:${SOFT};">${site().replace(/^https?:\/\//, '')}</a><br>
        We will never ask you for this code by phone, chat or reply.`
     ),
-    text: `Someone asked to reset the password on your Instant account.
+    text: `Someone asked to reset the password on your Dripo account.
 
 Your code is: ${code}
 
@@ -66,6 +66,6 @@ your password stays as it is.
 We will never ask you for this code by phone, chat or reply.
 
 ---
-Sent by Instant · ${site()}`,
+Sent by Dripo · ${site()}`,
   };
 }

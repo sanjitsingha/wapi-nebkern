@@ -10,7 +10,7 @@ import { ImageResponse } from 'next/og';
 // Only glyphs the built-in font covers — no ₹ sign.
 // ============================================================
 
-export const alt = 'Instant — WhatsApp CRM & Marketing Automation by Nebkern Technology';
+export const alt = 'Dripo — WhatsApp CRM & Marketing Automation by Nebkern Technology';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -39,7 +39,7 @@ export default function OpengraphImage() {
               display: 'flex',
             }}
           />
-          <div style={{ fontSize: 56, letterSpacing: -1 }}>instant</div>
+          <div style={{ fontSize: 56, letterSpacing: -1 }}>dripo</div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -62,7 +62,7 @@ export default function OpengraphImage() {
               fontSize: 28,
             }}
           >
-            instant.nebkern.com
+            dripo.nebkern.com
           </div>
           <div style={{ fontSize: 28, color: '#5e5e5e' }}>by Nebkern Technology</div>
         </div>

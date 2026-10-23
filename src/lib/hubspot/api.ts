@@ -101,7 +101,7 @@ function errorMessage(json: unknown, status: number): string {
   const body = json as { message?: string; category?: string } | null;
   if (status === 429) return 'HubSpot rate limit reached; will retry.';
   if (status === 403 && /scope|permission/i.test(body?.message ?? body?.category ?? '')) {
-    return 'HubSpot has not granted Instant this permission. Reconnect HubSpot in Settings to approve it.';
+    return 'HubSpot has not granted Dripo this permission. Reconnect HubSpot in Settings to approve it.';
   }
   return body?.message ?? `HubSpot returned ${status}.`;
 }

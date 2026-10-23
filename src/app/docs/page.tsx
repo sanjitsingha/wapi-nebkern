@@ -20,9 +20,9 @@ export default function DocsIndexPage() {
   const collectionSchema = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
-    name: 'Documentation — Instant for WhatsApp Business',
+    name: 'Documentation — Dripo WhatsApp for Business',
     description:
-      'Everything Instant can do — channels, the shared inbox, CRM, campaigns, automations, AI agents, billing, and the API — documented in detail.',
+      'Everything Dripo can do — channels, the shared inbox, CRM, campaigns, automations, AI agents, billing, and the API — documented in detail.',
     url: `${SITE_URL}/docs`,
   };
   return (
@@ -30,7 +30,7 @@ export default function DocsIndexPage() {
       <JsonLd schema={[collectionSchema, breadcrumbSchema]} />
       <p className="text-sm font-bold text-(--lp2-grass-deep)">Documentation</p>
       <h1 className="lp2-display mt-2 text-3xl font-extrabold text-balance sm:text-4xl">
-        Everything Instant can do
+        Everything Dripo can do
       </h1>
       <p className="mt-4 max-w-2xl text-base leading-relaxed text-(--lp2-ink-soft) text-pretty">
         Channel setup, the shared inbox, CRM, campaigns, automations, AI

@@ -15,7 +15,7 @@ import { Btn, SectionHead } from './ui';
 import { PricingFaqList, TrackInView } from './pricing-trackers';
 
 // ============================================================
-// /pricing — the dedicated pricing page for Instant by Nebkern.
+// /pricing — the dedicated pricing page for Dripo by Nebkern.
 //
 // The 4 plan cards + billing toggle live in `pricing-cards.tsx` (client).
 // This file holds every static section around them: the hero, the Meta
@@ -55,7 +55,7 @@ export function PricingHero() {
         </p>
 
         <p className="mt-5 text-base font-semibold text-(--lp2-ink-soft)">
-          New to Instant?{' '}
+          New to Dripo?{' '}
           <Link href="/" className="text-(--lp2-ink) underline underline-offset-2">
             See how the WhatsApp CRM works
           </Link>
@@ -86,7 +86,7 @@ export function MetaPricingBlock() {
               Meta charge (India)
             </Cell>
             <Cell head center>
-              Instant markup
+              Dripo markup
             </Cell>
           </div>
           {META_PRICING.rates.map((r, i) => (
@@ -112,7 +112,7 @@ export function MetaPricingBlock() {
 
         <p className="mx-auto mt-6 max-w-3xl text-center text-xs leading-relaxed text-(--lp2-ink-soft)">
           {META_PRICING.footnote} Meta bills these to your own WhatsApp Business
-          Account directly — they never pass through Instant.
+          Account directly — they never pass through Dripo.
         </p>
         <p className="mt-3 text-center text-sm font-semibold text-(--lp2-ink-soft)">
           Service messages start costing money on October 1, 2026 —{' '}

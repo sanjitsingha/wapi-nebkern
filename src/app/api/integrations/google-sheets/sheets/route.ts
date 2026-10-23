@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     }
     const meta = eventMeta(eventType);
     const rawTitle = typeof body?.title === 'string' ? body.title.trim() : '';
-    const title = (rawTitle || `Instant — ${meta.label}`).slice(0, MAX_TITLE);
+    const title = (rawTitle || `Dripo — ${meta.label}`).slice(0, MAX_TITLE);
 
     const db = supabaseAdmin();
     const { data: account } = await db

@@ -111,7 +111,7 @@ export async function payForPlan(planKey: string): Promise<PaymentResult | null>
       key: order.keyId,
       amount: order.amount,
       currency: order.currency,
-      name: 'Instant',
+      name: 'Dripo',
       description: `${order.planName} plan`,
       order_id: order.orderId,
       // Brand green — matches --primary (#0b6623).

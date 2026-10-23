@@ -493,7 +493,7 @@ export function BlogEditor({ post }: { post: BlogPostRecord | null }) {
                 <Input
                   value={author}
                   onChange={(e) => setAuthor(e.target.value)}
-                  placeholder="Jane from Instant"
+                  placeholder="Jane from Dripo"
                   className="border-border bg-muted text-xs"
                 />
               </Section>
@@ -556,7 +556,7 @@ export function BlogEditor({ post }: { post: BlogPostRecord | null }) {
                     {metaTitle.trim() || title.trim() || 'Post title'}
                   </p>
                   <p className="truncate text-[11px] text-emerald-700 dark:text-emerald-500">
-                    instant.nebkern.com/blog/{slug || 'my-first-post'}
+                    dripo.nebkern.com/blog/{slug || 'my-first-post'}
                   </p>
                   <p className="text-muted-foreground line-clamp-2 text-[11px]">
                     {excerpt.trim() ||

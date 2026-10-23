@@ -10,11 +10,11 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 export const metadata: Metadata = {
   alternates: { canonical: '/contact' },
   // Distinct from /contact-us (the form), which already owns
-  // "Contact us — Instant": two pages sharing a title compete with each
+  // "Contact us — Dripo": two pages sharing a title compete with each
   // other in search.
-  title: { absolute: 'Contact & grievance officer — Instant for WhatsApp Business' },
+  title: { absolute: 'Contact & grievance officer — Dripo WhatsApp for Business' },
   description:
-    'How to reach Instant — support, billing, privacy and grievance contacts, registered address and response times.',
+    'How to reach Dripo — support, billing, privacy and grievance contacts, registered address and response times.',
   robots: { index: true, follow: true },
 };
 

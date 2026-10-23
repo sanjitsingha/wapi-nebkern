@@ -167,7 +167,7 @@ describe('buildGoogleAuthorizeUrl', () => {
     const u = new URL(
       buildGoogleAuthorizeUrl({
         clientId: 'client-123',
-        redirectUri: 'https://instant.nebkern.com/api/integrations/google-sheets/oauth/callback',
+        redirectUri: 'https://dripo.nebkern.com/api/integrations/google-sheets/oauth/callback',
         state: 'abc.tab',
       }),
     );

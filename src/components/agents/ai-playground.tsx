@@ -28,8 +28,8 @@ const SUGGESTIONS = [
 ];
 
 /**
- * Chat with Maya as a customer would, on Instant's model, without
- * touching WhatsApp. `configured` is whether Instant's AI is ready
+ * Chat with Maya as a customer would, on Dripo's model, without
+ * touching WhatsApp. `configured` is whether Dripo's AI is ready
  * (GET /api/ai/config); she can be tested while switched off.
  */
 export function AiPlayground({ configured = true }: { configured?: boolean }) {
@@ -168,7 +168,7 @@ export function AiPlayground({ configured = true }: { configured?: boolean }) {
               </div>
             ) : (
               <p className="mt-5 max-w-sm text-xs text-muted-foreground">
-                Maya isn&apos;t available yet — AI is still being set up for Instant.
+                Maya isn&apos;t available yet — AI is still being set up for Dripo.
               </p>
             )}
           </div>

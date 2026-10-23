@@ -21,7 +21,7 @@ export default async function IntegrationDetailPage({
     <FeatureGate
       feature="allowIntegrations"
       label={item.name}
-      description={`Connect ${item.name} and your other tools to Instant. Upgrade your plan to unlock integrations.`}
+      description={`Connect ${item.name} and your other tools to Dripo. Upgrade your plan to unlock integrations.`}
     >
       <IntegrationPage id={item.id} />
     </FeatureGate>

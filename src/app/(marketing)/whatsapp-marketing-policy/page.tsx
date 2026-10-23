@@ -9,9 +9,9 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // and broadcasts, and what we do when a campaign goes wrong.
 export const metadata: Metadata = {
   alternates: { canonical: '/whatsapp-marketing-policy' },
-  title: { absolute: 'Marketing Policy — Instant for WhatsApp Business' },
+  title: { absolute: 'Marketing Policy — Dripo WhatsApp for Business' },
   description:
-    'Rules for promotional WhatsApp messaging through Instant: opt-in standard, frequency and timing, mandatory opt-out, campaign conduct and enforcement.',
+    'Rules for promotional WhatsApp messaging through Dripo: opt-in standard, frequency and timing, mandatory opt-out, campaign conduct and enforcement.',
   robots: { index: true, follow: true },
 };
 
@@ -24,7 +24,7 @@ const SECTIONS: LegalSection[] = [
         p: 'Marketing is the category of message that gets numbers banned. It goes to people who are not currently in a conversation with you, it arrives in the same app as messages from their family, and it is the one people report. Almost every WhatsApp Business Account restriction we have seen traces back to a promotional send.',
       },
       {
-        p: 'So the rules below are stricter than the law in some places, and we enforce them as a condition of using Instant for campaigns and broadcasts. This policy forms part of our Terms and works with our Acceptable Use Policy and WhatsApp Messaging Policy. Meta’s WhatsApp Business Messaging Policy and Commerce Policy apply on top; the strictest rule always wins.',
+        p: 'So the rules below are stricter than the law in some places, and we enforce them as a condition of using Dripo for campaigns and broadcasts. This policy forms part of our Terms and works with our Acceptable Use Policy and WhatsApp Messaging Policy. Meta’s WhatsApp Business Messaging Policy and Commerce Policy apply on top; the strictest rule always wins.',
       },
     ],
   },
@@ -97,7 +97,7 @@ const SECTIONS: LegalSection[] = [
         ],
       },
       {
-        note: 'Instant records opt-outs at the contact level and excludes them from campaigns automatically. That is a safety net, not permission to stop paying attention — you are responsible for the send.',
+        note: 'Dripo records opt-outs at the contact level and excludes them from campaigns automatically. That is a safety net, not permission to stop paying attention — you are responsible for the send.',
       },
     ],
   },
@@ -135,7 +135,7 @@ const SECTIONS: LegalSection[] = [
   },
   {
     id: 'campaigns',
-    heading: 'Campaigns and broadcasts in Instant',
+    heading: 'Campaigns and broadcasts in Dripo',
     blocks: [
       {
         p: 'Campaigns are the feature most likely to end an account, so they carry extra conditions:',
@@ -174,7 +174,7 @@ export default function Lp2WhatsAppMarketingPolicyPage() {
       title="WhatsApp Marketing Policy"
       hue="mint"
       updated="4 August 2026"
-      intro="Promotional messages are the ones that get numbers banned. These are the rules for sending them through Instant — a real opt-in, a working opt-out, and a frequency you would tolerate yourself."
+      intro="Promotional messages are the ones that get numbers banned. These are the rules for sending them through Dripo — a real opt-in, a working opt-out, and a frequency you would tolerate yourself."
       sections={SECTIONS}
     />
   );

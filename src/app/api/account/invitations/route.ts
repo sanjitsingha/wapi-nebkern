@@ -139,7 +139,7 @@ function getBaseUrl(request: Request): string {
       "[POST /api/account/invitations] could not derive base URL from request; falling back to the canonical app domain",
     );
   }
-  return "https://instant.nebkern.com";
+  return "https://dripo.nebkern.com";
 }
 
 const MAX_LABEL_LEN = 80;

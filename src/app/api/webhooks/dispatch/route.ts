@@ -55,7 +55,7 @@ export async function GET(request: Request) {
       sheets = { error: err instanceof Error ? err.message : String(err) };
     }
 
-    // Instant → Zoho pushes, then chats written as Zoho notes; same
+    // Dripo → Zoho pushes, then chats written as Zoho notes; same
     // minute, same isolation. Time budgets keep the whole run inside the
     // scheduler's 55s timeout.
     // Maya's long response delays: replies whose wait has run out, handed
@@ -82,7 +82,7 @@ export async function GET(request: Request) {
       console.error('[webhooks-cron] zoho chat log failed:', err);
       zoho.chats = { error: err instanceof Error ? err.message : String(err) };
     }
-    // Contact notes written in Instant, copied to Zoho (migration 122).
+    // Contact notes written in Dripo, copied to Zoho (migration 122).
     try {
       zoho.notes = await syncCrmNotes(admin, 'zoho', { budgetMs: 5_000 });
     } catch (err) {

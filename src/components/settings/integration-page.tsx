@@ -23,7 +23,7 @@ import {
 // /settings/integrations/[integration] — one integration's own page.
 //
 // A header (name, what it does, the docs), then either a "connect" hero
-// — Instant and the tool side by side with a Connect button — or, once
+// — Dripo and the tool side by side with a Connect button — or, once
 // a native integration is connected, its status with a Manage button.
 //
 // The page draws the cards; the existing connect components keep their
@@ -107,7 +107,7 @@ export function IntegrationPage({ id }: { id: string }) {
               item={item}
               label="Open setup guide"
               onConnect={card.open}
-              note="There's no app to install: Zapier's Webhooks step talks to Instant with your API key."
+              note="There's no app to install: Zapier's Webhooks step talks to Dripo with your API key."
             />
           )}
         />
@@ -120,7 +120,7 @@ export function IntegrationPage({ id }: { id: string }) {
               item={item}
               label="Connect via Zapier"
               onConnect={card.open}
-              note={`${item.name} connects to Instant through Zapier today. The guide walks you through it.`}
+              note={`${item.name} connects to Dripo through Zapier today. The guide walks you through it.`}
             />
           )}
         />
@@ -131,7 +131,7 @@ export function IntegrationPage({ id }: { id: string }) {
           item={item}
           label="Open setup guide"
           href={INTEGRATIONS_DOCS_HREF}
-          note={`${item.name} talks to Instant through its own webhook and HTTP steps, using your API key.`}
+          note={`${item.name} talks to Dripo through its own webhook and HTTP steps, using your API key.`}
         />
       )}
     </div>

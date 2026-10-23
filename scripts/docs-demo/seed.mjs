@@ -30,7 +30,7 @@ if (!url || !key) {
 }
 const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 
-const EMAIL = env('DOCS_DEMO_EMAIL') || 'docs-demo@instant.nebkern.com';
+const EMAIL = env('DOCS_DEMO_EMAIL') || 'docs-demo@dripo.nebkern.com';
 const OWNER_NAME = 'Riya Sharma';
 const BRAND = 'Bloom Organics';
 

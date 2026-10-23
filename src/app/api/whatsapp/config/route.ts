@@ -201,7 +201,7 @@ export async function POST(request: Request) {
     }
 
     // Reject if another account has already claimed this phone_number_id.
-    // Instant is single-tenant-per-WhatsApp-number — letting two accounts
+    // Dripo is single-tenant-per-WhatsApp-number — letting two accounts
     // bind the same number causes the webhook's `.single()` lookup to
     // throw PGRST116 ("multiple rows"), silently dropping every
     // inbound message. See issue #136. Post-multi-user we key on
@@ -226,7 +226,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            'This WhatsApp phone number is already linked to another account on this instance. Each phone number can only be connected to one Instant user.',
+            'This WhatsApp phone number is already linked to another account on this instance. Each phone number can only be connected to one Dripo user.',
         },
         { status: 409 }
       )

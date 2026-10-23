@@ -38,7 +38,7 @@ const PANEL_WASH =
   'linear-gradient(to top, color-mix(in oklab, var(--lp2-lemon) 30%, #fff), #fff 88%)';
 
 /**
- * The orbit artwork: the Instant mark ringed by the systems it talks to.
+ * The orbit artwork: the Dripo mark ringed by the systems it talks to.
  *
  * Served from the media host like the rest of the brand assets — it is
  * already covered by `next.config.ts`'s `images.remotePatterns` entry for
@@ -81,7 +81,7 @@ export function Lp2Integrations() {
 
             <p className="mt-5 text-xl leading-relaxed text-pretty text-(--lp2-ink-soft) sm:text-2xl">
               Connect your CRM, payment portals and eCommerce platforms —
-              Shopify, WooCommerce, HubSpot, Zapier — through the Instant REST
+              Shopify, WooCommerce, HubSpot, Zapier — through the Dripo REST
               API and outbound webhooks.
             </p>
 
@@ -128,7 +128,7 @@ function AppOrbit() {
           lazy and leave the hero's budget alone. */}
       <Image
         src={ORBIT_ART}
-        alt="The Instant mark ringed by Shopify, Make, Zoho, Google Sheets, Zapier and a REST API badge"
+        alt="The Dripo mark ringed by Shopify, Make, Zoho, Google Sheets, Zapier and a REST API badge"
         width={ORBIT_SIZE}
         height={ORBIT_SIZE}
         sizes="(min-width: 1024px) 36rem, (min-width: 640px) 28rem, 100vw"

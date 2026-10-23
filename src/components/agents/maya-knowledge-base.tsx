@@ -167,7 +167,7 @@ async function send(
     return true;
   } catch {
     toast.error(
-      'Could not reach Instant. Check your connection and try again.'
+      'Could not reach Dripo. Check your connection and try again.'
     );
     return false;
   }
@@ -335,7 +335,7 @@ export function MayaKnowledgeBase() {
       setAdding(source.kind);
     } catch {
       toast.error(
-        'Could not reach Instant. Check your connection and try again.'
+        'Could not reach Dripo. Check your connection and try again.'
       );
     } finally {
       setOpening(null);
@@ -359,7 +359,7 @@ export function MayaKnowledgeBase() {
       toast.success('Removed.');
     } catch {
       toast.error(
-        'Could not reach Instant. Check your connection and try again.'
+        'Could not reach Dripo. Check your connection and try again.'
       );
     }
   }

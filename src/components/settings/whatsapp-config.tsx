@@ -106,7 +106,7 @@ export function WhatsAppConfig() {
       title="WhatsApp"
       description={
         config
-          ? 'Your WhatsApp Business number and its connection to Instant.'
+          ? 'Your WhatsApp Business number and its connection to Dripo.'
           : 'Connect your WhatsApp Business number in a few minutes — no API keys or developer setup.'
       }
     />

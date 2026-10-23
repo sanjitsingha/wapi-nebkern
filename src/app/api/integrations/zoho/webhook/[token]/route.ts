@@ -40,7 +40,7 @@ const MAX_BODY_BYTES = 256 * 1024;
  *  and Zoho times the delivery out if we take too long. */
 const MAX_NOTIFICATION_IDS = 25;
 
-/** A Zoho event for a record Instant wrote within this window is our
+/** A Zoho event for a record Dripo wrote within this window is our
  *  own change coming back, not something a person did in Zoho. */
 const ECHO_WINDOW_MS = 3 * 60_000;
 
@@ -230,8 +230,8 @@ async function handleRecord(
   const enrichment = await enrichZohoRecord(db, accountId, parsed);
   const record = enrichment.record;
 
-  // Was this Instant's own push echoing back? Then it is logged, but
-  // runs no automations — creating a contact in Instant must not fire
+  // Was this Dripo's own push echoing back? Then it is logged, but
+  // runs no automations — creating a contact in Dripo must not fire
   // a "new Zoho lead" welcome message at them.
   let echo = false;
   if (record.recordId) {
@@ -256,7 +256,7 @@ async function handleRecord(
     record,
   );
 
-  // The link checked above is saved just AFTER Instant creates a record
+  // The link checked above is saved just AFTER Dripo creates a record
   // in Zoho, and Zoho can announce the record before that — a "new lead"
   // that is really the one we just pushed. So it is also our own change
   // while the sync worker is still busy with this person or a deal of
@@ -290,7 +290,7 @@ async function handleRecord(
   // admin can see the payload and fix the Workflow Rule's field list.
   if (!ingest.contactId) return;
 
-  // Remember which Zoho record this person is, so Instant → Zoho sync
+  // Remember which Zoho record this person is, so Dripo → Zoho sync
   // updates it instead of searching (or creating a second one). Only
   // when they have no link yet: a person can sit in Zoho twice, and
   // the record they are already synced with stays the one.

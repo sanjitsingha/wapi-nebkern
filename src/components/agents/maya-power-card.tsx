@@ -48,7 +48,7 @@ export function MayaPowerCard({
       toast.success(next ? 'Maya is on.' : 'Maya is off.');
       await onChanged();
     } catch {
-      toast.error('Could not reach Instant. Check your connection and try again.');
+      toast.error('Could not reach Dripo. Check your connection and try again.');
     } finally {
       setPending(null);
       setSaving(false);
@@ -76,7 +76,7 @@ export function MayaPowerCard({
         <p className="text-sm font-semibold text-foreground">AI Agent</p>
         <p className="mt-0.5 text-sm text-muted-foreground">
           {description ??
-            'Maya isn’t available yet — AI is still being set up for Instant. Please check back soon.'}
+            'Maya isn’t available yet — AI is still being set up for Dripo. Please check back soon.'}
         </p>
       </div>
     </div>

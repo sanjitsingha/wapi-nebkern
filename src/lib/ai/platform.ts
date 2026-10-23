@@ -3,7 +3,7 @@ import { decrypt } from '@/lib/whatsapp/encryption'
 import type { AiProvider } from './types'
 
 // ============================================================
-// The platform's AI — the provider, model and paid key Instant runs
+// The platform's AI — the provider, model and paid key Dripo runs
 // every account's Maya on, set in the admin panel (Admin → AI model).
 // Accounts no longer bring their own key (migration 115).
 //
@@ -77,7 +77,7 @@ export async function loadPlatformAi(): Promise<PlatformAi | null> {
   return value
 }
 
-/** Whether Instant's AI is set up — never throws. */
+/** Whether Dripo's AI is set up — never throws. */
 export async function isPlatformAiReady(): Promise<boolean> {
   try {
     return (await loadPlatformAi()) !== null
@@ -88,11 +88,11 @@ export async function isPlatformAiReady(): Promise<boolean> {
 
 /**
  * What to tell someone whose AI action got no config back: either Maya
- * is switched off for their workspace, or Instant hasn't set AI up yet.
+ * is switched off for their workspace, or Dripo hasn't set AI up yet.
  * `action` finishes the sentence, e.g. "draft replies".
  */
 export async function aiUnavailableMessage(action: string): Promise<string> {
   return (await isPlatformAiReady())
     ? `Turn Maya on in Maya → Overview to ${action}.`
-    : `Maya isn't available yet — AI is still being set up for Instant. Please try again later.`
+    : `Maya isn't available yet — AI is still being set up for Dripo. Please try again later.`
 }

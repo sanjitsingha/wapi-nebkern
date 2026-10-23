@@ -96,7 +96,7 @@ export function parseHubSpotEvents(body: unknown): ParsedHubSpotEvent[] {
 
 /**
  * Who made a change, by HubSpot's own account of it:
- *   byApp   Instant wrote it — HubSpot tags our writes with
+ *   byApp   Dripo wrote it — HubSpot tags our writes with
  *           changeSource INTEGRATION and our app id as the source.
  *   dealId  HubSpot's deal lifecycle sync moved a contact's stage
  *           because of this deal — ours, if we pushed the deal.

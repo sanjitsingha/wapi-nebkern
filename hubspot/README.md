@@ -1,7 +1,7 @@
-# Instant's HubSpot app
+# Dripo's HubSpot app
 
 This folder is a HubSpot developer project. It defines the one HubSpot
-app every Instant account connects through: its redirect URL, scopes
+app every Dripo account connects through: its redirect URL, scopes
 and webhook subscriptions. It is uploaded to HubSpot once; it is not
 part of the Next.js build.
 

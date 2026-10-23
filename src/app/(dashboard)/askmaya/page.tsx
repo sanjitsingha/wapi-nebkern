@@ -51,7 +51,7 @@ const SECTIONS: { href: string; title: string; description: string; icon: Lucide
 ];
 
 interface Summary {
-  /** Instant's AI is ready (Admin → AI model). */
+  /** Dripo's AI is ready (Admin → AI model). */
   configured: boolean;
   is_active?: boolean;
   auto_reply_enabled?: boolean;

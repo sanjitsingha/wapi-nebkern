@@ -23,7 +23,7 @@ import { comparisonPaths } from '@/lib/marketing/comparisons';
 
 /** Absolute origin. Google rejects relative or mismatched hosts. */
 const SITE = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://instant.nebkern.com'
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://dripo.nebkern.com'
 ).replace(/\/$/, '');
 
 /**

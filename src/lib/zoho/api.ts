@@ -231,7 +231,7 @@ export async function zohoApiFetch<T = unknown>(
       if (peek?.code === 'OAUTH_SCOPE_MISMATCH') {
         return {
           error:
-            'Zoho has not granted Instant this permission yet. Reconnect Zoho in Settings to approve it.',
+            'Zoho has not granted Dripo this permission yet. Reconnect Zoho in Settings to approve it.',
         };
       }
       return 'retry';

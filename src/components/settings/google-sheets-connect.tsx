@@ -56,7 +56,7 @@ import type { Integration } from './integrations-catalog';
 //   the spreadsheet is created in that account's Drive.
 //
 // New spreadsheets only, by design: the drive.file scope reaches only
-// files Instant created, which is what spares the connection Google's
+// files Dripo created, which is what spares the connection Google's
 // app review.
 // ============================================================
 
@@ -299,13 +299,13 @@ export function GoogleSheetsConnect({ item }: { item: Integration }) {
         <DialogHeader>
           <DialogTitle>Authorize Google Sheets</DialogTitle>
           <DialogDescription className="sr-only">
-            Sign in with Google to let Instant create and write to spreadsheets.
+            Sign in with Google to let Dripo create and write to spreadsheets.
           </DialogDescription>
         </DialogHeader>
         <div className="flex items-start gap-2.5 rounded-lg border border-amber-300/60 bg-amber-50 px-3.5 py-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
           <AlertCircle className="mt-0.5 size-4 shrink-0" />
           <span>
-            Instant creates new spreadsheets in the Google Drive of the account you
+            Dripo creates new spreadsheets in the Google Drive of the account you
             authorize. Sign in with the Google account you want them in.
           </span>
         </div>
@@ -392,13 +392,13 @@ export function GoogleSheetsConnect({ item }: { item: Integration }) {
             {justConnected && (
               <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2 py-1 text-sm text-emerald-700 dark:text-emerald-400">
                 <CheckCircle2 className="size-4" />
-                Instant connected to your Google account successfully
+                Dripo connected to your Google account successfully
               </span>
             )}
             <div>
               <h3 className="text-lg font-semibold text-foreground">Step 2: Subscribe to events</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Choose what Instant writes to this sheet. One kind of entry per sheet —
+                Choose what Dripo writes to this sheet. One kind of entry per sheet —
                 add another sheet for anything else.
               </p>
             </div>
@@ -434,7 +434,7 @@ export function GoogleSheetsConnect({ item }: { item: Integration }) {
                 id="gsheets-title"
                 value={title}
                 onChange={(ev) => setTitle(ev.target.value)}
-                placeholder={eventType ? `Instant — ${eventMeta(eventType).label}` : 'Instant — …'}
+                placeholder={eventType ? `Dripo — ${eventMeta(eventType).label}` : 'Dripo — …'}
                 maxLength={100}
               />
             </div>
@@ -459,7 +459,7 @@ export function GoogleSheetsConnect({ item }: { item: Integration }) {
         <DialogHeader>
           <DialogTitle>Manage Google accounts</DialogTitle>
           <DialogDescription>
-            The Google accounts Instant writes through. A sheet stops if its account is
+            The Google accounts Dripo writes through. A sheet stops if its account is
             disconnected or its access is revoked; reconnect it here.
           </DialogDescription>
         </DialogHeader>

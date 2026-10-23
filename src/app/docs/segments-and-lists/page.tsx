@@ -11,7 +11,7 @@ import {
 
 export const metadata: Metadata = {
   title: 'Segments & lists',
-  description: "Segments & lists in Instant: Dynamic rule-based segments versus static, manually built lists. A step-by-step guide for teams selling on WhatsApp.",
+  description: "Segments & lists in Dripo: Dynamic rule-based segments versus static, manually built lists. A step-by-step guide for teams selling on WhatsApp.",
   alternates: { canonical: '/docs/segments-and-lists' },
 };
 
@@ -45,7 +45,7 @@ export default function SegmentsAndListsDocsPage() {
         <p>
           A <strong>Segment</strong> stores no contacts at all — only a set
           of filter rules. Every time you view it (or target a campaign with
-          it), Instant evaluates those rules against your current contacts on
+          it), Dripo evaluates those rules against your current contacts on
           the spot, so membership is always up to date automatically. A
           cached estimated count is shown for convenience, but it&apos;s a
           display hint, never the source of truth.

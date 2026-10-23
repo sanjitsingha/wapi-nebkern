@@ -1,6 +1,6 @@
-# Instant — UI design system
+# Dripo — UI design system
 
-The rules every screen in Instant follows, so a new screen looks like it
+The rules every screen in Dripo follows, so a new screen looks like it
 was always part of the app. They come from the product owner's own
 corrections to real screens; when one of these rules and a "nicer" idea
 disagree, the rule wins.

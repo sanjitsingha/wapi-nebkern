@@ -41,7 +41,7 @@ export const HUBSPOT_API = 'https://api.hubapi.com';
  *                                    pipeline's stages.
  *   crm.objects.owners.read          the record owner's name in the
  *                                    inbox panel.
- *   crm.schemas.contacts.read/write  the "Instant tags" contact field:
+ *   crm.schemas.contacts.read/write  the "Dripo tags" contact field:
  *                                    create it, and add an option for
  *                                    each new tag (lib/hubspot/push.ts).
  *   oauth                            HubSpot's base OAuth scope.
@@ -65,8 +65,8 @@ export const HUBSPOT_SCOPE_LABELS: Record<(typeof HUBSPOT_SCOPES)[number], strin
   'crm.objects.deals.read': 'Deals — read and write',
   'crm.objects.deals.write': 'Deals — read and write',
   'crm.objects.owners.read': 'Owners — read',
-  'crm.schemas.contacts.read': 'Contact fields — add the Instant tags field',
-  'crm.schemas.contacts.write': 'Contact fields — add the Instant tags field',
+  'crm.schemas.contacts.read': 'Contact fields — add the Dripo tags field',
+  'crm.schemas.contacts.write': 'Contact fields — add the Dripo tags field',
   // Not a permission anyone needs explained.
   oauth: null,
 };
@@ -80,7 +80,7 @@ export function hubspotPermissionLabels(): string[] {
 }
 
 /**
- * Instant's HubSpot app. Created once in a HubSpot developer account
+ * Dripo's HubSpot app. Created once in a HubSpot developer account
  * from the /hubspot project; its Auth tab has the pair. Null when unset,
  * so Settings can say the integration is not configured rather than
  * sending someone to a consent screen that will refuse them.

@@ -1,11 +1,11 @@
 /**
- * WhatsApp Forms — Instant's authoring layer over Meta's native
+ * WhatsApp Forms — Dripo's authoring layer over Meta's native
  * WhatsApp Flows product.
  *
  * Named "Forms" everywhere in this codebase (types, routes, UI) to
  * avoid colliding with the unrelated Flows bot-builder feature
  * (src/lib/flows/*) that already owns that name in this product. Each
- * Instant Form maps 1:1 to one Meta Flow object.
+ * Dripo Form maps 1:1 to one Meta Flow object.
  *
  * Deliberately STATIC-only: every generated Flow is a single screen —
  * a set of input fields plus a submit button — with no `endpoint_uri`

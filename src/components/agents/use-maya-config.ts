@@ -7,7 +7,7 @@ import type { PersonalityId } from '@/lib/ai/personalities';
 
 /** What GET /api/ai/config returns, as Maya's pages use it. */
 export interface MayaConfig {
-  /** Instant's AI is set up (Admin → AI model). */
+  /** Dripo's AI is set up (Admin → AI model). */
   configured: boolean;
   is_active: boolean;
   auto_reply_enabled: boolean;
@@ -58,7 +58,7 @@ export function useMayaConfig() {
       toast.success('Saved.');
       return true;
     } catch {
-      toast.error('Could not reach Instant. Check your connection and try again.');
+      toast.error('Could not reach Dripo. Check your connection and try again.');
       return false;
     }
   }, []);

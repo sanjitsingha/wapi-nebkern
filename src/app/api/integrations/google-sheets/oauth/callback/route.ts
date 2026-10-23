@@ -75,7 +75,7 @@ export async function GET(request: Request) {
     const granted = url.searchParams.get('scope') ?? '';
     if (granted && !granted.includes('auth/drive.file')) {
       return fail(
-        'Instant needs permission to create and edit its own Google Sheets. Connect again and leave that box ticked.',
+        'Dripo needs permission to create and edit its own Google Sheets. Connect again and leave that box ticked.',
       );
     }
 
@@ -92,7 +92,7 @@ export async function GET(request: Request) {
       // Google only issues one on a fresh consent; without it the
       // connection would die in an hour.
       return fail(
-        'Google did not grant lasting access. Remove Instant from your Google account’s third-party access, then connect again.',
+        'Google did not grant lasting access. Remove Dripo from your Google account’s third-party access, then connect again.',
       );
     }
     const email = await fetchGoogleEmail(tokens.accessToken);

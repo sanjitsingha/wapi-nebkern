@@ -10,9 +10,9 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // the part most template DPAs forget.
 export const metadata: Metadata = {
   alternates: { canonical: '/dpa' },
-  title: { absolute: 'Data Processing Agreement — Instant for WhatsApp Business' },
+  title: { absolute: 'Data Processing Agreement — Dripo WhatsApp for Business' },
   description:
-    "Instant's Data Processing Agreement: processor obligations, subprocessors, international transfers, security, breach notification and deletion.",
+    "Dripo's Data Processing Agreement: processor obligations, subprocessors, international transfers, security, breach notification and deletion.",
   robots: { index: true, follow: true },
 };
 
@@ -22,7 +22,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'Parties and how this applies',
     blocks: [
       {
-        p: 'This Data Processing Agreement ("DPA") is between you, the customer named on the Instant account ("Controller"), and {{COMPANY}}, {{ENTITY}} based at {{ADDRESS}} ("Processor", "we"). It forms part of and is governed by our Terms of Service (the "Agreement"). Where this DPA and the Terms conflict on the processing of personal data, this DPA wins.',
+        p: 'This Data Processing Agreement ("DPA") is between you, the customer named on the Dripo account ("Controller"), and {{COMPANY}}, {{ENTITY}} based at {{ADDRESS}} ("Processor", "we"). It forms part of and is governed by our Terms of Service (the "Agreement"). Where this DPA and the Terms conflict on the processing of personal data, this DPA wins.',
       },
       {
         p: 'It applies automatically from the moment you accept the Terms and process personal data through the Service — no signature is required for it to bind us. If your procurement process needs a countersigned copy, see the last section.',
@@ -57,7 +57,7 @@ const SECTIONS: LegalSection[] = [
       },
       {
         ul: [
-          'Subject matter — provision of the Instant customer-relationship platform for messaging channels.',
+          'Subject matter — provision of the Dripo customer-relationship platform for messaging channels.',
           'Duration — for as long as your account is active, plus the deletion windows in our Data Retention & Deletion Policy.',
           'Nature and purpose — receiving, sending, storing, organising, retrieving, displaying and deleting messages and contact records; running automations, campaigns and AI agents you configure; providing support you request.',
           'Categories of personal data — names, phone numbers, WhatsApp/Instagram/Messenger identifiers, profile photos, message content and attachments, voice notes and call metadata, notes, tags, custom fields, deal and pipeline data, and anything else you or your contacts put into a conversation.',
@@ -201,7 +201,7 @@ export default function Lp2DpaPage() {
       title="Data Processing Agreement"
       hue="grape"
       updated="14 October 2026"
-      intro="Most of the personal data in Instant is not ours — it is your customers', held on your instructions. This is the contract that governs how we handle it, and it applies automatically from the moment you accept our Terms."
+      intro="Most of the personal data in Dripo is not ours — it is your customers', held on your instructions. This is the contract that governs how we handle it, and it applies automatically from the moment you accept our Terms."
       sections={SECTIONS}
     />
   );

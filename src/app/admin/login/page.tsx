@@ -63,7 +63,7 @@ function AdminLoginInner() {
           <div className="flex items-center justify-center gap-2.5">
             <Image
               src={LOGO_URL}
-              alt="Instant"
+              alt="Dripo"
               width={logoWidthFor(28)}
               height={28}
               priority

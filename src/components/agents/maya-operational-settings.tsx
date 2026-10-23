@@ -75,7 +75,7 @@ export function MayaOperationalSettings() {
       const res = await fetch('/api/ai/config');
       const data = await res.json().catch(() => ({}));
       const next: Saved = {
-        // Editable before Instant's AI is ready — PATCH creates the row.
+        // Editable before Dripo's AI is ready — PATCH creates the row.
         locked: false,
         delay: String(data?.response_delay_seconds ?? RESPONSE_DELAY.default),
         snooze: String(data?.snooze_seconds ?? SNOOZE.default),
@@ -144,7 +144,7 @@ export function MayaOperationalSettings() {
       toast.success('Operational settings saved.');
       await load();
     } catch {
-      toast.error('Could not reach Instant. Check your connection and try again.');
+      toast.error('Could not reach Dripo. Check your connection and try again.');
     } finally {
       setSaving(false);
     }

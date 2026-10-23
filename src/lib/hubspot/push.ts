@@ -1,5 +1,5 @@
 // ============================================================
-// Instant → HubSpot: the worker that pushes contacts and deals
+// Dripo → HubSpot: the worker that pushes contacts and deals
 // (server only).
 //
 // Database triggers (migration 120) queue every contact or deal change
@@ -18,10 +18,10 @@
 //   is ever changed afterwards — HubSpot stages only move forward, and
 //   that is the sales team's call.
 //
-//   NEVER OVERWRITE WITH LESS. Only fields Instant has are sent, and a
+//   NEVER OVERWRITE WITH LESS. Only fields Dripo has are sent, and a
 //   name that is just the phone number never replaces a real one.
 //
-//   NEVER DELETE. Removing something in Instant drops the link only.
+//   NEVER DELETE. Removing something in Dripo drops the link only.
 //
 //   NO ECHOES. Links store a fingerprint of what was last synced, and
 //   the webhook ignores events for records we wrote moments ago.
@@ -57,7 +57,7 @@ const CONTACT_SELECT =
   'id, account_id, name, phone, email, company, instagram_id, messenger_id, created_via, is_spam, is_blocked';
 
 /** The number in E.164 — "+919434001422" — the form HubSpot shows and
- *  dials. Canonicalised the way Instant stores numbers, so a contact
+ *  dials. Canonicalised the way Dripo stores numbers, so a contact
  *  imported as a bare 10-digit "9434001422" still gets its +91 rather
  *  than reading in HubSpot as a +94 (Sri Lanka) number. */
 export function e164(phone: string | null): string | null {
@@ -76,7 +76,7 @@ export function phoneNeedsRewrite(current: string | null | undefined, ours: stri
   return phoneKey(current) !== null && phoneKey(current) === phoneKey(ours);
 }
 
-/** The HubSpot properties for an Instant contact. */
+/** The HubSpot properties for a Dripo contact. */
 export function contactProperties(
   c: ContactRow,
   opts: { creating: boolean; lifecycle?: LifecycleStage | null },
@@ -231,16 +231,16 @@ async function findContact(db: Db, c: ContactRow): Promise<string | null> {
 
 // ── Tags ────────────────────────────────────────────────────
 //
-// HubSpot contacts have no tags, so Instant's go in a multiple-checkbox
-// property of its own, created on first use: "Instant tags". It filters
-// and builds lists like any HubSpot field. Each Instant tag is an
+// HubSpot contacts have no tags, so Dripo's go in a multiple-checkbox
+// property of its own, created on first use: "Dripo tags". It filters
+// and builds lists like any HubSpot field. Each Dripo tag is an
 // option, added when a contact first carries it; a contact's value is
-// its tags. The property is Instant's, so it is always written whole.
+// its tags. The property is Dripo's, so it is always written whole.
 
 export const TAGS_PROPERTY = 'instant_tags';
 
 const TAGS_NOT_ALLOWED =
-  'Tags not synced: reconnect HubSpot so Instant may create its "Instant tags" field.';
+  'Tags not synced: reconnect HubSpot so Dripo may create its "Dripo tags" field.';
 
 /** A tag as a checkbox option. Multiple values are joined with ";", so
  *  one inside a tag name cannot stand. */
@@ -266,7 +266,7 @@ const knownTagOptions = new Map<string, { at: number; values: Set<string> }>();
 const TAG_OPTIONS_TTL_MS = 10 * 60_000;
 
 /**
- * Make sure "Instant tags" exists with an option for each of `tags`.
+ * Make sure "Dripo tags" exists with an option for each of `tags`.
  * False when HubSpot will not let us — a connection made before the
  * permission was asked for — so tags wait for a reconnect while the
  * rest of the contact still syncs.
@@ -289,8 +289,8 @@ async function ensureTagOptions(db: Db, accountId: string, tags: string[]): Prom
       method: 'POST',
       body: JSON.stringify({
         name: TAGS_PROPERTY,
-        label: 'Instant tags',
-        description: 'Tags from Instant, kept in sync by the Instant integration.',
+        label: 'Dripo tags',
+        description: 'Tags from Dripo, kept in sync by the Dripo integration.',
         groupName: 'contactinformation',
         type: 'enumeration',
         fieldType: 'checkbox',
@@ -299,13 +299,13 @@ async function ensureTagOptions(db: Db, accountId: string, tags: string[]): Prom
     });
     if (created.status === 403) return false;
     if (!created.data) {
-      throw new PushError(created.error ?? 'Could not create the Instant tags field in HubSpot.', created.status);
+      throw new PushError(created.error ?? 'Could not create the Dripo tags field in HubSpot.', created.status);
     }
     options = created.data.options ?? [];
   } else if (read.data) {
     options = read.data.options ?? [];
   } else {
-    throw new PushError(read.error ?? 'Could not read the Instant tags field in HubSpot.', read.status);
+    throw new PushError(read.error ?? 'Could not read the Dripo tags field in HubSpot.', read.status);
   }
 
   const have = new Set(options.map((o) => o.value));
@@ -322,7 +322,7 @@ async function ensureTagOptions(db: Db, accountId: string, tags: string[]): Prom
     });
     if (patched.status === 403) return false;
     if (!patched.data) {
-      throw new PushError(patched.error ?? 'Could not add tags to the Instant tags field in HubSpot.', patched.status);
+      throw new PushError(patched.error ?? 'Could not add tags to the Dripo tags field in HubSpot.', patched.status);
     }
     options = patched.data.options ?? next;
   }
@@ -352,10 +352,10 @@ async function getLink(db: Db, accountId: string, entity: 'contact' | 'deal', lo
 }
 
 /**
- * Which Instant record holds a HubSpot record's link, if any.
+ * Which Dripo record holds a HubSpot record's link, if any.
  *
- * A HubSpot record links to one Instant record, and the first one keeps
- * it. Instant can hold the same person twice (an old import with a bare
+ * A HubSpot record links to one Dripo record, and the first one keeps
+ * it. Dripo can hold the same person twice (an old import with a bare
  * 10-digit number beside a later copy with +91), and "newest link wins"
  * made the two take the HubSpot contact back and forth on every sync —
  * and made HubSpot's echoes of our own writes look like someone else's.
@@ -377,7 +377,7 @@ export async function hubspotLinkHolder(
 }
 
 /** Save a link. Callers check hubspotLinkHolder first; a HubSpot record
- *  another Instant record already holds is refused by the unique index,
+ *  another Dripo record already holds is refused by the unique index,
  *  never taken over. */
 export async function saveHubSpotLink(
   db: Db,
@@ -493,8 +493,8 @@ async function pushContact(
     };
   }
 
-  // The same number on another Instant contact that is already linked:
-  // one person held twice in Instant. Attach to their HubSpot contact
+  // The same number on another Dripo contact that is already linked:
+  // one person held twice in Dripo. Attach to their HubSpot contact
   // rather than searching — HubSpot may still hold the number in a form
   // a search misses — and never create a second one.
   const twinId = await linkedTwin(db, c);
@@ -502,7 +502,7 @@ async function pushContact(
     return {
       link: { id: '', hubspot_object: 'contacts', hubspot_id: twinId, synced_hash: hash },
       outcome: {
-        note: 'Another Instant contact with the same number is already linked to this HubSpot contact.',
+        note: 'Another Dripo contact with the same number is already linked to this HubSpot contact.',
       },
     };
   }
@@ -512,8 +512,8 @@ async function pushContact(
     const twin = await sameRecordElsewhere(db, c, found, hash);
     if (twin) return twin;
     // Link without writing their fields: their record may be more
-    // complete than ours. Edits made in Instant from now on flow over.
-    // Our tags go on, though — that field is Instant's own.
+    // complete than ours. Edits made in Dripo from now on flow over.
+    // Our tags go on, though — that field is Dripo's own.
     await saveHubSpotLink(db, c.account_id, 'contact', c.id, 'contacts', found, hash, false);
     if (tags.length > 0 && (await ensureTagOptions(db, c.account_id, tags))) {
       await writeObject(db, c.account_id, 'contacts', { [TAGS_PROPERTY]: tagsPropertyValue(tags) }, { id: found });
@@ -544,7 +544,7 @@ async function pushContact(
   };
 }
 
-/** The HubSpot contact linked to another Instant contact with this
+/** The HubSpot contact linked to another Dripo contact with this
  *  contact's number (same last ten digits), if there is one. */
 async function linkedTwin(db: Db, c: ContactRow): Promise<string | null> {
   const key = phoneKey(c.phone);
@@ -573,7 +573,7 @@ async function linkedTwin(db: Db, c: ContactRow): Promise<string | null> {
 
 /**
  * When the HubSpot contact this person matches is already linked to
- * another Instant contact — the same person held twice in Instant —
+ * another Dripo contact — the same person held twice in Dripo —
  * leave that link alone. Their deals still attach to the HubSpot
  * contact; this record simply stays unlinked.
  */
@@ -588,7 +588,7 @@ async function sameRecordElsewhere(
   return {
     link: { id: '', hubspot_object: 'contacts', hubspot_id: hubspotId, synced_hash: hash },
     outcome: {
-      note: 'Another Instant contact with the same number is already linked to this HubSpot contact.',
+      note: 'Another Dripo contact with the same number is already linked to this HubSpot contact.',
     },
   };
 }
@@ -645,7 +645,7 @@ export function pickPipeline(json: PipelinesResponse | undefined): HubSpotPipeli
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-/** The HubSpot stage for an Instant deal: won/lost by the stage's own
+/** The HubSpot stage for a Dripo deal: won/lost by the stage's own
  *  metadata, then a stage of the same name, then a similar one, then
  *  the first open stage. */
 export function mapHubSpotStage(
@@ -667,7 +667,7 @@ export function mapHubSpotStage(
     const n = norm(stageName);
     const exact = stages.find((s) => norm(s.label) === n);
     if (exact) return { stage: exact };
-    // An Instant stage called "Won" or "Lost" means closed, whatever
+    // A Dripo stage called "Won" or "Lost" means closed, whatever
     // HubSpot calls its closed stages ("Closed won", "Deal lost"…).
     if (/won|win/.test(n)) {
       const won = stages.find((s) => s.won);

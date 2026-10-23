@@ -13,11 +13,11 @@ describe('publicOrigin', () => {
     expect(
       publicOrigin(
         req('https://localhost:3000/api/meta/oauth/start', {
-          host: 'instant.nebkern.com',
+          host: 'dripo.nebkern.com',
           'x-forwarded-proto': 'https',
         }),
       ),
-    ).toBe('https://instant.nebkern.com');
+    ).toBe('https://dripo.nebkern.com');
   });
 
   it('prefers X-Forwarded-Host when a proxy sets it', () => {
@@ -25,11 +25,11 @@ describe('publicOrigin', () => {
       publicOrigin(
         req('http://localhost:3000/x', {
           host: 'localhost:3000',
-          'x-forwarded-host': 'instant.nebkern.com, edge.internal',
+          'x-forwarded-host': 'dripo.nebkern.com, edge.internal',
           'x-forwarded-proto': 'https',
         }),
       ),
-    ).toBe('https://instant.nebkern.com');
+    ).toBe('https://dripo.nebkern.com');
   });
 
   it('keeps localhost on a dev server', () => {
@@ -54,10 +54,10 @@ describe('publicOrigin', () => {
     expect(
       publicOrigin(
         req('https://localhost:3000/x', {
-          host: 'instant.nebkern.com',
+          host: 'dripo.nebkern.com',
           'x-forwarded-proto': 'javascript',
         }),
       ),
-    ).toBe('https://instant.nebkern.com');
+    ).toBe('https://dripo.nebkern.com');
   });
 });

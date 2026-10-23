@@ -91,7 +91,7 @@ describe('mapHubSpotStage', () => {
     expect(mapHubSpotStage(stages, 'Negotiation', 'lost').stage?.id).toBe('lost');
   });
 
-  it('treats an Instant stage called Won or Lost as closed', () => {
+  it('treats a Dripo stage called Won or Lost as closed', () => {
     expect(mapHubSpotStage(stages, 'Won', 'open').stage?.id).toBe('won');
     expect(mapHubSpotStage(stages, 'Deal Lost', 'open').stage?.id).toBe('lost');
   });

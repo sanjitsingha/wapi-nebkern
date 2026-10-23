@@ -9,7 +9,7 @@ import { AUDIT } from '@/lib/audit/events';
 /**
  * DELETE /api/integrations/google-sheets/accounts/[id]  (admin+)
  *
- * Remove a Google account: revoke Instant's access at Google and forget
+ * Remove a Google account: revoke Dripo's access at Google and forget
  * the tokens. Its sheets go with it (ON DELETE CASCADE) — they would
  * have nothing to write through. The spreadsheets stay in its Drive.
  */
@@ -29,7 +29,7 @@ export async function DELETE(
       .maybeSingle();
     if (!data) return NextResponse.json({ error: 'Account not found' }, { status: 404 });
 
-    // Best-effort: tell Google too, so Instant leaves that account's
+    // Best-effort: tell Google too, so Dripo leaves that account's
     // "third-party access" list.
     if (data.refresh_token) {
       try {

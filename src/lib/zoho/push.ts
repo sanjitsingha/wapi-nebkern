@@ -1,5 +1,5 @@
 // ============================================================
-// Instant → Zoho: the worker that pushes contacts and deals (server only).
+// Dripo → Zoho: the worker that pushes contacts and deals (server only).
 //
 // Database triggers (migration 111) put every contact or deal change
 // in zoho_sync_queue; drainZohoQueue empties it, once a minute, from
@@ -20,11 +20,11 @@
 //   Zoho's own conversion — Lead becomes Contact + Deal, history kept —
 //   rather than a second record beside the Lead.
 //
-//   NEVER OVERWRITE WITH LESS. Only fields Instant actually has are
+//   NEVER OVERWRITE WITH LESS. Only fields Dripo actually has are
 //   sent, and a name that is just the phone number (what a WhatsApp
 //   contact gets before they share one) never replaces a real name.
 //
-//   NEVER DELETE. Removing something in Instant drops the link only.
+//   NEVER DELETE. Removing something in Dripo drops the link only.
 //
 //   NO ECHOES. Each link stores a fingerprint of what was last synced;
 //   an unchanged record is not pushed, and the webhook ignores Zoho
@@ -70,7 +70,7 @@ export interface ContactRow {
   instagram_id: string | null;
   messenger_id: string | null;
   created_via: string | null;
-  /** Marked in Instant; such contacts are never sent to Zoho. Optional
+  /** Marked in Dripo; such contacts are never sent to Zoho. Optional
    *  because callers that only hash a contact do not select them. */
   is_spam?: boolean | null;
   is_blocked?: boolean | null;
@@ -96,7 +96,7 @@ export function splitName(c: ContactRow): { First_Name?: string; Last_Name: stri
   return { First_Name: parts.slice(0, -1).join(' '), Last_Name: parts[parts.length - 1] };
 }
 
-/** The fields Instant owns for a person, normalised for hashing. */
+/** The fields Dripo owns for a person, normalised for hashing. */
 function contactFacts(c: ContactRow) {
   return {
     name: isPlaceholderName(c) ? null : (c.name ?? '').trim(),
@@ -111,7 +111,7 @@ export function contactHash(c: ContactRow): string {
 }
 
 /** Fields to write. `creating` fills Zoho's required fields with
- *  something sensible when Instant has nothing better. */
+ *  something sensible when Dripo has nothing better. */
 export function contactPayload(
   c: ContactRow,
   module: 'Leads' | 'Contacts',
@@ -139,7 +139,7 @@ interface LinkRow {
   zoho_module: ZohoModule;
   zoho_id: string;
   synced_hash: string | null;
-  /** The tags Instant last put on the record (migration 121). */
+  /** The tags Dripo last put on the record (migration 121). */
   synced_tags?: string[] | null;
 }
 
@@ -167,8 +167,8 @@ export async function saveLink(
   syncedTags?: string[],
 ): Promise<void> {
   const now = new Date().toISOString();
-  // A Zoho record can be linked to one Instant record only. If another
-  // already holds it (two Instant contacts with one number in Zoho),
+  // A Zoho record can be linked to one Dripo record only. If another
+  // already holds it (two Dripo contacts with one number in Zoho),
   // the newer link wins rather than the upsert failing forever.
   await db
     .from('zoho_record_links')
@@ -251,7 +251,7 @@ async function writeRecord(
     }
     if (row?.code === 'MANDATORY_NOT_FOUND' && field) {
       throw new PushError(
-        `Zoho requires "${field}" on ${module}, and Instant has no value for it. Make the field optional in Zoho, or fill it in.`,
+        `Zoho requires "${field}" on ${module}, and Dripo has no value for it. Make the field optional in Zoho, or fill it in.`,
       );
     }
     throw new PushError(
@@ -328,11 +328,11 @@ function tagCallFailed(res: ZohoCallResult<TagResponse>): string | null {
 }
 
 /**
- * Put a contact's Instant tags on its Zoho record (migration 121): add
- * what is new, remove only what Instant put there before — a tag
+ * Put a contact's Dripo tags on its Zoho record (migration 121): add
+ * what is new, remove only what Dripo put there before — a tag
  * someone added in Zoho stays. A tag Zoho does not have yet is created
  * in the module, then added. Returns the tags now on the record from
- * Instant, to remember as synced.
+ * Dripo, to remember as synced.
  */
 async function syncZohoTags(
   db: Db,
@@ -461,9 +461,9 @@ async function pushContact(
   if (found) {
     // Someone already keeps this person in Zoho. Link without writing:
     // their record may be more complete than ours, and Zoho's PUT has
-    // no "only if blank". Edits made in Instant from now on flow over.
+    // no "only if blank". Edits made in Dripo from now on flow over.
     await saveLink(db, c.account_id, 'contact', c.id, found.module, found.id, hash, false);
-    // Their fields are left alone, but Instant's tags go on.
+    // Their fields are left alone, but Dripo's tags go on.
     if (tags.length > 0) {
       const applied = await syncZohoTags(db, c.account_id, found.module, found.id, tags, null);
       await saveLink(db, c.account_id, 'contact', c.id, found.module, found.id, hash, true, applied);
@@ -535,7 +535,7 @@ async function zohoDealStages(db: Db, accountId: string): Promise<string[]> {
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-/** Pick the Zoho stage for an Instant deal. Won/lost win over the
+/** Pick the Zoho stage for a Dripo deal. Won/lost win over the
  *  stage name; then an exact name match; then a contained one. */
 export function mapStage(
   stages: string[],

@@ -64,7 +64,7 @@ export function Lp2BlogBrowser({ posts }: { posts: BlogListItem[] }) {
           {/* Says what the page is and stops. The longer pitch it used to
               carry lives on in the page description search results show. */}
           <h1 className="lp2-display mx-auto max-w-2xl text-3xl leading-[1.12] font-extrabold sm:text-[2.6rem]">
-            The Instant blog
+            The Dripo blog
           </h1>
 
           {/* Search + typeahead dropdown. `text-left` resets the

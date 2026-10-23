@@ -2,16 +2,16 @@ import type { Metadata } from 'next';
 
 import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 
-// Short by design, and honest about what this app actually sets. Instant
+// Short by design, and honest about what this app actually sets. Dripo
 // is a logged-in tool, not an ad-funded site: the cookies that matter
 // are Supabase's auth cookies and a couple of UI preferences. Padding
 // this page with advertising-cookie boilerplate we don't use would be
 // its own kind of misleading — and reviewers do read it.
 export const metadata: Metadata = {
   alternates: { canonical: '/cookies' },
-  title: { absolute: 'Cookie Policy — Instant for WhatsApp Business' },
+  title: { absolute: 'Cookie Policy — Dripo WhatsApp for Business' },
   description:
-    'The cookies and local storage Instant uses — what each one is for, how long it lasts, and how to control them.',
+    'The cookies and local storage Dripo uses — what each one is for, how long it lasts, and how to control them.',
   robots: { index: true, follow: true },
 };
 
@@ -33,7 +33,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'What we actually use',
     blocks: [
       {
-        p: 'Instant is a tool you log into, not an ad-supported website. That shapes this list — it is short, and most of it exists so that being logged in survives a page refresh.',
+        p: 'Dripo is a tool you log into, not an ad-supported website. That shapes this list — it is short, and most of it exists so that being logged in survives a page refresh.',
       },
       {
         ul: [
@@ -121,7 +121,7 @@ export default function Lp2CookiePolicyPage() {
       title="Cookie Policy"
       hue="lemon"
       updated="14 October 2026"
-      intro="A logged-in tool needs surprisingly few cookies. Here is every one Instant sets, what it does, and how to switch off the ones that are optional."
+      intro="A logged-in tool needs surprisingly few cookies. Here is every one Dripo sets, what it does, and how to switch off the ones that are optional."
       sections={SECTIONS}
     />
   );

@@ -34,8 +34,8 @@ import { ORGANIZATION_SCHEMA, getBreadcrumbSchema } from '@/lib/marketing/schema
 
 const LEGAL_FACTS: Record<string, string> = {
   /** The product, as named in Meta's App Dashboard. */
-  PRODUCT: 'Instant',
-  SITE: 'instant.nebkern.com',
+  PRODUCT: 'Dripo',
+  SITE: 'dripo.nebkern.com',
   /** Exactly as on the Meta Business verification and Razorpay account. */
   COMPANY: 'Nebkern Technology',
   /** How the business is constituted, so a customer knows which legal
@@ -45,7 +45,7 @@ const LEGAL_FACTS: Record<string, string> = {
   ADDRESS: 'Ghoshpukur, Kamala Bagan, Darjeeling, West Bengal 734426, India',
   // A role address, not a personal one: policy pages outlive whoever
   // reads the inbox. Monitored — every request on these pages goes here.
-  EMAIL: 'contact@instant.nebkern.com',
+  EMAIL: 'contact@dripo.nebkern.com',
   /** Published at the user's request (2026-10-14) for payment-gateway
    *  and Meta review. A number on a policy page must stay answered. */
   PHONE: '+91 92390 64013',
@@ -54,7 +54,7 @@ const LEGAL_FACTS: Record<string, string> = {
   GRIEVANCE: 'Sanjit Singha, Proprietor',
   HOSTING:
     'Cloudonfire (application servers), Supabase in Mumbai, India (database, authentication and file storage) and Cloudflare R2 (media storage and delivery)',
-  SECURITY_EMAIL: 'contact@instant.nebkern.com',
+  SECURITY_EMAIL: 'contact@dripo.nebkern.com',
 };
 
 export type LegalBlock =

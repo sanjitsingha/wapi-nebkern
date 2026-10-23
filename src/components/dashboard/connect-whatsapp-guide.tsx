@@ -24,7 +24,7 @@ const STEPS = [
   { title: 'Open Settings → WhatsApp', text: 'Click Connect WhatsApp below.' },
   { title: 'Log in to Facebook', text: 'Sign in and choose your business.' },
   { title: 'Add your number', text: 'Enter it, then the code Meta sends.' },
-  { title: 'You’re live', text: 'Instant finishes the setup for you.' },
+  { title: 'You’re live', text: 'Dripo finishes the setup for you.' },
 ]
 
 export function ConnectWhatsAppGuide() {

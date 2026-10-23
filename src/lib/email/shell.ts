@@ -18,7 +18,7 @@
  */
 export function site(): string {
   return (
-    process.env.NEXT_PUBLIC_SITE_URL ?? 'https://instant.nebkern.com'
+    process.env.NEXT_PUBLIC_SITE_URL ?? 'https://dripo.nebkern.com'
   ).replace(/\/$/, '');
 }
 
@@ -35,7 +35,7 @@ export function shell(bodyHtml: string, footerHtml: string): string {
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:12px;padding:32px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
         <tr><td style="padding-bottom:20px;">
-          <span style="font-size:18px;font-weight:700;color:${GREEN};letter-spacing:-0.01em;">Instant</span>
+          <span style="font-size:18px;font-weight:700;color:${GREEN};letter-spacing:-0.01em;">Dripo</span>
         </td></tr>
         <tr><td style="font-size:15px;line-height:1.6;color:${INK};">${bodyHtml}</td></tr>
         <tr><td style="padding-top:28px;border-top:1px solid #e7e5e4;font-size:12px;line-height:1.6;color:${SOFT};">

@@ -68,7 +68,7 @@ export function D2cHero() {
 
           <p className="mt-6 text-lg leading-relaxed text-pretty text-white/80 sm:text-xl">
             The enquiry, the order, the &ldquo;where is my parcel&rdquo; and the
-            next sale all happen in the same thread. Instant keeps them there —
+            next sale all happen in the same thread. Dripo keeps them there —
             one number, your whole team, and an AI that answers while you sleep.
           </p>
 
@@ -115,7 +115,7 @@ export function D2cAutomations() {
       hue="lemon"
       title="The follow-up nobody has time to send"
       highlight="nobody has time"
-      body="Your store knows when a cart is abandoned, an order ships, or a customer has not bought in ninety days. Instant turns each of those into a message that goes out on its own."
+      body="Your store knows when a cart is abandoned, an order ships, or a customer has not bought in ninety days. Dripo turns each of those into a message that goes out on its own."
       points={[
         'Trigger a flow from your own store through the REST API or an outbound webhook',
         'Shopify, WooCommerce, HubSpot and Zapier on the same connection',

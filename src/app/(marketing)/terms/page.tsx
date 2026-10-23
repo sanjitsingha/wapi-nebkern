@@ -4,9 +4,9 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 
 export const metadata: Metadata = {
   alternates: { canonical: '/terms' },
-  title: { absolute: 'Terms of Service — Instant for WhatsApp Business' },
+  title: { absolute: 'Terms of Service — Dripo WhatsApp for Business' },
   description:
-    'The agreement between you and Instant — accounts, billing, acceptable use, WhatsApp Business Platform obligations, liability and termination.',
+    'The agreement between you and Dripo — accounts, billing, acceptable use, WhatsApp Business Platform obligations, liability and termination.',
   robots: { index: true, follow: true },
 };
 

@@ -19,9 +19,9 @@ import { ORGANIZATION_SCHEMA, getBreadcrumbSchema, SITE_URL } from '@/lib/market
 // ============================================================
 
 export const metadata: Metadata = {
-  title: { absolute: 'Compare WhatsApp platforms — Instant for WhatsApp Business' },
+  title: { absolute: 'Compare WhatsApp platforms — Dripo WhatsApp for Business' },
   description:
-    'Instant next to the other WhatsApp Business API platforms, on cost, AI, channels and trials — every rival figure taken from their own pricing page and dated.',
+    'Dripo next to the other WhatsApp Business API platforms, on cost, AI, channels and trials — every rival figure taken from their own pricing page and dated.',
   alternates: { canonical: '/compare' },
   robots: { index: true, follow: true },
 };
@@ -36,16 +36,16 @@ const compareIndexSchema = {
     ]),
     {
       '@type': 'CollectionPage',
-      name: 'Compare Instant for WhatsApp Business with other WhatsApp platforms',
+      name: 'Compare Dripo WhatsApp for Business with other WhatsApp platforms',
       description:
-        'Instant next to the other WhatsApp Business API platforms, on cost, AI, channels and trials.',
+        'Dripo next to the other WhatsApp Business API platforms, on cost, AI, channels and trials.',
       url: `${SITE_URL}/compare`,
       mainEntity: {
         '@type': 'ItemList',
         itemListElement: COMPARISONS.map((c, i) => ({
           '@type': 'ListItem',
           position: i + 1,
-          name: `Instant vs ${c.rival}`,
+          name: `Dripo vs ${c.rival}`,
           url: `${SITE_URL}/compare/${c.slug}`,
         })),
       },
@@ -62,7 +62,7 @@ export default function CompareIndexPage() {
         <section className="relative -mt-19 bg-(--lp2-sky-soft) pt-19 sm:-mt-20 sm:pt-20">
           <div className="mx-auto max-w-3xl px-4 pt-16 pb-16 text-center sm:px-6 sm:pt-20 sm:pb-20">
             <h1 className="lp2-display mx-auto max-w-2xl text-3xl leading-[1.12] font-extrabold sm:text-[2.6rem]">
-              How Instant compares
+              How Dripo compares
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-pretty text-(--lp2-ink-soft)">
               Every platform here runs on the same official WhatsApp Business
@@ -102,7 +102,7 @@ export default function CompareIndexPage() {
                   )}
                   <div className="flex flex-1 flex-col p-7">
                     <h2 className="lp2-display text-2xl font-extrabold">
-                      Instant vs {c.rival}
+                      Dripo vs {c.rival}
                     </h2>
                     <p className="mt-3 flex-1 text-sm leading-relaxed text-(--lp2-ink-soft)">
                       {c.metaDescription}

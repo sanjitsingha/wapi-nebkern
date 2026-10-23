@@ -1,5 +1,5 @@
 // ============================================================
-// What Instant writes to a connected Google Sheet, cell by cell.
+// What Dripo writes to a connected Google Sheet, cell by cell.
 //
 // Each sheet receives ONE kind of entry (its event type), so each is a
 // single clean table: one tab, one header row.
@@ -13,7 +13,7 @@
 
 export type SheetEventType = 'contacts' | 'messages' | 'assignments' | 'deals' | 'campaigns';
 
-/** Instant's customers are in India; the column headers say so. */
+/** Dripo's customers are in India; the column headers say so. */
 export const SHEET_TIMEZONE = 'Asia/Kolkata';
 const TZ_LABEL = 'IST';
 
@@ -299,7 +299,7 @@ export function campaignRow(r: CampaignRowInput): string[] {
  */
 export function sampleRow(type: SheetEventType, now: Date = new Date()): string[] {
   const at = now.toISOString();
-  const label = 'Test row from Instant';
+  const label = 'Test row from Dripo';
   switch (type) {
     case 'contacts':
       return contactRow({ createdAt: at, contactId: 'test', name: label, phone: null, email: null, tags: [] });
@@ -309,7 +309,7 @@ export function sampleRow(type: SheetEventType, now: Date = new Date()): string[
         contactName: label,
         phone: null,
         type: 'text',
-        text: 'If you can read this, Instant can write to this sheet.',
+        text: 'If you can read this, Dripo can write to this sheet.',
         conversationId: 'test',
         messageId: 'test',
       });

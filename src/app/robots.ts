@@ -15,7 +15,7 @@ import type { MetadataRoute } from 'next';
 // ============================================================
 
 const SITE = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://instant.nebkern.com'
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://dripo.nebkern.com'
 ).replace(/\/$/, '');
 
 export default function robots(): MetadataRoute.Robots {

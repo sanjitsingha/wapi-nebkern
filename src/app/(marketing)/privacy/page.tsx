@@ -9,9 +9,9 @@ import { LegalPage, type LegalSection } from '@/components/lp2/legal';
 // to duplicate.
 export const metadata: Metadata = {
   alternates: { canonical: '/privacy' },
-  title: { absolute: 'Privacy Policy — Instant for WhatsApp Business' },
+  title: { absolute: 'Privacy Policy — Dripo WhatsApp for Business' },
   description:
-    'How Instant by Nebkern Technology collects, uses, shares, protects and deletes personal data — including data received from Meta (WhatsApp, Instagram, Messenger) and Google.',
+    'How Dripo by Nebkern Technology collects, uses, shares, protects and deletes personal data — including data received from Meta (WhatsApp, Instagram, Messenger) and Google.',
   robots: { index: true, follow: true },
 };
 

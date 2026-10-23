@@ -80,7 +80,7 @@ export function unsubscribeUrl(email: string, baseUrl?: string): string {
   const base = (
     baseUrl ??
     process.env.NEXT_PUBLIC_SITE_URL ??
-    'https://instant.nebkern.com'
+    'https://dripo.nebkern.com'
   ).replace(/\/$/, '');
   const clean = email.trim().toLowerCase();
   return `${base}/unsubscribe?e=${encodeURIComponent(clean)}&t=${signEmail(clean)}`;

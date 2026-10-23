@@ -65,7 +65,7 @@ export function hashesMatch(a: string, b: string): boolean {
  *  so a spoofed Host header cannot redirect the link somewhere else. */
 export function recoveryLink(token: string): string {
   const base = (
-    process.env.NEXT_PUBLIC_APP_URL ?? 'https://instant.nebkern.com'
+    process.env.NEXT_PUBLIC_APP_URL ?? 'https://dripo.nebkern.com'
   ).replace(/\/+$/, '');
   return `${base}/account-recovery/confirm?token=${encodeURIComponent(token)}`;
 }
@@ -88,10 +88,10 @@ export function deletionScheduledEmail(args: {
 }): { subject: string; html: string; text: string } {
   const when = args.purgeAt.toUTCString();
   const by = args.actorEmail ? ` by ${args.actorEmail}` : '';
-  const link = `${(process.env.NEXT_PUBLIC_APP_URL ?? 'https://instant.nebkern.com').replace(/\/+$/, '')}/account-recovery`;
+  const link = `${(process.env.NEXT_PUBLIC_APP_URL ?? 'https://dripo.nebkern.com').replace(/\/+$/, '')}/account-recovery`;
 
   return {
-    subject: `Your Instant account is scheduled for deletion`,
+    subject: `Your Dripo account is scheduled for deletion`,
     html: shell(`
       <p>Deletion of <strong>${args.accountName}</strong> was requested${by}.</p>
       <p>The account is now locked — nobody can sign in to it. Its data will
@@ -119,7 +119,7 @@ export function recoveryEmail(args: {
   const deadline = args.purgeAt.toUTCString();
 
   return {
-    subject: `Restore your Instant account`,
+    subject: `Restore your Dripo account`,
     html: shell(`
       <p>Someone asked to restore <strong>${args.accountName}</strong>.</p>
       <p><a href="${link}">Restore the account</a></p>

@@ -25,7 +25,7 @@ import { Btn } from './ui';
 // data for, and a page that prints one has to defend it.
 //
 // Fee *collection* is deliberately absent. Razorpay is wired for
-// Instant's own billing, not as a feature customers can charge their
+// Dripo's own billing, not as a feature customers can charge their
 // students with, so claiming it here would be inventing a product.
 // ============================================================
 
@@ -74,12 +74,12 @@ export function EducationHero() {
           </span>
 
           <h1 className="lp2-display mt-6 text-4xl leading-[1.08] font-extrabold text-balance sm:text-5xl">
-            Instant for Coaching &amp; Education
+            Dripo for Coaching &amp; Education
           </h1>
 
           <p className="mt-6 text-lg leading-relaxed text-pretty text-white/80 sm:text-xl">
             Admissions enquiries arrive at ten at night and go cold by
-            morning. Instant answers them while you sleep, moves each one
+            morning. Dripo answers them while you sleep, moves each one
             through your own admission stages, and sends the batch, exam
             and fee reminders nobody has time to type.
           </p>

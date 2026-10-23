@@ -100,7 +100,7 @@ export interface PlanTier {
   features: string[];
 }
 
-// Mirrors the Instant pricing book (src/lib/marketing/pricing-data.ts +
+// Mirrors the Dripo pricing book (src/lib/marketing/pricing-data.ts +
 // migration 088). The live, sellable numbers come from the billing_plans
 // DB table; this static catalog is a lightweight display fallback.
 export const PLAN_TIERS: PlanTier[] = [

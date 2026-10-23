@@ -3,7 +3,7 @@
   "type": "webhooks",
   "config": {
     "settings": {
-      "targetUrl": "https://instant.nebkern.com/api/integrations/hubspot/webhook",
+      "targetUrl": "https://dripo.nebkern.com/api/integrations/hubspot/webhook",
       "maxConcurrentRequests": 10
     },
     "subscriptions": {

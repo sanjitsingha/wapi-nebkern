@@ -1,7 +1,7 @@
 // ============================================================
 // Automatic sync through Zoho's Notification API (server only).
 //
-// Instead of asking the admin to build a Workflow Rule, Instant
+// Instead of asking the admin to build a Workflow Rule, Dripo
 // subscribes a "channel" at connect time: Zoho then POSTs to our
 // webhook URL whenever a watched record is created or edited.
 //
@@ -157,7 +157,7 @@ interface WatchResponse {
 function explain(error: string | undefined, code?: string): string {
   const text = `${code ?? ''} ${error ?? ''}`;
   if (/scope/i.test(text)) {
-    return 'Reconnect Zoho to allow automatic sync — this connection was made before Instant asked for notification access.';
+    return 'Reconnect Zoho to allow automatic sync — this connection was made before Dripo asked for notification access.';
   }
   if (/not.*(available|supported)|edition|feature/i.test(text)) {
     return 'Your Zoho edition does not support automatic sync. Use a Workflow Rule instead.';

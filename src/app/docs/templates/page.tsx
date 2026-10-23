@@ -11,7 +11,7 @@ import {
 
 export const metadata: Metadata = {
   title: 'Message templates',
-  description: "Message templates in Instant: Categories, variables, buttons, and the Meta approval process. A step-by-step guide for teams selling on WhatsApp.",
+  description: "Message templates in Dripo: Categories, variables, buttons, and the Meta approval process. A step-by-step guide for teams selling on WhatsApp.",
   alternates: { canonical: '/docs/templates' },
 };
 
@@ -29,7 +29,7 @@ export default function TemplatesDocsPage() {
           WhatsApp requires any message you send outside the 24-hour customer
           reply window — and every bulk{' '}
           <Link href="/docs/campaigns">campaign</Link> message — to use a
-          template that Meta has reviewed and approved in advance. Instant&apos;s
+          template that Meta has reviewed and approved in advance. Dripo&apos;s
           template builder puts that structure together for you and submits
           it for review.
         </p>
