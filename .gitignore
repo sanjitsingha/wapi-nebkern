@@ -49,3 +49,6 @@ next-env.d.ts
 # Supabase CLI local state (not for version control)
 supabase/.temp/
 supabase/.branches/
+
+# HubSpot config file
+hubspot.config.yml
