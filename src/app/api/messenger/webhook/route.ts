@@ -1,10 +1,15 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 
 import { decrypt, encrypt, isLegacyFormat } from '@/lib/whatsapp/encryption'
 import { verifyMetaWebhookSignature } from '@/lib/whatsapp/webhook-signature'
 import { isUniqueViolation } from '@/lib/contacts/dedupe'
 import { supabaseAdmin } from '@/lib/flows/admin-client'
-import { getMessengerSenderName, hasPlaceholderName } from '@/lib/meta/sender-profile'
+import { saveContactAvatar } from '@/lib/contacts/avatar'
+import {
+  getMessengerSenderName,
+  getMessengerSenderPicture,
+  hasPlaceholderName,
+} from '@/lib/meta/sender-profile'
 
 // Structural mirror of src/app/api/instagram/webhook/route.ts, one
 // channel over — same Messenger Platform payload shape, same
@@ -161,6 +166,10 @@ async function processWebhook(body: { object?: string; entry?: MessengerWebhookE
   // delivery can never be ingested here as a Messenger thread.
   if (body.object && body.object !== 'page') return
 
+  // One picture download per contact, however many of their messages
+  // arrive in this delivery.
+  const avatarsQueued = new Set<string>()
+
   for (const entry of body.entry) {
     for (const event of entry.messaging ?? []) {
       if (!event.message) continue // delivery/read/postback — out of scope
@@ -226,6 +235,24 @@ async function processWebhook(body: { object?: string; entry?: MessengerWebhookE
         lookupName,
       )
       if (!contact) continue
+
+      // No picture yet: fetch and store one once Meta has its 200, so
+      // the lookup and download never hold up the message. Best effort —
+      // if it doesn't land, the next message tries again.
+      if (!contact.avatar_url && !avatarsQueued.has(contact.id)) {
+        avatarsQueued.add(contact.id)
+        const contactId = contact.id
+        after(async () => {
+          let pageAccessToken: string
+          try {
+            pageAccessToken = decrypt(config.access_token)
+          } catch {
+            return
+          }
+          const url = await getMessengerSenderPicture({ psid: senderId, pageAccessToken })
+          if (url) await saveContactAvatar({ accountId, contactId, sourceUrl: url })
+        })
+      }
 
       const conversation = await findOrCreateMessengerConversation(
         accountId,

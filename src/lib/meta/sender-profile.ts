@@ -76,6 +76,48 @@ export async function getInstagramSenderName(args: {
   return text(profile.name) || (username ? `@${username}` : null);
 }
 
+/** A profile picture link, if the profile holds a usable one. */
+function pictureUrl(profile: Record<string, unknown> | null): string | null {
+  const url = text(profile?.profile_pic);
+  return url.startsWith('https://') ? url : null;
+}
+
+/**
+ * A Messenger sender's profile picture: a signed Meta CDN link that
+ * stops working within days, so store a copy rather than the link
+ * (lib/contacts/avatar.ts). Asked for on its own, not alongside the
+ * name, so a refusal here can never cost the contact its name.
+ */
+export async function getMessengerSenderPicture(args: {
+  psid: string;
+  pageAccessToken: string;
+}): Promise<string | null> {
+  const params = new URLSearchParams({ fields: 'profile_pic', access_token: args.pageAccessToken });
+  return pictureUrl(
+    await getProfile(
+      `https://graph.facebook.com/${META_API_VERSION}/${encodeURIComponent(args.psid)}?${params.toString()}`,
+      'getMessengerSenderPicture',
+    ),
+  );
+}
+
+/** An Instagram sender's profile picture — as above, and on the same
+ *  host choice as getInstagramSenderName. */
+export async function getInstagramSenderPicture(args: {
+  igsid: string;
+  accessToken: string;
+  viaPage: boolean;
+}): Promise<string | null> {
+  const host = args.viaPage ? 'graph.facebook.com' : 'graph.instagram.com';
+  const params = new URLSearchParams({ fields: 'profile_pic', access_token: args.accessToken });
+  return pictureUrl(
+    await getProfile(
+      `https://${host}/${META_API_VERSION}/${encodeURIComponent(args.igsid)}?${params.toString()}`,
+      'getInstagramSenderPicture',
+    ),
+  );
+}
+
 /**
  * Whether a contact still carries the placeholder name the webhook gave
  * it (the raw sender id, or nothing) — the only names a lookup may

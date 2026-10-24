@@ -1,10 +1,15 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 
 import { decrypt, encrypt, isLegacyFormat } from '@/lib/whatsapp/encryption'
 import { verifyMetaWebhookSignature } from '@/lib/whatsapp/webhook-signature'
 import { isUniqueViolation } from '@/lib/contacts/dedupe'
 import { supabaseAdmin } from '@/lib/flows/admin-client'
-import { getInstagramSenderName, hasPlaceholderName } from '@/lib/meta/sender-profile'
+import { saveContactAvatar } from '@/lib/contacts/avatar'
+import {
+  getInstagramSenderName,
+  getInstagramSenderPicture,
+  hasPlaceholderName,
+} from '@/lib/meta/sender-profile'
 
 // Every DB write in this route goes through the service-role admin
 // client (supabaseAdmin) — a webhook request has no authenticated user
@@ -160,6 +165,9 @@ export async function POST(request: Request) {
 
 async function processWebhook(body: { entry?: InstagramWebhookEntry[] }) {
   if (!body.entry) return
+  // One picture download per contact, however many of their messages
+  // arrive in this delivery.
+  const avatarsQueued = new Set<string>()
 
   for (const entry of body.entry) {
     for (const event of entry.messaging ?? []) {
@@ -216,6 +224,28 @@ async function processWebhook(body: { entry?: InstagramWebhookEntry[] }) {
         lookupName,
       )
       if (!contact) continue
+
+      // No picture yet: fetch and store one once Meta has its 200, so
+      // the lookup and download never hold up the message. Best effort —
+      // if it doesn't land, the next message tries again.
+      if (!contact.avatar_url && !avatarsQueued.has(contact.id)) {
+        avatarsQueued.add(contact.id)
+        const contactId = contact.id
+        after(async () => {
+          let accessToken: string
+          try {
+            accessToken = decrypt(config.access_token)
+          } catch {
+            return
+          }
+          const url = await getInstagramSenderPicture({
+            igsid: senderId,
+            accessToken,
+            viaPage: Boolean(config.page_id),
+          })
+          if (url) await saveContactAvatar({ accountId, contactId, sourceUrl: url })
+        })
+      }
 
       const conversation = await findOrCreateInstagramConversation(
         accountId,

@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getInstagramSenderName, getMessengerSenderName, hasPlaceholderName } from './sender-profile';
+import {
+  getInstagramSenderName,
+  getInstagramSenderPicture,
+  getMessengerSenderName,
+  getMessengerSenderPicture,
+  hasPlaceholderName,
+} from './sender-profile';
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -55,6 +61,31 @@ describe('getInstagramSenderName', () => {
   it('returns null when the profile has neither', async () => {
     fetchMock.mockResolvedValueOnce(json({ id: '987' }));
     expect(await getInstagramSenderName({ igsid: '987', accessToken: 'tok', viaPage: true })).toBeNull();
+  });
+});
+
+describe('sender pictures', () => {
+  const PIC = 'https://scontent.xx.fbcdn.net/v/t1/abc.jpg?oh=1&oe=2';
+
+  it('reads a Messenger sender’s profile_pic, asking for nothing else', async () => {
+    fetchMock.mockResolvedValueOnce(json({ profile_pic: PIC, id: '123' }));
+    expect(await getMessengerSenderPicture({ psid: '123', pageAccessToken: 'tok' })).toBe(PIC);
+    const [url] = fetchMock.mock.calls[0];
+    expect(url).toContain('graph.facebook.com/v21.0/123?');
+    expect(url).toContain('fields=profile_pic&');
+  });
+
+  it('reads an Instagram sender’s picture on the same host as their name', async () => {
+    fetchMock.mockResolvedValueOnce(json({ profile_pic: PIC }));
+    expect(await getInstagramSenderPicture({ igsid: '987', accessToken: 'tok', viaPage: false })).toBe(PIC);
+    expect(fetchMock.mock.calls[0][0]).toContain('https://graph.instagram.com/v21.0/987?');
+  });
+
+  it('returns null when Meta refuses or the link is not https', async () => {
+    fetchMock.mockResolvedValueOnce(json({ error: { message: 'no permission' } }, 400));
+    expect(await getMessengerSenderPicture({ psid: '123', pageAccessToken: 'tok' })).toBeNull();
+    fetchMock.mockResolvedValueOnce(json({ profile_pic: 'http://insecure.example/a.jpg' }));
+    expect(await getInstagramSenderPicture({ igsid: '987', accessToken: 'tok', viaPage: true })).toBeNull();
   });
 });
 
