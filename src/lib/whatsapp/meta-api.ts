@@ -972,6 +972,12 @@ export async function debugAccessToken(args: {
  * Every WABA the token reaches through the businesses it belongs to,
  * owned and shared with it as a client. The fallback when debug_token
  * names no WABA: a user or admin token with blanket access.
+ *
+ * A user token lists its businesses on /me/businesses. A system user's
+ * comes back empty there — and debug_token names no WABA for it either,
+ * its access coming from asset assignment rather than a consent dialog
+ * — so the businesses that own the Pages it manages stand in. A system
+ * user belongs to one business, and that business owns what it is given.
  */
 export async function listBusinessWabas(args: { accessToken: string }): Promise<WabaInfo[]> {
   const { accessToken } = args
@@ -982,12 +988,13 @@ export async function listBusinessWabas(args: { accessToken: string }): Promise<
   if (!bizRes.ok) {
     await throwMetaError(bizRes, `Meta API error: ${bizRes.status}`)
   }
-  const businesses = ((await bizRes.json()) as { data?: { id: string }[] }).data ?? []
+  let businessIds = (((await bizRes.json()) as { data?: { id: string }[] }).data ?? []).map((b) => b.id)
+  if (businessIds.length === 0) businessIds = await pageBusinessIds(headers)
 
   const found = new Map<string, WabaInfo>()
-  for (const biz of businesses) {
+  for (const bizId of businessIds) {
     for (const edge of ['owned_whatsapp_business_accounts', 'client_whatsapp_business_accounts']) {
-      const res = await metaFetch(`${META_API_BASE}/${biz.id}/${edge}?fields=id,name&limit=50`, { headers }, {
+      const res = await metaFetch(`${META_API_BASE}/${bizId}/${edge}?fields=id,name&limit=50`, { headers }, {
         op: 'listBusinessWabas',
       })
       // One business without the permission shouldn't hide the others.
@@ -998,6 +1005,24 @@ export async function listBusinessWabas(args: { accessToken: string }): Promise<
     }
   }
   return [...found.values()]
+}
+
+/**
+ * The businesses that own the Pages a token manages. Only `business{id}`
+ * is asked for: the edge's default fields include each Page's own
+ * access token. Empty, never an error, when there are none to see.
+ */
+async function pageBusinessIds(headers: Record<string, string>): Promise<string[]> {
+  try {
+    const res = await metaFetch(`${META_API_BASE}/me/accounts?fields=business{id}&limit=25`, { headers }, {
+      op: 'listPageBusinesses',
+    })
+    if (!res.ok) return []
+    const pages = ((await res.json()) as { data?: { business?: { id?: string } }[] }).data ?? []
+    return [...new Set(pages.map((p) => p.business?.id).filter((id): id is string => !!id))]
+  } catch {
+    return []
+  }
 }
 
 // ============================================================

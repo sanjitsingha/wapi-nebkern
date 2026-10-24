@@ -23,7 +23,16 @@ import {
 } from './meta-api'
 
 /** A problem the person connecting can fix; its message is shown as-is. */
-export class ConnectFlowError extends Error {}
+export class ConnectFlowError extends Error {
+  /** 'no_waba': the token reached no WhatsApp Business Account on its
+   *  own — the form then asks for the account's ID. */
+  code?: 'no_waba'
+
+  constructor(message: string, code?: 'no_waba') {
+    super(message)
+    this.code = code
+  }
+}
 
 /** Meta two-step PINs are six digits. */
 export function generateRegistrationPin(): string {
@@ -102,8 +111,11 @@ export async function discoverPhoneNumbers(args: {
   accessToken: string
   appId?: string
   appSecret?: string
+  /** Look in this WhatsApp Business Account instead of finding them —
+   *  for a token whose accounts can't be found from the token alone. */
+  wabaId?: string
 }): Promise<DiscoveryResult> {
-  const { accessToken, appId, appSecret } = args
+  const { accessToken, appId, appSecret, wabaId } = args
 
   const debug = await inspectToken(accessToken, appId, appSecret)
   if (debug && !debug.isValid) {
@@ -112,7 +124,7 @@ export async function discoverPhoneNumbers(args: {
     )
   }
 
-  let wabas: WabaInfo[] = (debug?.wabaIds ?? []).map((id) => ({ id }))
+  let wabas: WabaInfo[] = wabaId ? [{ id: wabaId }] : (debug?.wabaIds ?? []).map((id) => ({ id }))
   if (wabas.length === 0) {
     try {
       wabas = await listBusinessWabas({ accessToken })
@@ -126,7 +138,8 @@ export async function discoverPhoneNumbers(args: {
   }
   if (wabas.length === 0) {
     throw new ConnectFlowError(
-      "This token can't see any WhatsApp Business Account. In Meta Business Settings, give the token's system user your WhatsApp account with the whatsapp_business_management and whatsapp_business_messaging permissions, then generate the token again.",
+      "Dripo couldn't find a WhatsApp Business Account from this token alone. Enter the account's ID below and Dripo will look inside it.",
+      'no_waba',
     )
   }
 
@@ -136,7 +149,15 @@ export async function discoverPhoneNumbers(args: {
         waba.name
           ? Promise.resolve(waba)
           : getWabaInfo({ wabaId: waba.id, accessToken }).catch(() => waba),
-        getWabaPhoneNumbers({ wabaId: waba.id, accessToken }).catch(() => []),
+        getWabaPhoneNumbers({ wabaId: waba.id, accessToken }).catch(() => {
+          // Found by discovery, one unreadable account shouldn't hide the
+          // rest. Typed in by the person, it is the whole answer. (Meta's
+          // own error is in the server log via metaFetch.)
+          if (!wabaId) return []
+          throw new ConnectFlowError(
+            `This token can't open WhatsApp Business Account ${wabaId}. Check the ID, and that the token's system user has that account with full control.`,
+          )
+        }),
       ])
       return phones.map(
         (p): DiscoveredNumber => ({

@@ -453,6 +453,10 @@ function ConnectWithToken({ onConnected, onBack }: { onConnected: () => void; on
   const [showToken, setShowToken] = useState(false);
   const [finding, setFinding] = useState(false);
   const [findError, setFindError] = useState<string | null>(null);
+  // Some tokens (a system user's, usually) can't name their WhatsApp
+  // account; the lookup then asks for its ID and looks inside it.
+  const [needsWabaId, setNeedsWabaId] = useState(false);
+  const [wabaId, setWabaId] = useState('');
   const [numbers, setNumbers] = useState<DiscoveredNumber[] | null>(null);
   const [sameApp, setSameApp] = useState<boolean | null>(null);
   const [selected, setSelected] = useState('');
@@ -466,11 +470,15 @@ function ConnectWithToken({ onConnected, onBack }: { onConnected: () => void; on
       const res = await fetch('/api/whatsapp/config/discover', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: token.trim() }),
+        body: JSON.stringify({
+          access_token: token.trim(),
+          ...(needsWabaId && wabaId.trim() ? { waba_id: wabaId.trim() } : {}),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setFindError(data.error || 'Could not look up numbers for that token.');
+        if (data.code === 'no_waba') setNeedsWabaId(true);
         return;
       }
       const found = (data.numbers ?? []) as DiscoveredNumber[];
@@ -538,6 +546,7 @@ function ConnectWithToken({ onConnected, onBack }: { onConnected: () => void; on
                 setToken(e.target.value);
                 setNumbers(null);
                 setFindError(null);
+                setNeedsWabaId(false);
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && token.trim() && !finding) void findNumbers();
@@ -561,6 +570,37 @@ function ConnectWithToken({ onConnected, onBack }: { onConnected: () => void; on
         {findError && <p className="text-sm text-red-700">{findError}</p>}
       </div>
 
+      {needsWabaId && (
+        <div className="space-y-2">
+          <Label htmlFor="wa-waba-id">WhatsApp Business Account ID</Label>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              id="wa-waba-id"
+              inputMode="numeric"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="1234567890123456"
+              value={wabaId}
+              onChange={(e) => {
+                setWabaId(e.target.value);
+                setNumbers(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && wabaId.trim() && !finding) void findNumbers();
+              }}
+              className="h-10 flex-1 font-mono text-sm"
+            />
+            <Button onClick={findNumbers} disabled={!wabaId.trim() || finding} className="h-10">
+              {finding && <Loader2 className="size-4 animate-spin" />}
+              Find numbers
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            In Meta Business Settings → Accounts → WhatsApp accounts, under the account&apos;s name.
+          </p>
+        </div>
+      )}
+
       <details className="group rounded-lg border border-border px-4 py-3 text-sm">
         <summary className="flex cursor-pointer list-none items-center justify-between font-medium text-foreground">
           Where do I get a token?
@@ -583,7 +623,8 @@ function ConnectWithToken({ onConnected, onBack }: { onConnected: () => void; on
           <li>
             Click <strong className="text-foreground">Generate new token</strong>, choose your app, set
             expiry to <strong className="text-foreground">Never</strong>, and tick{' '}
-            <code>whatsapp_business_management</code> and <code>whatsapp_business_messaging</code>.
+            <code>whatsapp_business_management</code>, <code>whatsapp_business_messaging</code>{' '}
+            and <code>business_management</code>.
           </li>
           <li>Copy the token and paste it above.</li>
         </ol>

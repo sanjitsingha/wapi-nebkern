@@ -174,12 +174,71 @@ describe('discoverPhoneNumbers', () => {
     await expect(discoverPhoneNumbers({ accessToken: 't' })).rejects.toThrow(ConnectFlowError);
   });
 
-  it('explains when the token reaches no WhatsApp account', async () => {
+  it('finds a system user’s accounts through the business that owns its Pages', async () => {
+    // What Meta actually returns for a Business Settings system-user
+    // token: WhatsApp scopes with no targets, and no businesses on /me.
+    fetchMock = routeFetch([
+      [
+        '/debug_token',
+        () =>
+          json({
+            data: {
+              app_id: 'APP',
+              is_valid: true,
+              granular_scopes: [{ scope: 'whatsapp_business_management' }, { scope: 'business_management' }],
+            },
+          }),
+      ],
+      ['/me/businesses', () => json({ data: [] })],
+      ['/me/accounts', () => json({ data: [{ id: 'PG1', business: { id: 'B7' } }] })],
+      ['/B7/owned_whatsapp_business_accounts', () => json({ data: [{ id: 'W1', name: 'Nebkern' }] })],
+      ['/B7/client_whatsapp_business_accounts', () => json({ data: [] })],
+      ['/W1/phone_numbers', numbers],
+    ]);
+    vi.stubGlobal('fetch', fetchMock);
+    const out = await discoverPhoneNumbers({ accessToken: 't', appId: 'APP', appSecret: 's' });
+    expect(out.numbers.map((n) => [n.phoneNumberId, n.wabaId, n.wabaName])).toEqual([['P1', 'W1', 'Nebkern']]);
+    expect(out.sameApp).toBe(true);
+    // Only the business id is asked of the Pages edge — never its tokens.
+    const pagesCall = fetchMock.mock.calls.find(([url]) => String(url).includes('/me/accounts'));
+    expect(String(pagesCall?.[0])).toContain('fields=business{id}');
+  });
+
+  it('asks for the account ID when the token reaches no WhatsApp account', async () => {
     fetchMock = routeFetch([
       ['/debug_token', () => json({ data: { is_valid: true, granular_scopes: [] } })],
       ['/me/businesses', () => json({ data: [] })],
+      ['/me/accounts', () => json({ data: [] })],
     ]);
     vi.stubGlobal('fetch', fetchMock);
-    await expect(discoverPhoneNumbers({ accessToken: 't' })).rejects.toThrow(/can't see any WhatsApp Business Account/);
+    const err = await discoverPhoneNumbers({ accessToken: 't' }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ConnectFlowError);
+    expect((err as ConnectFlowError).code).toBe('no_waba');
+    expect((err as ConnectFlowError).message).toMatch(/couldn't find a WhatsApp Business Account/);
+  });
+
+  it('looks inside an account whose ID was typed in', async () => {
+    fetchMock = routeFetch([
+      ['/debug_token', () => json({ data: { app_id: 'APP', is_valid: true, granular_scopes: [] } })],
+      ['/W9/phone_numbers', numbers],
+      ['/W9?fields', () => json({ id: 'W9', name: 'Typed' })],
+    ]);
+    vi.stubGlobal('fetch', fetchMock);
+    const out = await discoverPhoneNumbers({ accessToken: 't', wabaId: 'W9' });
+    expect(out.numbers.map((n) => [n.phoneNumberId, n.wabaId, n.wabaName])).toEqual([['P1', 'W9', 'Typed']]);
+    // No discovery once the account is named.
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/me/businesses'))).toBe(false);
+  });
+
+  it('says so when the token cannot open the typed-in account', async () => {
+    fetchMock = routeFetch([
+      ['/debug_token', () => json({ data: { is_valid: true, granular_scopes: [] } })],
+      ['/W9/phone_numbers', () => json({ error: { message: 'Unsupported get request.', code: 100 } }, 400)],
+      ['/W9?fields', () => json({ error: { message: 'Unsupported get request.', code: 100 } }, 400)],
+    ]);
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(discoverPhoneNumbers({ accessToken: 't', wabaId: 'W9' })).rejects.toThrow(
+      /can't open WhatsApp Business Account W9/,
+    );
   });
 });
